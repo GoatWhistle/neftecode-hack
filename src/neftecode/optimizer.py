@@ -73,16 +73,26 @@ class CandidateGenerator:
         tanks = self.scenario.available_tanks()
         if not tanks:
             raise OptimizerError("Нет доступных резервуаров: смешивать нечего")
-        recipe = {t.tank_id: (1.0 if i == 0 else 0.0) for i, t in enumerate(tanks)}
-        throughput = min(t.max_outflow.value for t in tanks[:1])
-        return Candidate("hold", controls, recipe, throughput, 0.0, changes=0)
+        operation = self.scenario.current_operation
+        recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in self.scenario.tanks}
+        return Candidate("hold", controls, recipe, operation.throughput.value, 0.0, changes=0)
 
     def _throughputs(self) -> list[float]:
-        tanks = self.scenario.available_tanks()
-        top = sum(t.max_outflow.value for t in tanks)
-        steps = int(top // self.throughput_step_tph)
-        values = [round(self.throughput_step_tph * i, 6) for i in range(1, steps + 1)]
-        return values or [top]
+        """Current output and below, never above.
+
+        Raising output is a commercial decision the advisor is not making: its job is to keep
+        quality, and lowering throughput is the lever the brief names for that (a smaller run
+        instead of a load increase that is not available). Proposing more output would also
+        manufacture a "gain" in every comparison and drown the hold candidate.
+        """
+        current = self.scenario.current_operation.throughput.value
+        floor = current * float(self.scenario.policy.get("min_throughput_fraction", 0.5))
+        values = []
+        value = current
+        while value >= floor - 1e-9:
+            values.append(round(value, 6))
+            value -= self.throughput_step_tph
+        return sorted(values) or [current]
 
     def _control_options(self) -> list[dict[str, float]]:
         """Setpoint sets: the current one, plus one declared step on ONE control at a time.
@@ -128,7 +138,7 @@ class CandidateGenerator:
                    if r is not None]
         base_recipe = recipes[0]
         throughputs = self._throughputs()
-        base_throughput = throughputs[-1]
+        base_throughput = self.scenario.current_operation.throughput.value
         control_sets = self._control_options() if allow_control_moves else [dict(base_controls)]
 
         layers = [
@@ -140,8 +150,9 @@ class CandidateGenerator:
              [(r, base_throughput, dict(base_controls), d)
               for r in recipes for d in doses if d > 0]),
         ]
-        candidates: list[Candidate] = [self.current()]
-        seen = {self._signature(candidates[0])}
+        hold = self.current()
+        candidates: list[Candidate] = [hold]
+        seen = {self._signature(hold)}
         exhausted, covered = False, []
         for name, combinations in layers:
             added = 0
@@ -149,8 +160,13 @@ class CandidateGenerator:
                 if len(candidates) >= self.budget:
                     exhausted = True
                     break
+                # Changing the blend or the throughput IS a change: a plan that reworks the
+                # recipe is not "keeping the regime", however still its setpoints are.
                 changes = sum(1 for key, value in controls.items()
-                              if abs(value - base_controls[key]) > 1e-9) + (0 if dose == 0 else 1)
+                              if abs(value - base_controls[key]) > 1e-9)
+                changes += 0 if dose == 0 else 1
+                changes += 0 if self._same_recipe(recipe, hold.recipe) else 1
+                changes += 0 if abs(throughput - hold.throughput_tph) < 1e-9 else 1
                 candidate = Candidate(f"c{len(candidates):04d}", dict(controls), recipe,
                                       throughput, dose, changes)
                 signature = self._signature(candidate)
@@ -168,6 +184,11 @@ class CandidateGenerator:
                 "claim": "Перебор ограничен бюджетом и шагом сетки. Глобальная оптимальность "
                          "не заявляется: результат — лучший из рассмотренных вариантов."}
         return candidates, info
+
+    @staticmethod
+    def _same_recipe(a: dict, b: dict) -> bool:
+        keys = set(a) | set(b)
+        return all(abs(a.get(k, 0.0) - b.get(k, 0.0)) < 1e-9 for k in keys)
 
     @staticmethod
     def _signature(candidate: Candidate) -> tuple:

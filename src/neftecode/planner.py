@@ -171,7 +171,14 @@ class Planner:
         ledger = InventoryLedger(self.scenario)
         ledger_steps = [(s.time_hours, s.recipe, s.throughput_tph) for s in plan.steps]
         stock = ledger.run_plan(ledger_steps)
-        pending = tuple(confirmed) + tuple((s.time_hours, s.controls) for s in plan.steps)
+        # A plan step carries its DELTA from the scenario baseline, not a full set of setpoints.
+        # Otherwise a plan that does not touch a control would silently revert a correction the
+        # operator has already confirmed.
+        baseline = self.base_controls()
+        deltas = tuple((step.time_hours,
+                        {k: v for k, v in step.controls.items() if abs(v - baseline[k]) > 1e-9})
+                       for step in plan.steps)
+        pending = tuple(confirmed) + tuple((t, d) for t, d in deltas if d)
 
         trajectory: list[TrajectoryStep] = []
         costs = []
@@ -197,8 +204,7 @@ class Planner:
             inventories = self._inventories_at(stock, time_hours)
             reasons = self._reasons_at(stock, time_hours)
             trajectory.append(TrajectoryStep(
-                time_hours, qualities, self.chain.hydrotreating.effective_controls(
-                    time_hours, self.base_controls(), pending) | self._avt_controls(spec),
+                time_hours, qualities, self._effective_controls(time_hours, pending),
                 inventories, spec.recipe, spec.throughput_tph, spec.additive_dose,
                 stream.applicability, reasons))
             costs.append(self.economics.step_cost(
@@ -215,6 +221,19 @@ class Planner:
                       plan.steps[0].throughput_tph, plan.steps[0].additive_dose, plan.changes),
             gate, summary["production_t"], summary["cost_per_tonne"],
             max(known) if known else None)
+
+    def _effective_controls(self, time_hours: float, pending) -> dict[str, float]:
+        """Setpoints actually acting at this time: the baseline updated by what is in effect."""
+        controls = dict(self.base_controls())
+        avt_lag = self.scenario.stages["avt"].response_lag_hours.value
+        ht_lag = self.scenario.stages["hydrotreating"].response_lag_hours.value
+        avt_names = set(self.scenario.stages["avt"].controls)
+        for at, moves in sorted(pending, key=lambda item: item[0]):
+            for name, value in moves.items():
+                lag = avt_lag if name in avt_names else ht_lag
+                if at + lag <= time_hours + 1e-9:
+                    controls[name] = value
+        return controls
 
     def _main_id(self) -> str:
         return self.scenario.available_tanks()[0].tank_id
