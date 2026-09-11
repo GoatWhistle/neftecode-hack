@@ -1,0 +1,30 @@
+PAGE 1
+crude_feed_rate_tph
+crude_density_kgm3
+crude_sulfur_wt_pct
+crude_water_wt_pct
+avt_furnace_outlet_temp_c
+avt_column_top_temp_c
+avt_column_pressure_mpa_abs
+steam_t
+управляемые переменные
+PAGE 2
+avt_column_pressure_mpa_abs
+avt_furnace_outlet_temp_c
+avt_diesel_flow_tph
+avt_diesel_flow_tph
+avt_diesel_flow_tph
+avt_diesel_sulfur_mgkg
+avt_diesel_density_kgm3
+avt_diesel_t95_c
+управляемые переменные
+PAGE 3
+avt_column_pressure_mpa_abs
+avt_furnace_outlet_temp_c
+ht_feed_flow_m3h
+avt_diesel_flow_tph
+ht_pressure_mpa
+avt_diesel_flow_tph
+avt_diesel_flow_tph
+steam_t
+управляемые переменные
