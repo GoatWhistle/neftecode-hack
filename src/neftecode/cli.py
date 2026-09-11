@@ -13,6 +13,7 @@ from .data import load_sources, make_dataset
 from .forecast import run_experiment
 from .risk import run_risk_experiment
 from .runtime import decision_at, validate_origin
+from .vak import check_all
 
 
 def clean(value):
@@ -194,7 +195,7 @@ def make_report(out, demos):
 
 def main():
     parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise"])
+    parser.add_argument("command", choices=["train", "demo", "advise", "vak"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
@@ -207,6 +208,13 @@ def main():
         if args.command == "train":
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
+        elif args.command == "vak":
+            signals, _, _ = load_sources(root / "task")
+            report = check_all(root / "task", signals)
+            write_json(out / "vak_check.json", report)
+            print(f"Разобрано формул: {len(report['formulas'])}; итог проверки: {report['summary']}")
+            print(f"Принято как оценка качества: {report['adopted_as_quality_estimate'] or 'ни одной'}")
+            print(f"Журнал: {out / 'vak_check.json'}")
         elif args.command == "advise":
             if not args.at:
                 parser.error("Для advise нужен --at с местным временем решения")
