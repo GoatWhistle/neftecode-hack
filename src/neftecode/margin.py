@@ -7,7 +7,7 @@ longer forecast from this evidence would not be honest.
 import numpy as np
 import pandas as pd
 
-from .batch import batch_average, classify_episodes, excursion_episodes
+from .batch import DURATION_RULE, batch_average, classify_episodes, excursion_episodes
 
 
 def trend_margin(readings, at, limit: float, window_hours: float = 8,
@@ -86,48 +86,98 @@ def margin_series(readings, limit: float, batch_window_hours: float = 8,
     return frame
 
 
-def lead_times(readings, alarms, limit: float, sustained_hours: float = 4,
-               max_lead_hours: float = 24, total_readings: int | None = None) -> dict:
-    """How many hours before each sustained excursion the first alarm appeared.
+def alarm_events(stamps, rearm_hours: float = 1.0) -> pd.DatetimeIndex:
+    """Collapse a run of consecutive alarm readings into the notifications an operator sees.
 
-    Reported together with alarm burden on purpose: a rule that alarms all the time
-    scores a perfect lead time and is useless to an operator.
+    A flag that stays raised for six hours is one alarm, not thirty-six. Counting timestamps
+    as alarms was what made the earlier burden figures meaningless.
+    """
+    stamps = pd.DatetimeIndex(stamps).sort_values()
+    if not len(stamps):
+        return stamps
+    gap = stamps.to_series().diff()
+    starts = gap.isna() | (gap > pd.Timedelta(hours=rearm_hours))
+    return pd.DatetimeIndex(stamps[starts.to_numpy()])
+
+
+def lead_times(readings, alarms, limit: float, sustained_hours: float = 4,
+               max_lead_hours: float = 24, total_readings: int | None = None,
+               rearm_hours: float = 1.0, alarm_period: tuple | None = None) -> dict:
+    """How early the first alarm appeared before each sustained excursion.
+
+    Four outcomes are kept apart instead of being merged into one "detected" count:
+
+    * **early** — an alarm event before the episode started; only these carry a lead time;
+    * **late** — the first alarm event appeared after the episode had already begun;
+    * **missed** — no alarm event in the matching window at all;
+    * **unknown** — the episode falls outside the alarm record, so nothing can be said.
+
+    Each alarm event is assigned to at most one episode, earliest first, so one alarm can no
+    longer be credited to several excursions.
     """
     episodes = classify_episodes(excursion_episodes(readings, limit), sustained_hours)
     episodes = episodes[episodes.kind == "sustained"].reset_index(drop=True)
-    stamps = pd.DatetimeIndex(alarms).sort_values()
-    rows, matched = [], np.zeros(len(stamps), bool)
-    for row in episodes.itertuples():
-        window = (stamps >= row.start - pd.Timedelta(hours=max_lead_hours)) & (stamps <= row.end)
-        matched |= window
+    events = alarm_events(alarms, rearm_hours)
+    used = np.zeros(len(events), bool)
+    covered = np.zeros(len(events), bool)
+    # The period the detector actually ran over. Absence of an alarm outside it is absence of
+    # knowledge, not absence of risk, so those episodes become `unknown` rather than `missed`.
+    if alarm_period is not None:
+        record_start, record_end = pd.Timestamp(alarm_period[0]), pd.Timestamp(alarm_period[1])
+    else:
+        record_start = record_end = None
+    rows = []
+    for row in episodes.sort_values("start").itertuples():
+        outside = record_start is not None and not (record_start <= row.start <= record_end)
+        if outside:
+            rows.append({"start": row.start, "duration_hours": row.duration_hours,
+                         "outcome": "unknown", "lead_hours": None, "first_alarm": None})
+            continue
+        window = ((events >= row.start - pd.Timedelta(hours=max_lead_hours)) &
+                  (events <= row.end) & ~used)
+        covered |= ((events >= row.start - pd.Timedelta(hours=max_lead_hours)) & (events <= row.end))
         if not window.any():
             rows.append({"start": row.start, "duration_hours": row.duration_hours,
-                         "detected": False, "lead_hours": None})
+                         "outcome": "missed", "lead_hours": None, "first_alarm": None})
             continue
-        first = stamps[window][0]
-        rows.append({"start": row.start, "duration_hours": row.duration_hours, "detected": True,
-                     "first_alarm": first,
-                     "lead_hours": float((row.start - first).total_seconds() / 3600)})
+        index = int(np.argmax(window))
+        used[index] = True
+        first = events[index]
+        lead = float((row.start - first).total_seconds() / 3600)
+        rows.append({"start": row.start, "duration_hours": row.duration_hours,
+                     "outcome": "early" if lead > 0 else "late",
+                     "lead_hours": lead if lead > 0 else None,
+                     "late_by_hours": None if lead > 0 else float(-lead),
+                     "first_alarm": first})
     frame = pd.DataFrame(rows)
-    detected = frame[frame.detected] if len(frame) else frame
-    early = detected[detected.lead_hours > 0] if len(detected) else detected
+    counts = frame.outcome.value_counts().to_dict() if len(frame) else {}
+    early = frame[frame.outcome == "early"] if len(frame) else frame
     return {
         "episodes": int(len(frame)),
-        "detected": int(len(detected)),
-        "detected_before_start": int(len(early)),
+        "early": int(counts.get("early", 0)),
+        "late": int(counts.get("late", 0)),
+        "missed": int(counts.get("missed", 0)),
+        "unknown": int(counts.get("unknown", 0)),
         "median_lead_hours": float(early.lead_hours.median()) if len(early) else None,
         "max_lead_hours_seen": float(early.lead_hours.max()) if len(early) else None,
-        "alarms": int(len(stamps)),
-        "alarms_outside_any_episode": int((~matched).sum()),
+        "alarm_readings": int(len(pd.DatetimeIndex(alarms))),
+        "alarm_events": int(len(events)),
+        "rearm_hours": float(rearm_hours),
+        "alarm_period": None if record_start is None else [str(record_start), str(record_end)],
+        "alarm_events_outside_matching_windows": int((~covered).sum()),
         # Lead time alone is gamed by alarming constantly; burden must be read next to it.
-        "alarms_per_detected_episode": float(len(stamps) / len(detected)) if len(detected) else None,
-        "alarm_share_of_record": float(len(stamps) / total_readings) if total_readings else None,
-        "per_episode": frame.assign(
-            start=frame.start.astype(str) if len(frame) else frame.get("start"),
-            first_alarm=frame.first_alarm.astype(str) if "first_alarm" in frame else None,
-        ).to_dict("records") if len(frame) else [],
-        "scope": f"Устойчивым считается превышение дольше {sustained_hours:g} ч. "
-                 f"Тревога засчитывается, если она не раньше чем за {max_lead_hours:g} ч до начала. "
-                 "Упреждение читается только вместе с нагрузкой: правило, которое держит тревогу постоянно, "
-                 "получает идеальное упреждение и бесполезно. Тревоги вне эпизодов не обязательно ошибочны.",
+        "alarm_events_per_early_episode": float(len(events) / len(early)) if len(early) else None,
+        "alarm_reading_share_of_record": (float(len(pd.DatetimeIndex(alarms)) / total_readings)
+                                          if total_readings else None),
+        "per_episode": ([{**r, "start": str(r["start"]),
+                          "first_alarm": None if r["first_alarm"] is None else str(r["first_alarm"])}
+                         for r in rows] if rows else []),
+        "scope": f"Устойчивым считается превышение дольше {sustained_hours:g} ч по единому соглашению "
+                 f"о длительности ({DURATION_RULE}). Окно сопоставления {max_lead_hours:g} ч — "
+                 "диагностический просмотр назад, а не горизонт прогноза. Каждое событие тревоги "
+                 "засчитывается не более чем одному эпизоду. Упреждение считается только по ранним "
+                 "срабатываниям; поздние и пропущенные показаны отдельно. Эпизод вне записи тревог "
+                 "получает статус unknown, а не «пропущен». Событие вне окон сопоставления "
+                 "не обязательно ошибочно. Число отсчётов с поднятым флагом не равно числу "
+                 "уведомлений оператору.",
     }

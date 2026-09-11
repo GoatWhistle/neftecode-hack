@@ -21,6 +21,23 @@ def _as_series(readings) -> pd.Series:
     return series.astype(float)
 
 
+#: One convention for every episode: each reading is taken to represent its own sampling
+#: interval, so an episode of `n` readings lasts `n * step`. The earlier code gave a single
+#: reading one interval but a run only the span between its first and last stamp, which made
+#: short and long episodes incomparable. See context/idea-review.md, section 3.
+DURATION_RULE = ("Длительность эпизода = число отсчётов, умноженное на типичный шаг ряда. "
+                 "Каждый отсчёт представляет свой интервал опроса. Соглашение одно для эпизодов "
+                 "любой длины; фактические моменты перехода в данных неизвестны.")
+
+
+def sampling_step_hours(series: pd.Series) -> float:
+    """Typical spacing of the record, used as the exposure of one reading."""
+    if len(series) < 2:
+        return 0.0
+    step = series.index.to_series().diff().dropna()
+    return float(np.median(step.dt.total_seconds()) / 3600) if len(step) else 0.0
+
+
 def excursion_episodes(readings, limit: float, gap_tolerance_minutes: float = 30) -> pd.DataFrame:
     """Contiguous runs above the limit. A hole in the record ends the episode."""
     series = _as_series(readings)
@@ -30,13 +47,12 @@ def excursion_episodes(readings, limit: float, gap_tolerance_minutes: float = 30
     step = series.index.to_series().diff()
     broken = step > pd.Timedelta(minutes=gap_tolerance_minutes)
     group = (above.ne(above.shift()) | broken).cumsum()
+    typical = sampling_step_hours(series)
     rows = []
     for _, part in series[above].groupby(group[above]):
-        span = (part.index[-1] - part.index[0]).total_seconds() / 3600
-        # A single reading still occupies its own sampling interval.
-        typical = np.median(step.dropna().dt.total_seconds()) / 3600 if len(series) > 1 else 0
         rows.append({"start": part.index[0], "end": part.index[-1],
-                     "duration_hours": float(span if len(part) > 1 else typical),
+                     "duration_hours": float(len(part) * typical),
+                     "span_hours": float((part.index[-1] - part.index[0]).total_seconds() / 3600),
                      "n_points": int(len(part)), "peak": float(part.max()), "mean": float(part.mean())})
     return pd.DataFrame(rows).sort_values("start").reset_index(drop=True)
 
@@ -74,6 +90,7 @@ def violation_profile(readings, limit: float, windows=(1, 8, 24), sustained_hour
         "flicker_episodes": int(len(flicker)),
         "sustained_episodes": int(len(sustained)),
         "sustained_hours_threshold": float(sustained_hours),
+        "duration_rule": DURATION_RULE,
         "median_episode_hours": float(episodes.duration_hours.median()) if len(episodes) else None,
         "flicker_share_of_episodes": float(len(flicker) / len(episodes)) if len(episodes) else None,
         "hours_in_flickers": float(flicker.duration_hours.sum()),
