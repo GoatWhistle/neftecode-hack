@@ -32,7 +32,9 @@ def test_query_without_recent_data_refuses_before_evaluating_models():
 
 def test_risk_fallback_follows_data_trust_and_cannot_relax_quality_gate():
     scenario = json.loads((Path(__file__).resolve().parents[1] / "config/blending-demo.json").read_text())
-    state = {"lab_usable": True, "pak_usable": True, "pak_frozen": True, "telemetry_missing_fraction": 0}
+    state = {"lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
+             "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
+             "pak_frozen": True, "telemetry_missing_fraction": 0}
     risk = {"main": {"model": "main", "score": .9, "threshold": .5},
             "fallback": {"model": "fallback", "score": .1, "threshold": .5}}
     result = Coordinator(scenario).run(state, Forecast(5, 4, 8, "main"), Forecast(100, 80, 120, "fallback"), risk)
