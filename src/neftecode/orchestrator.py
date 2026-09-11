@@ -90,7 +90,7 @@ class Orchestrator:
         self.planner = Planner(self.scenario)
 
     def decide(self, state: dict | None = None, confirmed=(), budget: int = 600,
-               trust_cfg: dict | None = None) -> dict:
+               trust_cfg: dict | None = None, raw_scenario: dict | None = None) -> dict:
         trace: list[dict] = []
         state = state or {}
 
@@ -177,10 +177,24 @@ class Orchestrator:
                                 {"kind": "final_recheck_failed",
                                  "examples": list(final.gate.rejection_reasons())[:5]})
 
+        # 4. Robustness: a plan that only holds when every coefficient is exactly right is
+        #    reported as fragile rather than released as reliable.
+        robustness = None
+        if raw_scenario is not None:
+            from .robustness import RobustnessCheck
+            robustness = RobustnessCheck(self.scenario, raw_scenario).run(chosen, confirmed)
+            trace.append({"agent": "robustness", "held": robustness["held"],
+                          "evaluated": robustness["perturbations_evaluated"],
+                          "fragile": robustness["fragile"]})
+
         status = HOLD if chosen.changes == 0 else RECOMMEND_SCENARIO
         reason = ("Текущий режим проходит все обязательные проверки; изменения не требуются"
                   if status == HOLD else selected["reason"])
-        return self._finish(status, reason, trace, chosen, final, None, selected)
+        if robustness is not None and robustness["fragile"]:
+            reason += (f". Предупреждение: план теряет допустимость при "
+                       f"{robustness['violated']} из {robustness['perturbations_evaluated']} "
+                       f"заданных отклонений и надёжным не считается")
+        return self._finish(status, reason, trace, chosen, final, None, selected, robustness)
 
     # --- Internals ---
 
@@ -219,7 +233,8 @@ class Orchestrator:
             return True
         return False
 
-    def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None) -> dict:
+    def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None,
+                robustness=None) -> dict:
         result = {
             "status": status, "reason": reason, "scope": SCENARIO_SCOPE,
             "commercial_release_allowed": False,
@@ -233,6 +248,7 @@ class Orchestrator:
             "alternatives": (ranking or {}).get("alternatives", []),
             "rejected": (ranking or {}).get("rejected", []),
             "refusal": refusal,
+            "robustness": robustness,
             "trace": trace,
             "note": ("Результат сценарный. Выданный план не считается исполненным и не разрешает "
                      "выпуск товарного топлива."),
