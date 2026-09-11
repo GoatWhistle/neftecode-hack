@@ -1,0 +1,254 @@
+"""Is the advisor worth more than a simple rule? Measured on identical conditions.
+
+Three strategies are run on exactly the same scenarios, with the same limits, the same tanks
+and the same models:
+
+* **hold** — keep the current regime whatever happens;
+* **threshold** — a single rule: if the predicted sulfur is above the limit, raise the reserve
+  fraction one notch at a time until it fits. It gets the same hard checks as everyone else,
+  because building a deliberately crippled opponent would prove nothing;
+* **advisor** — the full agent loop.
+
+Two ablations answer "what are the extra parts for": the advisor without transitional planning
+(single-step plans only) and the advisor without the terminal stock rule.
+
+What the result is NOT: measured savings at a refinery. Every number here comes from our own
+scenario models, and the advisor is compared inside the same model it optimises against. That
+limitation is reported with the numbers, not left to the reader.
+"""
+from dataclasses import dataclass
+import copy
+import json
+
+from .gate import check_plan
+from .optimizer import Candidate, Evaluation
+from .orchestrator import Orchestrator
+from .planner import Planner, PlanCandidate, PlanStepSpec
+from .scenario import Scenario, parse_scenario
+
+HOLD = "hold"
+THRESHOLD = "threshold"
+ADVISOR = "advisor"
+ADVISOR_NO_TRANSITION = "advisor_without_transition"
+ADVISOR_NO_TERMINAL = "advisor_without_terminal_rule"
+STRATEGIES = (HOLD, THRESHOLD, ADVISOR, ADVISOR_NO_TRANSITION, ADVISOR_NO_TERMINAL)
+
+
+class BenchmarkError(ValueError):
+    """Raised when strategies would not be compared on identical conditions."""
+
+
+def _outcome(evaluation, plan) -> dict:
+    reserve_used = 0.0
+    additive_used = 0.0
+    for step in plan.steps:
+        reserve_used += step.throughput_tph * sum(
+            f for tank_id, f in step.recipe.items() if tank_id != list(step.recipe)[0])
+        additive_used += step.throughput_tph * step.additive_dose
+    violations = [c for c in evaluation.gate.checks if c.status == "fail"]
+    unknown = [c for c in evaluation.gate.checks if c.status == "unknown"]
+    return {
+        "feasible": evaluation.feasible,
+        "violations": len(violations),
+        "violation_hours": sorted({c.time_hours for c in violations if c.time_hours is not None}),
+        "unknown_requirements": len(unknown),
+        "production_t": evaluation.production_t,
+        "cost_per_tonne": evaluation.cost_per_tonne,
+        "severity_index": evaluation.severity_index,
+        "changes": plan.changes,
+        "reserve_rate_tph": reserve_used,
+        "additive_rate_tph": additive_used,
+    }
+
+
+@dataclass
+class Benchmark:
+    """Runs every strategy on the same scenario and reports wins, losses and refusals."""
+
+    scenario: Scenario
+    raw: dict
+    budget: int = 400
+
+    def hold_plan(self) -> PlanCandidate:
+        planner = Planner(self.scenario)
+        operation = self.scenario.current_operation
+        recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in self.scenario.tanks}
+        return PlanCandidate(HOLD, (PlanStepSpec(0.0, planner.base_controls(), recipe,
+                                                 operation.throughput.value),), 0,
+                             "сохранение режима без изменений")
+
+    def threshold_plan(self) -> PlanCandidate:
+        """The simple rule, given the same limits and the same search over reserve fractions.
+
+        It raises the reserve one notch at a time and stops at the first recipe whose blend
+        passes: no planning over time, no stock horizon, no cost comparison.
+        """
+        planner = Planner(self.scenario)
+        operation = self.scenario.current_operation
+        tanks = [t.tank_id for t in self.scenario.available_tanks()]
+        step = 0.05
+        for i in range(int(1 / step) + 1):
+            fraction = round(i * step, 6)
+            recipe = ({tanks[0]: 1.0} if len(tanks) == 1 else
+                      {tanks[0]: round(1.0 - fraction, 6), tanks[1]: fraction,
+                       **{t: 0.0 for t in tanks[2:]}})
+            plan = PlanCandidate(f"{THRESHOLD}_{i:02d}",
+                                 (PlanStepSpec(0.0, planner.base_controls(), recipe,
+                                               operation.throughput.value),),
+                                 1 if fraction else 0, "простое пороговое правило по сере")
+            try:
+                evaluation = planner.evaluate(plan)
+            except ValueError:
+                continue
+            if evaluation.feasible:
+                return plan
+        return plan
+
+    def _advisor(self, raw: dict, transition: bool = True) -> tuple:
+        scenario = parse_scenario(raw)
+        orchestrator = Orchestrator(scenario)
+        if not transition:
+            planner = orchestrator.planner
+            original = planner.build_plans
+
+            def singles_only(budget):
+                plans, info = original(budget)
+                kept = [p for p in plans if len(p.steps) == 1]
+                info = dict(info, plans=len(kept), ablation="без переходных планов")
+                return kept, info
+
+            planner.build_plans = singles_only
+        decision = orchestrator.decide(budget=self.budget)
+        if decision["selected_plan"] is None:
+            return None, None, decision
+        plans, _ = orchestrator.planner.build_plans(self.budget)
+        plan = next((p for p in plans if p.plan_id == decision["selected_plan"]["plan_id"]), None)
+        if plan is None:
+            return None, None, decision
+        return plan, Planner(scenario).evaluate(plan), decision
+
+    def run(self) -> dict:
+        planner = Planner(self.scenario)
+        results: dict[str, dict] = {}
+
+        for name, plan in ((HOLD, self.hold_plan()), (THRESHOLD, self.threshold_plan())):
+            try:
+                evaluation = planner.evaluate(plan)
+            except ValueError as exc:
+                results[name] = {"refused": True, "reason": str(exc)}
+                continue
+            results[name] = _outcome(evaluation, plan)
+
+        for name, transition, terminal in ((ADVISOR, True, True),
+                                           (ADVISOR_NO_TRANSITION, False, True),
+                                           (ADVISOR_NO_TERMINAL, True, False)):
+            raw = copy.deepcopy(self.raw)
+            if not terminal:
+                raw["policy"]["terminal_inventory_rule"] = "none"
+            plan, evaluation, decision = self._advisor(raw, transition)
+            if plan is None:
+                results[name] = {"refused": True, "reason": decision["reason"],
+                                 "status": decision["status"]}
+                continue
+            results[name] = {**_outcome(evaluation, plan), "status": decision["status"],
+                             "plan_id": plan.plan_id, "intent": plan.intent}
+        return {"scenario_id": self.scenario.scenario_id, "strategies": results}
+
+
+def compare(scenarios: list[tuple[Scenario, dict]], budget: int = 400) -> dict:
+    """Run every strategy on every scenario and aggregate without dropping the bad cases."""
+    per_scenario = [Benchmark(scenario, raw, budget).run() for scenario, raw in scenarios]
+    totals: dict[str, dict] = {name: {"feasible": 0, "refused": 0, "violations": 0,
+                                      "production_t": 0.0, "scenarios": 0}
+                               for name in STRATEGIES}
+    for record in per_scenario:
+        for name, result in record["strategies"].items():
+            bucket = totals[name]
+            bucket["scenarios"] += 1
+            if result.get("refused"):
+                bucket["refused"] += 1
+                continue
+            bucket["feasible"] += 1 if result["feasible"] else 0
+            bucket["violations"] += result["violations"]
+            bucket["production_t"] += result["production_t"] if result["feasible"] else 0.0
+    wins, losses = _wins_and_losses(per_scenario)
+    return {
+        "ablations": _ablations(per_scenario),
+        "scenarios": per_scenario,
+        "totals": totals,
+        "wins": wins,
+        "losses": losses,
+        "aggregation": "Все сценарии входят в итог. Исключать неудачные случаи ради среднего нельзя.",
+        "limits": [
+            "Числа получены в нашей сценарной модели и не являются экономией реального завода.",
+            "Советчик сравнивается внутри той же модели, против которой он оптимизирует; "
+            "проверка на структурно иной среде этим экспериментом не сделана.",
+            "Пороговое правило получает те же жёсткие проверки и тот же перебор долей резерва: "
+            "заведомо слабый соперник не строился.",
+            "Набор сценариев мал и выбран нами; это не оценка на новых условиях.",
+        ],
+    }
+
+
+def _ablations(per_scenario) -> list[dict]:
+    """What each switched-off part actually bought, including when removing it looks better."""
+    out = []
+    for record in per_scenario:
+        strategies = record["strategies"]
+        full = strategies.get(ADVISOR, {})
+        if full.get("refused"):
+            continue
+        for name, what in ((ADVISOR_NO_TRANSITION, "план во времени"),
+                           (ADVISOR_NO_TERMINAL, "правило остатка на конце горизонта")):
+            other = strategies.get(name, {})
+            if other.get("refused"):
+                out.append({"scenario_id": record["scenario_id"], "ablation": what,
+                            "effect": "без этой части допустимого плана не находится"})
+                continue
+            delta = full["production_t"] - other["production_t"]
+            if abs(delta) < 1e-9:
+                effect = "выпуск не изменился"
+            elif delta > 0:
+                effect = f"эта часть добавляет {delta:.0f} т выпуска"
+            else:
+                effect = (f"без этой части выпуск на {-delta:.0f} т выше: ограничение стоит выпуска, "
+                          f"и это его цена, а не недостаток")
+            out.append({"scenario_id": record["scenario_id"], "ablation": what,
+                        "production_with": full["production_t"],
+                        "production_without": other["production_t"], "effect": effect})
+    return out
+
+
+def _wins_and_losses(per_scenario) -> tuple[list, list]:
+    """Where the advisor beats both simple strategies, and where it does not."""
+    wins, losses = [], []
+    for record in per_scenario:
+        strategies = record["strategies"]
+        advisor = strategies.get(ADVISOR, {})
+        if advisor.get("refused"):
+            simple_ok = [n for n in (HOLD, THRESHOLD)
+                         if not strategies[n].get("refused") and strategies[n]["feasible"]]
+            (losses if simple_ok else wins).append({
+                "scenario_id": record["scenario_id"],
+                "note": ("Советчик отказался там, где простое правило нашло допустимый вариант"
+                         if simple_ok else
+                         "Допустимого варианта нет ни у кого; отказ — правильный ответ")})
+            continue
+        better = []
+        worse = []
+        for name in (HOLD, THRESHOLD):
+            other = strategies[name]
+            if other.get("refused") or not other["feasible"]:
+                better.append(name)
+                continue
+            if not advisor["feasible"]:
+                worse.append(name)
+            elif advisor["production_t"] > other["production_t"] + 1e-9:
+                better.append(name)
+            elif advisor["production_t"] < other["production_t"] - 1e-9:
+                worse.append(name)
+        if better:
+            wins.append({"scenario_id": record["scenario_id"], "beats": better})
+        if worse:
+            losses.append({"scenario_id": record["scenario_id"], "loses_to": worse})
+    return wins, losses

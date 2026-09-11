@@ -13,6 +13,7 @@ from .data import load_sources, make_dataset
 from .forecast import run_experiment
 from .risk import run_risk_experiment
 from .runtime import decision_at, validate_origin
+from .benchmark import compare as compare_strategies
 from .batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
 from .margin import lead_times, margin_series
 from .quality import report as quality_report, read_quality_series
@@ -267,7 +268,7 @@ def make_report(out, demos):
 
 def main():
     parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes"])
+    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
@@ -280,6 +281,23 @@ def main():
         if args.command == "train":
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
+        elif args.command == "benchmark":
+            from .scenario import load_scenario
+            items = []
+            for path in sorted((root / "config/scenarios").glob("*.json")):
+                items.append((load_scenario(path), json.loads(path.read_text())))
+            report = compare_strategies(items)
+            write_json(out / "benchmark.json", report)
+            for record in report["scenarios"]:
+                print(f"=== {record['scenario_id']}")
+                for name, result in record["strategies"].items():
+                    if result.get("refused"):
+                        print(f"  {name:30s} отказ")
+                    else:
+                        print(f"  {name:30s} допустим={result['feasible']} "
+                              f"нарушений={result['violations']} выпуск={result['production_t']:.0f} т")
+            print(f"Выигрышей: {len(report['wins'])}, проигрышей: {len(report['losses'])}")
+            print(f"Журнал: {out / 'benchmark.json'}")
         elif args.command == "episodes":
             cfg = json.loads(args.config.read_text())
             _, _, online = load_sources(root / "task")
