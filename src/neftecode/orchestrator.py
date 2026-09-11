@@ -222,13 +222,21 @@ class Orchestrator:
         return added
 
     def _forbidden(self, plan, forbidden: set[str]) -> bool:
-        """Apply the accumulated restrictions to the candidate before it is evaluated."""
+        """Apply the accumulated restrictions to the candidate before it is evaluated.
+
+        The restriction is computed per tank, not against one global ceiling: a veto saying
+        "the draw is too big" must remove exactly the candidates that draw too much, otherwise
+        the next round would examine the same set and the loop would be theatre.
+        """
         if "family:outflow" in forbidden or "family:inventory" in forbidden:
-            # Drop the highest-throughput half of proposals: the veto said the draw is too big.
-            top = max((s.throughput_tph for s in plan.steps), default=0.0)
-            ceiling = max(t.max_outflow.value for t in self.scenario.available_tanks())
-            if top > ceiling:
-                return True
+            limits = {t.tank_id: t.max_outflow.value for t in self.scenario.tanks}
+            for step in plan.steps:
+                for tank_id, fraction in step.recipe.items():
+                    if fraction <= 1e-12:
+                        continue
+                    limit = limits.get(tank_id)
+                    if limit is None or step.throughput_tph * fraction > limit + 1e-9:
+                        return True
         if "family:additive" in forbidden and any(s.additive_dose > 0 for s in plan.steps):
             return True
         return False

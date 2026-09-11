@@ -186,6 +186,17 @@ class Stage:
 
 
 @dataclass(frozen=True)
+class CurrentOperation:
+    """The blend and throughput running right now. Without it, "keep the regime" is undefined."""
+
+    recipe: dict[str, float]
+    throughput: Quantity
+
+    def to_dict(self) -> dict:
+        return {"recipe": dict(self.recipe), "throughput": self.throughput.to_dict()}
+
+
+@dataclass(frozen=True)
 class Scenario:
     scenario_id: str
     title: str
@@ -196,6 +207,7 @@ class Scenario:
     stages: dict[str, Stage]
     product: ProductSpec
     tanks: tuple[Tank, ...]
+    current_operation: CurrentOperation
     additive: Additive | None
     economics: dict[str, Quantity]
     policy: dict
@@ -224,6 +236,7 @@ class Scenario:
             "stages": {k: v.to_dict() for k, v in self.stages.items()},
             "product": self.product.to_dict(),
             "tanks": [t.to_dict() for t in self.tanks],
+            "current_operation": self.current_operation.to_dict(),
             "additive": self.additive.to_dict() if self.additive else None,
             "economics": {k: v.to_dict() for k, v in self.economics.items()},
             "policy": self.policy,
@@ -374,6 +387,23 @@ def parse_scenario(raw: dict) -> Scenario:
     if len({t.property_value("sulfur_mgkg") for t in tanks}) == 1:
         raise ScenarioError("tanks: все резервуары имеют одинаковую серу; сценарий не проверяет смешение")
 
+    operation_raw = _require(raw, "current_operation", "scenario")
+    recipe = operation_raw.get("recipe")
+    if not isinstance(recipe, dict) or not recipe:
+        raise ScenarioError("current_operation.recipe: текущий рецепт обязателен, иначе "
+                            "сохранение режима не определено")
+    unknown_tanks = set(recipe) - {t.tank_id for t in tanks}
+    if unknown_tanks:
+        raise ScenarioError(f"current_operation.recipe: неизвестные резервуары "
+                            f"{', '.join(sorted(unknown_tanks))}")
+    total_share = sum(recipe.values())
+    if abs(total_share - 1.0) > 1e-6:
+        raise ScenarioError(f"current_operation.recipe: доли дают {total_share:.6f}, требуется 1.0")
+    current_operation = CurrentOperation(
+        {k: float(v) for k, v in recipe.items()},
+        quantity(_require(operation_raw, "throughput", "current_operation"), "flow_tph",
+                 "current_operation.throughput"))
+
     additive = None
     if raw.get("additive") is not None:
         a = raw["additive"]
@@ -397,8 +427,8 @@ def parse_scenario(raw: dict) -> Scenario:
         raise ScenarioError("assumptions: сценарий обязан перечислить свои допущения явным текстом")
 
     return Scenario(raw["id"], raw["title"], raw["description"], kind, horizon, crude, stages,
-                    product, tanks, additive, economics, raw.get("policy", {}), assumptions,
-                    raw.get("expected", {}))
+                    product, tanks, current_operation, additive, economics, raw.get("policy", {}),
+                    assumptions, raw.get("expected", {}))
 
 
 def load_scenario(path: str | Path) -> Scenario:
