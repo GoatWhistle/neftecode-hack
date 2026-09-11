@@ -50,6 +50,34 @@ def load_sources(task: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return signals, lab, online
 
 
+#: Bounds confirmed by the experts (messages 517 and 518). See context/requirements-map.md.
+CASE_MAX_HORIZON_HOURS = 3.0
+CASE_MAX_LAB_DELAY_HOURS = 4.0
+
+
+def check_time_assumptions(cfg: dict) -> dict:
+    """Refuse a configuration that quietly contradicts the confirmed case bounds.
+
+    The history window used to build features is a different quantity from the forecast
+    horizon; conflating them is what produced the earlier 6-hour settings.
+    """
+    horizon = cfg.get("horizon_hours")
+    if not isinstance(horizon, (int, float)) or not np.isfinite(horizon) or not 0 < horizon <= CASE_MAX_HORIZON_HOURS:
+        raise ValueError(f"horizon_hours: горизонт прогноза должен быть в пределах (0, {CASE_MAX_HORIZON_HOURS:g}] "
+                         f"часов по уточнению эксперта, получено {horizon!r}")
+    delay = cfg.get("lab_delay_hours")
+    if not isinstance(delay, (int, float)) or not np.isfinite(delay) or delay < 0:
+        raise ValueError(f"lab_delay_hours: задержка выдачи ЛИМС должна быть конечной и неотрицательной, получено {delay!r}")
+    if delay > CASE_MAX_LAB_DELAY_HOURS:
+        raise ValueError(f"lab_delay_hours: {delay} ч больше названного экспертом предела "
+                         f"{CASE_MAX_LAB_DELAY_HOURS:g} ч; удлинять задержку без основания нельзя")
+    window = cfg.get("history_window_hours")
+    if not isinstance(window, (int, float)) or not np.isfinite(window) or window <= 0:
+        raise ValueError(f"history_window_hours: окно прошлых признаков должно быть положительным, получено {window!r}")
+    return {"horizon_hours": float(horizon), "lab_delay_hours": float(delay),
+            "history_window_hours": float(window)}
+
+
 def backward_readings(times, readings: pd.DataFrame, delay_hours: float = 0) -> pd.DataFrame:
     """Join by availability, retaining sample time. Never backfill from the future."""
     if not np.isfinite(delay_hours) or delay_hours < 0:
@@ -64,16 +92,20 @@ def backward_readings(times, readings: pd.DataFrame, delay_hours: float = 0) -> 
 
 def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFrame,
                    decisions, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
+    bounds = check_time_assumptions(cfg)
+    window = bounds["history_window_hours"]
+    suffix = f"{window:g}h"
     times = pd.DatetimeIndex(decisions)
     current = signals.reindex(times, method="ffill", tolerance=pd.Timedelta(minutes=20))
-    old = signals.reindex(times - pd.Timedelta(hours=6), method="ffill", tolerance=pd.Timedelta(minutes=20))
+    old = signals.reindex(times - pd.Timedelta(hours=window), method="ffill", tolerance=pd.Timedelta(minutes=20))
     old.index = times
     # Time-based trailing windows, right closed. No centered windows/interpolation.
-    mean = signals.rolling("6h", min_periods=6).mean().reindex(
+    # This window looks BACKWARD over available history; it is not the forecast horizon.
+    mean = signals.rolling(suffix, min_periods=6).mean().reindex(
         times, method="ffill", tolerance=pd.Timedelta(minutes=20))
-    x = pd.concat([current.add_suffix(".now"), mean.add_suffix(".mean6h"),
-                   (current - old).add_suffix(".delta6h")], axis=1).reset_index(drop=True)
-    latest_lab = backward_readings(times, lab, cfg["lab_delay_hours"])
+    x = pd.concat([current.add_suffix(".now"), mean.add_suffix(f".mean{suffix}"),
+                   (current - old).add_suffix(f".delta{suffix}")], axis=1).reset_index(drop=True)
+    latest_lab = backward_readings(times, lab, bounds["lab_delay_hours"])
     latest_pak = backward_readings(times, online)
     age_lab = (latest_lab.decision_time - latest_lab.sample_time).dt.total_seconds() / 3600
     age_pak = (latest_pak.decision_time - latest_pak.sample_time).dt.total_seconds() / 60
@@ -104,6 +136,7 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
         "lab_age_hours": age_lab,
         "lab_usable": lab_good,
         "pak_sample_time": latest_pak.sample_time,
+        "pak_available_time": latest_pak.available_time,
         "pak_value": latest_pak.value,
         "pak_age_minutes": age_pak,
         "pak_frozen": frozen,
@@ -115,17 +148,29 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
 
 
 def make_dataset(signals, lab, online, cfg):
-    if not np.isfinite(cfg["horizon_hours"]) or cfg["horizon_hours"] <= 0:
-        raise ValueError("Горизонт прогноза должен быть положительным")
+    """One real laboratory analysis produces exactly one evaluation row.
+
+    Rare analyses are never resampled onto the 10-minute telemetry grid: that would turn
+    1 458 measurements into tens of thousands of dependent rows and inflate every metric.
+    """
+    bounds = check_time_assumptions(cfg)
     targets = lab.copy()
-    targets["decision_time"] = targets.time - pd.Timedelta(hours=cfg["horizon_hours"])
+    targets["decision_time"] = targets.time - pd.Timedelta(hours=bounds["horizon_hours"])
     # Need a complete history window and no forecast origin beyond telemetry coverage.
-    targets = targets.loc[(targets.decision_time >= signals.index.min() + pd.Timedelta(hours=6)) &
-                          (targets.decision_time <= signals.index.max())].reset_index(drop=True)
+    targets = targets.loc[
+        (targets.decision_time >= signals.index.min() + pd.Timedelta(hours=bounds["history_window_hours"])) &
+        (targets.decision_time <= signals.index.max())].reset_index(drop=True)
+    if targets.time.duplicated().any():
+        raise ValueError("Целевые анализы содержат повторяющееся время отбора: одна проба дала бы "
+                         "несколько независимых строк оценки")
     x, meta = build_features(signals, lab, online, targets.decision_time, cfg)
     meta["target_time"] = targets.time
-    meta["target_available_time"] = targets.time + pd.Timedelta(hours=cfg["lab_delay_hours"])
+    meta["target_available_time"] = targets.time + pd.Timedelta(hours=bounds["lab_delay_hours"])
     meta["actual_sulfur"] = targets.value
+    leak = meta.lab_sample_time.notna() & (meta.lab_sample_time >= meta.target_time)
+    if leak.any():
+        raise ValueError(f"{int(leak.sum())} строк используют как признак пробу, взятую не раньше целевой; "
+                         f"это утечка цели в признаки")
     return x, meta
 
 

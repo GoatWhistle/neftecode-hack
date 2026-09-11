@@ -21,8 +21,8 @@ def test_query_without_recent_data_refuses_before_evaluating_models():
     times = pd.date_range("2025-12-01", periods=20, freq="10min")
     signals = pd.DataFrame({"ht.P3": 1.0}, index=times)
     readings = pd.DataFrame({"time": times, "value": 7.0})
-    cfg = {"calibration_end": "2026-01-01", "lab_delay_hours": 6, "lab_max_age_hours": 48,
-           "pak_max_age_minutes": 30, "horizon_hours": 2}
+    cfg = {"calibration_end": "2026-01-01", "lab_delay_hours": 4, "history_window_hours": 6,
+           "lab_max_age_hours": 48, "pak_max_age_minutes": 30, "horizon_hours": 2}
     scenario = json.loads((Path(__file__).resolve().parents[1] / "config/blending-demo.json").read_text())
     # No models supplied: stale inputs must refuse without trying to run a predictor.
     result = decision_at(signals, readings, readings, {"config": cfg}, "2026-01-01", scenario)
