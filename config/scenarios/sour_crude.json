@@ -1,0 +1,360 @@
+{
+  "schema": "neftecode.scenario.v1",
+  "id": "sour_crude",
+  "title": "Ухудшение сырья при ограниченном резерве",
+  "description": "Сера сырья выросла, коррекция гидроочистки подействует только через два часа, а запаса глубокоочищенного компонента хватает не на весь горизонт. Сценарий проверяет переходный план и учёт остатков.",
+  "kind": "synthetic_blending_scenario",
+  "horizon": {
+    "hours": 3,
+    "step_minutes": 30
+  },
+  "crude": {
+    "sulfur_wt_pct": {
+      "value": 1.95,
+      "unit": "% масс.",
+      "source": "scenario",
+      "note": "Ухудшение относительно baseline; величина задана для эксперимента."
+    },
+    "density_kgm3": {
+      "value": 865.0,
+      "unit": "кг/м3",
+      "source": "scenario"
+    },
+    "flow_tph": {
+      "value": 740.0,
+      "unit": "т/ч",
+      "source": "scenario",
+      "note": "Порядок соответствует сумме ходов обессоленной нефти avt.F7+F8+F9 в телеметрии, но конкретное число задано сценарием."
+    }
+  },
+  "stages": {
+    "avt": {
+      "response_lag_hours": {
+        "value": 0.5,
+        "unit": "ч",
+        "source": "scenario",
+        "note": "Внутри разрешённого экспертом диапазона 0–3 ч; из данных не подтверждено."
+      },
+      "controls": {
+        "crude_feed_rate_tph": {
+          "min": {
+            "value": 600.0,
+            "unit": "т/ч",
+            "source": "scenario"
+          },
+          "max": {
+            "value": 820.0,
+            "unit": "т/ч",
+            "source": "scenario"
+          },
+          "current": {
+            "value": 740.0,
+            "unit": "т/ч",
+            "source": "scenario"
+          },
+          "step": {
+            "value": 20.0,
+            "unit": "т/ч",
+            "source": "scenario"
+          }
+        },
+        "avt_furnace_outlet_temp_c": {
+          "min": {
+            "value": 350.0,
+            "unit": "°C",
+            "source": "scenario"
+          },
+          "max": {
+            "value": 400.0,
+            "unit": "°C",
+            "source": "scenario"
+          },
+          "current": {
+            "value": 372.0,
+            "unit": "°C",
+            "source": "scenario"
+          },
+          "step": {
+            "value": 2.0,
+            "unit": "°C",
+            "source": "scenario"
+          }
+        }
+      },
+      "model": {
+        "kind": "scenario_linear",
+        "note": "Коэффициенты задаются и проверяются в задаче T10. Здесь только объявлены поля."
+      }
+    },
+    "hydrotreating": {
+      "response_lag_hours": {
+        "value": 2.0,
+        "unit": "ч",
+        "source": "scenario",
+        "note": "Пример из уточнения эксперта: коррекция ГО подействует примерно через два часа. Не измеренная задержка."
+      },
+      "controls": {
+        "ht_reactor_inlet_temp_c": {
+          "min": {
+            "value": 330.0,
+            "unit": "°C",
+            "source": "scenario"
+          },
+          "max": {
+            "value": 375.0,
+            "unit": "°C",
+            "source": "scenario"
+          },
+          "current": {
+            "value": 348.0,
+            "unit": "°C",
+            "source": "scenario"
+          },
+          "step": {
+            "value": 1.0,
+            "unit": "°C",
+            "source": "scenario"
+          }
+        },
+        "ht_feed_flow_m3h": {
+          "min": {
+            "value": 180.0,
+            "unit": "м3/ч",
+            "source": "scenario"
+          },
+          "max": {
+            "value": 300.0,
+            "unit": "м3/ч",
+            "source": "scenario"
+          },
+          "current": {
+            "value": 256.0,
+            "unit": "м3/ч",
+            "source": "scenario"
+          },
+          "step": {
+            "value": 10.0,
+            "unit": "м3/ч",
+            "source": "scenario"
+          }
+        }
+      },
+      "model": {
+        "kind": "scenario_linear",
+        "note": "Реализуется в T11. Прогноз по истории и эта модель последствий — разные компоненты."
+      }
+    }
+  },
+  "product": {
+    "sulfur_mgkg": {
+      "value": 10.0,
+      "unit": "мг/кг",
+      "source": "given",
+      "note": "Жёсткое требование ТЗ, раздел 4."
+    },
+    "t95_c": {
+      "value": 360.0,
+      "unit": "°C",
+      "source": "scenario",
+      "note": "Численного предела эксперты не дали. Значение выбрано для эксперимента."
+    },
+    "cetane_number": {
+      "value": 51.0,
+      "unit": "ед.",
+      "source": "scenario",
+      "note": "Численного предела эксперты не дали. Значение выбрано для эксперимента."
+    }
+  },
+  "tanks": [
+    {
+      "tank_id": "main",
+      "name": "Основной гидроочищенный дизель",
+      "available": true,
+      "inventory": {
+        "value": 4000.0,
+        "unit": "т",
+        "source": "scenario"
+      },
+      "max_outflow": {
+        "value": 120.0,
+        "unit": "т/ч",
+        "source": "scenario"
+      },
+      "inflow": {
+        "value": 95.0,
+        "unit": "т/ч",
+        "source": "scenario",
+        "note": "Приток с гидроочистки в текущем режиме."
+      },
+      "cost_per_t": {
+        "value": 1.0,
+        "unit": "усл.ед./т",
+        "source": "scenario",
+        "note": "Опорная условная стоимость, к которой отнесены остальные."
+      },
+      "properties": {
+        "sulfur_mgkg": {
+          "value": 11.5,
+          "unit": "мг/кг",
+          "source": "scenario"
+        },
+        "t95_c": {
+          "value": 352.0,
+          "unit": "°C",
+          "source": "scenario"
+        },
+        "cetane_number": {
+          "value": 51.5,
+          "unit": "ед.",
+          "source": "scenario"
+        }
+      },
+      "note": "Текущий гидроочищенный дизель сам по себе выше предела: без смешения или коррекции ГО выпуск невозможен."
+    },
+    {
+      "tank_id": "reserve",
+      "name": "Резерв глубокой очистки",
+      "available": true,
+      "inventory": {
+        "value": 90.0,
+        "unit": "т",
+        "source": "scenario"
+      },
+      "max_outflow": {
+        "value": 30.0,
+        "unit": "т/ч",
+        "source": "scenario",
+        "note": "Предел насоса резервного компонента, параметр сценария, не оценка реального оборудования."
+      },
+      "inflow": {
+        "value": 0.0,
+        "unit": "т/ч",
+        "source": "scenario"
+      },
+      "cost_per_t": {
+        "value": 1.4,
+        "unit": "усл.ед./т",
+        "source": "scenario"
+      },
+      "properties": {
+        "sulfur_mgkg": {
+          "value": 2.0,
+          "unit": "мг/кг",
+          "source": "scenario"
+        },
+        "t95_c": {
+          "value": 344.0,
+          "unit": "°C",
+          "source": "scenario"
+        },
+        "cetane_number": {
+          "value": 53.0,
+          "unit": "ед.",
+          "source": "scenario"
+        }
+      },
+      "note": "Запаса резерва хватает менее чем на весь горизонт при максимальном отборе."
+    },
+    {
+      "tank_id": "light",
+      "name": "Лёгкая фракция",
+      "available": true,
+      "inventory": {
+        "value": 900.0,
+        "unit": "т",
+        "source": "scenario"
+      },
+      "max_outflow": {
+        "value": 20.0,
+        "unit": "т/ч",
+        "source": "scenario"
+      },
+      "inflow": {
+        "value": 0.0,
+        "unit": "т/ч",
+        "source": "scenario"
+      },
+      "cost_per_t": {
+        "value": 0.9,
+        "unit": "усл.ед./т",
+        "source": "scenario"
+      },
+      "note": "Цетановое число этого компонента не определялось. Пока оно неизвестно, смесь с ним не может пройти проверку цетанового числа.",
+      "properties": {
+        "sulfur_mgkg": {
+          "value": 6.0,
+          "unit": "мг/кг",
+          "source": "scenario"
+        },
+        "t95_c": {
+          "value": 330.0,
+          "unit": "°C",
+          "source": "scenario"
+        },
+        "cetane_number": null
+      }
+    }
+  ],
+  "additive": {
+    "max_dose_fraction": {
+      "value": 0.03,
+      "unit": "доля",
+      "source": "given",
+      "note": "Эксперт, сообщение 517: дозировка до 3%."
+    },
+    "price_per_t": {
+      "value": 100.0,
+      "unit": "усл.ед./т",
+      "source": "given",
+      "note": "Эксперт: тонна присадки в 100 раз дороже тонны дизеля при опорной стоимости 1."
+    },
+    "cetane_gain_per_dose_pct": {
+      "value": 1.2,
+      "unit": "ед.",
+      "source": "scenario",
+      "note": "Прирост цетанового числа на 1% дозы. Кривая эффекта экспертами не предоставлена; значение наше допущение."
+    },
+    "affects": [
+      "cetane_number"
+    ]
+  },
+  "economics": {
+    "diesel_price_per_t": {
+      "value": 1.0,
+      "unit": "усл.ед./т",
+      "source": "scenario",
+      "note": "Опорная единица. Абсолютные цены не заданы, сравниваются только относительные величины."
+    },
+    "treating_cost_per_t_at_reference": {
+      "value": 0.05,
+      "unit": "усл.ед./т",
+      "source": "scenario"
+    },
+    "treating_cost_per_extra_degree_per_t": {
+      "value": 0.004,
+      "unit": "усл.ед./т",
+      "source": "scenario",
+      "note": "Более глубокая очистка дороже по энергозатратам — качественное направление из ответа эксперта; численный наклон задан нами."
+    }
+  },
+  "policy": {
+    "terminal_inventory_rule": "min_hours_of_supply",
+    "terminal_min_hours": 1.0,
+    "min_useful_sulfur_margin_mgkg": 0.2,
+    "max_changes_per_plan": 2,
+    "note": "Правила выбора и ограничения переключений — наша политика сценария. Эксперт указал, что ограничения скорости изменения для кейса не заданы."
+  },
+  "assumptions": [
+    "Все свойства резервуаров, остатки, пределы отбора, цены и коэффициенты откликов заданы для эксперимента и не получены из данных завода.",
+    "Доли массовые. Сера смеси считается материальным балансом без реакции.",
+    "Пределы T95 и цетанового числа не заданы ни ТЗ, ни экспертами; принятые здесь значения — допущение сценария.",
+    "Прирост цетанового числа от дозы присадки — наше допущение. Удаление серы присадке не приписывается.",
+    "Запаздывания откликов выбраны внутри разрешённого диапазона 0–3 часа и из данных не подтверждены.",
+    "Цетановое число компонента light неизвестно: смесь с ним даёт unknown по этому показателю, а не допуск.",
+    "Даже проходящий все проверки результат не разрешает выпуск товарного топлива: проверены не все свойства."
+  ],
+  "expected": {
+    "outcome": "recommend_or_refuse",
+    "note": "Ожидается переходный план либо обоснованный отказ. Конкретный вариант заранее не назначается."
+  }
+}
