@@ -13,6 +13,8 @@ from .data import load_sources, make_dataset
 from .forecast import run_experiment
 from .risk import run_risk_experiment
 from .runtime import decision_at, validate_origin
+from .batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
+from .margin import lead_times, margin_series
 from .quality import report as quality_report, read_quality_series
 from .vak import check_all
 
@@ -265,7 +267,7 @@ def make_report(out, demos):
 
 def main():
     parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise", "vak"])
+    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
@@ -278,6 +280,45 @@ def main():
         if args.command == "train":
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
+        elif args.command == "episodes":
+            cfg = json.loads(args.config.read_text())
+            _, _, online = load_sources(root / "task")
+            series = _as_series(online)
+            episodes = classify_episodes(excursion_episodes(series, cfg["sulfur_limit"]),
+                                         cfg["sustained_exceedance_hours"])
+            trend = margin_series(online, cfg["sulfur_limit"], cfg["batch_window_hours"],
+                                  cfg["margin_trend_window_hours"], cfg["response_lag_hours"])
+            alarms = trend.index[trend.alarm]
+            report = {
+                "profile": violation_profile(series, cfg["sulfur_limit"],
+                                             sustained_hours=cfg["sustained_exceedance_hours"]),
+                "sampling_step_hours": sampling_step_hours(series),
+                "episodes": {
+                    "total": int(len(episodes)),
+                    "sustained": int((episodes.kind == "sustained").sum()),
+                    "median_duration_hours": float(episodes.duration_hours.median()),
+                    "total_hours": float(episodes.duration_hours.sum()),
+                    "hours_in_flickers": float(episodes.loc[episodes.kind == "flicker", "duration_hours"].sum()),
+                    "hours_in_sustained": float(episodes.loc[episodes.kind == "sustained", "duration_hours"].sum()),
+                },
+                "alarms": {k: v for k, v in lead_times(
+                    online, alarms, cfg["sulfur_limit"], cfg["sustained_exceedance_hours"],
+                    cfg["lead_time_matching_window_hours"], total_readings=len(series),
+                    rearm_hours=cfg["alarm_rearm_hours"]).items() if k != "per_episode"},
+                "limitations": [
+                    "Это описательная статистика ряда ПАК, не доля брака и не доказанные отказы прибора.",
+                    "Короткое превышение показания не является доказанной неисправностью анализатора.",
+                    "Упреждение читается только вместе с нагрузкой тревог и числом поздних срабатываний.",
+                ],
+            }
+            write_json(out / "episodes.json", report)
+            a = report["alarms"]
+            print(f"Эпизодов {report['episodes']['total']}, устойчивых {report['episodes']['sustained']}, "
+                  f"медиана {report['episodes']['median_duration_hours']:.2f} ч, всего "
+                  f"{report['episodes']['total_hours']:.1f} ч")
+            print(f"Тревоги: рано {a['early']}, поздно {a['late']}, пропущено {a['missed']}, "
+                  f"неизвестно {a['unknown']}; событий {a['alarm_events']} при {a['alarm_readings']} отсчётах")
+            print(f"Журнал: {out / 'episodes.json'}")
         elif args.command == "vak":
             signals, _, _ = load_sources(root / "task")
             report = check_all(root / "task", signals)
