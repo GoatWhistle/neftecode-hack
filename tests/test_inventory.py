@@ -117,11 +117,22 @@ def test_a_sustainable_plan_is_feasible_and_leaves_stock():
     assert result["first_failure"] is None
 
 
+def with_reserve(mass_t: float) -> InventoryLedger:
+    """A ledger whose reserve holds exactly `mass_t`, so the case is not tied to a scenario file."""
+    raw = json.loads(BASELINE.read_text())
+    for tank in raw["tanks"]:
+        if tank["tank_id"] == "reserve":
+            tank["inventory"]["value"] = mass_t
+    return InventoryLedger(parse_scenario(raw))
+
+
 def test_a_blend_feasible_now_but_not_for_the_whole_plan_is_rejected():
-    """The reserve in the sour-crude scenario lasts exactly to the horizon and no further."""
-    result = ledger(SOUR).run_plan([(0.0, {"main": 0.7, "reserve": 0.3}, 100.0)])
-    assert result["feasible"] is False
-    assert result["final_inventories"]["reserve"] == pytest.approx(0.0)
+    """Thirty tonnes covers the first hour of a 30 t/h draw and nothing after it."""
+    plan = [(0.0, {"main": 0.7, "reserve": 0.3}, 100.0)]
+    assert with_reserve(200.0).run_plan(plan)["feasible"] is True
+    scarce = with_reserve(30.0).run_plan(plan)
+    assert scarce["feasible"] is False
+    assert scarce["first_failure"] is not None
 
 
 def test_the_step_where_the_plan_fails_is_identified():
@@ -150,9 +161,13 @@ def test_the_timeline_records_inventories_at_every_step():
 # --- The end of the horizon is not the end of the plant ---
 
 def test_a_plan_that_drains_the_reserve_to_the_last_point_fails_the_terminal_rule():
-    result = ledger(SOUR).run_plan([(0.0, {"main": 0.7, "reserve": 0.3}, 100.0)])
+    """Ninety tonnes is exactly three hours at 30 t/h: every step passes, the horizon does not."""
+    result = with_reserve(90.0).run_plan([(0.0, {"main": 0.7, "reserve": 0.3}, 100.0)])
+    assert result["first_failure"] is None, "сами шаги проходят"
+    assert result["final_inventories"]["reserve"] == pytest.approx(0.0)
     assert result["terminal"]["satisfied"] is False
     assert "после горизонта" in result["terminal"]["reason"]
+    assert result["feasible"] is False
 
 
 def test_a_plan_leaving_enough_supply_passes_the_terminal_rule():
