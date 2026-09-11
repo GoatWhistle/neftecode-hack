@@ -5,12 +5,13 @@ import pytest
 from neftecode.data import backward_readings, build_features, series_frame, split_periods
 
 
-CFG = {"lab_delay_hours": 6, "lab_max_age_hours": 48, "pak_max_age_minutes": 30}
+CFG = {"horizon_hours": 2, "lab_delay_hours": 4, "history_window_hours": 6,
+       "lab_max_age_hours": 48, "pak_max_age_minutes": 30}
 
 
 def test_lab_only_available_after_release_delay():
     lab = series_frame([("2026-01-01 08:00", 5), ("2026-01-01 10:00", 100)], "test")
-    joined = backward_readings(pd.to_datetime(["2026-01-01 13:59", "2026-01-01 14:00", "2026-01-01 16:00"]), lab, 6)
+    joined = backward_readings(pd.to_datetime(["2026-01-01 11:59", "2026-01-01 12:00", "2026-01-01 14:00"]), lab, 4)
     assert pd.isna(joined.value.iloc[0])
     assert joined.value.iloc[1:].tolist() == [5, 100]
     assert (joined.dropna().available_time <= joined.dropna().decision_time).all()
@@ -26,7 +27,7 @@ def test_future_mutation_cannot_change_features_or_trust():
     signals.loc[signals.index > decisions.max()] = 999999
     online.loc[online.time > decisions.max(), "value"] = 999999
     # Even an earlier sample remains unknown if its result has not arrived.
-    lab.loc[lab.time + pd.Timedelta(hours=6) > decisions.max(), "value"] = 999999
+    lab.loc[lab.time + pd.Timedelta(hours=4) > decisions.max(), "value"] = 999999
     x2, m2 = build_features(signals, lab, online, decisions, CFG)
     pd.testing.assert_frame_equal(x1, x2)
     pd.testing.assert_frame_equal(m1, m2)
