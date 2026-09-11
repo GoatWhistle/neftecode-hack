@@ -1,0 +1,1633 @@
+[
+  {
+    "cell": "BN91",
+    "indicator": "D15",
+    "date": "2024-07-11 10:00:00",
+    "value": 424.6000061035156,
+    "flag": "density_lt_600"
+  },
+  {
+    "cell": "BT196",
+    "indicator": "50%.T",
+    "date": "2023-07-09 10:00:00",
+    "value": 2774,
+    "flag": "temperature_gt_1000"
+  },
+  {
+    "cell": "CR24",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-01-18 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR30",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-01-24 09:30:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR34",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-01-27 10:00:00",
+    "value": 12.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR35",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-01-27 14:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR36",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-01-27 23:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR40",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-01-30 16:00:00",
+    "value": 12.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR63",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-02-22 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR70",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-03-01 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR73",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-03-03 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR76",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-03-06 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR93",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-03-22 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR111",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-04-10 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR113",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-04-12 10:00:00",
+    "value": 11.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR120",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-04-19 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR121",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-04-20 10:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR124",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-04-23 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR132",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-04-30 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR137",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-05 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR147",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-15 10:00:00",
+    "value": 11.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR149",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-16 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR151",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-18 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR157",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-23 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR160",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-25 10:00:00",
+    "value": 11.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR161",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-26 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR166",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-05-29 23:00:00",
+    "value": 15.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR168",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-01 09:30:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR171",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-03 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR184",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-15 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR185",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-15 14:00:00",
+    "value": 12.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR188",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-17 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR192",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-20 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR194",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-20 16:49:00",
+    "value": 11.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR203",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-06-26 22:30:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR209",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-02 09:40:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR210",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-03 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR211",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-04 10:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR214",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-07 03:00:00",
+    "value": 14.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR217",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-08 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR218",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-09 06:00:00",
+    "value": 18.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR220",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-10 10:00:00",
+    "value": 13.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR221",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-11 10:00:00",
+    "value": 11.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR225",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-13 10:00:00",
+    "value": 14.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR227",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-14 09:50:00",
+    "value": 11.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR228",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-14 14:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR230",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-16 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR233",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-19 10:00:00",
+    "value": 13.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR240",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-24 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR241",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-25 10:00:00",
+    "value": 11.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR243",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-07-27 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR250",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-08-03 10:00:00",
+    "value": 11.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR252",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-08-05 10:00:00",
+    "value": 12.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR275",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-08-28 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR276",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-08-29 09:35:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR285",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-09-06 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR289",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-09-10 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR308",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-09-28 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR334",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-10-29 09:25:00",
+    "value": 11.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR339",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-03 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR341",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-05 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR358",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-22 05:00:00",
+    "value": 22.799999237060547,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR359",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-22 10:00:00",
+    "value": 11.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR361",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-24 10:00:00",
+    "value": 12.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR365",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-27 23:00:00",
+    "value": 12.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR368",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-29 10:00:00",
+    "value": 11.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR369",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-11-30 10:00:00",
+    "value": 13.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR373",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-03 10:00:00",
+    "value": 12.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR377",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-07 10:00:00",
+    "value": 12.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR378",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-07 18:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR379",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-07 23:30:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR383",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-10 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR385",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-12 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR386",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-13 10:00:00",
+    "value": 12.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR388",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-14 10:00:00",
+    "value": 11.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR390",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-16 10:00:00",
+    "value": 12.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR394",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-19 10:00:00",
+    "value": 13.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR397",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-22 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR400",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-25 10:00:00",
+    "value": 10.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR401",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-25 17:45:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR402",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-25 22:00:00",
+    "value": 14.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR405",
+    "indicator": "Mg.Sulfur",
+    "date": "2023-12-27 10:00:00",
+    "value": 12.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR412",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-01-01 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR420",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-01-08 12:00:00",
+    "value": 12.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR436",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-01-19 23:45:00",
+    "value": 12.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR439",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-01-21 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR444",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-01-25 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR450",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-01-30 14:07:00",
+    "value": 20.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR457",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-02 02:00:00",
+    "value": 19.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR458",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-02 07:00:00",
+    "value": 11.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR463",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-05 18:00:00",
+    "value": 12.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR466",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-08 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR467",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-09 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR474",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-17 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR483",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-02-24 15:00:00",
+    "value": 13.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR490",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-03-01 06:00:00",
+    "value": 14.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR499",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-03-08 17:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR508",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-04-23 06:30:00",
+    "value": 2120,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR509",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-04-23 09:24:00",
+    "value": 34,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR510",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-04-23 10:00:00",
+    "value": 107,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR596",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-07-04 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR597",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-07-05 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR603",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-07-11 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR613",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-07-20 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR627",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-08-03 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR629",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-08-04 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR652",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-08-27 10:00:00",
+    "value": 17.299999237060547,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR661",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-09-04 10:00:00",
+    "value": 12.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR664",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-09-07 00:00:00",
+    "value": 19.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR671",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-09-11 20:00:00",
+    "value": 12,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR712",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-10-18 10:00:00",
+    "value": 12,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR723",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-10-28 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR726",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-10-30 10:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR727",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-10-31 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR728",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-10-31 16:30:00",
+    "value": 11.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR739",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-11-08 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR742",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-11-10 10:00:00",
+    "value": 13.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR780",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-12-17 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR784",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-12-20 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR785",
+    "indicator": "Mg.Sulfur",
+    "date": "2024-12-20 23:41:32",
+    "value": 13.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR816",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-01-20 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR830",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-02 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR831",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-03 04:48:22",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR841",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-13 10:00:00",
+    "value": 11.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR844",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-14 22:41:16",
+    "value": 11.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR850",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-19 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR854",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-23 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR858",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-27 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR859",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-02-28 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR867",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-10 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR872",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-15 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR873",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-16 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR874",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-17 10:00:00",
+    "value": 12.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR875",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-18 10:00:00",
+    "value": 12.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR876",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-19 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR877",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-20 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR883",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-25 00:01:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR884",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-25 06:00:00",
+    "value": 13.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR886",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-25 20:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR888",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-26 23:07:57",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR891",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-03-30 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR912",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-04-20 10:00:00",
+    "value": 11.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR913",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-04-21 10:00:00",
+    "value": 11.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR914",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-04-22 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR915",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-04-23 10:00:00",
+    "value": 13.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR916",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-04-24 10:00:00",
+    "value": 12.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR924",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-05-01 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR934",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-05-11 10:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR945",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-05-20 10:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR946",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-05-21 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR960",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-06-03 10:00:00",
+    "value": 23.299999237060547,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR977",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-06-19 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1014",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-07-24 13:00:00",
+    "value": 120,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1015",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-07-24 13:15:00",
+    "value": 45.900001525878906,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1020",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-07-28 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1021",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-07-28 16:00:00",
+    "value": 35.099998474121094,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1027",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-08-03 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1038",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-08-14 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1039",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-08-14 14:00:00",
+    "value": 11.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1050",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-08-23 10:00:00",
+    "value": 11.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1053",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-08-25 10:00:00",
+    "value": 10.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1058",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-08-30 10:00:00",
+    "value": 11.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1062",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-03 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1065",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-06 10:00:00",
+    "value": 11.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1066",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-07 10:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1069",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-10 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1082",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-23 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1083",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-24 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1088",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-09-28 17:00:00",
+    "value": 15.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1094",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-03 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1100",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-09 10:00:00",
+    "value": 12.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1103",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-10 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1106",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-12 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1109",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-16 10:00:00",
+    "value": 12.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1111",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-17 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1112",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-18 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1115",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-20 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1116",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-21 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1117",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-21 16:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1120",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-22 20:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1127",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-27 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1135",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-10-31 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1137",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-02 10:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1145",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-09 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1146",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-09 13:00:00",
+    "value": 11.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1151",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-12 10:00:00",
+    "value": 11.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1154",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-14 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1162",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-21 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1166",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-24 02:38:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1171",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-27 10:00:00",
+    "value": 13.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1172",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-11-27 12:45:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1183",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-12-07 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1190",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-12-11 17:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1194",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-12-14 14:22:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1208",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-12-28 10:00:00",
+    "value": 10.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1209",
+    "indicator": "Mg.Sulfur",
+    "date": "2025-12-29 00:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1216",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-01-03 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1222",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-01-06 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1226",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-01-09 18:00:00",
+    "value": 13,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1230",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-01-12 10:00:00",
+    "value": 12,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1233",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-01-13 22:00:00",
+    "value": 11.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1265",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-02-09 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1279",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-02-23 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1287",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-03-03 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1306",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-03-17 10:00:00",
+    "value": 12.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1339",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-04-27 15:30:00",
+    "value": 14.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1347",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-04-29 20:00:00",
+    "value": 11.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1349",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-04-30 16:00:00",
+    "value": 11.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1354",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-04 10:00:00",
+    "value": 13.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1355",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-04 14:00:00",
+    "value": 20.299999237060547,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1371",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-14 10:00:00",
+    "value": 12,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1372",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-15 10:00:00",
+    "value": 11.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1377",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-20 10:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1380",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-22 10:00:00",
+    "value": 10.899999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1382",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-23 09:35:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1384",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-25 05:00:00",
+    "value": 11.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1386",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-25 14:00:00",
+    "value": 10.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1388",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-05-27 05:00:00",
+    "value": 10.699999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1400",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-06-06 10:00:00",
+    "value": 10.5,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1402",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-06-07 16:15:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1408",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-06-10 10:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1423",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-03 18:00:00",
+    "value": 16.100000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1424",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-03 21:00:00",
+    "value": 13.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1435",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-12 10:00:00",
+    "value": 11.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1439",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-15 10:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1440",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-16 10:00:00",
+    "value": 11,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1442",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-18 05:00:00",
+    "value": 10.300000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1443",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-18 10:00:00",
+    "value": 12.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1444",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-18 22:00:00",
+    "value": 10.399999618530273,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1446",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-20 10:00:00",
+    "value": 10.199999809265137,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1452",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-07-27 10:00:00",
+    "value": 10.800000190734863,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "CR1458",
+    "indicator": "Mg.Sulfur",
+    "date": "2026-08-02 10:00:00",
+    "value": 10.600000381469727,
+    "flag": "sulfur_gt_10"
+  },
+  {
+    "cell": "DD451",
+    "indicator": "I350",
+    "date": "2024-03-12 10:00:00",
+    "value": 350,
+    "flag": "I350_gt_100"
+  }
+]

@@ -1,0 +1,290 @@
+{
+  "selected": "last_pak",
+  "selection": "MAE на общем наборе validation; тест не участвует",
+  "validation_common_n": 175,
+  "test_common_n": 226,
+  "periods": {
+    "train": {
+      "n": 792,
+      "first_decision": "2023-01-01 08:00:00",
+      "last_target": "2024-12-31 10:00:00"
+    },
+    "validation": {
+      "n": 193,
+      "first_decision": "2025-01-01 08:00:00",
+      "last_target": "2025-06-30 10:00:00"
+    },
+    "calibration": {
+      "n": 224,
+      "first_decision": "2025-07-01 08:00:00",
+      "last_target": "2025-12-31 10:00:00"
+    },
+    "test": {
+      "n": 249,
+      "first_decision": "2026-01-01 08:00:00",
+      "last_target": "2026-08-06 10:00:00"
+    }
+  },
+  "excluded_boundary_rows": 0,
+  "models": {
+    "last_lab": {
+      "validation_common_mae": 1.532571381841387,
+      "validation": {
+        "n": 193,
+        "predicted": 192,
+        "availability": 0.9948186528497409,
+        "mae": 1.541145780434211,
+        "rmse": 2.193183025767678,
+        "mae_near_limit": 1.475138066881928,
+        "actual_exceedances": 32,
+        "recall": 0.375,
+        "false_alarm_rate": 0.1
+      },
+      "test": {
+        "n": 249,
+        "predicted": 245,
+        "availability": 0.9839357429718876,
+        "mae": 1.871836716240766,
+        "rmse": 2.872799934313152,
+        "mae_near_limit": 1.5596412361470038,
+        "actual_exceedances": 35,
+        "recall": 0.17142857142857143,
+        "false_alarm_rate": 0.09523809523809523,
+        "interval_coverage": 0.8571428571428571,
+        "mean_interval_width": 8.109469384763218,
+        "upper_bound_recall": 0.9142857142857143,
+        "upper_bound_false_alarm_rate": 0.8666666666666667,
+        "below_limit_fraction": 0.12653061224489795,
+        "missed_exceedances": 3
+      },
+      "test_common": {
+        "n": 226,
+        "predicted": 226,
+        "availability": 1.0,
+        "mae": 1.6433628169176853,
+        "rmse": 2.3591846171019317,
+        "mae_near_limit": 1.43657405840026,
+        "actual_exceedances": 33,
+        "recall": 0.18181818181818182,
+        "false_alarm_rate": 0.08808290155440414,
+        "interval_coverage": 0.8938053097345132,
+        "mean_interval_width": 8.288666155611065,
+        "upper_bound_recall": 0.9696969696969697,
+        "upper_bound_false_alarm_rate": 0.9119170984455959,
+        "below_limit_fraction": 0.07964601769911504,
+        "missed_exceedances": 1
+      }
+    },
+    "last_pak": {
+      "validation_common_mae": 1.3213310364314488,
+      "validation": {
+        "n": 193,
+        "predicted": 176,
+        "availability": 0.9119170984455959,
+        "mae": 1.3192276047034697,
+        "rmse": 2.0710188632969695,
+        "mae_near_limit": 1.2180189800833514,
+        "actual_exceedances": 30,
+        "recall": 0.13333333333333333,
+        "false_alarm_rate": 0.07534246575342465
+      },
+      "test": {
+        "n": 249,
+        "predicted": 229,
+        "availability": 0.9196787148594378,
+        "mae": 1.7567262955042473,
+        "rmse": 2.494914504387487,
+        "mae_near_limit": 1.6264602831744273,
+        "actual_exceedances": 34,
+        "recall": 0.23529411764705882,
+        "false_alarm_rate": 0.11794871794871795,
+        "interval_coverage": 0.8777292576419214,
+        "mean_interval_width": 7.257167613248375,
+        "upper_bound_recall": 0.9411764705882353,
+        "upper_bound_false_alarm_rate": 0.8153846153846154,
+        "below_limit_fraction": 0.16593886462882096,
+        "missed_exceedances": 2
+      },
+      "test_common": {
+        "n": 226,
+        "predicted": 226,
+        "availability": 1.0,
+        "mae": 1.696437211525915,
+        "rmse": 2.375764184777761,
+        "mae_near_limit": 1.6025002576686718,
+        "actual_exceedances": 33,
+        "recall": 0.21212121212121213,
+        "false_alarm_rate": 0.10880829015544041,
+        "interval_coverage": 0.8849557522123894,
+        "mean_interval_width": 7.219164266557553,
+        "upper_bound_recall": 0.9393939393939394,
+        "upper_bound_false_alarm_rate": 0.8134715025906736,
+        "below_limit_fraction": 0.168141592920354,
+        "missed_exceedances": 2
+      }
+    },
+    "ridge": {
+      "validation_common_mae": 1.5897670302251579,
+      "validation": {
+        "n": 193,
+        "predicted": 193,
+        "availability": 1.0,
+        "mae": 1.603658441085898,
+        "rmse": 2.288592306098182,
+        "mae_near_limit": 1.4856631910138742,
+        "actual_exceedances": 32,
+        "recall": 0.25,
+        "false_alarm_rate": 0.055900621118012424
+      },
+      "test": {
+        "n": 249,
+        "predicted": 249,
+        "availability": 1.0,
+        "mae": 2.9782541320182934,
+        "rmse": 4.810597839350277,
+        "mae_near_limit": 2.688027016343002,
+        "actual_exceedances": 36,
+        "recall": 0.25,
+        "false_alarm_rate": 0.09859154929577464,
+        "interval_coverage": 0.7630522088353414,
+        "mean_interval_width": 7.8341795442585935,
+        "upper_bound_recall": 0.8333333333333334,
+        "upper_bound_false_alarm_rate": 0.6572769953051644,
+        "below_limit_fraction": 0.3172690763052209,
+        "missed_exceedances": 6
+      },
+      "test_common": {
+        "n": 226,
+        "predicted": 226,
+        "availability": 1.0,
+        "mae": 2.5711105467439284,
+        "rmse": 3.594994324042064,
+        "mae_near_limit": 2.560165764144151,
+        "actual_exceedances": 33,
+        "recall": 0.24242424242424243,
+        "false_alarm_rate": 0.09844559585492228,
+        "interval_coverage": 0.8185840707964602,
+        "mean_interval_width": 7.889359549691918,
+        "upper_bound_recall": 0.8787878787878788,
+        "upper_bound_false_alarm_rate": 0.6632124352331606,
+        "below_limit_fraction": 0.3053097345132743,
+        "missed_exceedances": 4
+      }
+    },
+    "catboost": {
+      "validation_common_mae": 1.3617683137910637,
+      "validation": {
+        "n": 193,
+        "predicted": 193,
+        "availability": 1.0,
+        "mae": 1.3899629404062557,
+        "rmse": 2.090757229396118,
+        "mae_near_limit": 1.2329482882015488,
+        "actual_exceedances": 32,
+        "recall": 0.0,
+        "false_alarm_rate": 0.0
+      },
+      "test": {
+        "n": 249,
+        "predicted": 249,
+        "availability": 1.0,
+        "mae": 1.5857231794613063,
+        "rmse": 2.3208069693895723,
+        "mae_near_limit": 1.2385000597404652,
+        "actual_exceedances": 36,
+        "recall": 0.0,
+        "false_alarm_rate": 0.004694835680751174,
+        "interval_coverage": 0.8232931726907631,
+        "mean_interval_width": 5.457758003594984,
+        "upper_bound_recall": 0.9444444444444444,
+        "upper_bound_false_alarm_rate": 0.8544600938967136,
+        "below_limit_fraction": 0.13253012048192772,
+        "missed_exceedances": 2
+      },
+      "test_common": {
+        "n": 226,
+        "predicted": 226,
+        "availability": 1.0,
+        "mae": 1.356832759831993,
+        "rmse": 1.9871616872456979,
+        "mae_near_limit": 1.1900186413195741,
+        "actual_exceedances": 33,
+        "recall": 0.0,
+        "false_alarm_rate": 0.0051813471502590676,
+        "interval_coverage": 0.8849557522123894,
+        "mean_interval_width": 5.506214737893062,
+        "upper_bound_recall": 0.9696969696969697,
+        "upper_bound_false_alarm_rate": 0.8860103626943006,
+        "below_limit_fraction": 0.10176991150442478,
+        "missed_exceedances": 1
+      }
+    },
+    "catboost_no_pak": {
+      "validation_common_mae": 1.3236418008406268,
+      "validation": {
+        "n": 193,
+        "predicted": 193,
+        "availability": 1.0,
+        "mae": 1.3475800368548796,
+        "rmse": 2.0122823645954426,
+        "mae_near_limit": 1.1970762904231151,
+        "actual_exceedances": 32,
+        "recall": 0.0,
+        "false_alarm_rate": 0.0
+      },
+      "test": {
+        "n": 249,
+        "predicted": 249,
+        "availability": 1.0,
+        "mae": 1.5623692528412951,
+        "rmse": 2.3028273523607883,
+        "mae_near_limit": 1.2050911279530574,
+        "actual_exceedances": 36,
+        "recall": 0.0,
+        "false_alarm_rate": 0.0,
+        "interval_coverage": 0.7991967871485943,
+        "mean_interval_width": 4.934970477957261,
+        "upper_bound_recall": 0.9722222222222222,
+        "upper_bound_false_alarm_rate": 0.8356807511737089,
+        "below_limit_fraction": 0.14457831325301204,
+        "missed_exceedances": 1
+      },
+      "test_common": {
+        "n": 226,
+        "predicted": 226,
+        "availability": 1.0,
+        "mae": 1.3316836691121114,
+        "rmse": 1.949638913450469,
+        "mae_near_limit": 1.1602972211716478,
+        "actual_exceedances": 33,
+        "recall": 0.0,
+        "false_alarm_rate": 0.0,
+        "interval_coverage": 0.8584070796460177,
+        "mean_interval_width": 4.968200121300695,
+        "upper_bound_recall": 0.9696969696969697,
+        "upper_bound_false_alarm_rate": 0.8756476683937824,
+        "below_limit_fraction": 0.11061946902654868,
+        "missed_exceedances": 1
+      }
+    }
+  },
+  "assumptions": [
+    "Горизонт 2 часа и задержка выдачи ЛИМС 6 часов — параметры эксперимента, технологически не подтверждены.",
+    "Время CSV и XLSX трактуется как единое местное время без преобразования часового пояса.",
+    "ПАК ppm трактуется как массовый ppm, то есть мг/кг; требуется подтверждение.",
+    "Цель — лабораторная сера после гидроочистки, не сертификация товарного топлива.",
+    "Сигналы CSV используются как числовые признаки; их физический смысл и управляемость не подтверждены.",
+    "307 не удаляется автоматически. Постоянство ПАК за час — эвристика для подозрения на зависание.",
+    "Интервал откалиброван на прошлом периоде и не гарантирует покрытие при смене режима."
+  ],
+  "scope": "Прогноз за 2 часа до времени реальной пробы. Один анализ — одна целевая строка. Не эффект управления.",
+  "replay": {
+    "n": 249,
+    "statuses": {
+      "recommend_scenario": 170,
+      "hold": 66,
+      "refuse": 13
+    },
+    "scope": "Работа механизма рекомендаций в синтетическом смешении; не доказательство экономии или безопасности реального выпуска."
+  }
+}

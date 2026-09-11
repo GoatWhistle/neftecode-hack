@@ -1,0 +1,63 @@
+{
+  "ЛИМСы 01.01.2023 - н.в_ (2).xlsx": {
+    "Лист1": {
+      "rows": 1522,
+      "columns": 108,
+      "merged": [
+        "CE1:DD1",
+        "A1:V1",
+        "AY1:BN1",
+        "BO1:CD1",
+        "AK1:AX1",
+        "W1:AJ1"
+      ],
+      "formula_count": 0,
+      "error_count": 0,
+      "comments": []
+    }
+  },
+  "Теги_хакатон.xlsx": {
+    "ЛА": {
+      "rows": 15,
+      "columns": 6,
+      "merged": [],
+      "formula_count": 0,
+      "error_count": 0,
+      "comments": []
+    },
+    "ВАК": {
+      "rows": 9,
+      "columns": 6,
+      "merged": [],
+      "formula_count": 0,
+      "error_count": 0,
+      "comments": []
+    },
+    "ПАК": {
+      "rows": 3,
+      "columns": 2,
+      "merged": [],
+      "formula_count": 0,
+      "error_count": 0,
+      "comments": []
+    },
+    "КИП": {
+      "rows": 72,
+      "columns": 4,
+      "merged": [],
+      "formula_count": 0,
+      "error_count": 0,
+      "comments": []
+    }
+  },
+  "Выгрузка ПАК 01.01.2023 - н.в_.xlsx": {
+    "Лист1": {
+      "rows": 189651,
+      "columns": 5,
+      "merged": [],
+      "formula_count": 0,
+      "error_count": 0,
+      "comments": []
+    }
+  }
+}

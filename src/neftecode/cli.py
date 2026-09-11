@@ -1,0 +1,226 @@
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import pickle
+import platform
+
+import numpy as np
+import pandas as pd
+
+from .agents import Coordinator, Forecast
+from .data import load_sources, make_dataset
+from .forecast import run_experiment
+from .risk import run_risk_experiment
+from .runtime import decision_at, validate_origin
+
+
+def clean(value):
+    if isinstance(value, dict):
+        return {str(k): clean(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [clean(v) for v in value]
+    if value is None or value is pd.NaT:
+        return None
+    if isinstance(value, (float, np.floating)):
+        return float(value) if np.isfinite(value) else None
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, pd.Timestamp):
+        return value.isoformat()
+    return value
+
+
+def write_json(path, obj):
+    path.write_text(json.dumps(clean(obj), ensure_ascii=False, indent=2, allow_nan=False) + "\n")
+
+
+def fingerprint(root, cfg):
+    files = [*sorted((root / "task/data").glob("*.csv")), *sorted((root / "task").glob("*.xlsx")),
+             *sorted((root / "src/neftecode").glob("*.py")), root / "uv.lock"]
+    hashes = {}
+    for path in files:
+        with path.open("rb") as stream:
+            hashes[str(path.relative_to(root))] = hashlib.file_digest(stream, "sha256").hexdigest()
+    key = hashlib.sha256(json.dumps([hashes, cfg], sort_keys=True).encode()).hexdigest()
+    return {"fingerprint": key, "files": hashes, "config": cfg, "python": platform.python_version()}
+
+
+def train(root, out, cfg):
+    manifest = fingerprint(root, cfg)
+    print("Чтение телеметрии и независимых временных рядов ЛИМС/ПАК…", flush=True)
+    signals, lab, online = load_sources(root / "task")
+    x, meta = make_dataset(signals, lab, online, cfg)
+    print(f"{len(signals)} строк телеметрии, {len(meta)} независимых целевых анализов, {len(x.columns)} признаков", flush=True)
+    print("Сравнение пяти методов на последовательных периодах…", flush=True)
+    bundle, summary, predictions = run_experiment(x, meta, cfg)
+    print("Отдельная проверка обнаружения превышений и ложных тревог…", flush=True)
+    risk_bundle, risk_summary, risk_predictions = run_risk_experiment(x, meta, cfg)
+    bundle["risk"] = risk_bundle
+    risk_columns = [c for c in risk_predictions if c.startswith("risk_") and not c.startswith("risk_catboost")]
+    predictions = predictions.merge(risk_predictions[["decision_time", *risk_columns]], on="decision_time", validate="one_to_one")
+    risk_predictions.to_csv(out / "risk_predictions.csv", index=False)
+    write_json(out / "risk_metrics.json", risk_summary)
+    bundle["manifest"] = manifest
+    with (out / "model.pkl").open("wb") as stream:
+        pickle.dump(bundle, stream)
+    predictions.to_csv(out / "predictions.csv", index=False)
+    write_json(out / "metrics.json", summary)
+    write_json(out / "manifest.json", manifest)
+    print(f"Выбран по validation: {summary['selected']}", flush=True)
+    make_demo(root, out)
+
+
+STATE_COLUMNS = ["decision_time", "lab_sample_time", "lab_available_time", "lab_value", "lab_age_hours",
+                 "lab_usable", "pak_sample_time", "pak_value", "pak_age_minutes", "pak_frozen",
+                 "pak_conflict", "pak_usable", "telemetry_missing_fraction"]
+
+
+def from_row(row, prefix, model):
+    return Forecast(*[clean(row[prefix + c]) for c in ("prediction", "lower", "upper")], model)
+
+
+def risk_from_row(row):
+    return {name: {field: clean(row.get(prefix + field)) for field in ("score", "threshold", "model")}
+            for name, prefix in [("main", "risk_"), ("fallback", "risk_fallback_")]}
+
+
+def make_demo(root, out):
+    cfg = json.loads((root / "config/blending-demo.json").read_text())
+    coordinator = Coordinator(cfg)
+    # Synthetic inputs test the decision mechanics independently of forecast performance.
+    healthy = {"decision_time": "2026-01-15T10:00:00", "lab_usable": True, "pak_usable": True,
+               "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0,
+               "origin": "synthetic_acceptance_test"}
+    demos = {}
+    demos["normal_synthetic"] = coordinator.run(healthy, Forecast(6, 4, 8, "synthetic"))
+    demos["conflict_synthetic"] = coordinator.run(healthy, Forecast(12, 10, 14, "synthetic"))
+    demos["missing_synthetic"] = coordinator.run(
+        dict(healthy, lab_usable=False, pak_usable=False, telemetry_missing_fraction=1), Forecast(None, None, None, "missing"))
+    demos["no_feasible_synthetic"] = coordinator.run(healthy, Forecast(100, 80, 120, "synthetic"))
+    replay_rows = []
+    if (out / "predictions.csv").exists():
+        frame = pd.read_csv(out / "predictions.csv")
+        summary = json.loads((out / "metrics.json").read_text())
+        for _, row in frame.iterrows():
+            # Deliberate allowlist: future target and its actual value NEVER reach agents.
+            state = clean({key: row[key] for key in STATE_COLUMNS})
+            state["origin"] = "historical_replay_with_synthetic_blending"
+            forecast = from_row(row, "", summary["selected"])
+            fallback = from_row(row, "fallback_", "catboost_no_pak")
+            risk = risk_from_row(row)
+            decision = coordinator.run(state, forecast, fallback, risk)
+            key = "historical_" + decision["status"]
+            if key not in demos:
+                demos[key] = decision
+            replay_rows.append({"decision_time": row.decision_time, "decision_id": decision["decision_id"],
+                                "status": decision["status"], "source": decision["trust"]["source"],
+                                "forecast_model": decision["forecast"]["model"],
+                                "risk_model": decision["risk"]["model"], "risk_alarm": decision["risk"]["alarm"]})
+            if state["pak_usable"] and state["lab_usable"] and "frozen_pak_injected" not in demos:
+                damaged = dict(state, pak_usable=False, pak_frozen=True, origin="historical_state_with_injected_pak_failure")
+                demos["frozen_pak_injected"] = coordinator.run(damaged, forecast, fallback, risk)
+        pd.DataFrame(replay_rows).to_csv(out / "replay.csv", index=False)
+        summary["replay"] = {
+            "n": len(replay_rows),
+            "statuses": pd.Series([r["status"] for r in replay_rows]).value_counts().to_dict(),
+            "scope": "Работа механизма рекомендаций в синтетическом смешении; не доказательство экономии или безопасности реального выпуска.",
+        }
+        write_json(out / "metrics.json", summary)
+    write_json(out / "demo.json", demos)
+    with (out / "audit.jsonl").open("w") as stream:
+        for name, decision in demos.items():
+            stream.write(json.dumps(clean({"case": name, **decision}), ensure_ascii=False, allow_nan=False) + "\n")
+    make_report(out, demos)
+    print(f"Готово: {out / 'report.md'}", flush=True)
+
+
+def make_report(out, demos):
+    lines = ["# Первый рабочий проход", "", "Прогноз на реальных данных. Оптимизация смешения — явно модельный сценарий.", ""]
+    if (out / "metrics.json").exists():
+        summary = json.loads((out / "metrics.json").read_text())
+        lines += [f"Выбор только по validation: **{summary['selected']}**. Тест — 2026 год.", "",
+                  "| Метод | Анализов с прогнозом | MAE, мг/кг | MAE на общих анализах | Найдено превышений точечным прогнозом | Покрытие диапазона |",
+                  "|---|---:|---:|---:|---:|---:|"]
+        for name, result in summary["models"].items():
+            m = result["test"]
+            common_mae = result["test_common"].get("mae", float("nan"))
+            recall = f"{m['recall']:.1%}" if m.get("recall") is not None else "—"
+            lines.append(f"| {name} | {m['predicted']}/{m['n']} | {m.get('mae', 0):.2f} | {common_mae:.2f} | {recall} | {m.get('interval_coverage', 0):.1%} |")
+        lines += ["", "MAE — средняя абсолютная ошибка. Последнее измерение может отсутствовать: сравнивайте также доступность. "
+                  "Подробные пропуски превышений и ложные тревоги — в metrics.json. Предел 10 здесь — ориентир риска после гидроочистки, не заключение о товарном ДТ.",
+                  "", "Заявленная цель покрытия диапазона — 90%. Сравните с фактическим покрытием выше. "
+                  "Маленькая средняя ошибка при низкой доле найденных превышений не означает хороший контроль риска. "
+                  "Верхняя граница повышает обнаружение, но может давать много ложных тревог. Эти модели еще требуют доработки.",
+                  "", "Результаты воспроизведения всех тестовых моментов с модельным смешением: " + str(summary["replay"]["statuses"]), "",
+                  "## Допущения", "", *[f"- {a}" for a in summary["assumptions"]], ""]
+    if (out / "risk_metrics.json").exists():
+        risk = json.loads((out / "risk_metrics.json").read_text())
+        lines += ["## Обнаружение превышений", "",
+                  f"Выбран по validation: **{risk['selected']}**, резерв: **{risk['fallback']}**. "
+                  f"Экспериментальный бюджет ложных тревог: {risk['false_alarm_budget']:.0%}. "
+                  f"Сравнение на {risk['common_test_n']} общих тестовых анализах:", "",
+                  "| Метод | Найдено превышений | Ложных тревог среди проб без превышения | Верных тревог среди всех тревог |",
+                  "|---|---:|---:|---:|"]
+        def percent(value):
+            return f"{value:.1%}" if value is not None else "—"
+        for name, result in risk["models"].items():
+            m = result["test_common"]
+            lines.append(f"| {name} | {m['tp']}/{m['tp'] + m['fn']} ({percent(m['recall'])}) | "
+                         f"{m['fp']}/{m['fp'] + m['tn']} ({percent(m['false_alarm_rate'])}) | {percent(m['precision'])} |")
+        lines += ["", *[f"- {note}" for note in risk["limitations"]], ""]
+    lines += ["## Сценарии агентов", "", "| Сценарий | Решение | Объяснение |", "|---|---|---|"]
+    for name, d in demos.items():
+        lines.append(f"| {name} | {d['status']} | {d['reason']} |")
+    lines += ["", "## Проверяемый конфликт", ""]
+    conflict = demos["conflict_synthetic"]
+    c = conflict["chosen"]
+    if c:
+        lines += [f"При верхней оценке серы 14 мг/кг исходные 100 т/ч не проходят ограничения. "
+                  f"После запрета оборудования выбран расход {c['throughput_tph']:g} т/ч с массовой долей резерва {c['reserve_fraction']:.0%}. "
+                  f"Верхняя оценка смеси {c['quality']['sulfur_upper']:.2f} мг/кг; "
+                  f"насос {c['throughput_tph'] * c['reserve_fraction']:g} т/ч при пределе 30 т/ч.", ""]
+    lines += ["Все численные условия этого конфликта заданы в config/blending-demo.json. "
+              "audit.jsonl содержит входы, оценки, все кандидаты и причины запрета. Фактическое будущее в журнал агентов не передается.", "",
+              "Полный промышленный советчик пока не готов: нужны подтвержденные управляющие теги, "
+              "остальные спецификации качества и проверка модели последствий действий.", ""]
+    (out / "report.md").write_text("\n".join(lines))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
+    parser.add_argument("command", choices=["train", "demo", "advise"])
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--out", type=Path, default=Path("artifacts"))
+    parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
+    parser.add_argument("--at", help="Местное время решения для advise, например 2026-01-05T08:00:00")
+    args = parser.parse_args()
+    root = args.root.resolve()
+    out = args.out.resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    try:
+        if args.command == "train":
+            cfg = json.loads(args.config.read_text())
+            train(root, out, cfg)
+        elif args.command == "advise":
+            if not args.at:
+                parser.error("Для advise нужен --at с местным временем решения")
+            with (out / "model.pkl").open("rb") as stream:
+                bundle = pickle.load(stream)
+            when = validate_origin(args.at, bundle)
+            signals, lab, online = load_sources(root / "task")
+            scenario = json.loads((root / "config/blending-demo.json").read_text())
+            decision = decision_at(signals, lab, online, bundle, when, scenario)
+            path = out / f"decision-{when.strftime('%Y%m%d-%H%M%S')}.json"
+            write_json(path, decision)
+            print(f"{decision['status']}: {decision['reason']}\nЖурнал: {path}")
+        else:
+            make_demo(root, out)
+    except (ValueError, FileNotFoundError) as exc:
+        parser.exit(2, f"Ошибка: {exc}\n")
+
+
+if __name__ == "__main__":
+    main()

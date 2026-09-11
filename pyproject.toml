@@ -1,0 +1,26 @@
+[project]
+name = "neftecode"
+version = "0.1.0"
+description = "Проверяемый советчик по качеству дизельного топлива"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "catboost>=1.2.8,<1.3",
+  "numpy>=2.2,<3",
+  "pandas>=2.2,<3",
+  "openpyxl>=3.1,<4",
+  "scikit-learn>=1.6,<2",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+neftecode = "neftecode.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
