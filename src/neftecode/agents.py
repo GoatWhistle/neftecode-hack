@@ -5,6 +5,7 @@ import json
 import math
 
 from .claims import Ledger, measurement, model_result, scenario_input
+from .trust import DataTrustAgent
 
 
 @dataclass(frozen=True)
@@ -22,26 +23,16 @@ class Forecast:
 
 
 class DataAgent:
+    """Thin adapter over DataTrustAgent, kept for the dictionary-based coordinator."""
+
+    def __init__(self, cfg: dict | None = None):
+        self.agent = DataTrustAgent(cfg or {})
+
     def assess(self, state: dict) -> dict:
-        lab = bool(state.get("lab_usable", False))
-        pak = bool(state.get("pak_usable", False))
-        reasons = []
-        if state.get("pak_frozen"):
-            pak = False
-            reasons.append("ПАК не меняется: подозрение на зависание")
-        if state.get("pak_conflict"):
-            pak = False
-            reasons.append("ПАК расходится с ЛИМС на момент той же пробы")
-        if not lab:
-            reasons.append("Нет доступного свежего ЛИМС")
-        if not pak:
-            reasons.append("ПАК недоступен или не прошел проверку")
-        missing = state.get("telemetry_missing_fraction", 1)
-        if not isinstance(missing, (int, float)) or not math.isfinite(missing) or not 0 <= missing <= .1:
-            reasons.append("Недостаточно свежей телеметрии")
-            return {"usable": False, "source": None, "fallback": True, "reasons": reasons}
-        return {"usable": lab or pak, "source": "ЛИМС" if lab else "ПАК" if pak else None,
-                "fallback": not pak, "reasons": reasons}
+        report = self.agent.assess(state)
+        return {"usable": report.usable, "source": report.primary, "fallback": report.fallback_mode,
+                "reasons": list(report.reasons), "missing_requirements": list(report.missing_requirements),
+                "suspect_values": list(report.suspect_values), "report": report.to_dict()}
 
 
 class QualityAgent:

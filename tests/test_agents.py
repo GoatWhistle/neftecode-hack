@@ -13,8 +13,9 @@ def config():
 
 @pytest.fixture
 def state():
-    return {"lab_usable": True, "pak_usable": True, "pak_frozen": False,
-            "pak_conflict": False, "telemetry_missing_fraction": 0}
+    return {"lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
+            "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
+            "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0}
 
 
 def test_normal_state_does_not_produce_unnecessary_actions(config, state):

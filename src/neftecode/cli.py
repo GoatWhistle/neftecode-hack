@@ -91,14 +91,17 @@ def make_demo(root, out):
     cfg = json.loads((root / "config/blending-demo.json").read_text())
     coordinator = Coordinator(cfg)
     # Synthetic inputs test the decision mechanics independently of forecast performance.
-    healthy = {"decision_time": "2026-01-15T10:00:00", "lab_usable": True, "pak_usable": True,
+    healthy = {"decision_time": "2026-01-15T10:00:00",
+               "lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
+               "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
                "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0,
                "origin": "synthetic_acceptance_test"}
     demos = {}
     demos["normal_synthetic"] = coordinator.run(healthy, Forecast(6, 4, 8, "synthetic"))
     demos["conflict_synthetic"] = coordinator.run(healthy, Forecast(12, 10, 14, "synthetic"))
     demos["missing_synthetic"] = coordinator.run(
-        dict(healthy, lab_usable=False, pak_usable=False, telemetry_missing_fraction=1), Forecast(None, None, None, "missing"))
+        dict(healthy, lab_value=None, lab_usable=False, pak_value=None, pak_usable=False,
+             telemetry_missing_fraction=1), Forecast(None, None, None, "missing"))
     demos["no_feasible_synthetic"] = coordinator.run(healthy, Forecast(100, 80, 120, "synthetic"))
     replay_rows = []
     if (out / "predictions.csv").exists():
