@@ -147,14 +147,17 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
     return x.astype(float), meta
 
 
-def make_dataset(signals, lab, online, cfg):
+def make_dataset(signals, lab, online, cfg, target_lab=None):
     """One real laboratory analysis produces exactly one evaluation row.
 
     Rare analyses are never resampled onto the 10-minute telemetry grid: that would turn
     1 458 measurements into tens of thousands of dependent rows and inflate every metric.
+
+    `target_lab` lets another laboratory series be the target while the features keep coming
+    from the sulfur sources. The leak guard below then compares the right pair of times.
     """
     bounds = check_time_assumptions(cfg)
-    targets = lab.copy()
+    targets = (lab if target_lab is None else target_lab).copy()
     targets["decision_time"] = targets.time - pd.Timedelta(hours=bounds["horizon_hours"])
     # Need a complete history window and no forecast origin beyond telemetry coverage.
     targets = targets.loc[
@@ -164,9 +167,17 @@ def make_dataset(signals, lab, online, cfg):
         raise ValueError("Целевые анализы содержат повторяющееся время отбора: одна проба дала бы "
                          "несколько независимых строк оценки")
     x, meta = build_features(signals, lab, online, targets.decision_time, cfg)
+    if target_lab is not None:
+        # Persistence of the SAME property. Comparing a T95 model against the last sulfur
+        # reading would be a straw man, not a baseline.
+        own = backward_readings(targets.decision_time, target_lab, bounds["lab_delay_hours"])
+        own_age = (own.decision_time - own.sample_time).dt.total_seconds() / 3600
+        x["lab.target"] = own.value.where(own_age.le(cfg["lab_max_age_hours"]) & own.value.notna()).to_numpy()
+        x["lab.target_age_hours"] = own_age.to_numpy()
     meta["target_time"] = targets.time
     meta["target_available_time"] = targets.time + pd.Timedelta(hours=bounds["lab_delay_hours"])
     meta["actual_sulfur"] = targets.value
+    meta["actual_target"] = targets.value
     leak = meta.lab_sample_time.notna() & (meta.lab_sample_time >= meta.target_time)
     if leak.any():
         raise ValueError(f"{int(leak.sum())} строк используют как признак пробу, взятую не раньше целевой; "

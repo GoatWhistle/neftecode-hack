@@ -13,6 +13,7 @@ from .data import load_sources, make_dataset
 from .forecast import run_experiment
 from .risk import run_risk_experiment
 from .runtime import decision_at, validate_origin
+from .quality import report as quality_report, read_quality_series
 from .vak import check_all
 
 
@@ -64,6 +65,29 @@ def train(root, out, cfg):
     predictions = predictions.merge(risk_predictions[["decision_time", *risk_columns]], on="decision_time", validate="one_to_one")
     risk_predictions.to_csv(out / "risk_predictions.csv", index=False)
     write_json(out / "risk_metrics.json", risk_summary)
+    print("Оценка доступности по каждому показателю качества…", flush=True)
+    availability = quality_report(root / "task")
+    bundle["quality_availability"] = availability
+    summary["quality_availability"] = availability
+    # T95 has its own laboratory series at the same point, so it gets the same honest treatment.
+    series = read_quality_series(root / "task")
+    extra = {}
+    for name in availability["modelled"]:
+        if name == "sulfur_mgkg":
+            continue
+        try:
+            xq, mq = make_dataset(signals, lab, online, cfg, target_lab=series[name])
+            qbundle, qsummary, _ = run_experiment(xq, mq, cfg, target="actual_target", limit=None)
+            extra[name] = {"selected": qsummary["selected"],
+                           "selection_decision": qsummary["selection_decision"],
+                           "models": {k: {"validation_common_mae": v["validation_common_mae"],
+                                          "test": v["test"]} for k, v in qsummary["models"].items()}}
+            bundle.setdefault("extra_models", {})[name] = qbundle
+            print(f"  {name}: выбран {qsummary['selected']}", flush=True)
+        except ValueError as exc:
+            extra[name] = {"selected": None, "reason": str(exc)}
+            print(f"  {name}: прогноз не построен — {exc}", flush=True)
+    summary["extra_targets"] = extra
     bundle["manifest"] = manifest
     with (out / "model.pkl").open("wb") as stream:
         pickle.dump(bundle, stream)
@@ -141,6 +165,51 @@ def make_demo(root, out):
     print(f"Готово: {out / 'report.md'}", flush=True)
 
 
+def selection_section(summary):
+    """Why this forecast won, and what the system can estimate at all."""
+    lines = []
+    choice = summary.get("selection_decision", {})
+    if choice:
+        lines += ["## Почему выбран именно этот прогноз", "",
+                  f"Базовый простой прогноз — **{choice['baseline']}**, ошибка {choice['baseline_mae']:.4f}."]
+        if choice.get("challenger"):
+            lines += [f"Лучший обучаемый претендент — **{choice['challenger']}**, ошибка "
+                      f"{choice['challenger_mae']:.4f}: выигрыш {choice['relative_gain']:.2%} при "
+                      f"доверительном интервале разности "
+                      f"[{choice['bootstrap']['ci_low']:.4f}, {choice['bootstrap']['ci_high']:.4f}]."]
+        lines += [choice["reason"] + ".", "",
+                  f"Сложная модель заменяет простую только при выигрыше не меньше "
+                  f"{choice['min_relative_gain']:.0%} и доверительном интервале разности, не накрывающем ноль. "
+                  "Сравнение парное, на одних и тех же анализах: иначе доступность прогноза выдавала бы "
+                  "себя за точность.", ""]
+    availability = summary.get("quality_availability")
+    if availability:
+        lines += ["## Что система может оценить", "",
+                  "| Показатель | Лабораторных анализов | Способ оценки |", "|---|---:|---|"]
+        for name, source in availability["sources"].items():
+            lines.append(f"| {name} | {source['n_analyses']} | {source['method']} |")
+        lines += ["", "Обученная модель заявляется только при достаточном числе анализов. Показатель "
+                  "без модели берёт значение из сценария с пометкой допущения либо остаётся неизвестным; "
+                  "неизвестное критическое свойство блокирует план, а не проходит проверку.", ""]
+    for name, result in (summary.get("extra_targets") or {}).items():
+        decision = result.get("selection_decision")
+        if not decision:
+            lines += [f"Прогноз {name} не построен: {result.get('reason')}", ""]
+            continue
+        lines += [f"## Прогноз {name}", "",
+                  f"Выбран **{decision['selected']}**. {decision['reason']}.", "",
+                  "| Метод | MAE на общем validation | MAE на тесте | Анализов с прогнозом |",
+                  "|---|---:|---:|---:|"]
+        for method, values in result["models"].items():
+            t = values["test"]
+            lines.append(f"| {method} | {values['validation_common_mae']:.3f} | "
+                         f"{t.get('mae', 0):.3f} | {t['predicted']}/{t['n']} |")
+        lines += ["", "Простой прогноз здесь — последнее доступное лабораторное значение того же "
+                  "показателя, а не показание анализатора серы: сравнение с посторонней величиной "
+                  "создало бы заведомо слабого соперника и завысило бы выигрыш модели.", ""]
+    return lines
+
+
 def make_report(out, demos):
     lines = ["# Первый рабочий проход", "", "Прогноз на реальных данных. Оптимизация смешения — явно модельный сценарий.", ""]
     if (out / "metrics.json").exists():
@@ -158,8 +227,9 @@ def make_report(out, demos):
                   "", "Заявленная цель покрытия диапазона — 90%. Сравните с фактическим покрытием выше. "
                   "Маленькая средняя ошибка при низкой доле найденных превышений не означает хороший контроль риска. "
                   "Верхняя граница повышает обнаружение, но может давать много ложных тревог. Эти модели еще требуют доработки.",
-                  "", "Результаты воспроизведения всех тестовых моментов с модельным смешением: " + str(summary["replay"]["statuses"]), "",
-                  "## Допущения", "", *[f"- {a}" for a in summary["assumptions"]], ""]
+                  "", "Результаты воспроизведения всех тестовых моментов с модельным смешением: " + str(summary["replay"]["statuses"]), ""]
+        lines += selection_section(summary)
+        lines += ["## Допущения", "", *[f"- {a}" for a in summary["assumptions"]], ""]
     if (out / "risk_metrics.json").exists():
         risk = json.loads((out / "risk_metrics.json").read_text())
         lines += ["## Обнаружение превышений", "",
