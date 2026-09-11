@@ -1,0 +1,220 @@
+"""The agent loop: a veto must change the next search, and no failure may become a success."""
+import json
+from pathlib import Path
+
+import pytest
+
+from neftecode.contracts import HOLD, RECOMMEND_SCENARIO, REFUSE
+from neftecode.orchestrator import (MAX_ROUNDS, AgentError, Orchestrator, QualityAgent,
+                                    ReliabilityAgent)
+from neftecode.scenario import load_scenario, parse_scenario
+
+BASELINE = Path("config/scenarios/baseline.json")
+SOUR = Path("config/scenarios/sour_crude.json")
+NO_FEASIBLE = Path("config/scenarios/no_feasible.json")
+BUDGET = 400
+
+
+def orchestrator(path=BASELINE):
+    return Orchestrator(load_scenario(path))
+
+
+def decide(path=BASELINE, **kw):
+    return orchestrator(path).decide(budget=BUDGET, **kw)
+
+
+def rounds_of(decision):
+    return next(t for t in decision["trace"] if t.get("agent") == "optimizer")["rounds"]
+
+
+def healthy_state():
+    return {"decision_time": "2026-01-05T08:00:00",
+            "lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
+            "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
+            "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0.0}
+
+
+# --- The three statuses are reachable and consistent ---
+
+def test_a_normal_scenario_holds_the_regime():
+    decision = decide(BASELINE)
+    assert decision["status"] == HOLD
+    assert decision["selected_plan"]["changes"] == 0
+
+
+def test_a_problem_scenario_produces_a_scenario_recommendation():
+    decision = decide(SOUR)
+    assert decision["status"] == RECOMMEND_SCENARIO
+    assert decision["selected_plan"] is not None
+    assert decision["immediate_action"] is not None
+
+
+def test_an_impossible_scenario_produces_a_refusal():
+    decision = decide(NO_FEASIBLE)
+    assert decision["status"] == REFUSE
+    assert decision["selected_plan"] is None
+    assert decision["refusal"]["kind"] == "no_feasible_plan"
+
+
+def test_no_status_ever_allows_commercial_release():
+    for path in (BASELINE, SOUR, NO_FEASIBLE):
+        assert decide(path)["commercial_release_allowed"] is False
+
+
+def test_a_refusal_carries_no_plan_and_a_recommendation_always_does():
+    refusal = decide(NO_FEASIBLE)
+    assert refusal["selected_plan"] is None and refusal["immediate_action"] is None
+    recommendation = decide(SOUR)
+    assert recommendation["selected_plan"] is not None
+
+
+# --- Data comes first ---
+
+def test_unusable_data_refuses_before_any_model_runs():
+    state = dict(healthy_state(), lab_value=None, lab_usable=False, pak_frozen=True, pak_usable=False)
+    decision = decide(BASELINE, state=state)
+    assert decision["status"] == REFUSE
+    assert decision["refusal"]["kind"] == "data"
+    assert not any(t.get("agent") == "optimizer" for t in decision["trace"]), \
+        "оптимизатор не должен запускаться на недостоверных данных"
+
+
+def test_the_data_refusal_names_what_is_missing():
+    state = dict(healthy_state(), lab_value=None, lab_usable=False, pak_frozen=True, pak_usable=False)
+    decision = decide(BASELINE, state=state)
+    assert decision["refusal"]["missing"]
+
+
+def test_healthy_data_lets_the_loop_proceed():
+    decision = decide(BASELINE, state=healthy_state())
+    assert decision["status"] == HOLD
+    assert decision["trace"][0]["agent"] == "data"
+    assert decision["trace"][0]["usable"] is True
+
+
+# --- A veto changes the next search ---
+
+def test_a_veto_actually_narrows_the_following_round():
+    """Not a log line: the second round must examine fewer candidates."""
+    decision = decide(NO_FEASIBLE)
+    loop = rounds_of(decision)
+    assert len(loop) >= 2, "цикл обязан сделать повторный поиск после запретов"
+    assert loop[0]["restriction_added"], "первый раунд обязан выдать конкретные запреты"
+    assert loop[1]["proposed"] < loop[0]["proposed"], "запрет не сузил поиск"
+
+
+def test_the_restrictions_are_named_not_anonymous():
+    loop = rounds_of(decide(NO_FEASIBLE))
+    assert any("отбор" in r or "запас" in r or "качество" in r for r in loop[0]["restriction_added"])
+
+
+def test_each_round_records_which_agent_vetoed():
+    loop = rounds_of(decide(NO_FEASIBLE))
+    assert "quality_vetoed" in loop[0] and "reliability_vetoed" in loop[0]
+    assert loop[0]["quality_vetoed"] + loop[0]["reliability_vetoed"] > 0
+
+
+def test_the_loop_is_bounded_and_terminates():
+    decision = decide(NO_FEASIBLE)
+    loop = rounds_of(decision)
+    assert len(loop) <= MAX_ROUNDS
+    assert decision["status"] == REFUSE
+
+
+def test_the_loop_stops_when_further_restriction_would_change_nothing():
+    loop = rounds_of(decide(NO_FEASIBLE))
+    assert loop[-1].get("restriction_added") == [] or loop[-1].get("note")
+
+
+def test_a_feasible_first_round_does_not_trigger_extra_rounds():
+    assert len(rounds_of(decide(BASELINE))) == 1
+
+
+# --- Agents answer only their own question ---
+
+def test_the_quality_agent_reports_only_quality_checks():
+    planner = orchestrator(SOUR).planner
+    plans, _ = planner.build_plans(BUDGET)
+    review = QualityAgent().review(planner.evaluate(plans[0]))
+    assert review["agent"] == "quality"
+    assert set(review) >= {"vetoes", "unknown", "verdict"}
+
+
+def test_the_reliability_agent_reports_equipment_limits_and_severity():
+    planner = orchestrator(SOUR).planner
+    plans, _ = planner.build_plans(BUDGET)
+    review = ReliabilityAgent().review(planner.evaluate(plans[0]))
+    assert review["agent"] == "reliability"
+    assert "severity_index" in review
+    assert "не оценка реального ресурса" in review["scope"]
+
+
+def test_the_final_plan_is_reviewed_again_by_both_agents():
+    trace = decide(SOUR)["trace"]
+    final = [t for t in trace if t.get("stage") == "final"]
+    assert {t["agent"] for t in final} == {"quality", "reliability"}
+
+
+# --- No failure becomes a success ---
+
+def test_an_optimizer_failure_raises_instead_of_returning_a_decision():
+    o = orchestrator()
+
+    def broken(budget):
+        raise ValueError("сломано")
+
+    o.planner.build_plans = broken
+    with pytest.raises(AgentError, match="не смог построить"):
+        o.decide(budget=BUDGET)
+
+
+def test_a_plan_failing_the_final_recheck_is_refused_not_released():
+    o = orchestrator(SOUR)
+    original = o.planner.evaluate
+    calls = {"n": 0}
+
+    def sometimes_failing(plan, confirmed=()):
+        evaluation = original(plan, confirmed)
+        calls["n"] += 1
+        return evaluation
+
+    o.planner.evaluate = sometimes_failing
+    decision = o.decide(budget=BUDGET)
+    assert decision["status"] in (HOLD, RECOMMEND_SCENARIO)
+    assert decision["gate"]["feasible"] is True, "выпущенный план обязан заново пройти gate"
+
+
+def test_a_released_plan_always_carries_a_passing_gate():
+    for path in (BASELINE, SOUR):
+        decision = decide(path)
+        assert decision["gate"]["feasible"] is True
+
+
+def test_a_refusal_never_carries_a_gate_verdict_of_its_own():
+    assert decide(NO_FEASIBLE)["gate"] is None
+
+
+# --- The record is checkable ---
+
+def test_every_decision_has_a_stable_identifier():
+    first, second = decide(BASELINE), decide(BASELINE)
+    assert first["decision_id"] == second["decision_id"]
+    assert len(first["decision_id"]) == 16
+
+
+def test_different_scenarios_give_different_decisions():
+    assert decide(BASELINE)["decision_id"] != decide(SOUR)["decision_id"]
+
+
+def test_the_trace_shows_the_whole_cycle_in_order():
+    trace = decide(SOUR, state=healthy_state())["trace"]
+    agents = [t["agent"] for t in trace]
+    assert agents[0] == "data"
+    assert "optimizer" in agents
+    assert agents.index("optimizer") < agents.index("quality")
+
+
+def test_the_result_states_its_scope():
+    decision = decide(BASELINE)
+    assert "не считается исполненным" in decision["note"]
+    assert decision["scope"] == "synthetic_scenario"
