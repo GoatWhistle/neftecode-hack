@@ -104,7 +104,9 @@ class Benchmark:
             plan = PlanCandidate(f"{THRESHOLD}_{i:02d}",
                                  (PlanStepSpec(0.0, planner.base_controls(), recipe,
                                                operation.throughput.value),),
-                                 1 if fraction else 0, "простое пороговое правило по сере")
+                                 int(any(abs(recipe.get(k, 0.0) - operation.recipe.get(k, 0.0)) > 1e-9
+                                         for k in set(recipe) | set(operation.recipe))),
+                                 "простое пороговое правило по сере")
             try:
                 evaluation = planner.evaluate(plan)
             except ValueError:
@@ -130,10 +132,10 @@ class Benchmark:
         decision = orchestrator.decide(budget=self.budget)
         if decision["selected_plan"] is None:
             return None, None, decision
-        plans, _ = orchestrator.planner.build_plans(self.budget)
-        plan = next((p for p in plans if p.plan_id == decision["selected_plan"]["plan_id"]), None)
-        if plan is None:
-            return None, None, decision
+        selected = decision["selected_plan"]
+        plan = PlanCandidate(selected["plan_id"],
+                             tuple(PlanStepSpec(**step) for step in selected["steps"]),
+                             selected["changes"], selected.get("intent", ""))
         return plan, Planner(scenario).evaluate(plan), decision
 
     def run(self) -> dict:
@@ -197,9 +199,9 @@ def compare(scenarios: list[tuple[Scenario, dict]], budget: int = 400) -> dict:
             "Пороговое правило получает те же жёсткие проверки и тот же перебор долей резерва: "
             "заведомо слабый соперник не строился.",
             "Набор сценариев мал и выбран нами; это не оценка на новых условиях.",
-            "Советчик перебирает надмножество вариантов простых правил и ранжирует по выпуску, "
-            "поэтому по выпуску он выигрывает почти по построению. Сравнение ведётся и по тем "
-            "величинам, которые он не оптимизирует: стоимость на тонну, расход резерва и число "
+            "Выпуск стоит первым в правиле выбора: преимущество этой метрики заложено почти по построению, "
+            "но при ограниченном бюджете поиска выигрыш не гарантируется. Поэтому отдельно сравниваются "
+            "стоимость на тонну, расход резерва и число "
             "изменений режима. Проигрыши по ним перечислены наравне с выигрышами.",
         ],
     }
