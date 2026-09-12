@@ -90,6 +90,19 @@ class Planner:
     def base_controls(self) -> dict[str, float]:
         return self.chain.current_controls()
 
+    def inflow_properties(self, time_hours: float, pending=()) -> dict[str, dict[str, float | None]]:
+        """Properties of the stream entering the main tank at a relative time."""
+        incoming = self.chain.run_at(time_hours, pending)
+        tank = self.scenario.tank(self._main_id())
+        sulfur = incoming.sulfur_mgkg if tank.sulfur_from_chain else tank.property_value("sulfur_mgkg")
+        declared = tank.properties.get("sulfur_mgkg")
+        if declared is not None and declared.source == "derived":
+            level = self._main_sulfur()
+            ratio = self._response_ratio(time_hours, pending)
+            sulfur = None if level is None or ratio is None else level * ratio
+        return {self._main_id(): {"sulfur_mgkg": sulfur, "t95_c": incoming.t95_c,
+                                 "cetane_number": tank.property_value("cetane_number")}}
+
     def build_plans(self, budget: int = 120) -> tuple[list[PlanCandidate], dict]:
         """Single-step plans plus transitional two-phase plans, in a fixed order."""
         generator = CandidateGenerator(self.scenario, budget=budget)
@@ -158,7 +171,7 @@ class Planner:
 
     # --- Evaluating one plan ---
 
-    def evaluate(self, plan: PlanCandidate, confirmed=()) -> Evaluation:
+    def evaluate(self, plan: PlanCandidate, confirmed=(), initial_tanks=None) -> Evaluation:
         """Run the plan through the chain, the blender, the tanks and the gate.
 
         `confirmed` carries operator-confirmed actions as `(applied_at_hours, controls)`. The
@@ -169,8 +182,8 @@ class Planner:
         if times != sorted(times) or times[0] != 0.0:
             raise PlannerError(f"{plan.plan_id}: шаги плана должны начинаться в 0 ч и возрастать")
         ledger = InventoryLedger(self.scenario)
-        ledger_steps = [(s.time_hours, s.recipe, s.throughput_tph) for s in plan.steps]
-        stock = ledger.run_plan(ledger_steps)
+        if initial_tanks is not None:
+            ledger.tanks = dict(initial_tanks)
         # A plan step carries its DELTA from the scenario baseline, not a full set of setpoints.
         # Otherwise a plan that does not touch a control would silently revert a correction the
         # operator has already confirmed.
@@ -184,32 +197,22 @@ class Planner:
         costs = []
         severities = []
         grid = self.grid()
+        ledger_steps = [(t, self._active_step(plan, t).recipe,
+                         self._active_step(plan, t).throughput_tph) for t in grid]
+        inflow_properties = {}
+        for t in grid:
+            inflow_properties[t] = self.inflow_properties(t, pending)
+        stock = ledger.run_plan(ledger_steps, inflow_properties)
         inventories_at = {entry["time_hours"]: entry["inventories"] for entry in stock["timeline"]}
         for index, time_hours in enumerate(grid):
             spec = self._active_step(plan, time_hours)
             stream = self.chain.run_at(time_hours, pending)
+            properties = stock["timeline"][index]["properties"]
             blend = self.blender.blend(spec.recipe, spec.throughput_tph,
                                        hours=self._duration(grid, index),
-                                       additive_dose=spec.additive_dose)
-            # Level and response are different things, and mixing them would let the scenario
-            # model overwrite a real forecast. The component's own sulfur sets the LEVEL (it may
-            # be the trained forecast bound into the scenario); the chain model supplies only
-            # the RATIO by which an action shifts it. With no action the ratio is 1 and the
-            # level is exactly what the component declares.
+                                       additive_dose=spec.additive_dose,
+                                       property_overrides=properties)
             qualities = dict(blend.qualities)
-            main_share = spec.recipe.get(self._main_id(), 0.0)
-            if main_share > 1e-12 and qualities.get("sulfur_mgkg") is not None:
-                ratio = self._response_ratio(time_hours, pending)
-                level = self._main_sulfur()
-                if ratio is None or level is None:
-                    qualities["sulfur_mgkg"] = None
-                else:
-                    # The blender used the tank's declared value; swap it for the authoritative
-                    # level shifted by the action's response ratio.
-                    declared = self.scenario.tank(self._main_id()).property_value("sulfur_mgkg")
-                    qualities["sulfur_mgkg"] = (qualities["sulfur_mgkg"]
-                                                - main_share * declared
-                                                + main_share * level * ratio)
             inventories = self._inventories_at(stock, time_hours)
             reasons = self._reasons_at(stock, time_hours)
             trajectory.append(TrajectoryStep(
@@ -253,7 +256,10 @@ class Planner:
         return acting.sulfur_mgkg / idle.sulfur_mgkg
 
     def _main_id(self) -> str:
-        return self.scenario.available_tanks()[0].tank_id
+        for tank in self.scenario.tanks:
+            if tank.tank_id == "main" or tank.sulfur_from_chain:
+                return tank.tank_id
+        return self.scenario.tanks[0].tank_id
 
     def _main_sulfur(self) -> float | None:
         """Current level of the main component's sulfur, or None when it cannot be known.

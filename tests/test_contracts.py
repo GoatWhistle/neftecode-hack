@@ -146,9 +146,8 @@ def test_withdrawal_reduces_inventory_without_mutating_the_original():
     assert original.inventory_t == 100.0
 
 
-def test_tank_without_sulfur_is_rejected():
-    with pytest.raises(ContractError, match="сера компонента обязательна"):
-        TankState("x", True, 10.0, {"sulfur_mgkg": None, "t95_c": 350.0, "cetane_number": 51.0})
+def test_tank_without_sulfur_stays_unknown():
+    assert TankState("x", True, 10.0, {"sulfur_mgkg": None, "t95_c": 350.0, "cetane_number": 51.0}).unknown_properties() == ["sulfur_mgkg"]
 
 
 def test_missing_optional_property_stays_unknown():

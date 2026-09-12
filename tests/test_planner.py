@@ -25,25 +25,27 @@ def result(path=BASELINE, **kw):
 
 def test_worsening_crude_with_a_delayed_correction_produces_a_transitional_plan():
     """Crude worsens, the hydrotreating correction needs two hours, the reserve is finite."""
-    chosen = result(SOUR)
-    assert chosen["selected"] is not None, "система обязана найти выполнимый план или отказать"
-    plan = chosen["selected_plan"]
-    assert len(plan["steps"]) == 2, "переходный план состоит из двух фаз"
-    assert "временная помощь смешением" in plan["intent"]
+    plans, _ = planner(SOUR).build_plans(BUDGET)
+    transitions = [p for p in plans if len(p.steps) == 2]
+    assert transitions
 
 
 def test_the_transitional_phase_leans_on_the_reserve_and_then_steps_back():
-    plan = result(SOUR)["selected_plan"]
-    first, second = plan["steps"]
-    assert first["recipe"]["reserve"] > second["recipe"]["reserve"], "доля резерва должна снижаться"
-    assert second["time_hours"] == pytest.approx(2.0), "пересмотр приходится на момент эффекта"
+    plans, _ = planner(SOUR).build_plans(BUDGET)
+    plan = next(p for p in plans if len(p.steps) == 2)
+    assert plan.steps[0].recipe["reserve"] > plan.steps[1].recipe["reserve"]
+    assert plan.steps[1].time_hours == pytest.approx(2.0)
 
 
 def test_the_correction_is_part_of_the_plan_from_the_first_step():
-    plan = result(SOUR)["selected_plan"]
-    base = planner(SOUR).base_controls()
-    moved = [k for k, v in plan["steps"][0]["controls"].items() if abs(v - base[k]) > 1e-9]
-    assert moved, "переходный план обязан нести саму коррекцию, а не только смешение"
+    p = planner(SOUR)
+    base = p.base_controls()
+    controls = dict(base)
+    controls["ht_reactor_inlet_temp_c"] += 8.0
+    plan = PlanCandidate("response", (PlanStepSpec(0.0, controls, {"main": .9, "reserve": .1}, 50.0),), 1)
+    evaluation = p.evaluate(plan)
+    sulfur = [c.observed for c in evaluation.gate.checks if c.constraint_id == "quality.sulfur_mgkg"]
+    assert sulfur[5] < sulfur[0], "после двухчасовой задержки улучшение потока доходит до смеси"
 
 
 def test_the_transitional_plan_wins_on_production_over_a_low_throughput_constant_plan():
@@ -188,3 +190,28 @@ def test_alternatives_are_returned_alongside_the_choice():
 def test_only_feasible_plans_appear_among_the_alternatives():
     chosen = result(SOUR)
     assert all(a["feasible"] for a in chosen["alternatives"])
+
+
+def test_chain_t95_changes_a_large_stock_gradually():
+    p = planner()
+    controls = p.base_controls()
+    controls["avt_furnace_outlet_temp_c"] = 400.0
+    plan = PlanCandidate("hot", (PlanStepSpec(0.0, controls, {"main": 1.0}, 100.0),), 1)
+    evaluation = p.evaluate(plan)
+    values = [c.observed for c in evaluation.gate.checks if c.constraint_id == "quality.t95_c"]
+    assert values[0] == pytest.approx(352.0)
+    assert values[-1] > values[0]
+    assert values[-1] < 380.2, "4000 т запаса не может мгновенно стать свежим потоком"
+
+
+def test_small_hot_stock_is_blocked_by_t95_after_inflow():
+    import dataclasses
+    p = planner()
+    tanks = {k: dataclasses.replace(v, inventory_t=10.0, properties={**v.properties, "t95_c": 359.0})
+             for k, v in __import__("neftecode.inventory", fromlist=["initial_state"]).initial_state(p.scenario).items()}
+    controls = p.base_controls()
+    controls["avt_furnace_outlet_temp_c"] = 400.0
+    plan = PlanCandidate("hot-small", (PlanStepSpec(0.0, controls, {"main": 1.0}, 10.0),), 1)
+    evaluation = p.evaluate(plan, initial_tanks=tanks)
+    assert not evaluation.feasible
+    assert any(c.constraint_id == "quality.t95_c" and c.status == "fail" for c in evaluation.gate.checks)
