@@ -149,13 +149,13 @@ class Demo:
 
 
 def scenes(path) -> list[dict]:
-    """The four scenes the brief requires, expressed as changes rather than as canned answers."""
+    """The demonstration scenes, expressed as changes rather than as canned answers."""
     return [
         {"name": "Нормальный режим", "changes": [], "fault": "healthy",
          "expect": "решение без лишних изменений"},
         {"name": "Ухудшение сырья", "fault": "healthy",
          "changes": [{"change": "crude_sulfur_wt_pct", "value": 1.95}],
-         "expect": "план или отказ по расчёту"},
+         "expect": "пересчёт качества притока; большой запас может сохранить допустимость текущего режима"},
         {"name": "Зависший поточный анализатор", "fault": "frozen_pak", "changes": [],
          "expect": "источник теряет доверие, роль переходит к лаборатории"},
         {"name": "Устаревшая лаборатория и сломанный анализатор", "fault": "both_broken",
