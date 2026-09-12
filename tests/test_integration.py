@@ -236,7 +236,7 @@ def test_repeating_the_same_correction_does_not_double_its_effect():
 
 def test_issuing_advice_twice_does_not_change_the_plant():
     replay = Replay(load_scenario(SOUR), raw(SOUR), budget=BUDGET)
-    run = replay.run([{"at": "t1"}, {"at": "t2"}], SIMULATED)
+    run = replay.run([{"at": "2026-01-05T08:00:00"}, {"at": "2026-01-05T08:30:00"}], SIMULATED)
     assert run["final_execution"]["executed"] == []
 
 

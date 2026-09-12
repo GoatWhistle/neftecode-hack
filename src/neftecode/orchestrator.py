@@ -123,7 +123,7 @@ class Orchestrator:
                 break
             try:
                 round_budget = min(remaining, max(1, budget // 2)) if round_number == 1 else remaining
-                plans, info = self.planner.build_plans(budget)
+                plans, info = self._build_plans(budget)
             except (PlannerError, ValueError) as exc:
                 raise AgentError(f"Оптимизатор не смог построить кандидатов: {exc}") from exc
             if round_number == 1:
@@ -196,7 +196,7 @@ class Orchestrator:
 
         # 3. Re-check the chosen plan through the same gate before releasing it.
         plan_id = selected["selected"]["candidate_id"]
-        plans, _ = self.planner.build_plans(budget)
+        plans, _ = self._build_plans(budget)
         chosen = selected_plan_obj or next((p for p in plans if p.plan_id == plan_id), None)
         if chosen is None:
             raise AgentError(f"Выбранный план {plan_id} не найден при повторной проверке")
@@ -216,7 +216,8 @@ class Orchestrator:
         robustness = None
         if raw_scenario is not None:
             from .robustness import RobustnessCheck
-            robustness = RobustnessCheck(self.scenario, raw_scenario).run(chosen, confirmed)
+            robustness = RobustnessCheck(self.scenario, raw_scenario).run(
+                chosen, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
             trace.append({"agent": "robustness", "held": robustness["held"],
                           "evaluated": robustness["perturbations_evaluated"],
                           "fragile": robustness["fragile"]})
@@ -232,7 +233,15 @@ class Orchestrator:
 
     # --- Internals ---
 
+    def _build_plans(self, budget):
+        if self._current_operation is not None:
+            return self.planner.build_plans(budget, current_operation=self._current_operation)
+        return self.planner.build_plans(budget)
+
     def _evaluate_plan(self, plan, confirmed, initial_tanks):
+        if self._current_operation is not None:
+            return self.planner.evaluate(plan, confirmed, initial_tanks=initial_tanks,
+                                         current_operation=self._current_operation)
         if initial_tanks is not None:
             return self.planner.evaluate(plan, confirmed, initial_tanks=initial_tanks)
         return self.planner.evaluate(plan, confirmed)
@@ -365,6 +374,7 @@ class Orchestrator:
                 robustness=None) -> dict:
         result = {
             "status": status, "reason": reason, "scope": SCENARIO_SCOPE,
+            "current_operation": self._current_operation,
             "commercial_release_allowed": False,
             "scenario_id": self.scenario.scenario_id,
             "selected_plan": plan.to_dict() if plan is not None else None,
