@@ -13,7 +13,7 @@ A veto is not a log line: it removes a region of the search, and the next round 
 different. The loop is bounded, so a disagreement cannot spin forever. A failed or incomplete
 agent answer produces a refusal, never a decision that quietly skipped a check.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import hashlib
 import json
 
@@ -69,6 +69,7 @@ class ReliabilityAgent:
         failed = [c for c in checks if c.status == "fail"]
         unknown = [c for c in checks if c.status == "unknown"]
         return {"agent": "reliability", "checked": len(checks),
+                "passed": len(checks) - len(failed) - len(unknown),
                 "vetoes": [c.reason for c in failed],
                 "unknown": [c.reason for c in unknown],
                 "severity_index": evaluation.severity_index,
@@ -90,9 +91,11 @@ class Orchestrator:
         self.planner = Planner(self.scenario)
 
     def decide(self, state: dict | None = None, confirmed=(), budget: int = 600,
-               trust_cfg: dict | None = None, raw_scenario: dict | None = None) -> dict:
+               trust_cfg: dict | None = None, raw_scenario: dict | None = None,
+               initial_tanks=None, current_operation: dict | None = None) -> dict:
         trace: list[dict] = []
         state = state or {}
+        self._current_operation = current_operation
 
         # 1. Data first: a state that cannot carry a decision stops the loop before any model runs.
         if state:
@@ -107,51 +110,82 @@ class Orchestrator:
         forbidden: set[str] = set()
         rounds = []
         selected = None
+        selected_plan_obj = None
         last_result = None
+        feedback: dict[str, list[str]] = {}
+        evaluated_total = 0
+        seen_content: set[str] = set()
         for round_number in range(1, self.max_rounds + 1):
+            remaining = budget - evaluated_total
+            if remaining <= 0:
+                rounds.append({"round": round_number, "proposed": 0, "feasible": 0,
+                               "note": "Общий бюджет проверки исчерпан"})
+                break
             try:
+                round_budget = min(remaining, max(1, budget // 2)) if round_number == 1 else remaining
                 plans, info = self.planner.build_plans(budget)
             except (PlannerError, ValueError) as exc:
                 raise AgentError(f"Оптимизатор не смог построить кандидатов: {exc}") from exc
+            if round_number == 1:
+                search_plans = self._sample_plans(plans, round_budget)
+            else:
+                search_plans = self._feedback_candidates(plans, feedback)
             evaluations, by_id = [], {}
-            for plan in plans:
+            round_evaluated = 0
+            for plan in search_plans:
+                if evaluated_total >= budget or round_evaluated >= round_budget:
+                    break
                 if self._forbidden(plan, forbidden):
                     continue
                 try:
-                    evaluation = self.planner.evaluate(plan, confirmed)
+                    content = json.dumps([s.to_dict() for s in plan.steps], sort_keys=True, ensure_ascii=False)
+                    if content in seen_content:
+                        continue
+                    seen_content.add(content)
+                    evaluated_total += 1
+                    round_evaluated += 1
+                    evaluation = self._evaluate_plan(plan, confirmed, initial_tanks)
                 except (PlannerError, ValueError):
                     continue
                 evaluations.append(evaluation)
                 by_id[plan.plan_id] = plan
             if not evaluations:
                 rounds.append({"round": round_number, "proposed": 0, "feasible": 0,
+                               "candidate_ids": [p.plan_id for p in search_plans[:20]],
                                "note": "После запретов кандидатов не осталось"})
                 break
 
-            feasible = [e for e in evaluations if e.feasible]
-            reviews = [self._review(e) for e in evaluations[:200]]
-            vetoes = self._collect_vetoes(evaluations)
+            reviews_by_id = {e.candidate.candidate_id: self._review(e) for e in evaluations}
+            reviews = list(reviews_by_id.values())
+            feasible = [e for e in evaluations
+                        if e.feasible and self._review_passes(reviews_by_id.get(e.candidate.candidate_id))]
+            vetoes = self._collect_vetoes(evaluations, reviews_by_id)
             rounds.append({
                 "round": round_number, "proposed": len(evaluations), "feasible": len(feasible),
                 "forbidden_before": sorted(forbidden),
                 "veto_families": {k: len(v) for k, v in vetoes.items()},
                 "quality_vetoed": sum(1 for r in reviews if r["quality"]["verdict"] == "fail"),
                 "reliability_vetoed": sum(1 for r in reviews if r["reliability"]["verdict"] == "fail"),
+                "candidate_ids": [p.plan_id for p in search_plans[:20]],
             })
             from .optimizer import rank
-            last_result = rank(evaluations, hold_id="hold",
+            last_result = rank(feasible or evaluations, hold_id="hold",
                                min_useful_gain=float(self.scenario.policy.get("min_useful_gain", 0.0)))
             if feasible:
                 selected = last_result
+                selected_plan_obj = by_id.get(selected.get("selected", {}).get("candidate_id"))
                 break
             # A veto must change the next search, not merely be recorded.
             added = self._restrict(vetoes, forbidden)
+            feedback = vetoes
             rounds[-1]["restriction_added"] = added
             if not added:
                 rounds[-1]["note"] = "Запреты не сузили поиск: повторять бессмысленно"
                 break
 
-        trace.append({"agent": "optimizer", "rounds": rounds, "max_rounds": self.max_rounds})
+        trace.append({"agent": "optimizer", "rounds": rounds, "max_rounds": self.max_rounds,
+                      "evaluated": evaluated_total, "evaluation_budget": budget,
+                      "note": "Бюджет поиска общий; финальная проверка выбранного плана выполняется отдельно."})
         if selected is None or selected.get("selected") is None:
             reasons = sorted({r for e in (last_result or {}).get("rejected", [])
                               for r in e["rejection_reasons"]})[:5]
@@ -163,14 +197,14 @@ class Orchestrator:
         # 3. Re-check the chosen plan through the same gate before releasing it.
         plan_id = selected["selected"]["candidate_id"]
         plans, _ = self.planner.build_plans(budget)
-        chosen = next((p for p in plans if p.plan_id == plan_id), None)
+        chosen = selected_plan_obj or next((p for p in plans if p.plan_id == plan_id), None)
         if chosen is None:
             raise AgentError(f"Выбранный план {plan_id} не найден при повторной проверке")
-        final = self.planner.evaluate(chosen, confirmed)
+        final = self._evaluate_plan(chosen, confirmed, initial_tanks)
         review = self._review(final)
         trace.append({"agent": "quality", "stage": "final", **review["quality"]})
         trace.append({"agent": "reliability", "stage": "final", **review["reliability"]})
-        if not final.feasible:
+        if not final.feasible or not self._review_passes(review):
             return self._finish(REFUSE,
                                 "Повторная проверка выбранного плана не пройдена: решение не выдаётся",
                                 trace, None, None,
@@ -198,18 +232,104 @@ class Orchestrator:
 
     # --- Internals ---
 
-    def _review(self, evaluation) -> dict:
-        return {"quality": self.quality.review(evaluation),
-                "reliability": self.reliability.review(evaluation)}
+    def _evaluate_plan(self, plan, confirmed, initial_tanks):
+        if initial_tanks is not None:
+            return self.planner.evaluate(plan, confirmed, initial_tanks=initial_tanks)
+        return self.planner.evaluate(plan, confirmed)
 
     @staticmethod
-    def _collect_vetoes(evaluations) -> dict[str, list[str]]:
+    def _sample_plans(plans, count):
+        """Preserve hold and cover both constant and transitional plans under a total budget."""
+        if len(plans) <= count:
+            return plans
+        singles = [p for p in plans if len(p.steps) == 1]
+        transitions = [p for p in plans if len(p.steps) > 1]
+        nt = min(len(transitions), count // 4)
+        ns = min(len(singles), count - nt)
+        nt = min(len(transitions), count - ns)
+        def spread(items, n):
+            if n <= 0:
+                return []
+            return [items[round(i * (len(items) - 1) / max(1, n - 1))] for i in range(n)]
+        return spread(singles, ns) + spread(transitions, nt)
+
+    def _review(self, evaluation) -> dict:
+        return {"quality": self._safe_review(self.quality, evaluation, "quality"),
+                "reliability": self._safe_review(self.reliability, evaluation, "reliability")}
+
+    @staticmethod
+    def _safe_review(agent, evaluation, name: str) -> dict:
+        try:
+            answer = agent.review(evaluation)
+        except Exception as exc:
+            return {"agent": name, "checked": 0, "passed": 0, "vetoes": [],
+                    "unknown": [f"Агент {name} не ответил: {exc}"], "verdict": "unknown"}
+        required = {"agent", "checked", "passed", "vetoes", "unknown", "verdict"}
+        if (not isinstance(answer, dict) or answer.get("verdict") not in ("pass", "fail", "unknown")
+                or not required.issubset(answer)
+                or not isinstance(answer.get("vetoes"), (list, tuple))
+                or not isinstance(answer.get("unknown"), (list, tuple))
+                or not isinstance(answer.get("checked"), int) or answer.get("checked") <= 0
+                or not isinstance(answer.get("passed"), int)
+                or answer.get("passed") != answer.get("checked") - len(answer.get("vetoes")) - len(answer.get("unknown"))
+                or (answer.get("verdict") == "pass" and (answer.get("vetoes") or answer.get("unknown")))):
+            return {"agent": name, "checked": 0, "passed": 0, "vetoes": [],
+                    "unknown": [f"Агент {name} вернул неполный ответ"], "verdict": "unknown"}
+        return answer
+
+    @staticmethod
+    def _review_passes(review: dict | None) -> bool:
+        return bool(review) and all(review.get(role, {}).get("verdict") == "pass"
+                                    for role in ("quality", "reliability"))
+
+    @staticmethod
+    def _collect_vetoes(evaluations, reviews=None) -> dict[str, list[str]]:
         vetoes: dict[str, list[str]] = {}
         for evaluation in evaluations:
             for check in evaluation.gate.checks:
                 if check.status in ("fail", "unknown"):
                     vetoes.setdefault(_family(check.constraint_id), []).append(check.reason)
+            if reviews:
+                review = reviews.get(evaluation.candidate.candidate_id, {})
+                for role, answer in review.items():
+                    if not isinstance(answer, dict) or answer.get("verdict") == "pass":
+                        continue
+                    family = "quality" if role == "quality" else "control"
+                    reasons = list(answer.get("vetoes", ())) + list(answer.get("unknown", ()))
+                    vetoes.setdefault(family, []).extend(reasons or [f"Агент {role} не подтвердил план"])
         return vetoes
+
+    def _feedback_candidates(self, plans, vetoes):
+        """Create candidates that encode feedback; never present the same search as consensus."""
+        families = set(vetoes)
+        if not families:
+            return []
+        result = []
+        low_sulfur = min((t for t in self.scenario.tanks if t.available),
+                         key=lambda t: t.property_value("sulfur_mgkg"))
+        for plan in plans:
+            steps = []
+            for spec in plan.steps:
+                controls = dict(spec.controls)
+                recipe = dict(spec.recipe)
+                throughput = spec.throughput_tph
+                if "quality" in families:
+                    recipe = {low_sulfur.tank_id: 1.0}
+                if "inventory" in families or "outflow" in families:
+                    throughput = max(0.0, throughput * 0.5)
+                if "control" in families:
+                    for stage in self.scenario.stages.values():
+                        for name, bounds in stage.controls.items():
+                            if name in controls:
+                                controls[name] = min(bounds["max"].value,
+                                                     max(bounds["min"].value, controls[name]))
+                steps.append(replace(spec, controls=controls, recipe=recipe,
+                                     throughput_tph=throughput))
+            candidate = replace(plan, plan_id=f"{plan.plan_id}:feedback:{','.join(sorted(families))}",
+                                steps=tuple(steps), changes=max(1, plan.changes),
+                                intent="План скорректирован после замечаний: " + ", ".join(sorted(families)))
+            result.append(candidate)
+        return result
 
     def _restrict(self, vetoes: dict[str, list[str]], forbidden: set[str]) -> list[str]:
         """Turn vetoes into search restrictions the next round must obey."""

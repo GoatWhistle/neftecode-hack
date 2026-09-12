@@ -94,13 +94,61 @@ def test_healthy_data_lets_the_loop_proceed():
 
 # --- A veto changes the next search ---
 
-def test_a_veto_actually_narrows_the_following_round():
-    """Not a log line: the second round must examine fewer candidates."""
+def test_a_veto_creates_feedback_candidates_for_the_following_round():
+    """The next round must carry an explicit feedback marker in candidate identity."""
     decision = decide(NO_FEASIBLE)
     loop = rounds_of(decision)
     assert len(loop) >= 2, "цикл обязан сделать повторный поиск после запретов"
     assert loop[0]["restriction_added"], "первый раунд обязан выдать конкретные запреты"
-    assert loop[1]["proposed"] < loop[0]["proposed"], "запрет не сузил поиск"
+    assert any(":feedback:" in candidate_id for candidate_id in loop[1]["candidate_ids"])
+
+
+def test_quality_rejection_produces_a_physically_different_feasible_plan():
+    from neftecode.planner import PlanCandidate, PlanStepSpec
+    from neftecode.scenario import parse_scenario
+    raw = json.loads(BASELINE.read_text())
+    raw["product"]["sulfur_mgkg"]["value"] = 7.0
+    raw["current_operation"]["throughput"]["value"] = 20.0
+    raw["current_operation"]["recipe"] = {"main": 1.0}
+    engine = Orchestrator(parse_scenario(raw))
+    original = PlanCandidate("initial", (PlanStepSpec(0.0, engine.planner.base_controls(),
+                                                     {"main": 1.0}, 20.0),), 0)
+    engine.planner.build_plans = lambda budget: ([original], {})
+    assert not engine.planner.evaluate(original).feasible
+    decision = engine.decide(budget=20)
+    assert rounds_of(decision)[0]["feasible"] == 0
+    assert decision["status"] == RECOMMEND_SCENARIO
+    assert decision["immediate_action"]["recipe"] != original.steps[0].recipe
+    assert decision["gate"]["feasible"] is True
+
+
+def test_agent_veto_of_best_candidate_selects_another_approved_plan():
+    class VetoHold:
+        def review(self, evaluation):
+            veto = evaluation.candidate.candidate_id == "hold"
+            return {"agent": "quality", "checked": 1, "passed": 0 if veto else 1,
+                    "vetoes": ["hold запрещён политикой"] if veto else [], "unknown": [],
+                    "verdict": "fail" if veto else "pass"}
+
+    decision = Orchestrator(load_scenario(BASELINE), quality=VetoHold()).decide(budget=BUDGET)
+    assert decision["status"] == RECOMMEND_SCENARIO
+    assert decision["selected_plan"]["plan_id"] != "hold"
+
+
+def test_fail_all_or_incomplete_agent_cannot_release_a_plan():
+    class FailAll:
+        def review(self, evaluation):
+            return {"agent": "quality", "checked": 1, "passed": 0,
+                    "vetoes": ["запрет"], "unknown": [], "verdict": "fail"}
+
+    class IncompletePass:
+        def review(self, evaluation):
+            return {"agent": "quality", "verdict": "pass"}
+
+    for agent in (FailAll(), IncompletePass()):
+        decision = Orchestrator(load_scenario(BASELINE), quality=agent).decide(budget=BUDGET)
+        assert decision["status"] == REFUSE
+        assert decision["selected_plan"] is None
 
 
 def test_the_restrictions_are_named_not_anonymous():
@@ -218,3 +266,26 @@ def test_the_result_states_its_scope():
     decision = decide(BASELINE)
     assert "не считается исполненным" in decision["note"]
     assert decision["scope"] == "synthetic_scenario"
+
+
+def test_search_respects_one_budget_and_deduplicates_content():
+    engine = Orchestrator(load_scenario(NO_FEASIBLE))
+    seen = []
+    evaluate = engine.planner.evaluate
+    def recording(plan, confirmed=()):
+        seen.append(json.dumps([step.to_dict() for step in plan.steps], sort_keys=True))
+        return evaluate(plan, confirmed)
+    engine.planner.evaluate = recording
+    result = engine.decide(budget=40)
+    assert result["status"] == REFUSE
+    assert len(seen) <= 40
+    assert len(seen) == len(set(seen))
+
+
+def test_budget_sampling_does_not_drop_all_transition_plans():
+    engine = Orchestrator(load_scenario(BASELINE))
+    plans, _ = engine.planner.build_plans(600)
+    sampled = engine._sample_plans(plans, 200)
+    assert sampled[0].plan_id == "hold"
+    assert len(sampled) == 200
+    assert any(len(p.steps) == 2 for p in sampled)
