@@ -200,13 +200,13 @@ class Planner:
             main_share = spec.recipe.get(self._main_id(), 0.0)
             if main_share > 1e-12 and qualities.get("sulfur_mgkg") is not None:
                 ratio = self._response_ratio(time_hours, pending)
-                if ratio is None:
+                level = self._main_sulfur()
+                if ratio is None or level is None:
                     qualities["sulfur_mgkg"] = None
                 else:
                     # The blender used the tank's declared value; swap it for the authoritative
                     # level shifted by the action's response ratio.
                     declared = self.scenario.tank(self._main_id()).property_value("sulfur_mgkg")
-                    level = self._main_sulfur()
                     qualities["sulfur_mgkg"] = (qualities["sulfur_mgkg"]
                                                 - main_share * declared
                                                 + main_share * level * ratio)
@@ -255,18 +255,21 @@ class Planner:
     def _main_id(self) -> str:
         return self.scenario.available_tanks()[0].tank_id
 
-    def _main_sulfur(self) -> float:
-        """Current level of the main component's sulfur.
+    def _main_sulfur(self) -> float | None:
+        """Current level of the main component's sulfur, or None when it cannot be known.
 
         Either the chain produces it (so crude quality and the standing regime reach the
         decision), or the scenario declares it — for instance because a trained forecast was
         bound into it, which outranks the model.
+
+        When the scenario says the level comes from the chain and the chain cannot produce it,
+        the answer is unknown. Falling back to the standing constant would substitute a
+        placeholder the scenario itself calls a reference value, and the gate would see a
+        number where it must see `unknown`.
         """
         tank = self.scenario.tank(self._main_id())
         if tank.sulfur_from_chain:
-            idle = self.chain.run_at(0.0, ())
-            if idle.sulfur_mgkg is not None:
-                return idle.sulfur_mgkg
+            return self.chain.run_at(0.0, ()).sulfur_mgkg
         return tank.property_value("sulfur_mgkg")
 
     def _avt_controls(self, spec: PlanStepSpec) -> dict[str, float]:
