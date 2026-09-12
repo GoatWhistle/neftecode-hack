@@ -191,3 +191,63 @@ def test_the_report_is_reproducible():
     second = compare(all_scenarios(), budget=BUDGET)
     assert first["totals"] == second["totals"]
     assert first["wins"] == second["wins"]
+
+
+# --- Losses are looked for, not only wins ---
+
+def test_the_comparison_is_not_limited_to_the_dimension_the_advisor_ranks_by():
+    from neftecode.benchmark import DIMENSIONS
+    names = [label for _, label, _ in DIMENSIONS]
+    assert "выпуск" in names
+    assert {"стоимость на тонну", "расход резерва", "число изменений режима"} <= set(names)
+
+
+def test_the_structural_bias_of_the_production_metric_is_stated(report):
+    assert any("почти по построению" in limit for limit in report["limits"])
+
+
+def test_real_losses_are_found_and_reported(report):
+    """A scoreboard with no losses at all would be a rigged one."""
+    assert report["losses"], "не найдено ни одного проигрыша: сравнение подозрительно"
+    for loss in report["losses"]:
+        assert loss["scenario_id"]
+        assert loss.get("dimension") or loss.get("note")
+
+
+def test_on_a_normal_regime_the_advisor_loses_on_cost_by_keeping_the_regime():
+    """Not disturbing the plant costs money here, and the report says so instead of hiding it."""
+    losses = compare(all_scenarios(), budget=BUDGET)["losses"]
+    normal = [l for l in losses if l["scenario_id"] == "baseline"]
+    assert normal, "советчик обязан проигрывать там, где сохраняет режим ради спокойствия"
+    assert any(l["dimension"] == "стоимость на тонну" for l in normal)
+
+
+def test_a_scenario_without_any_advantage_is_part_of_the_set(report):
+    ample = strategies(report, "ample_reserve")
+    assert ample[THRESHOLD]["feasible"] is True
+    assert ample[ADVISOR]["production_t"] == ample[THRESHOLD]["production_t"]
+
+
+def test_the_advisor_can_lose_on_operator_disturbance(report):
+    ample = strategies(report, "ample_reserve")
+    assert ample[ADVISOR]["changes"] > ample[THRESHOLD]["changes"]
+
+
+def test_reserve_consumption_is_integrated_over_the_horizon():
+    """Summing per-step rates would make a two-phase plan look twice as wasteful."""
+    scenario, raw = loaded("sour_crude")
+    benchmark = Benchmark(scenario, raw, BUDGET)
+    result = benchmark.run()["strategies"][ADVISOR]
+    horizon = scenario.horizon.hours
+    ceiling = scenario.tank("reserve").max_outflow.value * horizon
+    assert result["reserve_used_t"] <= ceiling + 1e-6
+
+
+def test_reserve_use_never_exceeds_the_stock_for_a_feasible_strategy(report):
+    for record in report["scenarios"]:
+        scenario = load_scenario(SCENARIOS / f"{record['scenario_id']}.json")
+        stock = scenario.tank("reserve").inventory.value
+        for name, result in record["strategies"].items():
+            if result.get("refused") or not result["feasible"]:
+                continue
+            assert result["reserve_used_t"] <= stock + 1e-6, f"{record['scenario_id']}/{name}"
