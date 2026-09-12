@@ -155,6 +155,15 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
         "status": decision.get("status"),
         "reason": decision.get("reason"),
         "statements": [s.to_dict() for s in statements],
+        "current_operation": decision.get("current_operation") or {
+            "controls": {name: spec["current"].value
+                         for stage in scenario.stages.values()
+                         for name, spec in stage.controls.items()},
+            "recipe": dict(scenario.current_operation.recipe),
+            "throughput_tph": scenario.current_operation.throughput.value,
+            "additive_dose": 0.0,
+        },
+        "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
         "checks_passed": sum(1 for c in checks if c["status"] == PASS),
         "checks_total": len(checks),
         "alternatives": [
