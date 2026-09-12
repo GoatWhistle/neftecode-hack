@@ -17,6 +17,7 @@ from .benchmark import compare as compare_strategies
 from .batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
 from .margin import lead_times, margin_series
 from .quality import report as quality_report, read_quality_series
+from .ui import Screen, error_payload, write_screen
 from .vak import check_all
 
 
@@ -268,11 +269,13 @@ def make_report(out, demos):
 
 def main():
     parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark"])
+    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark", "screen"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
     parser.add_argument("--at", help="Местное время решения для advise, например 2026-01-05T08:00:00")
+    parser.add_argument("--scenario", type=Path, help="Файл сценария для screen")
+    parser.add_argument("--decision", type=Path, help="Сохранённое решение для повторного просмотра")
     args = parser.parse_args()
     root = args.root.resolve()
     out = args.out.resolve()
@@ -281,6 +284,30 @@ def main():
         if args.command == "train":
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
+        elif args.command == "screen":
+            from .explain import explain
+            from .inventory import initial_state
+            from .orchestrator import Orchestrator
+            from .scenario import load_scenario
+            target = out / "screen.html"
+            try:
+                scenario_path = args.scenario or (root / "config/scenarios/sour_crude.json")
+                scenario = load_scenario(scenario_path)
+                if args.decision:
+                    # Reviewing a stored decision: nothing is recomputed.
+                    decision = json.loads(args.decision.read_text())
+                else:
+                    decision = Orchestrator(scenario).decide(
+                        budget=400, raw_scenario=json.loads(Path(scenario_path).read_text()))
+                    write_json(out / f"decision-{scenario.scenario_id}.json", decision)
+                payload = Screen(
+                    decision, explain(decision, scenario),
+                    inventories={k: v.inventory_t for k, v in initial_state(scenario).items()},
+                ).payload()
+            except (ValueError, OSError) as exc:
+                payload = error_payload(str(exc))
+            write_screen(target, payload)
+            print(f"Экран оператора: {target}")
         elif args.command == "benchmark":
             from .scenario import load_scenario
             items = []
