@@ -19,6 +19,7 @@ from .margin import lead_times, margin_series
 from .quality import report as quality_report, read_quality_series
 from .demo import Demo, scenes as demo_scenes
 from .live import LiveAdvisor
+from .server import serve as serve_demo
 from .ui import Screen, error_payload, write_screen
 from .vak import check_all
 
@@ -271,13 +272,14 @@ def make_report(out, demos):
 
 def main():
     parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes"])
+    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes", "serve"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
     parser.add_argument("--at", help="Местное время решения для advise, например 2026-01-05T08:00:00")
     parser.add_argument("--scenario", type=Path, help="Файл сценария для screen")
     parser.add_argument("--decision", type=Path, help="Сохранённое решение для повторного просмотра")
+    parser.add_argument("--port", type=int, default=8765, help="Порт демонстрационного сервера")
     args = parser.parse_args()
     root = args.root.resolve()
     out = args.out.resolve()
@@ -286,6 +288,8 @@ def main():
         if args.command == "train":
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
+        elif args.command == "serve":
+            serve_demo(root, args.port)
         elif args.command == "scenes":
             scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
             demo = Demo.from_path(scenario_path, budget=400)
