@@ -115,10 +115,10 @@ def test_wins_and_losses_are_both_reported(report):
 
 # --- Ablations show what the extra parts buy ---
 
-def test_switching_off_transitional_planning_costs_production(report):
+def test_large_stock_removes_the_former_transition_advantage(report):
     hard = strategies(report, "sour_crude")
     assert hard[ADVISOR_NO_TRANSITION]["feasible"] is True
-    assert hard[ADVISOR]["production_t"] > hard[ADVISOR_NO_TRANSITION]["production_t"]
+    assert hard[ADVISOR]["production_t"] == hard[ADVISOR_NO_TRANSITION]["production_t"]
 
 
 def test_switching_off_the_terminal_rule_looks_better_and_that_is_stated(report):
@@ -228,9 +228,12 @@ def test_a_scenario_without_any_advantage_is_part_of_the_set(report):
     assert ample[ADVISOR]["production_t"] == ample[THRESHOLD]["production_t"]
 
 
-def test_the_advisor_can_lose_on_operator_disturbance(report):
+def test_operator_disturbance_uses_the_current_recipe_as_baseline(report):
     ample = strategies(report, "ample_reserve")
-    assert ample[ADVISOR]["changes"] > ample[THRESHOLD]["changes"]
+    assert ample[ADVISOR]["changes"] == ample[THRESHOLD]["changes"] == 1
+    normal = strategies(report, "baseline")
+    assert normal[THRESHOLD]["changes"] == 1
+    assert normal[ADVISOR]["changes"] == 0
 
 
 def test_reserve_consumption_is_integrated_over_the_horizon():
