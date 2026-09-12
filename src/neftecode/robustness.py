@@ -93,7 +93,7 @@ class RobustnessCheck:
     raw: dict
     perturbations: tuple = DEFAULT_PERTURBATIONS
 
-    def run(self, plan, confirmed=()) -> dict:
+    def run(self, plan, confirmed=(), initial_tanks=None, current_operation=None) -> dict:
         """Evaluate `plan` under each perturbation. Reports every outcome, good and bad."""
         results = []
         for spec in self.perturbations:
@@ -105,7 +105,18 @@ class RobustnessCheck:
                 continue
             planner = Planner(altered)
             try:
-                evaluation = planner.evaluate(plan, confirmed)
+                stocks = initial_tanks
+                if stocks is not None and spec["path"].startswith("tank."):
+                    _, tank_id, attribute = spec["path"].split(".", 2)
+                    stocks = dict(stocks)
+                    tank = stocks[tank_id]
+                    if attribute == "inventory":
+                        stocks[tank_id] = replace(tank, inventory_t=tank.inventory_t * spec["factor"])
+                    elif tank.properties.get(attribute) is not None:
+                        stocks[tank_id] = replace(tank, properties={**tank.properties,
+                            attribute: tank.properties[attribute] * spec["factor"]})
+                evaluation = planner.evaluate(plan, confirmed, initial_tanks=stocks,
+                                              current_operation=current_operation)
             except ValueError as exc:
                 results.append({"perturbation": spec["name"], "outcome": "not_evaluable",
                                 "reason": str(exc)})

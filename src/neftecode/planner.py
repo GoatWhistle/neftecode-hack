@@ -15,7 +15,7 @@ What the planner is careful about:
 * **Stocks are real.** Every step draws from the tanks, so a transitional blend that would
   outlast the reserve is rejected where it fails.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import math
 
 from .blending import Blender
@@ -90,6 +90,18 @@ class Planner:
     def base_controls(self) -> dict[str, float]:
         return self.chain.current_controls()
 
+    def confirmed_with_operation(self, confirmed=(), current_operation=None):
+        """A saved operating point is settled unless an explicit pending action dates it."""
+        confirmed = tuple(confirmed)
+        if current_operation is None:
+            return confirmed
+        dated = {name for _, controls in confirmed for name in controls}
+        base = self.base_controls()
+        standing = {k: v for k, v in current_operation["controls"].items()
+                    if k not in dated and abs(v - base.get(k, v)) > 1e-9}
+        age = max(stage.response_lag_hours.value for stage in self.scenario.stages.values())
+        return ((-age, standing),) + confirmed if standing else confirmed
+
     def inflow_properties(self, time_hours: float, pending=()) -> dict[str, dict[str, float | None]]:
         """Properties of the stream entering the main tank at a relative time."""
         incoming = self.chain.run_at(time_hours, pending)
@@ -103,11 +115,28 @@ class Planner:
         return {self._main_id(): {"sulfur_mgkg": sulfur, "t95_c": incoming.t95_c,
                                  "cetane_number": tank.property_value("cetane_number")}}
 
-    def build_plans(self, budget: int = 120) -> tuple[list[PlanCandidate], dict]:
+    def build_plans(self, budget: int = 120, current_operation: dict | None = None) -> tuple[list[PlanCandidate], dict]:
         """Single-step plans plus transitional two-phase plans, in a fixed order."""
-        generator = CandidateGenerator(self.scenario, budget=budget)
-        singles, info = generator.generate()
+        generator_scenario = self.scenario
         base = self.base_controls()
+        if current_operation is not None:
+            base = {**base, **current_operation["controls"]}
+            stages = {key: replace(stage, controls={
+                name: {**spec, "current": replace(spec["current"], value=base[name])}
+                for name, spec in stage.controls.items()})
+                for key, stage in self.scenario.stages.items()}
+            operation = replace(self.scenario.current_operation,
+                                recipe=dict(current_operation["recipe"]),
+                                throughput=replace(self.scenario.current_operation.throughput,
+                                                   value=current_operation["throughput_tph"]))
+            generator_scenario = replace(self.scenario, stages=stages, current_operation=operation)
+        generator = CandidateGenerator(generator_scenario, budget=budget)
+        singles, info = generator.generate()
+        if current_operation is not None:
+            dose = current_operation.get("additive_dose", 0.0)
+            singles = [replace(c, additive_dose=dose) if c.candidate_id == "hold" else
+                       replace(c, changes=c.changes - int(c.additive_dose != 0.0)
+                               + int(abs(c.additive_dose - dose) > 1e-9)) for c in singles]
         plans: list[PlanCandidate] = []
         for candidate in singles:
             plans.append(PlanCandidate(
@@ -171,7 +200,7 @@ class Planner:
 
     # --- Evaluating one plan ---
 
-    def evaluate(self, plan: PlanCandidate, confirmed=(), initial_tanks=None) -> Evaluation:
+    def evaluate(self, plan: PlanCandidate, confirmed=(), initial_tanks=None, current_operation=None) -> Evaluation:
         """Run the plan through the chain, the blender, the tanks and the gate.
 
         `confirmed` carries operator-confirmed actions as `(applied_at_hours, controls)`. The
@@ -181,6 +210,7 @@ class Planner:
         times = [s.time_hours for s in plan.steps]
         if times != sorted(times) or times[0] != 0.0:
             raise PlannerError(f"{plan.plan_id}: шаги плана должны начинаться в 0 ч и возрастать")
+        confirmed = self.confirmed_with_operation(confirmed, current_operation)
         ledger = InventoryLedger(self.scenario)
         if initial_tanks is not None:
             ledger.tanks = dict(initial_tanks)
@@ -188,10 +218,17 @@ class Planner:
         # Otherwise a plan that does not touch a control would silently revert a correction the
         # operator has already confirmed.
         baseline = self.base_controls()
-        deltas = tuple((step.time_hours,
-                        {k: v for k, v in step.controls.items() if abs(v - baseline[k]) > 1e-9})
-                       for step in plan.steps)
-        pending = tuple(confirmed) + tuple((t, d) for t, d in deltas if d)
+        for _, controls in sorted(confirmed, key=lambda item: item[0]):
+            baseline.update(controls)
+        if current_operation is not None:
+            baseline.update(current_operation["controls"])
+        deltas = []
+        for step in plan.steps:
+            delta = {k: v for k, v in step.controls.items() if abs(v - baseline.get(k, v)) > 1e-9}
+            if delta:
+                deltas.append((step.time_hours, delta))
+            baseline.update(step.controls)
+        pending = tuple(confirmed) + tuple(deltas)
 
         trajectory: list[TrajectoryStep] = []
         costs = []
