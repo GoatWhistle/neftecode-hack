@@ -71,9 +71,17 @@ def quality_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult
 def control_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
     """Every setpoint must stay inside the range the scenario declares for it."""
     checks = []
+    declared = set()
     for stage in scenario.stages.values():
+        declared.update(stage.controls)
+        model = stage.model if isinstance(stage.model, dict) else {}
+        optional = set(model.get("optional_controls", ()))
+        required = set(model.get("required_controls", stage.controls)) - optional
         for name, spec in stage.controls.items():
             if name not in step.controls:
+                if name in required:
+                    checks.append(CheckResult(f"control.{name}", UNKNOWN, None, None, step.time_hours,
+                                              reason=f"Обязательная уставка {name} отсутствует"))
                 continue
             value = step.controls[name]
             low, high = spec["min"].value, spec["max"].value
@@ -86,14 +94,24 @@ def control_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult
             checks.append(CheckResult(
                 constraint, PASS if ok else FAIL, value, high, step.time_hours,
                 reason="" if ok else f"{name} = {value:g} вне диапазона [{low:g}, {high:g}] "
-                                     f"на {step.time_hours:g} ч"))
+                                 f"на {step.time_hours:g} ч"))
+    for name in set(step.controls) - declared:
+        checks.append(CheckResult(f"control.{name}.known", UNKNOWN, step.controls[name], None,
+                                  step.time_hours, reason=f"Неизвестная управляющая переменная {name}"))
     return checks
 
 
 def recipe_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
     """Fractions form a composition, the dose stays within the expert's limit."""
     checks = []
-    total = sum(step.recipe.values()) if step.recipe else None
+    fractions = step.recipe or {}
+    invalid = [name for name, fraction in fractions.items()
+               if not _finite(fraction) or fraction < -1e-9]
+    if invalid:
+        status = UNKNOWN if any(not _finite(fractions[n]) for n in invalid) else FAIL
+        checks.append(CheckResult("recipe.non_negative", status, None, 0.0, step.time_hours,
+                                  reason=f"Недопустимые доли (конечные и неотрицательные обязательны): {', '.join(invalid)}"))
+    total = sum(fractions.values()) if fractions and all(_finite(v) for v in fractions.values()) else None
     if total is None or not _finite(total):
         checks.append(CheckResult("recipe.sum", UNKNOWN, None, 1.0, step.time_hours,
                                   reason="Состав смеси неизвестен"))
@@ -102,10 +120,6 @@ def recipe_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]
         checks.append(CheckResult("recipe.sum", PASS if ok else FAIL, total, 1.0, step.time_hours,
                                   reason="" if ok else f"Доли дают {total:.6f} вместо 1.0 "
                                                        f"на {step.time_hours:g} ч"))
-    negative = [name for name, fraction in (step.recipe or {}).items() if fraction < -1e-9]
-    if negative:
-        checks.append(CheckResult("recipe.non_negative", FAIL, None, 0.0, step.time_hours,
-                                  reason=f"Отрицательные доли: {', '.join(negative)}"))
     additive = scenario.additive
     dose = step.additive_dose
     if not _finite(dose):
@@ -126,7 +140,8 @@ def recipe_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]
 def inventory_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
     """Stocks must stay non-negative and outflow limits must hold."""
     checks = []
-    for tank_id, mass in (step.inventories or {}).items():
+    inventories = step.inventories or {}
+    for tank_id, mass in inventories.items():
         constraint = f"inventory.{tank_id}"
         if mass is None or not _finite(mass):
             checks.append(CheckResult(constraint, UNKNOWN, None, 0.0, step.time_hours,
@@ -140,7 +155,11 @@ def inventory_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResu
         checks.append(CheckResult("inventory.availability", FAIL, None, None, step.time_hours,
                                   reason=f"{reason} (на {step.time_hours:g} ч)"))
     for tank_id, fraction in (step.recipe or {}).items():
-        if fraction <= 1e-12:
+        if not _finite(fraction) or fraction <= 1e-12:
+            continue
+        if tank_id not in inventories:
+            checks.append(CheckResult(f"inventory.{tank_id}.present", UNKNOWN, None, None, step.time_hours,
+                                      reason=f"Остаток используемого резервуара {tank_id} отсутствует"))
             continue
         try:
             tank = scenario.tank(tank_id)
@@ -174,6 +193,9 @@ def applicability_check(step: TrajectoryStep) -> CheckResult:
 def discretisation_check(steps, horizon_hours: float) -> CheckResult:
     """Between two checked points nothing is known; say so instead of assuming."""
     times = [s.time_hours for s in steps]
+    if not _finite(horizon_hours) or any(not _finite(t) for t in times):
+        return CheckResult("plan.discretisation", UNKNOWN, None, None, None,
+                           reason="Временная сетка содержит нечисловое или бесконечное время")
     if not times:
         return CheckResult("plan.discretisation", UNKNOWN, None, None, None,
                            reason="План не содержит проверяемых точек")
@@ -186,24 +208,55 @@ def discretisation_check(steps, horizon_hours: float) -> CheckResult:
                               f"между точками поведение не проверено")
 
 
+def time_grid_check(steps, scenario: Scenario) -> CheckResult:
+    """Require the complete, declared scenario grid from zero through the horizon."""
+    times = [s.time_hours for s in steps]
+    expected = scenario.horizon.times_hours()
+    if (not times or any(not _finite(t) for t in times) or
+            times != sorted(times) or len(set(times)) != len(times)):
+        return CheckResult("plan.time_grid", UNKNOWN, None, None, None,
+                           reason="Временная сетка должна быть конечной, возрастающей и без повторов")
+    if times != expected:
+        return CheckResult("plan.time_grid", UNKNOWN, float(len(times)), float(len(expected)), None,
+                           reason=f"Временная сетка обязана покрывать 0–{scenario.horizon.hours:g} ч "
+                                  f"с шагом сценария {scenario.horizon.step_minutes} мин без дыр")
+    return CheckResult("plan.time_grid", PASS, len(times), len(expected), None)
+
+
+def throughput_check(step: TrajectoryStep) -> CheckResult:
+    if not _finite(step.throughput_tph) or step.throughput_tph < 0:
+        return CheckResult("throughput", UNKNOWN, None, 0.0, step.time_hours,
+                           reason="Выпуск должен быть конечным и неотрицательным")
+    return CheckResult("throughput", PASS, step.throughput_tph, 0.0, step.time_hours)
+
+
 def check_plan(plan_id: str, steps, scenario: Scenario,
                terminal: dict | None = None) -> GateResult:
     """Run every mandatory check at every point, plus the terminal and discretisation rules."""
     steps = list(steps)
     checks: list[CheckResult] = []
+    checks.append(time_grid_check(steps, scenario))
     for step in steps:
         checks.extend(quality_checks(step, scenario))
         checks.extend(control_checks(step, scenario))
         checks.extend(recipe_checks(step, scenario))
+        checks.append(throughput_check(step))
         checks.extend(inventory_checks(step, scenario))
         checks.append(applicability_check(step))
     checks.append(discretisation_check(steps, scenario.horizon.hours))
-    if terminal is not None:
+    terminal_rule = (scenario.policy or {}).get("terminal_inventory_rule", "none")
+    if terminal_rule != "none" and terminal is None:
+        checks.append(CheckResult("inventory.terminal", UNKNOWN, None, None,
+                                  scenario.horizon.hours,
+                                  reason=f"Активное правило конечного остатка «{terminal_rule}» не проверено"))
+    elif terminal is not None:
+        valid_terminal = isinstance(terminal, dict) and isinstance(terminal.get("satisfied"), bool)
         checks.append(CheckResult(
-            "inventory.terminal", PASS if terminal.get("satisfied") else FAIL, None, None,
+            "inventory.terminal", PASS if valid_terminal and terminal.get("satisfied") else (FAIL if valid_terminal else UNKNOWN), None, None,
             scenario.horizon.hours,
-            reason="" if terminal.get("satisfied") else
-                   f"Запас на конце горизонта: {terminal.get('reason', 'недостаточен')}"))
+            reason="" if valid_terminal and terminal.get("satisfied") else
+                   (f"Запас на конце горизонта: {terminal.get('reason', 'недостаточен')}" if valid_terminal
+                    else "Результат проверки конечного остатка недостоверен")))
     if not checks:
         checks.append(CheckResult("plan.empty", FAIL, None, None, None,
                                   reason="План не содержит ни одной проверки"))

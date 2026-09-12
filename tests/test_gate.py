@@ -235,3 +235,50 @@ def test_every_failing_check_names_a_reason():
     for check in gate.checks:
         if check.status in (FAIL, UNKNOWN):
             assert check.reason, f"{check.constraint_id} без причины"
+
+
+# --- Structural completeness at the public gate boundary ---
+
+def test_missing_required_controls_cannot_pass():
+    gate = check_plan("p", grid(controls={}), scenario(), terminal={"satisfied": True})
+    assert gate.feasible is False
+    assert any(c.constraint_id == "control.ht_reactor_inlet_temp_c" and c.status == UNKNOWN
+               for c in gate.checks)
+
+
+def test_missing_inventory_for_used_tank_cannot_pass():
+    gate = check_plan("p", grid(inventories={}), scenario(), terminal={"satisfied": True})
+    assert gate.feasible is False
+    assert any(c.constraint_id == "inventory.main.present" and c.status == UNKNOWN
+               for c in gate.checks)
+
+
+def test_active_terminal_rule_without_result_cannot_pass():
+    gate = check_plan("p", grid(), scenario())
+    assert gate.feasible is False
+    assert any(c.constraint_id == "inventory.terminal" and c.status == UNKNOWN
+               for c in gate.checks)
+
+
+def test_grid_must_cover_declared_horizon_without_duplicates_or_gaps():
+    steps = [step(time_hours=t) for t in (0.0, 0.5, 0.5, 1.0, 3.0)]
+    gate = check_plan("p", steps, scenario(), terminal={"satisfied": True})
+    assert gate.feasible is False
+    assert any(c.constraint_id == "plan.time_grid" and c.status == UNKNOWN
+               for c in gate.checks)
+
+
+def test_unknown_control_tag_is_rejected():
+    controls = dict(step().controls, mystery_tag=1.0)
+    gate = check_plan("p", grid(controls=controls), scenario(), terminal={"satisfied": True})
+    assert gate.feasible is False
+    assert any(c.constraint_id == "control.mystery_tag.known" for c in gate.checks)
+
+
+def test_nonfinite_throughput_and_recipe_fraction_are_unknown():
+    gate = check_plan("p", grid(throughput_tph=float("nan"),
+                                recipe={"main": float("inf"), "reserve": 0.0}),
+                      scenario(), terminal={"satisfied": True})
+    assert gate.feasible is False
+    assert UNKNOWN in statuses(gate, "throughput")
+    assert UNKNOWN in statuses(gate, "recipe.non_negative")
