@@ -11,33 +11,60 @@ from sklearn.preprocessing import StandardScaler
 from .data import split_periods
 
 
-def metrics(y, prediction, limit=10, lower=None, upper=None):
+_UNSET = object()
+
+
+def metrics(y, prediction, limit=10, lower=None, upper=None, *,
+            direction="max", near_margin=5.0):
+    """Calculate accuracy and, when configured, property-specific risk metrics.
+
+    ``limit=None`` deliberately means that the property's risk is unknown.  It
+    must not inherit sulfur's limit just because the same experiment config is
+    used for another target.  ``near_margin`` is expressed in the target's
+    units and is required for the near-limit MAE; there is no universal 5--15
+    interval across quality properties.
+    """
+    if direction not in {"max", "min"}:
+        raise ValueError("Направление ограничения должно быть max или min")
+    if limit is not None and not np.isfinite(limit):
+        raise ValueError("Предел должен быть конечным или None")
+    if near_margin is not None and (not np.isfinite(near_margin) or near_margin < 0):
+        raise ValueError("Окрестность предела должна быть конечной и неотрицательной")
+    risk_configured = limit is not None and limit is not _UNSET
     y, prediction = np.asarray(y), np.asarray(prediction)
     valid = np.isfinite(prediction)
     result = {"n": len(y), "predicted": int(valid.sum()), "availability": float(valid.mean())}
     if not valid.any():
         return result
     yy, pp = y[valid], prediction[valid]
-    risk = yy > limit
-    alarm = pp > limit
-    near = (yy >= 5) & (yy <= 15)
     result.update(
         mae=float(np.abs(yy - pp).mean()), rmse=float(np.sqrt(np.mean((yy - pp) ** 2))),
-        mae_near_limit=float(np.abs(yy[near] - pp[near]).mean()) if near.any() else None,
-        actual_exceedances=int(risk.sum()),
-        recall=float(alarm[risk].mean()) if risk.any() else None,
-        false_alarm_rate=float(alarm[~risk].mean()) if (~risk).any() else None,
     )
+    if risk_configured:
+        risk = yy > limit if direction == "max" else yy < limit
+        alarm = pp > limit if direction == "max" else pp < limit
+        result.update(
+            limit=float(limit), direction=direction, near_margin=near_margin,
+            actual_exceedances=int(risk.sum()),
+            recall=float(alarm[risk].mean()) if risk.any() else None,
+            false_alarm_rate=float(alarm[~risk].mean()) if (~risk).any() else None,
+        )
+        if near_margin is not None:
+            near = np.abs(yy - limit) <= near_margin
+            result["mae_near_limit"] = float(np.abs(yy[near] - pp[near]).mean()) if near.any() else None
     if lower is not None:
         lo, hi = np.asarray(lower)[valid], np.asarray(upper)[valid]
-        result.update(
-            interval_coverage=float(((yy >= lo) & (yy <= hi)).mean()),
-            mean_interval_width=float(np.mean(hi - lo)),
-            upper_bound_recall=float((hi[risk] > limit).mean()) if risk.any() else None,
-            upper_bound_false_alarm_rate=float((hi[~risk] > limit).mean()) if (~risk).any() else None,
-            below_limit_fraction=float((hi <= limit).mean()),
-            missed_exceedances=int(((hi <= limit) & risk).sum()),
-        )
+        result.update(interval_coverage=float(((yy >= lo) & (yy <= hi)).mean()),
+                      mean_interval_width=float(np.mean(hi - lo)))
+        if risk_configured:
+            bound = hi if direction == "max" else lo
+            alarm_bound = bound > limit if direction == "max" else bound < limit
+            result.update(
+                upper_bound_recall=float(alarm_bound[risk].mean()) if risk.any() else None,
+                upper_bound_false_alarm_rate=float(alarm_bound[~risk].mean()) if (~risk).any() else None,
+                below_limit_fraction=float((bound <= limit).mean()) if direction == "max" else None,
+                missed_exceedances=int(((~alarm_bound) & risk).sum()),
+            )
     return result
 
 
@@ -128,13 +155,21 @@ def predict_candidate(bundle, name, x):
     return np.maximum(0, np.expm1(model.predict(x[columns])))
 
 
-def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | None = None):
+def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | None = _UNSET,
+                   direction: str = "max", near_margin: float | None = None):
     masks = split_periods(meta, cfg)
     if any(mask.sum() < 30 for mask in masks.values()):
         raise ValueError("Меньше 30 лабораторных анализов в одном из временных периодов")
     train, val, cal, test = [masks[k] for k in ("train", "validation", "calibration", "test")]
     y = meta[target].to_numpy()
-    limit = cfg["sulfur_limit"] if limit is None else limit
+    if limit is _UNSET:
+        limit = cfg["sulfur_limit"] if target == "actual_sulfur" else None
+        if target == "actual_sulfur" and near_margin is None:
+            near_margin = cfg.get("sulfur_near_margin", 5.0)
+    if limit is not None and not np.isfinite(limit):
+        raise ValueError("Предел должен быть конечным или None")
+    if near_margin is not None and (not np.isfinite(near_margin) or near_margin < 0):
+        raise ValueError("Окрестность предела должна быть конечной и неотрицательной")
     columns = x.columns[x.loc[train].nunique() > 1].tolist()
     no_pak = [c for c in columns if not c.startswith("pak.")]
     bundle = {"models": {}, "columns": {}, "radii": {}, "config": cfg}
@@ -183,9 +218,13 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
         lo, hi = interval(prediction, radius)
         results[name] = {
             "validation_common_mae": scores[name],
-            "validation": metrics(y[val], prediction[val]),
-            "test": metrics(y[test], prediction[test], limit, lo[test], hi[test]),
-            "test_common": metrics(y[common_test], prediction[common_test], limit, lo[common_test], hi[common_test]),
+            "validation": metrics(y[val], prediction[val], limit,
+                                   direction=direction, near_margin=near_margin),
+            "test": metrics(y[test], prediction[test], limit, lo[test], hi[test],
+                             direction=direction, near_margin=near_margin),
+            "test_common": metrics(y[common_test], prediction[common_test], limit,
+                                    lo[common_test], hi[common_test],
+                                    direction=direction, near_margin=near_margin),
         }
     output = meta.loc[test].copy().reset_index(drop=True)
     for name, prediction in predictions.items():
@@ -198,6 +237,7 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
     output["fallback_prediction"], output["fallback_lower"], output["fallback_upper"] = fallback, flo, fhi
     summary = {
         "selected": selected, "target": target, "limit": limit,
+        "direction": direction, "near_margin": near_margin,
         "selection": "MAE на общем наборе validation с минимальным полезным отрывом и парным "
                      "бутстрепом разности; тест не участвует",
         "selection_decision": choice,
