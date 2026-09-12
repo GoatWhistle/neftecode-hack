@@ -84,8 +84,20 @@ def train(root, out, cfg):
             continue
         try:
             xq, mq = make_dataset(signals, lab, online, cfg, target_lab=series[name])
-            qbundle, qsummary, _ = run_experiment(xq, mq, cfg, target="actual_target", limit=None)
+            # Risk thresholds belong to the measured property.  In particular,
+            # an absent T95 product limit remains unknown; sulfur's 10 mg/kg
+            # limit must never be inherited by a temperature forecast.
+            quality_cfg = cfg.get("quality_metrics", {}).get(name, {})
+            qbundle, qsummary, _ = run_experiment(
+                xq, mq, cfg, target="actual_target",
+                limit=quality_cfg.get("limit"),
+                direction=quality_cfg.get("direction", "max"),
+                near_margin=quality_cfg.get("near_margin"),
+            )
             extra[name] = {"selected": qsummary["selected"],
+                           "limit": qsummary["limit"],
+                           "direction": qsummary["direction"],
+                           "near_margin": qsummary["near_margin"],
                            "selection_decision": qsummary["selection_decision"],
                            "models": {k: {"validation_common_mae": v["validation_common_mae"],
                                           "test": v["test"]} for k, v in qsummary["models"].items()}}
