@@ -426,9 +426,9 @@ def main():
             write_json(path, result)
             write_screen(out / f"screen-{stamp}.html", advisor.screen(result))
             forecast = result["forecast"]
-            print(f"Прогноз {forecast['model']}: "
-                  + ("недоступен" if not forecast["available"] else
-                     f"{forecast['value']:.2f} мг/кг, верхняя граница {forecast['upper']:.2f}"))
+            print((f"Прогноз {forecast['model']}: {forecast['value']:.2f} мг/кг, "
+                   f"верхняя граница {forecast['upper']:.2f}") if forecast["available"]
+                  else forecast.get("reason", "Прогноз недоступен"))
             print(f"Источники: {result['trust']['primary'] or 'нет пригодного'}")
             if result["decision"] is None:
                 print(f"Решение не выдано: {result.get('error')}")

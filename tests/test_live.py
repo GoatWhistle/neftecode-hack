@@ -116,7 +116,10 @@ def test_crude_quality_still_reaches_the_decision_without_a_bound_forecast():
                   if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
         return max(c.observed for c in checks)
 
-    assert blend_sulfur(2.2) > blend_sulfur(1.35) + 1.0, "качество сырья не дошло до решения"
+    # Only 285 t of inflow enter a 4000 t stock over three hours: the change
+    # must reach the blend, but cannot instantly replace its initial quality.
+    effect = blend_sulfur(2.2) - blend_sulfur(1.35)
+    assert 0.0 < effect < 1.0, "ожидается постепенное изменение качества запаса"
 
 
 def test_an_action_still_shifts_the_bound_level():
@@ -218,3 +221,24 @@ def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
     assert evaluation.feasible is False
     assert any(c.constraint_id == "quality.sulfur_mgkg"
                for c in evaluation.gate.unknown_requirements())
+
+
+def test_live_refuses_bad_data_before_calling_a_forecast(monkeypatch):
+    from neftecode.live import LiveAdvisor
+
+    state = {"decision_time": "2026-01-05T08:00:00", "lab_value": None,
+             "lab_usable": False, "pak_value": None, "pak_usable": False,
+             "telemetry_missing_fraction": 1.0}
+    monkeypatch.setattr("neftecode.live.state_at", lambda *args: state)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("forecast executed on rejected inputs")
+
+    monkeypatch.setattr("neftecode.live.forecast_at", forbidden)
+    advisor = LiveAdvisor(None, None, None,
+                          {"config": {"calibration_end": "2026-01-01"}}, raw())
+    result = advisor.advise("2026-01-05T08:00:00")
+    assert result["decision"]["status"] == "refuse"
+    assert result["forecast"]["available"] is False
+    assert result["forecast"]["model"] is None
+    assert advisor.screen(result)["state"] == "refusal"

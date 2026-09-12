@@ -106,19 +106,24 @@ class LiveAdvisor:
         state = state_at(self.signals, self.lab, self.online, self.bundle, when)
         trust = DataTrustAgent(self.bundle["config"]).assess(state)
 
-        # A rejected analyser means the model that uses its features is rejected too.
-        forecast = forecast_at(self.signals, self.lab, self.online, self.bundle, when,
-                               fallback=trust.fallback_mode)
+        forecast = {"model": None, "value": None, "lower": None, "upper": None,
+                    "available": False, "reason": "Прогноз не вычислялся: источники не прошли проверку"}
         result = {"at": when.isoformat(), "state": state, "forecast": forecast,
                   "trust": trust.to_dict(), "scenario_id": self.raw_scenario.get("id")}
 
         if not trust.usable:
             scenario = parse_scenario(self.raw_scenario)
             decision = Orchestrator(scenario).decide(state=state, budget=self.budget,
+                                                     trust_cfg=self.bundle["config"],
                                                      raw_scenario=self.raw_scenario)
             return {**result, "decision": decision,
                     "explanation": explain(decision, scenario),
                     "note": "Источники не прошли проверку: решение принято без запуска моделей."}
+        # Only an admissible state may reach a prediction model. A rejected analyser also
+        # excludes models using its features, even if the laboratory remains usable.
+        forecast = forecast_at(self.signals, self.lab, self.online, self.bundle, when,
+                               fallback=trust.fallback_mode)
+        result["forecast"] = forecast
         try:
             raw = bind_forecast(self.raw_scenario, forecast)
             scenario = parse_scenario(raw)
@@ -128,6 +133,7 @@ class LiveAdvisor:
                     "note": "Реальный прогноз не удалось связать со сценарием; решение не выдаётся."}
 
         decision = Orchestrator(scenario).decide(state=state, budget=self.budget,
+                                                 trust_cfg=self.bundle["config"],
                                                  raw_scenario=raw)
         return {
             **result,
