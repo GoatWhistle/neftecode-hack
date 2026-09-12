@@ -341,12 +341,21 @@ def check_all(task_dir, signals: pd.DataFrame) -> dict:
     by_status: dict[str, int] = {}
     for check in checks:
         by_status[check["status"]] = by_status.get(check["status"], 0) + 1
-    usable = [c["name"] for c in checks if c["status"] == "checked" and (c["correlation"] or 0) >= 0.5]
+    # Passing a correlation threshold is not adoption: nothing in the decision path takes a
+    # quality value from a virtual analyser, and none of the three required product properties
+    # is obtainable from one.
+    above_threshold = [c["name"] for c in checks
+                       if c["status"] == "checked" and (c["correlation"] or 0) >= 0.5]
     return {
         "formulas": {name: f.to_dict() for name, f in formulas.items()},
         "checks": checks,
         "summary": by_status,
-        "adopted_as_quality_estimate": usable,
+        "passed_correlation_threshold": above_threshold,
+        "used_as_quality_estimate": [],
+        "adoption_rule": "Формула считается пригодной только если она даёт значение одного из "
+                         "требуемых показателей продукта и согласуется с лабораторией. Ни одна "
+                         "не удовлетворяет обоим условиям, поэтому источником значения качества "
+                         "не служит ни одна: ВАК имеет низший приоритет источника по ТЗ.",
         "lab_point": "Гидроочистка, точка отбора 2 (та же точка, что подтверждена экспертом для ПАК-серы)",
         "notes": [
             "Формулы АВТ не сверялись: соответствие их фракций конкретной лабораторной точке в пакете "

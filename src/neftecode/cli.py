@@ -391,7 +391,8 @@ def main():
             report = check_all(root / "task", signals)
             write_json(out / "vak_check.json", report)
             print(f"Разобрано формул: {len(report['formulas'])}; итог проверки: {report['summary']}")
-            print(f"Принято как оценка качества: {report['adopted_as_quality_estimate'] or 'ни одной'}")
+            print(f"Прошли порог корреляции: {report['passed_correlation_threshold'] or 'ни одной'}")
+            print(f"Используется как оценка качества: {report['used_as_quality_estimate'] or 'ни одна'}")
             print(f"Журнал: {out / 'vak_check.json'}")
         elif args.command == "advise":
             if not args.at:
