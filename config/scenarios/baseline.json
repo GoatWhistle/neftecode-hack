@@ -211,7 +211,8 @@
         "sulfur_mgkg": {
           "value": 8.0,
           "unit": "мг/кг",
-          "source": "scenario"
+          "source": "scenario",
+          "note": "Опорное значение. Фактический уровень при расчёте берётся из модели цепочки при текущем режиме (sulfur_from_chain), а при связывании с обученным прогнозом — из прогноза."
         },
         "t95_c": {
           "value": 352.0,
@@ -223,7 +224,8 @@
           "unit": "ед.",
           "source": "scenario"
         }
-      }
+      },
+      "sulfur_from_chain": true
     },
     {
       "tank_id": "reserve",
