@@ -191,16 +191,25 @@ class Planner:
             blend = self.blender.blend(spec.recipe, spec.throughput_tph,
                                        hours=self._duration(grid, index),
                                        additive_dose=spec.additive_dose)
-            # The hydrotreated stream feeds the main tank, so its sulfur enters the blend
-            # through that component rather than replacing the blend result.
+            # Level and response are different things, and mixing them would let the scenario
+            # model overwrite a real forecast. The component's own sulfur sets the LEVEL (it may
+            # be the trained forecast bound into the scenario); the chain model supplies only
+            # the RATIO by which an action shifts it. With no action the ratio is 1 and the
+            # level is exactly what the component declares.
             qualities = dict(blend.qualities)
-            if stream.sulfur_mgkg is not None and qualities.get("sulfur_mgkg") is not None:
-                main_share = spec.recipe.get(self._main_id(), 0.0)
-                qualities["sulfur_mgkg"] = (qualities["sulfur_mgkg"]
-                                            - main_share * self._main_sulfur()
-                                            + main_share * stream.sulfur_mgkg)
-            elif stream.sulfur_mgkg is None:
-                qualities["sulfur_mgkg"] = None
+            main_share = spec.recipe.get(self._main_id(), 0.0)
+            if main_share > 1e-12 and qualities.get("sulfur_mgkg") is not None:
+                ratio = self._response_ratio(time_hours, pending)
+                if ratio is None:
+                    qualities["sulfur_mgkg"] = None
+                else:
+                    # The blender used the tank's declared value; swap it for the authoritative
+                    # level shifted by the action's response ratio.
+                    declared = self.scenario.tank(self._main_id()).property_value("sulfur_mgkg")
+                    level = self._main_sulfur()
+                    qualities["sulfur_mgkg"] = (qualities["sulfur_mgkg"]
+                                                - main_share * declared
+                                                + main_share * level * ratio)
             inventories = self._inventories_at(stock, time_hours)
             reasons = self._reasons_at(stock, time_hours)
             trajectory.append(TrajectoryStep(
@@ -235,11 +244,30 @@ class Planner:
                     controls[name] = value
         return controls
 
+    def _response_ratio(self, time_hours: float, pending) -> float | None:
+        """How much the action model shifts hydrotreated sulfur relative to doing nothing."""
+        acting = self.chain.run_at(time_hours, pending)
+        idle = self.chain.run_at(time_hours, ())
+        if acting.sulfur_mgkg is None or idle.sulfur_mgkg is None or idle.sulfur_mgkg <= 0:
+            return None
+        return acting.sulfur_mgkg / idle.sulfur_mgkg
+
     def _main_id(self) -> str:
         return self.scenario.available_tanks()[0].tank_id
 
     def _main_sulfur(self) -> float:
-        return self.scenario.tank(self._main_id()).property_value("sulfur_mgkg")
+        """Current level of the main component's sulfur.
+
+        Either the chain produces it (so crude quality and the standing regime reach the
+        decision), or the scenario declares it — for instance because a trained forecast was
+        bound into it, which outranks the model.
+        """
+        tank = self.scenario.tank(self._main_id())
+        if tank.sulfur_from_chain:
+            idle = self.chain.run_at(0.0, ())
+            if idle.sulfur_mgkg is not None:
+                return idle.sulfur_mgkg
+        return tank.property_value("sulfur_mgkg")
 
     def _avt_controls(self, spec: PlanStepSpec) -> dict[str, float]:
         names = set(self.scenario.stages["avt"].controls)

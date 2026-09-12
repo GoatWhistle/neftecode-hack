@@ -118,6 +118,10 @@ class Tank:
     cost_per_t: Quantity
     properties: dict[str, Quantity | None]
     note: str | None = None
+    #: True when this component leaves the modelled chain, so its sulfur is whatever the chain
+    #: produces at the current regime rather than a standing scenario constant. A real forecast
+    #: bound into the scenario overrides it: a measurement outranks a model.
+    sulfur_from_chain: bool = False
 
     def property_value(self, name: str) -> float | None:
         q = self.properties.get(name)
@@ -128,7 +132,7 @@ class Tank:
                 "inventory": self.inventory.to_dict(), "max_outflow": self.max_outflow.to_dict(),
                 "inflow": self.inflow.to_dict(), "cost_per_t": self.cost_per_t.to_dict(),
                 "properties": {k: (v.to_dict() if v else None) for k, v in self.properties.items()},
-                "note": self.note}
+                "note": self.note, "sulfur_from_chain": self.sulfur_from_chain}
 
 
 @dataclass(frozen=True)
@@ -309,8 +313,14 @@ def _parse_tank(raw: dict, index: int) -> Tank:
     if properties["sulfur_mgkg"] is None:
         raise ScenarioError(f"{where}.properties.sulfur_mgkg: сера компонента обязательна, "
                             f"иначе материальный баланс по жёсткому ограничению не считается")
+    from_chain = raw.get("sulfur_from_chain", False)
+    if not isinstance(from_chain, bool):
+        raise ScenarioError(f"{where}.sulfur_from_chain: ожидается true или false")
+    if from_chain and properties["sulfur_mgkg"].source == "derived":
+        raise ScenarioError(f"{where}: сера не может одновременно приходить из модели цепочки "
+                            f"и из выведенного измерения")
     return Tank(raw["tank_id"], raw["name"], raw["available"], inventory, max_outflow, inflow,
-                cost, properties, raw.get("note"))
+                cost, properties, raw.get("note"), from_chain)
 
 
 def _parse_stage(stage_id: str, raw: dict) -> Stage:

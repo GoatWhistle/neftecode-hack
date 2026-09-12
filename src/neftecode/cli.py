@@ -18,6 +18,7 @@ from .batch import _as_series, classify_episodes, excursion_episodes, sampling_s
 from .margin import lead_times, margin_series
 from .quality import report as quality_report, read_quality_series
 from .demo import Demo, scenes as demo_scenes
+from .live import LiveAdvisor
 from .ui import Screen, error_payload, write_screen
 from .vak import check_all
 
@@ -399,11 +400,24 @@ def main():
                 bundle = pickle.load(stream)
             when = validate_origin(args.at, bundle)
             signals, lab, online = load_sources(root / "task")
-            scenario = json.loads((root / "config/blending-demo.json").read_text())
-            decision = decision_at(signals, lab, online, bundle, when, scenario)
-            path = out / f"decision-{when.strftime('%Y%m%d-%H%M%S')}.json"
-            write_json(path, decision)
-            print(f"{decision['status']}: {decision['reason']}\nЖурнал: {path}")
+            scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
+            advisor = LiveAdvisor(signals, lab, online, bundle,
+                                  json.loads(Path(scenario_path).read_text()))
+            result = advisor.advise(when)
+            stamp = when.strftime("%Y%m%d-%H%M%S")
+            path = out / f"decision-{stamp}.json"
+            write_json(path, result)
+            write_screen(out / f"screen-{stamp}.html", advisor.screen(result))
+            forecast = result["forecast"]
+            print(f"Прогноз {forecast['model']}: "
+                  + ("недоступен" if not forecast["available"] else
+                     f"{forecast['value']:.2f} мг/кг, верхняя граница {forecast['upper']:.2f}"))
+            print(f"Источники: {result['trust']['primary'] or 'нет пригодного'}")
+            if result["decision"] is None:
+                print(f"Решение не выдано: {result.get('error')}")
+            else:
+                print(f"{result['decision']['status']}: {result['decision']['reason']}")
+            print(f"Журнал: {path}\nЭкран: {out / f'screen-{stamp}.html'}")
         else:
             make_demo(root, out)
     except (ValueError, FileNotFoundError) as exc:
