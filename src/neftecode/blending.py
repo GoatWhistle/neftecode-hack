@@ -107,7 +107,8 @@ class Blender:
                              f"{additive.max_dose_fraction.value:.4f}")
 
     def blend(self, recipe: dict[str, float], throughput_tph: float, hours: float = 1.0,
-              additive_dose: float = 0.0) -> BlendResult:
+              additive_dose: float = 0.0,
+              property_overrides: dict[str, dict[str, float | None]] | None = None) -> BlendResult:
         """Blend `throughput_tph` for `hours`, with the additive dosed on the component mass."""
         check_recipe(recipe)
         self.check_dose(additive_dose)
@@ -126,7 +127,9 @@ class Blender:
         additive_mass = component_mass * additive_dose
         notes: list[str] = []
 
-        values = {q: {name: self._tank(name).property_value(q) for name in recipe} for q in QUALITIES}
+        overrides = property_overrides or {}
+        values = {q: {name: (overrides.get(name, {}).get(q, self._tank(name).property_value(q)))
+                         for name in recipe} for q in QUALITIES}
         qualities: dict[str, float | None] = {}
         methods: dict[str, str] = {}
 

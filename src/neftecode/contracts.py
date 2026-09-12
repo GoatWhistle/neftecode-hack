@@ -136,8 +136,6 @@ class TankState:
                    for name in QUALITIES}
         object.__setattr__(self, "properties", cleaned)
         object.__setattr__(self, "observed_at", _time(self.observed_at, "TankState.observed_at", required=False))
-        if self.properties["sulfur_mgkg"] is None:
-            raise ContractError(f"TankState[{self.tank_id}]: сера компонента обязательна для материального баланса")
 
     def unknown_properties(self) -> list[str]:
         return [name for name in QUALITIES if self.properties[name] is None]
@@ -154,6 +152,32 @@ class TankState:
         if not _finite(mass_t) or mass_t < 0:
             raise ContractError(f"TankState[{self.tank_id}].add: масса притока должна быть конечной и неотрицательной")
         return replace(self, inventory_t=self.inventory_t + mass_t)
+
+    def mix_in(self, mass_t: float, properties: dict[str, float | None]) -> "TankState":
+        """Add a well-mixed inflow and update modelled properties by mass balance.
+
+        Missing properties remain unknown until a known inflow replaces an empty tank or
+        is mixed with a known existing value.
+        """
+        if not _finite(mass_t) or mass_t < 0:
+            raise ContractError(f"TankState[{self.tank_id}].mix_in: масса должна быть конечной и неотрицательной")
+        if mass_t == 0:
+            return self
+        total = self.inventory_t + mass_t
+        merged = dict(self.properties)
+        if total > 0:
+            for name in QUALITIES:
+                incoming = properties.get(name)
+                current = self.properties.get(name)
+                if incoming is None or not _finite(incoming):
+                    merged[name] = None
+                elif self.inventory_t <= 1e-12:
+                    merged[name] = incoming
+                elif current is None:
+                    merged[name] = None
+                else:
+                    merged[name] = (self.inventory_t * current + mass_t * incoming) / total
+        return replace(self, inventory_t=total, properties=merged)
 
     def to_dict(self) -> dict:
         return {"tank_id": self.tank_id, "available": self.available, "inventory_t": self.inventory_t,

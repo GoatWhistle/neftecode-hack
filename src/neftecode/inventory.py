@@ -55,7 +55,7 @@ class DrawResult:
 
 
 def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_tph: float,
-              hours: float) -> DrawResult:
+              hours: float, inflow_properties: dict[str, dict[str, float | None]] | None = None) -> DrawResult:
     """Draw one step. Returns a NEW state; the input is never mutated.
 
     Infeasibility is reported, not raised: the optimiser needs to see why a candidate failed
@@ -84,14 +84,21 @@ def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_
         if rate > tank.max_outflow_tph + 1e-9:
             reasons.append(f"{tank_id}: требуется {rate:.2f} т/ч при пределе отбора "
                            f"{tank.max_outflow_tph:.2f} т/ч")
+            continue
         if mass > tank.inventory_t + 1e-9:
             reasons.append(f"{tank_id}: требуется {mass:.2f} т, в наличии {tank.inventory_t:.2f} т")
             continue
         updated[tank_id] = tank.draw(mass)
     # Inflow arrives during the same step for every tank, drawn from or not.
+    unknown_inflow: list[str] = []
     for tank_id, tank in updated.items():
         if tank.inflow_tph > 0:
-            updated[tank_id] = tank.add(tank.inflow_tph * hours)
+            props = (inflow_properties or {}).get(tank_id, tank.properties)
+            if any(props.get(q) is None for q in QUALITIES):
+                unknown_inflow.extend(q for q in QUALITIES if props.get(q) is None)
+            updated[tank_id] = tank.mix_in(tank.inflow_tph * hours, props)
+    if unknown_inflow:
+        reasons.append("Приток содержит неизвестные свойства: " + ", ".join(dict.fromkeys(unknown_inflow)))
     return DrawResult(updated, drawn, not reasons, tuple(dict.fromkeys(reasons)))
 
 
@@ -112,7 +119,7 @@ class InventoryLedger:
             raise InventoryError(f"policy.terminal_inventory_rule: неизвестное правило «{rule}»")
         return rule, float(policy.get("terminal_min_hours", 0.0))
 
-    def run_plan(self, steps) -> dict:
+    def run_plan(self, steps, inflow_properties=None) -> dict:
         """Walk the plan. `steps` are `(time_hours, recipe, throughput_tph)` in order.
 
         The mass of each step is the throughput held until the next step's time; the last step
@@ -128,12 +135,20 @@ class InventoryLedger:
         for index, (time_hours, recipe, throughput) in enumerate(steps):
             until = times[index + 1] if index + 1 < len(times) else horizon
             duration = max(0.0, until - time_hours)
-            result = draw_step(tanks, recipe, throughput, duration)
+            start_inventories = {k: v.inventory_t for k, v in tanks.items()}
+            start_properties = {k: dict(v.properties) for k, v in tanks.items()}
+            props = (inflow_properties or {}).get(time_hours, {})
+            result = draw_step(tanks, recipe, throughput, duration, props)
             tanks = result.tanks
+            visible_properties = {k: dict(v.properties) for k, v in tanks.items()}
             timeline.append({"time_hours": time_hours, "duration_hours": duration,
                              "drawn_t": result.drawn_t, "feasible": result.feasible,
                              "reasons": list(result.reasons),
-                             "inventories": {k: v.inventory_t for k, v in tanks.items()}})
+                             "inventories": start_inventories,
+                             "properties": start_properties,
+                             "end_inventories": {k: v.inventory_t for k, v in tanks.items()},
+                             "end_properties": visible_properties,
+                             "unknown_inflow": list(result.reasons)})
             if not result.feasible and first_failure is None:
                 first_failure = {"time_hours": time_hours, "reasons": list(result.reasons)}
         terminal = self.check_terminal(tanks, steps[-1][2] if steps else 0.0,

@@ -57,6 +57,23 @@ def test_inflow_is_added_during_the_step():
     assert result.tanks["main"].inventory_t == pytest.approx(4000.0 + 95.0 * 2.0)
 
 
+def test_well_mixed_inflow_preserves_mass_and_updates_properties_gradually():
+    before = tanks()
+    result = draw_step(before, {"main": 0.0}, 0.0, 1.0,
+                       {"main": {"sulfur_mgkg": 20.0, "t95_c": 380.0, "cetane_number": 50.0}})
+    assert result.tanks["main"].inventory_t == pytest.approx(4000.0 + 95.0)
+    assert result.tanks["main"].properties["t95_c"] == pytest.approx(
+        (4000.0 * 352.0 + 95.0 * 380.0) / 4095.0)
+    assert result.tanks["main"].properties["t95_c"] < 380.0
+
+
+def test_unknown_positive_inflow_is_reported_as_unknown_critical_property():
+    result = draw_step(tanks(), {"main": 0.0}, 0.0, 1.0,
+                       {"main": {"sulfur_mgkg": None, "t95_c": 380.0, "cetane_number": 50.0}})
+    assert result.feasible is False
+    assert any("неизвестные свойства" in reason for reason in result.reasons)
+
+
 def test_inventory_never_goes_negative():
     state = {"r": TankState("r", True, 10.0, {"sulfur_mgkg": 2.0}, 0.0, 100.0)}
     result = draw_step(state, {"r": 1.0}, 50.0, 1.0)
@@ -86,6 +103,13 @@ def test_exceeding_the_outflow_limit_is_reported_with_both_numbers():
 
 def test_drawing_at_exactly_the_outflow_limit_is_allowed():
     assert draw_step(tanks(), {"reserve": 1.0}, 30.0, 1.0).feasible is True
+
+
+def test_drawing_above_max_outflow_does_not_change_stock():
+    before = tanks()
+    result = draw_step(before, {"reserve": 1.0}, 31.0, 1.0)
+    assert result.feasible is False
+    assert result.tanks["reserve"].inventory_t == pytest.approx(before["reserve"].inventory_t)
 
 
 def test_a_component_with_zero_share_is_not_drawn_at_all():
@@ -156,6 +180,8 @@ def test_the_timeline_records_inventories_at_every_step():
     result = ledger().run_plan([(0.0, {"reserve": 1.0}, 20.0), (1.5, {"reserve": 1.0}, 20.0)])
     assert len(result["timeline"]) == 2
     assert result["timeline"][0]["inventories"]["reserve"] > result["timeline"][1]["inventories"]["reserve"]
+    assert result["timeline"][0]["end_inventories"]["reserve"] == pytest.approx(
+        result["timeline"][1]["inventories"]["reserve"])
 
 
 # --- The end of the horizon is not the end of the plant ---
