@@ -17,6 +17,7 @@ from .benchmark import compare as compare_strategies
 from .batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
 from .margin import lead_times, margin_series
 from .quality import report as quality_report, read_quality_series
+from .demo import Demo, scenes as demo_scenes
 from .ui import Screen, error_payload, write_screen
 from .vak import check_all
 
@@ -269,7 +270,7 @@ def make_report(out, demos):
 
 def main():
     parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark", "screen"])
+    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
@@ -284,6 +285,26 @@ def main():
         if args.command == "train":
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
+        elif args.command == "scenes":
+            scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
+            demo = Demo.from_path(scenario_path, budget=400)
+            folder = out / "scenes"
+            folder.mkdir(parents=True, exist_ok=True)
+            index = []
+            for number, scene in enumerate(demo_scenes(scenario_path), start=1):
+                result = demo.run(scene["changes"], scene["fault"])
+                page = folder / f"{number:02d}-{scene['name'].replace(' ', '_')}.html"
+                write_screen(page, result["screen"])
+                status = "отклонено" if result["rejected"] else result["decision"]["status"]
+                index.append({"scene": scene["name"], "expected": scene["expect"],
+                              "status": status, "injected_fault": scene["fault"],
+                              "page": str(page.relative_to(out))})
+                print(f"  {scene['name']:48s} {status}")
+            write_json(out / "scenes.json", {
+                "scenario": str(scenario_path), "scenes": index,
+                "note": "Каждая сцена получена пересчётом через тот же загрузчик и то же ядро. "
+                        "Инъекции отказов помечены как модельные."})
+            print(f"Журнал: {out / 'scenes.json'}")
         elif args.command == "screen":
             from .explain import explain
             from .inventory import initial_state
