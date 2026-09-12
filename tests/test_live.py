@@ -173,3 +173,48 @@ def test_the_forecast_interval_brackets_its_point_estimate():
     result = forecast_at(signals, lab, online, bundle, pd.Timestamp("2026-01-03 00:00"))
     assert result["available"] is True
     assert result["lower"] <= result["value"] <= result["upper"]
+
+
+# --- The level must not fall back to a placeholder ---
+
+def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant():
+    """The scenario calls the declared value a reference; it must not stand in for a real level."""
+    from neftecode.planner import Planner
+    from neftecode.process import StreamState
+
+    scenario = load_scenario(BASELINE)
+    planner = Planner(scenario)
+    assert scenario.tank("main").sulfur_from_chain is True
+    original = planner.chain.run_at
+
+    def unavailable(time_hours, pending=(), controls=None):
+        if time_hours == 0.0 and not pending:
+            return StreamState(100.0, None, None, 865.0, "out_of_region", ("вне области",))
+        return original(time_hours, pending, controls)
+
+    planner.chain.run_at = unavailable
+    assert planner._main_sulfur() is None, "заглушка подменила неизвестный уровень"
+
+
+def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
+    from neftecode.planner import Planner
+    from neftecode.process import StreamState
+
+    scenario = load_scenario(BASELINE)
+    planner = Planner(scenario)
+    original = planner.chain.run_at
+
+    def unavailable(time_hours, pending=(), controls=None):
+        if time_hours == 0.0 and not pending:
+            return StreamState(100.0, None, None, 865.0, "out_of_region", ("вне области",))
+        return original(time_hours, pending, controls)
+
+    planner.chain.run_at = unavailable
+    operation = scenario.current_operation
+    recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
+    plan = PlanCandidate("hold", (PlanStepSpec(0.0, planner.base_controls(), recipe,
+                                               operation.throughput.value),))
+    evaluation = planner.evaluate(plan)
+    assert evaluation.feasible is False
+    assert any(c.constraint_id == "quality.sulfur_mgkg"
+               for c in evaluation.gate.unknown_requirements())
