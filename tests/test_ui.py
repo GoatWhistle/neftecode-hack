@@ -162,3 +162,25 @@ def test_the_page_is_written_to_disk(tmp_path):
 def test_rendering_is_reproducible():
     payload = built()[2]
     assert render(payload) == render(payload)
+
+
+def test_one_step_recipe_carries_current_and_proposed_composition():
+    scenario = load_scenario(SCENARIOS / "baseline.json")
+    decision = {"status": "recommend_scenario", "scenario_id": "baseline",
+                "decision_id": "recipe-change", "reason": "Резерв недоступен",
+                "immediate_action": {"controls": {}, "recipe": {"main": 1.0},
+                                     "throughput_tph": 100, "additive_dose": 0},
+                "selected_plan": {"steps": [{"time_hours": 0, "controls": {},
+                                             "recipe": {"main": 1.0}, "throughput_tph": 100,
+                                             "additive_dose": 0}]}}
+    payload = Screen(decision, explain(decision, scenario)).payload()
+    assert payload["explanation"]["current_operation"]["recipe"]["reserve"] == .1
+    assert payload["decision"]["immediate_action"]["recipe"] == {"main": 1.0}
+    assert payload["explanation"]["component_names"]["main"] == scenario.tank("main").name
+
+
+def test_explanation_prefers_the_confirmed_current_operation_from_decision():
+    scenario = load_scenario(SCENARIOS / "baseline.json")
+    current = {"controls": {}, "recipe": {"main": .7, "reserve": .3},
+               "throughput_tph": 80, "additive_dose": .01}
+    assert explain({"status": "hold", "current_operation": current}, scenario)["current_operation"] == current

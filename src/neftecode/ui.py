@@ -63,6 +63,13 @@ function render() {
   if (data.state === "error") return card("Ошибка", `<p class="badge error">Ошибка</p>
     <p>${esc(data.message)}</p>`);
   const d = data.decision, e = data.explanation;
+  const current = e.current_operation || {};
+  const change = (before, after, digits) => `${num(before, digits)} → ${num(after, digits)}`;
+  const recipeRows = (before, after) => [...new Set([
+    ...Object.keys(before || {}), ...Object.keys(after || {})
+  ])].map(k => [e.component_names?.[k] || k,
+    change(before ? 100 * (before[k] || 0) : null,
+           after ? 100 * (after[k] || 0) : null, 1) + " %"]);
   const head = `<h1>${esc(data.title)}</h1>
     <div class="sub">Сценарий <b>${esc(d.scenario_id)}</b>, решение
     <code>${esc(d.decision_id)}</code> · <span class="badge ${esc(d.status)}">${esc(data.status_label)}</span></div>`;
@@ -73,9 +80,11 @@ function render() {
           (s.available_in_hours ? ` <span class="warn">(результат до ${s.available_in_hours} ч; ${esc(s.caveat || "")})</span>` : "") +
           `</li>`).join("") + `</ul>`
       : `<table>${rows((d.immediate_action ? Object.entries(d.immediate_action.controls) : [])
-            .map(([k, v]) => [k, num(v, 2)])
-            .concat([["Выпуск, т/ч", num(d.immediate_action?.throughput_tph, 1)],
-                     ["Доля присадки", num(d.immediate_action?.additive_dose, 4)]]))}</table>`));
+            .map(([k, v]) => [k, change(current.controls?.[k], v, 2)])
+            .concat([["Выпуск, т/ч", change(current.throughput_tph, d.immediate_action?.throughput_tph, 1)],
+                     ["Доля присадки", change(current.additive_dose, d.immediate_action?.additive_dose, 4)]]))}</table>
+        <h3>Состав смеси: сейчас → предложено</h3>
+        <table>${rows(recipeRows(current.recipe, d.immediate_action?.recipe))}</table>`));
 
   if (d.status !== "refuse") {
     body += card("Ожидаемый эффект", `<table>${rows([
@@ -90,11 +99,14 @@ function render() {
         .map(s => [s.topic, s.value === null ? '<span class="unknown">неизвестно</span>' : esc(s.text)]))}</table>`);
 
     if (d.selected_plan && d.selected_plan.steps.length > 1) {
-      body += card("План по времени", `<table><tr><th>Момент</th><td>Состав и выпуск</td></tr>` +
+      body += card("План по времени", `<table><tr><th>Момент</th><td>Состав, выпуск и уставки</td></tr>` +
         d.selected_plan.steps.map(s => `<tr><th>${s.time_hours} ч</th><td>` +
           Object.entries(s.recipe).filter(([, f]) => f > 0)
             .map(([k, f]) => `${esc(k)} ${(f*100).toFixed(0)}%`).join(", ") +
-          ` · ${num(s.throughput_tph, 0)} т/ч</td></tr>`).join("") + `</table>
+          ` · ${num(s.throughput_tph, 0)} т/ч` +
+          `<br>Присадка: ${num(100 * s.additive_dose, 2)}%` +
+          Object.entries(s.controls || {}).map(([k, v]) => `<br>${esc(k)}: ${num(v, 2)}`).join("") +
+          `</td></tr>`).join("") + `</table>
         <p class="note">${esc(d.selected_plan.intent)}</p>`);
     }
 
