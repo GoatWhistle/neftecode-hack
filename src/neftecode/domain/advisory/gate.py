@@ -15,36 +15,17 @@ Discretisation is explicit: the gate sees the points the trajectory was computed
 two checked points nothing is known, so `step_hours` is reported and a coarse grid is flagged
 rather than silently trusted.
 """
-from dataclasses import dataclass
-import math
-
-from .contracts import CheckResult, FAIL, GateResult, PASS, UNKNOWN
-from .scenario import QUALITIES, QUALITY_DIRECTION, Scenario
+from neftecode.domain.advisory.entities import CheckResult, GateResult, TrajectoryPoint
+from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN, QUALITIES, QUALITY_DIRECTION, _finite
+from neftecode.domain.production.scenario import Scenario
 
 #: Grid finer than this is considered adequate for a 0-3 hour horizon; coarser is flagged.
 MAX_TRUSTED_STEP_HOURS = 1.0
 
 
-def _finite(value) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
-@dataclass(frozen=True)
-class TrajectoryStep:
-    """One checked point of a plan: what the models say holds there."""
-
-    time_hours: float
-    qualities: dict[str, float | None]
-    controls: dict[str, float]
-    inventories: dict[str, float]
-    recipe: dict[str, float]
-    throughput_tph: float
-    additive_dose: float = 0.0
-    applicability: str = "in_region"
-    inventory_reasons: tuple[str, ...] = ()
-
-
-def quality_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
+def quality_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
     """Compare each product quality with its limit at this point."""
     checks = []
     for quality in QUALITIES:
@@ -68,7 +49,7 @@ def quality_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult
     return checks
 
 
-def control_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
+def control_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
     """Every setpoint must stay inside the range the scenario declares for it."""
     checks = []
     declared = set()
@@ -101,7 +82,7 @@ def control_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult
     return checks
 
 
-def recipe_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
+def recipe_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
     """Fractions form a composition, the dose stays within the expert's limit."""
     checks = []
     fractions = step.recipe or {}
@@ -137,7 +118,7 @@ def recipe_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]
     return checks
 
 
-def inventory_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResult]:
+def inventory_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
     """Stocks must stay non-negative and outflow limits must hold."""
     checks = []
     inventories = step.inventories or {}
@@ -181,7 +162,7 @@ def inventory_checks(step: TrajectoryStep, scenario: Scenario) -> list[CheckResu
     return checks
 
 
-def applicability_check(step: TrajectoryStep) -> CheckResult:
+def applicability_check(step: TrajectoryPoint) -> CheckResult:
     """A result produced outside the model's declared region cannot support a recommendation."""
     if step.applicability == "in_region":
         return CheckResult("model.applicability", PASS, None, None, step.time_hours)
@@ -223,7 +204,7 @@ def time_grid_check(steps, scenario: Scenario) -> CheckResult:
     return CheckResult("plan.time_grid", PASS, len(times), len(expected), None)
 
 
-def throughput_check(step: TrajectoryStep) -> CheckResult:
+def throughput_check(step: TrajectoryPoint) -> CheckResult:
     if not _finite(step.throughput_tph) or step.throughput_tph < 0:
         return CheckResult("throughput", UNKNOWN, None, 0.0, step.time_hours,
                            reason="Выпуск должен быть конечным и неотрицательным")

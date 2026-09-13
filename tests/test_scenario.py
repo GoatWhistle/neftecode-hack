@@ -202,7 +202,7 @@ def test_scenario_must_declare_itself_synthetic():
 
 def test_wrong_schema_is_rejected():
     data = raw()
-    data["schema"] = "neftecode.scenario.v0"
+    data["schema"] = "neftecode.domain.production.scenario.v0"
     with pytest.raises(ScenarioError, match="схема"):
         parse_scenario(data)
 

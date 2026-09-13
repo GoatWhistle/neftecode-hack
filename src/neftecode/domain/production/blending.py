@@ -14,7 +14,7 @@ number unknown — not "fine", not "the average of the others".
 from dataclasses import dataclass
 import math
 
-from .scenario import QUALITIES, QUALITY_DIRECTION, Additive, Scenario, Tank
+from neftecode.domain.production.scenario import QUALITIES, QUALITY_DIRECTION, Additive, Scenario, Tank
 
 #: How each property is obtained. Reported with every blend so no rule is applied invisibly.
 MASS_BALANCE = "mass_balance"

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from neftecode.explain import explain
-from neftecode.inventory import initial_state
+from neftecode.domain.production.inventory import initial_state
 from neftecode.orchestrator import Orchestrator
 from neftecode.scenario import load_scenario
 from neftecode.ui import STATES, Screen, UiError, error_payload, render, write_screen

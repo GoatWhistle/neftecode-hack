@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.process import IN_REGION, OUT_OF_REGION, AvtModel, AvtStage, ProcessError
+from neftecode.domain.production.process import IN_REGION, OUT_OF_REGION, AvtModel, AvtStage, ProcessError
 from neftecode.scenario import parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -165,7 +165,7 @@ def test_non_finite_control_is_refused(value):
 
 
 def test_negative_flow_cannot_be_constructed():
-    from neftecode.process import StreamState
+    from neftecode.domain.production.process import StreamState
     with pytest.raises(ProcessError, match="неотрицательным"):
         StreamState(-1.0, 8.0)
 

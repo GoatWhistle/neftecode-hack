@@ -8,7 +8,7 @@ import pytest
 
 from neftecode.data import series_frame
 from neftecode.live import LiveError, bind_forecast, forecast_at, state_at
-from neftecode.planner import Planner, PlanCandidate, PlanStepSpec
+from neftecode.planner import Planner, PlanCandidate, PlanStep
 from neftecode.scenario import ScenarioError, load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -81,7 +81,7 @@ def test_a_bound_forecast_changes_the_computed_blend():
         planner = Planner(scenario)
         operation = scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
-        plan = PlanCandidate("hold", (PlanStepSpec(0.0, planner.base_controls(), recipe,
+        plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
                                                    operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
                   if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
@@ -96,7 +96,7 @@ def test_a_high_forecast_makes_the_current_regime_infeasible():
     planner = Planner(scenario)
     operation = scenario.current_operation
     recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
-    plan = PlanCandidate("hold", (PlanStepSpec(0.0, planner.base_controls(), recipe,
+    plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
                                                operation.throughput.value),))
     assert planner.evaluate(plan).feasible is False
 
@@ -110,7 +110,7 @@ def test_crude_quality_still_reaches_the_decision_without_a_bound_forecast():
         planner = Planner(scenario)
         operation = scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
-        plan = PlanCandidate("hold", (PlanStepSpec(0.0, planner.base_controls(), recipe,
+        plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
                                                    operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
                   if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
@@ -130,7 +130,7 @@ def test_an_action_still_shifts_the_bound_level():
     recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
 
     def worst(controls):
-        plan = PlanCandidate("p", (PlanStepSpec(0.0, {**planner.base_controls(), **controls},
+        plan = PlanCandidate("p", (PlanStep(0.0, {**planner.base_controls(), **controls},
                                                 recipe, operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
                   if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
@@ -183,7 +183,7 @@ def test_the_forecast_interval_brackets_its_point_estimate():
 def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant():
     """The scenario calls the declared value a reference; it must not stand in for a real level."""
     from neftecode.planner import Planner
-    from neftecode.process import StreamState
+    from neftecode.domain.production.process import StreamState
 
     scenario = load_scenario(BASELINE)
     planner = Planner(scenario)
@@ -201,7 +201,7 @@ def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant()
 
 def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
     from neftecode.planner import Planner
-    from neftecode.process import StreamState
+    from neftecode.domain.production.process import StreamState
 
     scenario = load_scenario(BASELINE)
     planner = Planner(scenario)
@@ -215,7 +215,7 @@ def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
     planner.chain.run_at = unavailable
     operation = scenario.current_operation
     recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
-    plan = PlanCandidate("hold", (PlanStepSpec(0.0, planner.base_controls(), recipe,
+    plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
                                                operation.throughput.value),))
     evaluation = planner.evaluate(plan)
     assert evaluation.feasible is False

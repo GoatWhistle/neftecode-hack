@@ -15,7 +15,7 @@ magnitudes of the 24-2000 tags contradict their descriptions — see context/req
 from dataclasses import dataclass, field
 import math
 
-from .scenario import Quantity, Scenario, Stage
+from neftecode.domain.production.scenario import Quantity, Scenario, Stage
 
 #: Result is inside the region the model was declared for.
 IN_REGION, OUT_OF_REGION = "in_region", "out_of_region"

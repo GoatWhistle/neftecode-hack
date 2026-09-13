@@ -20,7 +20,7 @@ import json
 import math
 
 from .planner import Planner
-from .scenario import Scenario, parse_scenario
+from neftecode.scenario import Scenario, parse_scenario
 
 #: Deviations applied one at a time. Each is a named, reproducible edit of the scenario.
 DEFAULT_PERTURBATIONS = (

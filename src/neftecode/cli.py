@@ -324,9 +324,9 @@ def main():
             print(f"Журнал: {out / 'scenes.json'}")
         elif args.command == "screen":
             from .explain import explain
-            from .inventory import initial_state
+            from neftecode.domain.production.inventory import initial_state
             from .orchestrator import Orchestrator
-            from .scenario import load_scenario
+            from neftecode.scenario import load_scenario
             target = out / "screen.html"
             try:
                 scenario_path = args.scenario or (root / "config/scenarios/sour_crude.json")
@@ -347,7 +347,7 @@ def main():
             write_screen(target, payload)
             print(f"Экран оператора: {target}")
         elif args.command == "benchmark":
-            from .scenario import load_scenario
+            from neftecode.scenario import load_scenario
             items = []
             for path in sorted((root / "config/scenarios").glob("*.json")):
                 items.append((load_scenario(path), json.loads(path.read_text())))

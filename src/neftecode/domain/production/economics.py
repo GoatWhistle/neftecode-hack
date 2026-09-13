@@ -17,7 +17,7 @@ so a reader cannot accidentally add the same expense twice.
 from dataclasses import dataclass
 import math
 
-from .scenario import Scenario
+from neftecode.domain.production.scenario import Scenario
 
 #: Contributions the severity index is built from. Every one is observable in the scenario.
 SEVERITY_TERMS = ("temperature_above_reference", "throughput_above_reference")

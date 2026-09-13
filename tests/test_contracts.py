@@ -3,10 +3,13 @@ import json
 
 import pytest
 
-from neftecode.contracts import (CONFIRMED, ContractError, Decision, FAIL, GateResult, HOLD,
-                                 Observation, PASS, PendingAction, PlanStep, ActionPlan, PlantState,
-                                 CheckResult, ForecastValue, REFUSE, RECOMMEND_SCENARIO, TankState,
-                                 TrajectoryEstimate, TrajectoryPoint, UNKNOWN)
+from neftecode.domain.shared.primitives import (CONFIRMED, ContractError, FAIL, HOLD, PASS,
+                                 REFUSE, RECOMMEND_SCENARIO, UNKNOWN)
+from neftecode.domain.monitoring.entities import Observation, PlantState, ForecastValue
+from neftecode.domain.production.state import TankState
+from neftecode.domain.shared.actions import PendingAction
+from neftecode.domain.advisory.entities import (Decision, GateResult, PlanStep, ActionPlan,
+                                 CheckResult, TrajectoryEstimate, TrajectoryPoint)
 
 
 def observation(**kw):
@@ -254,6 +257,13 @@ def test_hold_plan_is_recognisable():
                                             recipe=recipe, throughput_tph=100.0),))
     assert hold.is_hold(controls, recipe) is True
     assert change.is_hold(controls, recipe) is False
+
+
+def test_plan_step_json_keeps_the_existing_dose_field():
+    raw = PlanStep(0.0, additive_dose=0.002).to_dict()
+    assert raw["additive_dose_fraction"] == 0.002
+    assert "additive_dose" not in raw
+    assert PlanStep.from_dict(raw).additive_dose == 0.002
 
 
 def test_immediate_action_is_the_first_step_only():
