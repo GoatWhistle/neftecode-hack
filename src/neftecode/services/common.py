@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime
 from enum import Enum
 import json
+import hashlib
 import math
 import os
 import signal
@@ -53,7 +54,15 @@ def encode_json(value: Any) -> bytes:
 def decode_json(payload: bytes | str) -> Any:
     if isinstance(payload, bytes):
         payload = payload.decode("utf-8")
-    return json.loads(payload)
+    return json.loads(payload, parse_constant=lambda value: (_ for _ in ()).throw(
+        ValueError(f"JSON constant {value} is not allowed")))
+
+
+def content_hash(value: Any) -> str:
+    """Stable SHA-256 for a JSON-compatible content value."""
+    canonical = json.dumps(clean(value), ensure_ascii=False, allow_nan=False,
+                           sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
