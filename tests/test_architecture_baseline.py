@@ -9,7 +9,7 @@ from pathlib import Path
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, SIMULATED
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
-from neftecode.bootstrap import make_demo_service
+from neftecode.bootstrap import fingerprint, make_demo_service
 from neftecode.evaluation.robustness import RobustnessCheck
 
 
@@ -89,3 +89,17 @@ def test_application_has_no_outer_library_dependencies():
     application = Path("src/neftecode/application")
     text = "\n".join(path.read_text() for path in application.rglob("*.py"))
     assert not any(name in text for name in forbidden)
+
+
+def test_fingerprint_tracks_nested_source_files(tmp_path):
+    source = tmp_path / "src/neftecode/domain/production/rule.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("LIMIT = 10\n")
+    (tmp_path / "uv.lock").write_text("locked\n")
+
+    before = fingerprint(tmp_path, {"seed": 42})
+    source.write_text("LIMIT = 11\n")
+    after = fingerprint(tmp_path, {"seed": 42})
+
+    assert "src/neftecode/domain/production/rule.py" in before["files"]
+    assert before["fingerprint"] != after["fingerprint"]

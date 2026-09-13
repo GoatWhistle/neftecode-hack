@@ -9,6 +9,8 @@
 #   bash scripts/package.sh [каталог-назначения]
 
 set -euo pipefail
+# Не добавлять в tar служебные AppleDouble-файлы `._*` из расширенных атрибутов macOS.
+export COPYFILE_DISABLE=1
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="${1:-$ROOT/dist}"

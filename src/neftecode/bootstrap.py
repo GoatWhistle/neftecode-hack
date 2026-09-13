@@ -95,7 +95,7 @@ def write_json(path, obj):
 
 def fingerprint(root, cfg):
     files = [*sorted((root / "task/data").glob("*.csv")), *sorted((root / "task").glob("*.xlsx")),
-             *sorted((root / "src/neftecode").glob("*.py")), root / "uv.lock"]
+             *sorted((root / "src/neftecode").rglob("*.py")), root / "uv.lock"]
     hashes = {}
     for path in files:
         with path.open("rb") as stream:
