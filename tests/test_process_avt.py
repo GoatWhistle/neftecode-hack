@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from neftecode.domain.production.process import IN_REGION, OUT_OF_REGION, AvtModel, AvtStage, ProcessError
-from neftecode.scenario import parse_scenario
+from neftecode.infrastructure.config.scenario import parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 

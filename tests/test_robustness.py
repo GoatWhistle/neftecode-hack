@@ -9,7 +9,7 @@ from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck, RobustnessError,
                                   choose_robust, perturb)
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 SOUR = Path("config/scenarios/sour_crude.json")

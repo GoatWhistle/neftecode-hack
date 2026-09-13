@@ -2,12 +2,13 @@
 import numpy as np
 import pandas as pd
 
-from . import attribution, margin as margin_module, twins as twins_module
-from .agents import Coordinator, DataAgent, Forecast
-from .data import build_features
-from .forecast import interval, predict_candidate
-from .risk import score_candidate
-from .support import SupportAgent
+from neftecode.infrastructure.ml import attribution, twins as twins_module
+from neftecode.infrastructure.ml import margin as margin_module
+from neftecode.infrastructure.ml.agents import Coordinator, DataAgent, Forecast
+from neftecode.infrastructure.data.data import build_features
+from neftecode.infrastructure.ml.forecast import interval, predict_candidate
+from neftecode.infrastructure.ml.risk import score_candidate
+from neftecode.infrastructure.ml.support import SupportAgent
 
 
 def validate_origin(at, bundle):

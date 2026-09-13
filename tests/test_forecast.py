@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neftecode.forecast import calibrate, interval, metrics, run_experiment
+from neftecode.infrastructure.ml.forecast import calibrate, interval, metrics, run_experiment
 
 
 def test_calibration_finite_sample_order_statistic():

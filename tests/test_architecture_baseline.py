@@ -8,7 +8,7 @@ from pathlib import Path
 
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, SIMULATED
-from neftecode.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario
 from neftecode.server import DemoService
 from neftecode.robustness import RobustnessCheck
 

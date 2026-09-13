@@ -6,7 +6,7 @@ import pytest
 
 from neftecode.domain.production.process import (IN_REGION, OUT_OF_REGION, ChainModel, HydrotreatingModel,
                                ProcessError, StreamState)
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 SOUR = Path("config/scenarios/sour_crude.json")

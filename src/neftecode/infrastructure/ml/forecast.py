@@ -8,7 +8,7 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from .data import split_periods
+from neftecode.infrastructure.data.data import split_periods
 
 
 _UNSET = object()

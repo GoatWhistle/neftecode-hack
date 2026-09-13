@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neftecode.data import backward_readings, build_features, series_frame, split_periods
+from neftecode.infrastructure.data.data import backward_readings, build_features, series_frame, split_periods
 
 
 CFG = {"horizon_hours": 2, "lab_delay_hours": 4, "history_window_hours": 6,

@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from neftecode.forecast import MIN_RELATIVE_GAIN, paired_bootstrap, select_model
-from neftecode.quality import (MIN_ANALYSES_FOR_A_MODEL, SCENARIO_VALUE, UNKNOWN,
+from neftecode.infrastructure.ml.forecast import MIN_RELATIVE_GAIN, paired_bootstrap, select_model
+from neftecode.infrastructure.data.quality import (MIN_ANALYSES_FOR_A_MODEL, SCENARIO_VALUE, UNKNOWN,
                                VERIFIED_FORECAST, available_estimate, classify_sources)
 
 import pandas as pd

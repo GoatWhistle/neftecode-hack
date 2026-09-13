@@ -6,7 +6,7 @@ import pytest
 
 from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN
 from neftecode.domain.advisory.gate import MAX_TRUSTED_STEP_HOURS, TrajectoryPoint, check_plan, discretisation_check
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 

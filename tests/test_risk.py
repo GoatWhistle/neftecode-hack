@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import neftecode.risk as risk
-from neftecode.risk import detection_metrics, select_threshold
+import neftecode.infrastructure.ml.risk as risk
+from neftecode.infrastructure.ml.risk import detection_metrics, select_threshold
 
 
 def test_select_threshold_uses_full_false_alarm_budget_for_distinct_scores():

@@ -1,7 +1,7 @@
 import pytest
 
-from neftecode.agents import DataAgent
-from neftecode.data import series_frame
+from neftecode.infrastructure.ml.agents import DataAgent
+from neftecode.infrastructure.data.data import series_frame
 
 
 def test_series_frame_refuses_non_numeric_measurements_instead_of_dropping_them():

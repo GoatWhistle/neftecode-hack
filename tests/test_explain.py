@@ -7,7 +7,7 @@ from neftecode.application.services.explain import (BAD_DATA, LAB_DELAY_HOURS, M
                                Evidence, ExplanationError, Statement, explain, explain_decision,
                                explain_refusal)
 from neftecode.application.use_cases.make_decision import MakeDecision
-from neftecode.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 SOUR = Path("config/scenarios/sour_crude.json")

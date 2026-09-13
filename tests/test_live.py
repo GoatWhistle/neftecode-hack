@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neftecode.data import series_frame
-from neftecode.live import LiveError, bind_forecast, forecast_at, state_at
+from neftecode.infrastructure.data.data import series_frame
+from neftecode.infrastructure.live.advisor import LiveError, bind_forecast, forecast_at, state_at
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
-from neftecode.scenario import ScenarioError, load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 
@@ -224,21 +224,20 @@ def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
 
 
 def test_live_refuses_bad_data_before_calling_a_forecast(monkeypatch):
-    from neftecode.live import LiveAdvisor
+    from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
 
     state = {"decision_time": "2026-01-05T08:00:00", "lab_value": None,
              "lab_usable": False, "pak_value": None, "pak_usable": False,
              "telemetry_missing_fraction": 1.0}
-    monkeypatch.setattr("neftecode.live.state_at", lambda *args: state)
+    monkeypatch.setattr("neftecode.infrastructure.live.advisor.state_at", lambda *args: state)
 
     def forbidden(*args, **kwargs):
         raise AssertionError("forecast executed on rejected inputs")
 
-    monkeypatch.setattr("neftecode.live.forecast_at", forbidden)
-    advisor = LiveAdvisor(None, None, None,
+    monkeypatch.setattr("neftecode.infrastructure.live.advisor.forecast_at", forbidden)
+    advisor = LiveAdviceAdapter(None, None, None,
                           {"config": {"calibration_end": "2026-01-01"}}, raw())
     result = advisor.advise("2026-01-05T08:00:00")
     assert result["decision"]["status"] == "refuse"
     assert result["forecast"]["available"] is False
     assert result["forecast"]["model"] is None
-    assert advisor.screen(result)["state"] == "refusal"

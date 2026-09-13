@@ -40,7 +40,7 @@ def test_new_layers_only_depend_inwards():
                 target = parts[1] if parts[:1] == ["neftecode"] and len(parts) > 1 else parts[0]
                 if target in LAYERS:
                     assert target in ALLOWED[layer], f"{path}: {layer} -> {target}"
-                if layer in {"domain", "application"} and parts[:1] == ["neftecode"]:
+                if layer in {"domain", "application", "infrastructure"} and parts[:1] == ["neftecode"]:
                     assert target in ALLOWED[layer], f"{path}: {layer} -> flat module {target}"
 
 

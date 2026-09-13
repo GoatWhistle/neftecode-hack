@@ -24,7 +24,7 @@ from neftecode.domain.advisory.gate import check_plan
 from neftecode.domain.advisory.optimizer import Candidate, Evaluation
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
-from neftecode.scenario import Scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import Scenario, parse_scenario
 
 HOLD = "hold"
 THRESHOLD = "threshold"

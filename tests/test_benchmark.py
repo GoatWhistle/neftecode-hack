@@ -7,7 +7,7 @@ import pytest
 from neftecode.benchmark import (ADVISOR, ADVISOR_NO_TERMINAL, ADVISOR_NO_TRANSITION, HOLD,
                                  STRATEGIES, THRESHOLD, Benchmark, compare)
 from neftecode.application.use_cases.plan_operation import PlanOperation
-from neftecode.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario
 
 SCENARIOS = Path("config/scenarios")
 BUDGET = 300

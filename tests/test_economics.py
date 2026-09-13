@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from neftecode.domain.production.economics import SEVERITY_TERMS, Economics, EconomicsError
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 

@@ -9,7 +9,7 @@ from neftecode.application.services.explain import explain
 from neftecode.domain.production.inventory import initial_state
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.robustness import RobustnessCheck
-from neftecode.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario
 from neftecode.ui import STATES, Screen, UiError, error_payload, render, write_screen
 
 SCENARIOS = Path("config/scenarios")
