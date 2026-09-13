@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.benchmark import (ADVISOR, ADVISOR_NO_TERMINAL, ADVISOR_NO_TRANSITION, HOLD,
-                                 STRATEGIES, THRESHOLD, Benchmark, compare)
+from neftecode.evaluation.benchmark import (ADVISOR, ADVISOR_NO_TERMINAL,
+                                            ADVISOR_NO_TRANSITION, HOLD, STRATEGIES,
+                                            THRESHOLD, Benchmark, compare)
 from neftecode.application.use_cases.plan_operation import PlanOperation
-from neftecode.infrastructure.config.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 SCENARIOS = Path("config/scenarios")
 BUDGET = 300
@@ -20,7 +21,7 @@ def loaded(name):
 
 def bench(name):
     scenario, raw = loaded(name)
-    return Benchmark(scenario, raw, BUDGET)
+    return Benchmark(scenario, raw, BUDGET, parse_scenario)
 
 
 def all_scenarios():
@@ -29,7 +30,7 @@ def all_scenarios():
 
 @pytest.fixture(scope="module")
 def report():
-    return compare(all_scenarios(), budget=BUDGET)
+    return compare(all_scenarios(), budget=BUDGET, scenario_parser=parse_scenario)
 
 
 def strategies(report, scenario_id):
@@ -187,8 +188,8 @@ def test_the_small_scenario_set_is_admitted(report):
 
 
 def test_the_report_is_reproducible():
-    first = compare(all_scenarios(), budget=BUDGET)
-    second = compare(all_scenarios(), budget=BUDGET)
+    first = compare(all_scenarios(), budget=BUDGET, scenario_parser=parse_scenario)
+    second = compare(all_scenarios(), budget=BUDGET, scenario_parser=parse_scenario)
     assert first["totals"] == second["totals"]
     assert first["wins"] == second["wins"]
 
@@ -196,7 +197,7 @@ def test_the_report_is_reproducible():
 # --- Losses are looked for, not only wins ---
 
 def test_the_comparison_is_not_limited_to_the_dimension_the_advisor_ranks_by():
-    from neftecode.benchmark import DIMENSIONS
+    from neftecode.evaluation.benchmark import DIMENSIONS
     names = [label for _, label, _ in DIMENSIONS]
     assert "выпуск" in names
     assert {"стоимость на тонну", "расход резерва", "число изменений режима"} <= set(names)
@@ -216,7 +217,7 @@ def test_real_losses_are_found_and_reported(report):
 
 def test_on_a_normal_regime_the_advisor_loses_on_cost_by_keeping_the_regime():
     """Not disturbing the plant costs money here, and the report says so instead of hiding it."""
-    losses = compare(all_scenarios(), budget=BUDGET)["losses"]
+    losses = compare(all_scenarios(), budget=BUDGET, scenario_parser=parse_scenario)["losses"]
     normal = [l for l in losses if l["scenario_id"] == "baseline"]
     assert normal, "советчик обязан проигрывать там, где сохраняет режим ради спокойствия"
     assert any(l["dimension"] == "стоимость на тонну" for l in normal)
@@ -239,7 +240,7 @@ def test_operator_disturbance_uses_the_current_recipe_as_baseline(report):
 def test_reserve_consumption_is_integrated_over_the_horizon():
     """Summing per-step rates would make a two-phase plan look twice as wasteful."""
     scenario, raw = loaded("sour_crude")
-    benchmark = Benchmark(scenario, raw, BUDGET)
+    benchmark = Benchmark(scenario, raw, BUDGET, parse_scenario)
     result = benchmark.run()["strategies"][ADVISOR]
     horizon = scenario.horizon.hours
     ceiling = scenario.tank("reserve").max_outflow.value * horizon

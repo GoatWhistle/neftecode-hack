@@ -16,15 +16,14 @@ What the result is NOT: measured savings at a refinery. Every number here comes 
 scenario models, and the advisor is compared inside the same model it optimises against. That
 limitation is reported with the numbers, not left to the reader.
 """
+from collections.abc import Callable
 from dataclasses import dataclass
 import copy
-import json
 
-from neftecode.domain.advisory.gate import check_plan
-from neftecode.domain.advisory.optimizer import Candidate, Evaluation
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
-from neftecode.infrastructure.config.scenario import Scenario, parse_scenario
+from neftecode.domain.production.scenario import Scenario
+from neftecode.evaluation.robustness import RobustnessCheck
 
 HOLD = "hold"
 THRESHOLD = "threshold"
@@ -77,6 +76,7 @@ class Benchmark:
     scenario: Scenario
     raw: dict
     budget: int = 400
+    scenario_parser: Callable[[dict], Scenario] | None = None
 
     def hold_plan(self) -> PlanCandidate:
         planner = PlanOperation(self.scenario)
@@ -116,9 +116,15 @@ class Benchmark:
         return plan
 
     def _advisor(self, raw: dict, transition: bool = True) -> tuple:
-        scenario = parse_scenario(raw)
-        from .robustness import RobustnessCheck
-        orchestrator = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw))
+        if self.scenario_parser is None:
+            raise BenchmarkError("Для benchmark не передан парсер сценария")
+        scenario = self.scenario_parser(raw)
+        orchestrator = MakeDecision(
+            scenario,
+            robustness_evaluator=RobustnessCheck(
+                scenario, raw, scenario_parser=self.scenario_parser
+            ),
+        )
         if not transition:
             planner = orchestrator.planner
             original = planner.build_plans
@@ -163,15 +169,17 @@ class Benchmark:
                                  "status": decision["status"]}
                 continue
             # The ablation may have changed the policy, so measure against ITS scenario.
-            results[name] = {**_outcome(evaluation, plan, parse_scenario(raw)),
+            results[name] = {**_outcome(evaluation, plan, self.scenario_parser(raw)),
                              "status": decision["status"],
                              "plan_id": plan.plan_id, "intent": plan.intent}
         return {"scenario_id": self.scenario.scenario_id, "strategies": results}
 
 
-def compare(scenarios: list[tuple[Scenario, dict]], budget: int = 400) -> dict:
+def compare(scenarios: list[tuple[Scenario, dict]], budget: int = 400,
+            scenario_parser: Callable[[dict], Scenario] | None = None) -> dict:
     """Run every strategy on every scenario and aggregate without dropping the bad cases."""
-    per_scenario = [Benchmark(scenario, raw, budget).run() for scenario, raw in scenarios]
+    per_scenario = [Benchmark(scenario, raw, budget, scenario_parser).run()
+                    for scenario, raw in scenarios]
     totals: dict[str, dict] = {name: {"feasible": 0, "refused": 0, "violations": 0,
                                       "production_t": 0.0, "scenarios": 0}
                                for name in STRATEGIES}

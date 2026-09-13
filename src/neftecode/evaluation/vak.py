@@ -159,24 +159,6 @@ def parse_formula(name: str, text: str, group: str) -> Formula:
     return Formula(name, group, str(text), expression, inputs, unbound, corrected, _ratios(expression))
 
 
-def read_formulas(workbook_path) -> dict[str, Formula]:
-    """Read the ВАК sheet: name in one column, expression in the next."""
-    import openpyxl
-    book = openpyxl.load_workbook(workbook_path, read_only=True, data_only=True)
-    sheet = book["ВАК"]
-    rows = list(sheet.values)
-    book.close()
-    groups = [c for c in rows[0]]
-    formulas: dict[str, Formula] = {}
-    for row in rows[1:]:
-        for i in range(0, len(row) - 1, 2):
-            name, text = row[i], row[i + 1]
-            if isinstance(name, str) and isinstance(text, str) and ":" in name:
-                group = groups[i] if i < len(groups) and groups[i] else name.split(":")[0]
-                formulas[name] = parse_formula(name, text, str(group))
-    return formulas
-
-
 def evaluate(formula: Formula, frame: pd.DataFrame, *, prefix: str | None = None) -> np.ndarray:
     """Evaluate on aligned telemetry. Division guards against a vanishing denominator."""
     if not formula.computable:
@@ -304,36 +286,10 @@ def ratio_features(formulas: dict[str, Formula], signals: pd.DataFrame, prefix_o
     return pd.DataFrame(out, index=signals.index)
 
 
-#: Laboratory sampling points whose columns can be read for the checks below.
-LAB_POINT_COLUMNS = {"hydrotreating_2": range(82, 108, 2)}
-
-
-def read_lab_point(workbook_path, columns) -> dict[str, pd.DataFrame]:
-    """Read one laboratory sampling point as independent time series, one per indicator."""
-    import openpyxl
-    from datetime import datetime as _dt
-    book = openpyxl.load_workbook(workbook_path, read_only=True, data_only=True)
-    rows = list(book.active.values)
-    book.close()
-    names = rows[1]
-    series = {}
-    for i in columns:
-        records = [(r[i], r[i + 1]) for r in rows[4:]
-                   if isinstance(r[i], _dt) and isinstance(r[i + 1], (int, float))]
-        if not records:
-            continue
-        frame = pd.DataFrame(records, columns=["time", "value"])
-        frame["time"] = pd.to_datetime(frame.time)
-        series[names[i]] = frame.drop_duplicates("time").sort_values("time").reset_index(drop=True)
-    return series
-
-
-def check_all(task_dir, signals: pd.DataFrame) -> dict:
+def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame) -> dict:
     """Run every published formula against the laboratory and report the outcome of each."""
-    from pathlib import Path as _Path
-    task = _Path(task_dir)
-    formulas = read_formulas(next(task.glob("Теги*.xlsx")))
-    lab = read_lab_point(next(task.glob("ЛИМС*.xlsx")), LAB_POINT_COLUMNS["hydrotreating_2"])
+    formulas = {name: parse_formula(name, source, group)
+                for name, source, group in formula_rows}
     checks = []
     for name, formula in formulas.items():
         column = GODT_LAB_COLUMN.get(name)

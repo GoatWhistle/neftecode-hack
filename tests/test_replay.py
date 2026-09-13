@@ -8,8 +8,8 @@ import pytest
 from neftecode.domain.shared.actions import PendingAction
 from neftecode.application.use_cases.replay_decisions import (HISTORICAL, SIMULATED, ExecutionState, ReplayDecisions, ReplayError,
                               compare_runs, versions)
-from neftecode.infrastructure.config.scenario import load_scenario
-from neftecode.robustness import RobustnessCheck
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
+from neftecode.evaluation.robustness import RobustnessCheck
 
 SOUR = Path("config/scenarios/sour_crude.json")
 BASELINE = Path("config/scenarios/baseline.json")
@@ -20,7 +20,8 @@ def replay(path=SOUR):
     scenario = load_scenario(path)
     document = json.loads(Path(path).read_text())
     return ReplayDecisions(scenario, document, budget=BUDGET,
-                           robustness_evaluator=RobustnessCheck(scenario, document))
+                           robustness_evaluator=RobustnessCheck(
+                               scenario, document, scenario_parser=parse_scenario))
 
 
 def moments():

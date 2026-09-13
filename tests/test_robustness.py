@@ -7,8 +7,8 @@ import pytest
 
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation
-from neftecode.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck, RobustnessError,
-                                  choose_robust, perturb)
+from neftecode.evaluation.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck,
+                                             RobustnessError, choose_robust, perturb)
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -26,6 +26,12 @@ def chosen_plan(path):
     plans, _ = PlanOperation(scenario).build_plans(BUDGET)
     plan = next(p for p in plans if p.plan_id == decision["selected_plan"]["plan_id"])
     return scenario, plan
+
+
+def checker(scenario, document, perturbations=DEFAULT_PERTURBATIONS):
+    return RobustnessCheck(
+        scenario, document, perturbations, scenario_parser=parse_scenario
+    )
 
 
 # --- Perturbations are named, reproducible edits ---
@@ -96,7 +102,7 @@ def test_every_default_perturbation_applies_to_the_shipped_scenarios():
 
 def test_a_plan_that_breaks_under_an_allowed_deviation_is_called_fragile():
     scenario, plan = chosen_plan(SOUR)
-    check = RobustnessCheck(scenario, raw(SOUR)).run(plan)
+    check = checker(scenario, raw(SOUR)).run(plan)
     assert check["violated"] > 0, "нужен пример плана, теряющего допустимость при отклонении"
     assert check["fragile"] is True
     assert "как надёжный не выдаётся" in check["verdict"]
@@ -104,7 +110,7 @@ def test_a_plan_that_breaks_under_an_allowed_deviation_is_called_fragile():
 
 def test_the_broken_perturbations_are_named_with_their_first_violation():
     scenario, plan = chosen_plan(SOUR)
-    check = RobustnessCheck(scenario, raw(SOUR)).run(plan)
+    check = checker(scenario, raw(SOUR)).run(plan)
     broken = [r for r in check["results"] if r["outcome"] == "violated"]
     assert broken
     for result in broken:
@@ -115,7 +121,7 @@ def test_the_broken_perturbations_are_named_with_their_first_violation():
 def test_a_fragile_plan_is_released_with_a_warning_not_as_reliable():
     scenario = load_scenario(SOUR)
     document = raw(SOUR)
-    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, document)).decide(
+    decision = MakeDecision(scenario, robustness_evaluator=checker(scenario, document)).decide(
         budget=BUDGET, raw_scenario=document)
     assert decision["robustness"]["fragile"] is True
     assert "надёжным не считается" in decision["reason"]
@@ -124,7 +130,7 @@ def test_a_fragile_plan_is_released_with_a_warning_not_as_reliable():
 def test_a_robust_plan_carries_no_such_warning():
     scenario = load_scenario(BASELINE)
     document = raw(BASELINE)
-    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, document)).decide(
+    decision = MakeDecision(scenario, robustness_evaluator=checker(scenario, document)).decide(
         budget=BUDGET, raw_scenario=document)
     assert decision["robustness"]["fragile"] is False
     assert "надёжным не считается" not in decision["reason"]
@@ -132,7 +138,7 @@ def test_a_robust_plan_carries_no_such_warning():
 
 def test_a_robust_plan_holds_every_declared_perturbation():
     scenario, plan = chosen_plan(BASELINE)
-    check = RobustnessCheck(scenario, raw(BASELINE)).run(plan)
+    check = checker(scenario, raw(BASELINE)).run(plan)
     assert check["held"] == check["perturbations_evaluated"]
     assert check["share_holding"] == pytest.approx(1.0)
 
@@ -141,7 +147,7 @@ def test_a_robust_plan_holds_every_declared_perturbation():
 
 def test_the_perturbation_set_is_recorded_with_the_result():
     scenario, plan = chosen_plan(SOUR)
-    check = RobustnessCheck(scenario, raw(SOUR)).run(plan)
+    check = checker(scenario, raw(SOUR)).run(plan)
     assert check["perturbations_declared"] == len(DEFAULT_PERTURBATIONS)
     assert len(check["results"]) == len(DEFAULT_PERTURBATIONS)
     assert all(r["perturbation"] for r in check["results"])
@@ -149,35 +155,35 @@ def test_the_perturbation_set_is_recorded_with_the_result():
 
 def test_the_share_is_never_presented_as_a_probability():
     scenario, plan = chosen_plan(SOUR)
-    limits = RobustnessCheck(scenario, raw(SOUR)).run(plan)["limits"]
+    limits = checker(scenario, raw(SOUR)).run(plan)["limits"]
     assert any("не вероятность успеха" in limit for limit in limits)
     assert any("не доверительный интервал" in limit for limit in limits)
 
 
 def test_the_shared_model_limitation_is_stated():
     scenario, plan = chosen_plan(SOUR)
-    limits = RobustnessCheck(scenario, raw(SOUR)).run(plan)["limits"]
+    limits = checker(scenario, raw(SOUR)).run(plan)["limits"]
     assert any("той же модели отклика" in limit for limit in limits)
 
 
 def test_a_long_episode_is_not_declared_a_new_regime():
     scenario, plan = chosen_plan(SOUR)
-    limits = RobustnessCheck(scenario, raw(SOUR)).run(plan)["limits"]
+    limits = checker(scenario, raw(SOUR)).run(plan)["limits"]
     assert any("новым режимом не признаётся" in limit for limit in limits)
 
 
 def test_a_custom_perturbation_set_is_honoured():
     scenario, plan = chosen_plan(BASELINE)
     single = ({"name": "только сера сырья", "path": "crude.sulfur_wt_pct", "factor": 1.05},)
-    check = RobustnessCheck(scenario, raw(BASELINE), single).run(plan)
+    check = checker(scenario, raw(BASELINE), single).run(plan)
     assert check["perturbations_declared"] == 1
     assert check["results"][0]["perturbation"] == "только сера сырья"
 
 
 def test_the_check_is_reproducible():
     scenario, plan = chosen_plan(SOUR)
-    checker = RobustnessCheck(scenario, raw(SOUR))
-    assert checker.run(plan) == checker.run(plan)
+    evaluator = checker(scenario, raw(SOUR))
+    assert evaluator.run(plan) == evaluator.run(plan)
 
 
 # --- Choosing a more robust plan ---

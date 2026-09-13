@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 
 from neftecode.infrastructure.ml.agents import Coordinator, Forecast
-from neftecode.infrastructure.ml.runtime import decision_at, validate_origin
+from neftecode.bootstrap import decision_at
+from neftecode.infrastructure.ml.runtime import validate_origin
 
 
 def test_query_cannot_use_a_model_before_its_calibration_is_available():

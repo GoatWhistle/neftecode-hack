@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neftecode.infrastructure.ml.batch import (DURATION_RULE, classify_episodes, excursion_episodes,
-                             sampling_step_hours, violation_profile)
-from neftecode.infrastructure.ml.margin import alarm_events, lead_times
+from neftecode.evaluation.episodes import (DURATION_RULE, alarm_events, classify_episodes,
+                                           excursion_episodes, lead_times, sampling_step_hours,
+                                           violation_profile)
 
 STEP = pd.Timedelta(minutes=10)
 

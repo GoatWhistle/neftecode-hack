@@ -14,13 +14,13 @@ Deliberate limits of this check:
 * a long excursion in the history is not evidence of a new regime. Applicability is decided by
   the model's declared region, not by how unusual a period looked.
 """
-from dataclasses import dataclass, field, replace
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 import copy
-import json
 import math
 
 from neftecode.application.use_cases.plan_operation import PlanOperation
-from neftecode.infrastructure.config.scenario import Scenario, parse_scenario
+from neftecode.domain.production.scenario import Scenario
 
 #: Deviations applied one at a time. Each is a named, reproducible edit of the scenario.
 DEFAULT_PERTURBATIONS = (
@@ -92,13 +92,16 @@ class RobustnessCheck:
     scenario: Scenario
     raw: dict
     perturbations: tuple = DEFAULT_PERTURBATIONS
+    scenario_parser: Callable[[dict], Scenario] | None = None
 
     def run(self, plan, confirmed=(), initial_tanks=None, current_operation=None) -> dict:
         """Evaluate `plan` under each perturbation. Reports every outcome, good and bad."""
+        if self.scenario_parser is None:
+            raise RobustnessError("Для проверки устойчивости не передан парсер сценария")
         results = []
         for spec in self.perturbations:
             try:
-                altered = parse_scenario(perturb(self.raw, spec))
+                altered = self.scenario_parser(perturb(self.raw, spec))
             except (RobustnessError, ValueError) as exc:
                 results.append({"perturbation": spec["name"], "outcome": "not_applicable",
                                 "reason": str(exc)})
@@ -160,7 +163,7 @@ class RobustnessCheck:
     def evaluate(self, scenario, raw_scenario, plan, confirmed=(), initial_tanks=None,
                  current_operation=None) -> dict:
         """Application port adapter."""
-        return type(self)(scenario, raw_scenario, self.perturbations).run(
+        return type(self)(scenario, raw_scenario, self.perturbations, self.scenario_parser).run(
             plan, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
 
 
