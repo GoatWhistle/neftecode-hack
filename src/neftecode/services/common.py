@@ -117,6 +117,14 @@ class Request:
 
 
 @dataclass(frozen=True)
+class RawResponse:
+    """Explicit escape hatch for HTML and legacy JSON responses."""
+    body: bytes
+    content_type: str
+    status: int = 200
+
+
+@dataclass(frozen=True)
 class ServiceSettings:
     host: str = "127.0.0.1"
     port: int = 8765
@@ -214,14 +222,20 @@ def make_handler(routes: Mapping[str, Callable[[Request], Any]], readiness: Call
         server_version = "neftecode-service"
         def log_message(self, *_args):
             pass
-        def _reply(self, envelope: ServiceEnvelope, status: int = 200, response_limit: int | None = None):
-            body = encode_json(envelope.to_dict())
+        def _reply(self, envelope: ServiceEnvelope | RawResponse, status: int = 200, response_limit: int | None = None, request_id: str = "unknown"):
+            if isinstance(envelope, RawResponse):
+                body, content_type, status = envelope.body, envelope.content_type, envelope.status
+            else:
+                body, content_type = encode_json(envelope.to_dict()), "application/json; charset=utf-8"
             if response_limit is not None and len(body) > response_limit:
-                body = encode_json(ServiceEnvelope.failure(ServiceError("Ответ слишком большой", 500, "response_too_large"), envelope.request_id, service_name).to_dict())
+                envelope_id = envelope.request_id if isinstance(envelope, ServiceEnvelope) else request_id
+                body = encode_json(ServiceEnvelope.failure(ServiceError("Ответ слишком большой", 500, "response_too_large"), envelope_id, service_name).to_dict())
+                content_type = "application/json; charset=utf-8"
                 status = 500
             self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Request-ID", request_id if request_id != "unknown" else getattr(envelope, "request_id", "unknown"))
             self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(body)
@@ -269,11 +283,13 @@ def make_handler(routes: Mapping[str, Callable[[Request], Any]], readiness: Call
                     raw = self.rfile.read(length)
                 request = Request(self.command, parts.path, parse_qs(parts.query), decode_json(raw) if raw else None, dict(self.headers), request_id)
                 result = route(request)
+                if isinstance(result, RawResponse):
+                    return self._reply(result, request_id=request_id, response_limit=settings.max_response_bytes)
                 envelope = result if isinstance(result, ServiceEnvelope) else ServiceEnvelope.success(result, request_id, service_name)
                 if envelope.service == "unknown" or envelope.request_id == "unknown":
                     envelope = replace(envelope, service=service_name,
                                        request_id=request_id if envelope.request_id == "unknown" else envelope.request_id)
-                self._reply(envelope, response_limit=settings.max_response_bytes)
+                self._reply(envelope, response_limit=settings.max_response_bytes, request_id=request_id)
             except ServiceError as exc:
                 self._reply(ServiceEnvelope.failure(exc, request_id, service_name), exc.status)
             except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
