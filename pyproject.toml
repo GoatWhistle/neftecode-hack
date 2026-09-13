@@ -16,6 +16,11 @@ dev = ["pytest>=8,<10"]
 
 [project.scripts]
 neftecode = "neftecode.bootstrap:main"
+neftecode-data = "neftecode.services.data_service:main"
+neftecode-model = "neftecode.services.model_service:main"
+neftecode-decision = "neftecode.services.decision_service:main"
+neftecode-gateway = "neftecode.services.gateway_service:main"
+neftecode-stack = "neftecode.services.stack:main"
 
 [build-system]
 requires = ["hatchling"]

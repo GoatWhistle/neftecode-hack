@@ -160,8 +160,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    env = ServiceSettings.from_env("NEFTECODE_DATA_")
-    settings = ServiceSettings(host=args.host or env.host, port=args.port or 8766,
+    env = ServiceSettings.from_env("NEFTECODE_DATA_", ServiceSettings(port=8766))
+    settings = ServiceSettings(host=args.host or env.host, port=args.port or env.port,
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
                                 max_workers=env.max_workers, max_body_bytes=env.max_body_bytes,
                                 max_response_bytes=env.max_response_bytes)

@@ -36,6 +36,12 @@ def test_settings_read_env_and_reject_bad_values(monkeypatch):
         ServiceSettings.from_env("TEST_")
 
 
+def test_settings_service_default_allows_explicit_env_8765(monkeypatch):
+    monkeypatch.setenv("DATA_PORT", "8765")
+    settings = ServiceSettings.from_env("DATA_", ServiceSettings(port=8766))
+    assert settings.port == 8765
+
+
 def running_server(routes, readiness=None):
     server = ServiceHTTPServer(("127.0.0.1", 0), make_handler(routes, readiness))
     thread = threading.Thread(target=server.serve_forever, daemon=True)

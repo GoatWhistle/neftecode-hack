@@ -142,7 +142,8 @@ class ServiceSettings:
                 raise ValueError(f"{name} должен быть положительным")
 
     @classmethod
-    def from_env(cls, prefix: str = "NEFTECODE_") -> "ServiceSettings":
+    def from_env(cls, prefix: str = "NEFTECODE_", defaults: "ServiceSettings | None" = None) -> "ServiceSettings":
+        defaults = defaults or cls()
         def value(name: str, default: Any, cast: Callable[[str], Any]) -> Any:
             raw = os.getenv(prefix + name)
             if raw is None or not raw.strip():
@@ -151,12 +152,12 @@ class ServiceSettings:
                 return cast(raw)
             except ValueError as exc:
                 raise ValueError(f"{prefix}{name}: некорректное значение") from exc
-        return cls(value("HOST", cls.host, str), value("PORT", cls.port, int),
-                   value("REQUEST_TIMEOUT_S", cls.request_timeout_s, float),
-                   value("SHUTDOWN_TIMEOUT_S", cls.shutdown_timeout_s, float),
-                   value("MAX_WORKERS", cls.max_workers, int),
-                   value("MAX_BODY_BYTES", cls.max_body_bytes, int),
-                   value("MAX_RESPONSE_BYTES", cls.max_response_bytes, int))
+        return cls(value("HOST", defaults.host, str), value("PORT", defaults.port, int),
+                   value("REQUEST_TIMEOUT_S", defaults.request_timeout_s, float),
+                   value("SHUTDOWN_TIMEOUT_S", defaults.shutdown_timeout_s, float),
+                   value("MAX_WORKERS", defaults.max_workers, int),
+                   value("MAX_BODY_BYTES", defaults.max_body_bytes, int),
+                   value("MAX_RESPONSE_BYTES", defaults.max_response_bytes, int))
 
 
 class ServiceHTTPClient:

@@ -3,6 +3,8 @@ import threading
 from http.client import HTTPConnection
 from pathlib import Path
 
+import pytest
+
 from neftecode.bootstrap import run_demo_decision
 from neftecode.services.common import ServiceHTTPServer, make_handler
 from neftecode.services.data_service import DataService
@@ -32,6 +34,11 @@ def call(server, method, path, body=None, request_id="integration-1"):
     return response.status, payload
 
 
+@pytest.mark.skipif(
+    not (ROOT / "task" / "data" / "avt_tags.csv").is_file()
+    or not (ROOT / "artifacts" / "model.pkl").is_file(),
+    reason="для проверки реального live-контракта нужны локальные task/ и model.pkl",
+)
 def test_real_data_model_decision_live_contract():
     data, data_thread = start(DataService(ROOT), "data-service")
     model, model_thread = start(ModelService(ROOT), "model-service")
