@@ -20,11 +20,11 @@ from dataclasses import dataclass
 import copy
 import json
 
-from .gate import check_plan
-from .optimizer import Candidate, Evaluation
+from neftecode.domain.advisory.gate import check_plan
+from neftecode.domain.advisory.optimizer import Candidate, Evaluation
 from .orchestrator import Orchestrator
-from .planner import Planner, PlanCandidate, PlanStepSpec
-from .scenario import Scenario, parse_scenario
+from .planner import Planner, PlanCandidate, PlanStep
+from neftecode.scenario import Scenario, parse_scenario
 
 HOLD = "hold"
 THRESHOLD = "threshold"
@@ -82,7 +82,7 @@ class Benchmark:
         planner = Planner(self.scenario)
         operation = self.scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in self.scenario.tanks}
-        return PlanCandidate(HOLD, (PlanStepSpec(0.0, planner.base_controls(), recipe,
+        return PlanCandidate(HOLD, (PlanStep(0.0, planner.base_controls(), recipe,
                                                  operation.throughput.value),), 0,
                              "сохранение режима без изменений")
 
@@ -102,7 +102,7 @@ class Benchmark:
                       {tanks[0]: round(1.0 - fraction, 6), tanks[1]: fraction,
                        **{t: 0.0 for t in tanks[2:]}})
             plan = PlanCandidate(f"{THRESHOLD}_{i:02d}",
-                                 (PlanStepSpec(0.0, planner.base_controls(), recipe,
+                                 (PlanStep(0.0, planner.base_controls(), recipe,
                                                operation.throughput.value),),
                                  int(any(abs(recipe.get(k, 0.0) - operation.recipe.get(k, 0.0)) > 1e-9
                                          for k in set(recipe) | set(operation.recipe))),
@@ -134,7 +134,7 @@ class Benchmark:
             return None, None, decision
         selected = decision["selected_plan"]
         plan = PlanCandidate(selected["plan_id"],
-                             tuple(PlanStepSpec(**step) for step in selected["steps"]),
+                             tuple(PlanStep(**step) for step in selected["steps"]),
                              selected["changes"], selected.get("intent", ""))
         return plan, Planner(scenario).evaluate(plan), decision
 

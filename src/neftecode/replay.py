@@ -19,11 +19,13 @@ import hashlib
 import json
 import math
 
-from .contracts import ContractError, PendingAction, TankState
-from .inventory import draw_step, initial_state
+from neftecode.domain.shared.primitives import ContractError
+from neftecode.domain.shared.actions import PendingAction
+from neftecode.domain.production.state import TankState
+from neftecode.domain.production.inventory import draw_step, initial_state
 from .planner import Planner
 from .orchestrator import Orchestrator
-from .scenario import Scenario
+from neftecode.domain.production.scenario import Scenario
 
 HISTORICAL = "historical"
 SIMULATED = "simulated"

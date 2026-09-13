@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.contracts import PendingAction
+from neftecode.domain.shared.actions import PendingAction
 from neftecode.replay import (HISTORICAL, SIMULATED, ExecutionState, Replay, ReplayError,
                               compare_runs, versions)
 from neftecode.scenario import load_scenario
@@ -264,7 +264,7 @@ def test_a_confirmed_action_changes_what_the_advisor_proposes_next():
 
 
 def test_saved_current_operation_drives_inflow_without_an_action_log():
-    from neftecode.planner import Planner, PlanCandidate, PlanStepSpec
+    from neftecode.planner import Planner, PlanCandidate, PlanStep
     r = replay()
     state = ExecutionState.from_scenario(load_scenario(SOUR))
     operation = {**state.current_operation, "controls": {

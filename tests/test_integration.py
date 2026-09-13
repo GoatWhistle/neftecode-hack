@@ -10,13 +10,15 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from neftecode.contracts import ContractError, Observation, PendingAction, PlantState
+from neftecode.domain.shared.primitives import ContractError
+from neftecode.domain.monitoring.entities import Observation, PlantState
+from neftecode.domain.shared.actions import PendingAction
 from neftecode.demo import Demo, apply_change
 from neftecode.explain import explain
-from neftecode.gate import TrajectoryStep, check_plan
-from neftecode.inventory import InventoryLedger
+from neftecode.domain.advisory.gate import TrajectoryPoint, check_plan
+from neftecode.domain.production.inventory import InventoryLedger
 from neftecode.orchestrator import AgentError, Orchestrator
-from neftecode.planner import Planner, PlanCandidate, PlanStepSpec
+from neftecode.planner import Planner, PlanCandidate, PlanStep
 from neftecode.replay import ExecutionState, Replay, ReplayError, SIMULATED
 from neftecode.scenario import ScenarioError, load_scenario, parse_scenario
 from neftecode.trust import DataTrustAgent
@@ -95,7 +97,7 @@ def test_a_scenario_constant_is_never_reported_as_measured():
 
 def test_nan_anywhere_becomes_unknown_and_blocks_the_plan():
     scenario = load_scenario(BASELINE)
-    steps = [TrajectoryStep(t, {"sulfur_mgkg": float("nan"), "t95_c": 350.0, "cetane_number": 51.5},
+    steps = [TrajectoryPoint(t, {"sulfur_mgkg": float("nan"), "t95_c": 350.0, "cetane_number": 51.5},
                             {"ht_reactor_inlet_temp_c": 348.0}, {"main": 100.0},
                             {"main": 1.0}, 100.0)
              for t in (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0)]
@@ -108,7 +110,7 @@ def test_a_component_without_cetane_makes_the_blend_unknown_and_blocks_it():
     scenario = load_scenario(BASELINE)
     planner = Planner(scenario)
     plan = PlanCandidate("light_only",
-                         (PlanStepSpec(0.0, planner.base_controls(), {"light": 1.0}, 20.0),))
+                         (PlanStep(0.0, planner.base_controls(), {"light": 1.0}, 20.0),))
     evaluation = planner.evaluate(plan)
     unknown = {c.constraint_id for c in evaluation.gate.unknown_requirements()}
     assert "quality.cetane_number" in unknown
@@ -153,7 +155,7 @@ def test_the_advisor_does_not_propose_a_recipe_the_stock_cannot_carry():
 # --- Error chain: the delayed effect ---
 
 def test_a_correction_cannot_help_before_its_lag_has_passed():
-    from neftecode.process import ChainModel
+    from neftecode.domain.production.process import ChainModel
     chain = ChainModel(load_scenario(SOUR))
     pending = ((0.0, {"ht_reactor_inlet_temp_c": 356.0}),)
     assert chain.run_at(1.9, pending).sulfur_mgkg == pytest.approx(chain.run_at(1.9).sulfur_mgkg)
@@ -164,7 +166,7 @@ def test_a_plan_relying_on_an_immediate_effect_is_rejected_by_the_gate():
     """The transition must be covered by the blend, not by a correction that has not acted."""
     scenario = load_scenario(SOUR)
     planner = Planner(scenario)
-    naive = PlanCandidate("naive", (PlanStepSpec(
+    naive = PlanCandidate("naive", (PlanStep(
         0.0, {**planner.base_controls(), "ht_reactor_inlet_temp_c": 360.0},
         {"main": 1.0, "reserve": 0.0, "light": 0.0}, 80.0),))
     evaluation = planner.evaluate(naive)
@@ -226,7 +228,7 @@ def test_the_same_action_cannot_be_confirmed_twice():
 
 
 def test_repeating_the_same_correction_does_not_double_its_effect():
-    from neftecode.process import ChainModel
+    from neftecode.domain.production.process import ChainModel
     chain = ChainModel(load_scenario(SOUR))
     once = chain.run_at(3.0, ((0.0, {"ht_reactor_inlet_temp_c": 354.0}),)).sulfur_mgkg
     twice = chain.run_at(3.0, ((0.0, {"ht_reactor_inlet_temp_c": 354.0}),

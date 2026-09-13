@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .demo import SOURCE_FAULTS, Demo, DemoError
-from .scenario import ScenarioError
+from neftecode.scenario import ScenarioError
 from .ui import RENDER_JS, STYLE, error_payload
 
 #: Where the scenario files live, relative to the project root.

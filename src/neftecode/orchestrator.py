@@ -17,9 +17,9 @@ from dataclasses import dataclass, field, replace
 import hashlib
 import json
 
-from .contracts import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
+from neftecode.domain.shared.primitives import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
 from .planner import Planner, PlannerError
-from .scenario import Scenario
+from neftecode.domain.production.scenario import Scenario
 from .trust import DataTrustAgent
 
 #: How many times the orchestrator may ask for a changed search before giving up.
@@ -168,7 +168,7 @@ class Orchestrator:
                 "reliability_vetoed": sum(1 for r in reviews if r["reliability"]["verdict"] == "fail"),
                 "candidate_ids": [p.plan_id for p in search_plans[:20]],
             })
-            from .optimizer import rank
+            from neftecode.domain.advisory.optimizer import rank
             last_result = rank(feasible or evaluations, hold_id="hold",
                                min_useful_gain=float(self.scenario.policy.get("min_useful_gain", 0.0)))
             if feasible:
@@ -378,7 +378,7 @@ class Orchestrator:
             "commercial_release_allowed": False,
             "scenario_id": self.scenario.scenario_id,
             "selected_plan": plan.to_dict() if plan is not None else None,
-            "immediate_action": plan.steps[0].to_dict() if plan is not None else None,
+            "immediate_action": plan.steps[0].to_advice_dict() if plan is not None else None,
             "gate": evaluation.gate.to_dict() if evaluation is not None else None,
             "production_t": evaluation.production_t if evaluation is not None else None,
             "cost_per_tonne": evaluation.cost_per_tonne if evaluation is not None else None,

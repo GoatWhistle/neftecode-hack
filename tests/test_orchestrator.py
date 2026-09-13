@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.contracts import HOLD, RECOMMEND_SCENARIO, REFUSE
+from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
 from neftecode.orchestrator import (MAX_ROUNDS, AgentError, Orchestrator, QualityAgent,
                                     ReliabilityAgent)
 from neftecode.scenario import load_scenario, parse_scenario
@@ -104,14 +104,14 @@ def test_a_veto_creates_feedback_candidates_for_the_following_round():
 
 
 def test_quality_rejection_produces_a_physically_different_feasible_plan():
-    from neftecode.planner import PlanCandidate, PlanStepSpec
+    from neftecode.planner import PlanCandidate, PlanStep
     from neftecode.scenario import parse_scenario
     raw = json.loads(BASELINE.read_text())
     raw["product"]["sulfur_mgkg"]["value"] = 7.0
     raw["current_operation"]["throughput"]["value"] = 20.0
     raw["current_operation"]["recipe"] = {"main": 1.0}
     engine = Orchestrator(parse_scenario(raw))
-    original = PlanCandidate("initial", (PlanStepSpec(0.0, engine.planner.base_controls(),
+    original = PlanCandidate("initial", (PlanStep(0.0, engine.planner.base_controls(),
                                                      {"main": 1.0}, 20.0),), 0)
     engine.planner.build_plans = lambda budget: ([original], {})
     assert not engine.planner.evaluate(original).feasible

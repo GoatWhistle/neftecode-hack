@@ -25,10 +25,10 @@ import pandas as pd
 from .data import build_features
 from .explain import explain
 from .forecast import interval, predict_candidate
-from .inventory import initial_state
+from neftecode.domain.production.inventory import initial_state
 from .orchestrator import Orchestrator
 from .runtime import validate_origin
-from .scenario import ScenarioError, parse_scenario
+from neftecode.scenario import ScenarioError, parse_scenario
 from .trust import DataTrustAgent
 from .ui import Screen
 

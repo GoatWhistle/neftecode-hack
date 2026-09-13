@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.planner import Planner, PlanCandidate, PlanStepSpec, PlannerError
+from neftecode.planner import Planner, PlanCandidate, PlanStep, PlannerError
 from neftecode.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -42,7 +42,7 @@ def test_the_correction_is_part_of_the_plan_from_the_first_step():
     base = p.base_controls()
     controls = dict(base)
     controls["ht_reactor_inlet_temp_c"] += 8.0
-    plan = PlanCandidate("response", (PlanStepSpec(0.0, controls, {"main": .9, "reserve": .1}, 50.0),), 1)
+    plan = PlanCandidate("response", (PlanStep(0.0, controls, {"main": .9, "reserve": .1}, 50.0),), 1)
     evaluation = p.evaluate(plan)
     sulfur = [c.observed for c in evaluation.gate.checks if c.constraint_id == "quality.sulfur_mgkg"]
     assert sulfur[5] < sulfur[0], "после двухчасовой задержки улучшение потока доходит до смеси"
@@ -123,14 +123,14 @@ def test_a_confirmed_action_does_not_change_the_past_of_the_horizon():
 
 def test_plan_steps_must_start_at_zero_and_increase():
     p = planner()
-    bad = PlanCandidate("x", (PlanStepSpec(1.0, p.base_controls(), {"main": 1.0}, 50.0),))
+    bad = PlanCandidate("x", (PlanStep(1.0, p.base_controls(), {"main": 1.0}, 50.0),))
     with pytest.raises(PlannerError, match="начинаться в 0 ч"):
         p.evaluate(bad)
 
 
 def test_every_evaluated_plan_carries_a_gate_verdict():
     p = planner()
-    plan = PlanCandidate("x", (PlanStepSpec(0.0, p.base_controls(), {"main": 1.0}, 50.0),))
+    plan = PlanCandidate("x", (PlanStep(0.0, p.base_controls(), {"main": 1.0}, 50.0),))
     evaluation = p.evaluate(plan)
     assert evaluation.gate.plan_id == "x"
     assert isinstance(evaluation.feasible, bool)
@@ -138,7 +138,7 @@ def test_every_evaluated_plan_carries_a_gate_verdict():
 
 def test_an_impossible_plan_is_evaluated_as_infeasible_not_crashed():
     p = planner()
-    plan = PlanCandidate("x", (PlanStepSpec(0.0, p.base_controls(), {"main": 1.0}, 10_000.0),))
+    plan = PlanCandidate("x", (PlanStep(0.0, p.base_controls(), {"main": 1.0}, 10_000.0),))
     assert p.evaluate(plan).feasible is False
 
 
@@ -196,7 +196,7 @@ def test_chain_t95_changes_a_large_stock_gradually():
     p = planner()
     controls = p.base_controls()
     controls["avt_furnace_outlet_temp_c"] = 400.0
-    plan = PlanCandidate("hot", (PlanStepSpec(0.0, controls, {"main": 1.0}, 100.0),), 1)
+    plan = PlanCandidate("hot", (PlanStep(0.0, controls, {"main": 1.0}, 100.0),), 1)
     evaluation = p.evaluate(plan)
     values = [c.observed for c in evaluation.gate.checks if c.constraint_id == "quality.t95_c"]
     assert values[0] == pytest.approx(352.0)
@@ -208,10 +208,10 @@ def test_small_hot_stock_is_blocked_by_t95_after_inflow():
     import dataclasses
     p = planner()
     tanks = {k: dataclasses.replace(v, inventory_t=10.0, properties={**v.properties, "t95_c": 359.0})
-             for k, v in __import__("neftecode.inventory", fromlist=["initial_state"]).initial_state(p.scenario).items()}
+             for k, v in __import__("neftecode.domain.production.inventory", fromlist=["initial_state"]).initial_state(p.scenario).items()}
     controls = p.base_controls()
     controls["avt_furnace_outlet_temp_c"] = 400.0
-    plan = PlanCandidate("hot-small", (PlanStepSpec(0.0, controls, {"main": 1.0}, 10.0),), 1)
+    plan = PlanCandidate("hot-small", (PlanStep(0.0, controls, {"main": 1.0}, 10.0),), 1)
     evaluation = p.evaluate(plan, initial_tanks=tanks)
     assert not evaluation.feasible
     assert any(c.constraint_id == "quality.t95_c" and c.status == "fail" for c in evaluation.gate.checks)

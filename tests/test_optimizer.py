@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.contracts import CheckResult, FAIL, GateResult, PASS, UNKNOWN
-from neftecode.optimizer import (DEFAULT_BUDGET, RANKING, Candidate, CandidateGenerator,
+from neftecode.domain.advisory.entities import CheckResult, FAIL, GateResult, PASS, UNKNOWN
+from neftecode.domain.advisory.optimizer import (DEFAULT_BUDGET, RANKING, Candidate, CandidateGenerator,
                                  Evaluation, OptimizerError, rank)
 from neftecode.scenario import load_scenario, parse_scenario
 

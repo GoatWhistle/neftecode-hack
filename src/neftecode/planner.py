@@ -18,13 +18,14 @@ What the planner is careful about:
 from dataclasses import dataclass, field, replace
 import math
 
-from .blending import Blender
-from .economics import Economics
-from .gate import TrajectoryStep, check_plan
-from .inventory import InventoryLedger
-from .optimizer import Candidate, CandidateGenerator, Evaluation, rank
-from .process import ChainModel
-from .scenario import Scenario
+from neftecode.domain.production.blending import Blender
+from neftecode.domain.production.economics import Economics
+from neftecode.domain.advisory.gate import TrajectoryPoint, check_plan
+from neftecode.domain.advisory.entities import PlanStep
+from neftecode.domain.production.inventory import InventoryLedger
+from neftecode.domain.advisory.optimizer import Candidate, CandidateGenerator, Evaluation, rank
+from neftecode.domain.production.process import ChainModel
+from neftecode.domain.production.scenario import Scenario
 
 
 class PlannerError(ValueError):
@@ -36,36 +37,20 @@ def _finite(value) -> bool:
 
 
 @dataclass(frozen=True)
-class PlanStepSpec:
-    """One step of a candidate plan."""
-
-    time_hours: float
-    controls: dict[str, float]
-    recipe: dict[str, float]
-    throughput_tph: float
-    additive_dose: float = 0.0
-
-    def to_dict(self) -> dict:
-        return {"time_hours": self.time_hours, "controls": dict(self.controls),
-                "recipe": dict(self.recipe), "throughput_tph": self.throughput_tph,
-                "additive_dose": self.additive_dose}
-
-
-@dataclass(frozen=True)
 class PlanCandidate:
     """A sequence of steps, plus how many of them actually change anything."""
 
     plan_id: str
-    steps: tuple[PlanStepSpec, ...]
+    steps: tuple[PlanStep, ...]
     changes: int = 0
     intent: str = ""
 
-    def immediate(self) -> PlanStepSpec:
+    def immediate(self) -> PlanStep:
         return self.steps[0]
 
     def to_dict(self) -> dict:
         return {"plan_id": self.plan_id, "intent": self.intent, "changes": self.changes,
-                "steps": [s.to_dict() for s in self.steps]}
+                "steps": [s.to_advice_dict() for s in self.steps]}
 
 
 @dataclass
@@ -141,7 +126,7 @@ class Planner:
         for candidate in singles:
             plans.append(PlanCandidate(
                 candidate.candidate_id,
-                (PlanStepSpec(0.0, dict(candidate.controls), dict(candidate.recipe),
+                (PlanStep(0.0, dict(candidate.controls), dict(candidate.recipe),
                               candidate.throughput_tph, candidate.additive_dose),),
                 candidate.changes,
                 "постоянный режим на весь горизонт"))
@@ -165,9 +150,9 @@ class Planner:
                             break
                         plans.append(PlanCandidate(
                             f"t{len(plans):04d}",
-                            (PlanStepSpec(0.0, dict(correction.controls),
+                            (PlanStep(0.0, dict(correction.controls),
                                           self._recipe_with_reserve(relief), throughput, 0.0),
-                             PlanStepSpec(switch, dict(correction.controls),
+                             PlanStep(switch, dict(correction.controls),
                                           self._recipe_with_reserve(max(0.0, relief - relief_step)),
                                           throughput, 0.0)),
                             correction.changes + 1,
@@ -230,7 +215,7 @@ class Planner:
             baseline.update(step.controls)
         pending = tuple(confirmed) + tuple(deltas)
 
-        trajectory: list[TrajectoryStep] = []
+        trajectory: list[TrajectoryPoint] = []
         costs = []
         severities = []
         grid = self.grid()
@@ -252,10 +237,12 @@ class Planner:
             qualities = dict(blend.qualities)
             inventories = self._inventories_at(stock, time_hours)
             reasons = self._reasons_at(stock, time_hours)
-            trajectory.append(TrajectoryStep(
-                time_hours, qualities, self._effective_controls(time_hours, pending),
-                inventories, spec.recipe, spec.throughput_tph, spec.additive_dose,
-                stream.applicability, reasons))
+            trajectory.append(TrajectoryPoint(
+                time_hours=time_hours, qualities=qualities, inventories=inventories,
+                production_tph=spec.throughput_tph, controls=self._effective_controls(time_hours, pending),
+                recipe=spec.recipe, throughput_tph=spec.throughput_tph,
+                additive_dose=spec.additive_dose, applicability=stream.applicability,
+                inventory_reasons=reasons))
             costs.append(self.economics.step_cost(
                 spec.recipe, spec.throughput_tph, self._duration(grid, index),
                 spec.additive_dose, trajectory[-1].controls.get("ht_reactor_inlet_temp_c")))
@@ -315,7 +302,7 @@ class Planner:
             return self.chain.run_at(0.0, ()).sulfur_mgkg
         return tank.property_value("sulfur_mgkg")
 
-    def _avt_controls(self, spec: PlanStepSpec) -> dict[str, float]:
+    def _avt_controls(self, spec: PlanStep) -> dict[str, float]:
         names = set(self.scenario.stages["avt"].controls)
         return {k: v for k, v in spec.controls.items() if k in names}
 
@@ -324,7 +311,7 @@ class Planner:
         return grid[index + 1] - grid[index] if index + 1 < len(grid) else 0.0
 
     @staticmethod
-    def _active_step(plan: PlanCandidate, time_hours: float) -> PlanStepSpec:
+    def _active_step(plan: PlanCandidate, time_hours: float) -> PlanStep:
         active = plan.steps[0]
         for step in plan.steps:
             if step.time_hours <= time_hours + 1e-9:

@@ -15,8 +15,8 @@ Design rules that keep the result honest:
 from dataclasses import dataclass, field
 import math
 
-from .contracts import GateResult
-from .scenario import Scenario
+from neftecode.domain.advisory.entities import GateResult
+from neftecode.domain.production.scenario import Scenario
 
 #: Order the ranking applies, after the gate. Production first, then cost, then severity.
 RANKING = ("-production_t", "cost_per_tonne", "severity_index", "changes", "candidate_id")

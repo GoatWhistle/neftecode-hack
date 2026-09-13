@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.process import (IN_REGION, OUT_OF_REGION, ChainModel, HydrotreatingModel,
+from neftecode.domain.production.process import (IN_REGION, OUT_OF_REGION, ChainModel, HydrotreatingModel,
                                ProcessError, StreamState)
 from neftecode.scenario import load_scenario, parse_scenario
 

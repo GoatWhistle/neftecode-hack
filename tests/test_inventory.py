@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.contracts import ContractError, TankState
-from neftecode.inventory import (MIN_HOURS_OF_SUPPLY, NO_TERMINAL_RULE, InventoryError,
+from neftecode.domain.shared.primitives import ContractError
+from neftecode.domain.production.state import TankState
+from neftecode.domain.production.inventory import (MIN_HOURS_OF_SUPPLY, NO_TERMINAL_RULE, InventoryError,
                                  InventoryLedger, draw_step, initial_state)
 from neftecode.scenario import load_scenario, parse_scenario
 

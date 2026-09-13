@@ -19,9 +19,9 @@ import json
 from pathlib import Path
 
 from .explain import explain
-from .inventory import initial_state
+from neftecode.domain.production.inventory import initial_state
 from .orchestrator import Orchestrator
-from .scenario import Scenario, ScenarioError, parse_scenario
+from neftecode.scenario import Scenario, ScenarioError, parse_scenario
 from .trust import DataTrustAgent
 from .ui import Screen, error_payload
 

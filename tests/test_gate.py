@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.contracts import FAIL, PASS, UNKNOWN
-from neftecode.gate import MAX_TRUSTED_STEP_HOURS, TrajectoryStep, check_plan, discretisation_check
+from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN
+from neftecode.domain.advisory.gate import MAX_TRUSTED_STEP_HOURS, TrajectoryPoint, check_plan, discretisation_check
 from neftecode.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -25,7 +25,7 @@ def step(time_hours=0.0, sulfur=8.0, t95=352.0, cetane=51.5, **kw):
         "throughput_tph": 100.0,
     }
     base.update(kw)
-    return TrajectoryStep(time_hours=time_hours, **base)
+    return TrajectoryPoint(time_hours=time_hours, **base)
 
 
 def grid(**kw):

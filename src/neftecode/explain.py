@@ -15,8 +15,8 @@ What is deliberately impossible to say:
 from dataclasses import dataclass
 import math
 
-from .contracts import FAIL, PASS, UNKNOWN
-from .scenario import QUALITIES, Scenario
+from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN
+from neftecode.domain.production.scenario import QUALITIES, Scenario
 
 #: Kinds of refusal. They are answered differently, so they are never merged.
 BAD_DATA = "bad_data"

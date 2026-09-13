@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.blending import (MASS_BALANCE, SCENARIO_LINEAR, UNKNOWN, BlendError, Blender,
+from neftecode.domain.production.blending import (MASS_BALANCE, SCENARIO_LINEAR, UNKNOWN, BlendError, Blender,
                                 check_recipe, mass_balance)
 from neftecode.scenario import load_scenario, parse_scenario
 

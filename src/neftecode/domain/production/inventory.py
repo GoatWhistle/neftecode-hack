@@ -15,8 +15,9 @@ Two rules that are easy to get wrong and are enforced here:
 from dataclasses import dataclass, field, replace
 import math
 
-from .contracts import ContractError, TankState
-from .scenario import QUALITIES, Scenario
+from neftecode.domain.shared.primitives import ContractError
+from neftecode.domain.production.state import TankState
+from neftecode.domain.production.scenario import QUALITIES, Scenario
 
 #: Terminal rules a scenario may declare for what must remain at the end of the horizon.
 MIN_HOURS_OF_SUPPLY = "min_hours_of_supply"
