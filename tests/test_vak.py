@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neftecode.vak import (AVT_CFPP_FIX, CORRECTED, UNBOUND_LAB_INPUTS, VakError, check_formula,
-                           evaluate, normalise, parse_formula, ratio_features)
+from neftecode.evaluation.vak import (AVT_CFPP_FIX, CORRECTED, UNBOUND_LAB_INPUTS, VakError,
+                                      check_formula, evaluate, normalise, parse_formula,
+                                      ratio_features)
 
 
 def formula(text, name="24-2000:GODT:Test", group="24-2000"):

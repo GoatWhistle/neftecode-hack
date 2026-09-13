@@ -1,9 +1,10 @@
 """Run the trained advisor at a requested historical forecast origin."""
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 
 from neftecode.infrastructure.ml import attribution, twins as twins_module
-from neftecode.infrastructure.ml import margin as margin_module
 from neftecode.infrastructure.ml.agents import Coordinator, DataAgent, Forecast
 from neftecode.infrastructure.data.data import build_features
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
@@ -20,7 +21,8 @@ def validate_origin(at, bundle):
     return when
 
 
-def gather_evidence(signals, online, bundle, when, x, predict) -> dict:
+def gather_evidence(signals, online, bundle, when, x, predict,
+                    margin_evaluator: Callable | None = None) -> dict:
     """Margin, chain attribution, historical twins and the right to advise on a control tag.
 
     Everything here reads only data available at `when`; a failure in one block
@@ -41,11 +43,13 @@ def gather_evidence(signals, online, bundle, when, x, predict) -> dict:
     if gap:
         evidence["margin"] = {"status": "unknown", "reason": gap}
     elif len(past) > 1:
-        reading = margin_module.trend_margin(
-            past, when, cfg["sulfur_limit"], cfg["margin_trend_window_hours"],
-            cfg["batch_window_hours"], cfg["margin_max_horizon_hours"])
-        reading["window"] = margin_module.action_window(reading, cfg["response_lag_hours"])
-        evidence["margin"] = reading
+        if margin_evaluator is None:
+            evidence["margin"] = {
+                "status": "unknown",
+                "reason": "Блок отключен: расчёт запаса не подключён в composition root",
+            }
+        else:
+            evidence["margin"] = margin_evaluator(past, when, cfg)
 
     reference = bundle.get("reference_row")
     if reference is not None:
@@ -85,7 +89,8 @@ def gather_evidence(signals, online, bundle, when, x, predict) -> dict:
     return evidence
 
 
-def decision_at(signals, lab, online, bundle, at, scenario, with_evidence: bool = True):
+def decision_at(signals, lab, online, bundle, at, scenario, with_evidence: bool = True,
+                margin_evaluator: Callable | None = None):
     when = validate_origin(at, bundle)
     cfg = bundle["config"]
     x, metadata = build_features(signals, lab, online, [when], cfg)
@@ -121,6 +126,9 @@ def decision_at(signals, lab, online, bundle, at, scenario, with_evidence: bool 
                           "threshold": risk_bundle["thresholds"][name], "model": name}
     evidence = {}
     if with_evidence:
-        evidence = gather_evidence(signals, online, bundle, when, x,
-                                   lambda frame: predict_candidate(bundle, bundle["selected"], frame))
+        evidence = gather_evidence(
+            signals, online, bundle, when, x,
+            lambda frame: predict_candidate(bundle, bundle["selected"], frame),
+            margin_evaluator,
+        )
     return coordinator.run(state, forecast(bundle["selected"]), forecast(bundle["fallback"]), risk, evidence)

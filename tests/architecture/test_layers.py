@@ -40,7 +40,7 @@ def test_new_layers_only_depend_inwards():
                 target = parts[1] if parts[:1] == ["neftecode"] and len(parts) > 1 else parts[0]
                 if target in LAYERS:
                     assert target in ALLOWED[layer], f"{path}: {layer} -> {target}"
-                if layer in {"domain", "application", "infrastructure"} and parts[:1] == ["neftecode"]:
+                if layer in LAYERS and parts[:1] == ["neftecode"]:
                     assert target in ALLOWED[layer], f"{path}: {layer} -> flat module {target}"
 
 
@@ -50,3 +50,16 @@ def test_inner_layers_have_no_framework_or_adapter_dependencies():
         for path in folder.rglob("*.py") if folder.exists() else ():
             for imported in imports(path):
                 assert imported.split(".")[0] not in INNER_FORBIDDEN, f"{path}: {imported}"
+
+
+def test_evaluation_receives_io_inputs_from_the_composition_root():
+    for path in (PACKAGE / "evaluation").rglob("*.py"):
+        for imported in imports(path):
+            assert imported.split(".")[0] not in {"openpyxl", "pathlib"}, f"{path}: {imported}"
+
+
+def test_moved_flat_modules_are_deleted():
+    for name in ("benchmark.py", "vak.py", "lag.py", "robustness.py"):
+        assert not (PACKAGE / name).exists(), name
+    for name in ("batch.py", "margin.py"):
+        assert not (PACKAGE / "infrastructure" / "ml" / name).exists(), name

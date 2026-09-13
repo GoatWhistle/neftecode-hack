@@ -23,7 +23,7 @@ from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCa
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, ReplayError, SIMULATED
 from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
-from neftecode.robustness import RobustnessCheck
+from neftecode.evaluation.robustness import RobustnessCheck
 
 SCENARIOS = Path("config/scenarios")
 BASELINE = SCENARIOS / "baseline.json"
@@ -39,7 +39,8 @@ def decide(path=BASELINE, **kw):
     scenario = load_scenario(path)
     scenario_raw = raw(path)
     return scenario, MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
-        scenario, scenario_raw)).decide(budget=BUDGET, raw_scenario=scenario_raw, **kw)
+        scenario, scenario_raw, scenario_parser=parse_scenario
+    )).decide(budget=BUDGET, raw_scenario=scenario_raw, **kw)
 
 
 def healthy_state():
@@ -69,7 +70,8 @@ def test_the_future_truth_never_reaches_a_replayed_decision():
     scenario = load_scenario(SOUR)
     document = raw(SOUR)
     replay = ReplayDecisions(scenario, document, budget=BUDGET,
-                             robustness_evaluator=RobustnessCheck(scenario, document))
+                             robustness_evaluator=RobustnessCheck(
+                                 scenario, document, scenario_parser=parse_scenario))
     plain = replay.step(SIMULATED)
     marker = 424242.125
     seeded = replay.step(SIMULATED, future_truth={"actual_sulfur": marker})
@@ -247,7 +249,8 @@ def test_issuing_advice_twice_does_not_change_the_plant():
     scenario = load_scenario(SOUR)
     document = raw(SOUR)
     replay = ReplayDecisions(scenario, document, budget=BUDGET,
-                             robustness_evaluator=RobustnessCheck(scenario, document))
+                             robustness_evaluator=RobustnessCheck(
+                                 scenario, document, scenario_parser=parse_scenario))
     run = replay.run([{"at": "2026-01-05T08:00:00"}, {"at": "2026-01-05T08:30:00"}], SIMULATED)
     assert run["final_execution"]["executed"] == []
 

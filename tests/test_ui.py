@@ -8,8 +8,8 @@ import pytest
 from neftecode.application.services.explain import explain
 from neftecode.domain.production.inventory import initial_state
 from neftecode.application.use_cases.make_decision import MakeDecision
-from neftecode.robustness import RobustnessCheck
-from neftecode.infrastructure.config.scenario import load_scenario
+from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.presentation.web.ui import STATES, Screen, UiError, error_payload, render, write_screen
 
 SCENARIOS = Path("config/scenarios")
@@ -20,7 +20,9 @@ def built(name="sour_crude"):
     path = SCENARIOS / f"{name}.json"
     scenario = load_scenario(path)
     raw = json.loads(path.read_text())
-    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(
+    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
+        scenario, raw, scenario_parser=parse_scenario
+    )).decide(
         budget=BUDGET, raw_scenario=raw)
     screen = Screen(decision, explain(decision, scenario),
                     inventories={k: v.inventory_t for k, v in initial_state(scenario).items()})

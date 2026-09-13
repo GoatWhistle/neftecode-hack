@@ -8,9 +8,9 @@ from pathlib import Path
 
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, SIMULATED
-from neftecode.infrastructure.config.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.bootstrap import make_demo_service
-from neftecode.robustness import RobustnessCheck
+from neftecode.evaluation.robustness import RobustnessCheck
 
 
 ROOT = Path(".")
@@ -32,7 +32,9 @@ DECISION_KEYS = {
 def decision(path: Path) -> dict:
     raw = json.loads(path.read_text())
     scenario = load_scenario(path)
-    return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(
+    return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
+        scenario, raw, scenario_parser=parse_scenario
+    )).decide(
         budget=400, raw_scenario=raw)
 
 
@@ -58,7 +60,8 @@ def test_pause_resume_remains_bit_for_bit_reproducible():
     scenario = load_scenario(path)
     document = json.loads(path.read_text())
     replay = ReplayDecisions(scenario, document, budget=300,
-                             robustness_evaluator=RobustnessCheck(scenario, document))
+                             robustness_evaluator=RobustnessCheck(
+                                 scenario, document, scenario_parser=parse_scenario))
     moments = [
         {"at": "2026-01-05T08:00:00"},
         {"at": "2026-01-05T08:30:00"},

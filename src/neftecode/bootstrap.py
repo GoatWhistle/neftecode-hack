@@ -11,16 +11,18 @@ from neftecode.infrastructure.ml.agents import Coordinator, Forecast
 from neftecode.infrastructure.data.data import load_sources, make_dataset
 from neftecode.infrastructure.ml.forecast import run_experiment
 from neftecode.infrastructure.ml.risk import run_risk_experiment
-from neftecode.infrastructure.ml.runtime import decision_at, validate_origin
-from neftecode.benchmark import compare as compare_strategies
-from neftecode.infrastructure.ml.batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
-from neftecode.infrastructure.ml.margin import lead_times, margin_series
+from neftecode.infrastructure.ml.runtime import decision_at as infrastructure_decision_at, validate_origin
+from neftecode.evaluation.benchmark import compare as compare_strategies
+from neftecode.evaluation.episodes import (_as_series, classify_episodes, evaluate_margin,
+                                           excursion_episodes, lead_times, margin_series,
+                                           sampling_step_hours, violation_profile)
 from neftecode.infrastructure.data.quality import report as quality_report, read_quality_series
+from neftecode.infrastructure.data.vak_workbooks import load_vak_inputs
 from neftecode.presentation.demo import Demo, scenes as demo_scenes
 from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
 from neftecode.presentation.web.server import DemoService, serve as serve_demo
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
-from neftecode.vak import check_all
+from neftecode.evaluation.vak import check_all
 from neftecode.application.contracts import LiveAdviceCommand
 from neftecode.application.services.explain import explain
 from neftecode.application.services.trust import DataTrustAgent
@@ -28,8 +30,14 @@ from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
-from neftecode.robustness import RobustnessCheck
+from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.presentation import cli
+
+
+def decision_at(*args, **kwargs):
+    """Compose historical advice with the evaluation-owned margin calculation."""
+    kwargs.setdefault("margin_evaluator", evaluate_margin)
+    return infrastructure_decision_at(*args, **kwargs)
 
 
 def run_demo_decision(raw: dict, state: dict, budget: int) -> dict:
@@ -40,7 +48,9 @@ def run_demo_decision(raw: dict, state: dict, budget: int) -> dict:
         return {"ok": False, "rejected": True, "reason": str(exc),
                 "screen": error_payload(str(exc))}
     decision = MakeDecision(
-        scenario, robustness_evaluator=RobustnessCheck(scenario, raw)
+        scenario, robustness_evaluator=RobustnessCheck(
+            scenario, raw, scenario_parser=parse_scenario
+        )
     ).decide(state=state, budget=budget, raw_scenario=raw)
     trust = DataTrustAgent({}).assess(state)
     screen = Screen(
@@ -360,7 +370,8 @@ def execute(args, parser):
                 else:
                     raw_scenario = json.loads(Path(scenario_path).read_text())
                     decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
-                        scenario, raw_scenario)).decide(budget=400, raw_scenario=raw_scenario)
+                        scenario, raw_scenario, scenario_parser=parse_scenario
+                    )).decide(budget=400, raw_scenario=raw_scenario)
                     write_json(out / f"decision-{scenario.scenario_id}.json", decision)
                 payload = Screen(
                     decision, explain(decision, scenario),
@@ -374,7 +385,7 @@ def execute(args, parser):
             items = []
             for path in sorted((root / "config/scenarios").glob("*.json")):
                 items.append((load_scenario(path), json.loads(path.read_text())))
-            report = compare_strategies(items)
+            report = compare_strategies(items, scenario_parser=parse_scenario)
             write_json(out / "benchmark.json", report)
             for record in report["scenarios"]:
                 print(f"=== {record['scenario_id']}")
@@ -427,7 +438,8 @@ def execute(args, parser):
             print(f"Журнал: {out / 'episodes.json'}")
         elif args.command == "vak":
             signals, _, _ = load_sources(root / "task")
-            report = check_all(root / "task", signals)
+            formula_rows, lab_series = load_vak_inputs(root / "task")
+            report = check_all(formula_rows, lab_series, signals)
             write_json(out / "vak_check.json", report)
             print(f"Разобрано формул: {len(report['formulas'])}; итог проверки: {report['summary']}")
             print(f"Прошли порог корреляции: {report['passed_correlation_threshold'] or 'ни одной'}")
@@ -444,7 +456,9 @@ def execute(args, parser):
             raw_scenario = json.loads(Path(scenario_path).read_text())
             advisor = LiveAdviceAdapter(signals, lab, online, bundle,
                                   raw_scenario,
-                                  robustness_evaluator=RobustnessCheck(parse_scenario(raw_scenario), raw_scenario))
+                                  robustness_evaluator=RobustnessCheck(
+                                      parse_scenario(raw_scenario), raw_scenario,
+                                      scenario_parser=parse_scenario))
             result = GetLiveAdvice(advisor).execute(LiveAdviceCommand(at=args.at))
             stamp = when.strftime("%Y%m%d-%H%M%S")
             path = out / f"decision-{stamp}.json"
