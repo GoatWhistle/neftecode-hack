@@ -323,9 +323,10 @@ def main():
                         "Инъекции отказов помечены как модельные."})
             print(f"Журнал: {out / 'scenes.json'}")
         elif args.command == "screen":
-            from .explain import explain
+            from neftecode.application.services.explain import explain
             from neftecode.domain.production.inventory import initial_state
-            from .orchestrator import Orchestrator
+            from neftecode.application.use_cases.make_decision import MakeDecision
+            from neftecode.robustness import RobustnessCheck
             from neftecode.scenario import load_scenario
             target = out / "screen.html"
             try:
@@ -335,8 +336,9 @@ def main():
                     # Reviewing a stored decision: nothing is recomputed.
                     decision = json.loads(args.decision.read_text())
                 else:
-                    decision = Orchestrator(scenario).decide(
-                        budget=400, raw_scenario=json.loads(Path(scenario_path).read_text()))
+                    raw_scenario = json.loads(Path(scenario_path).read_text())
+                    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
+                        scenario, raw_scenario)).decide(budget=400, raw_scenario=raw_scenario)
                     write_json(out / f"decision-{scenario.scenario_id}.json", decision)
                 payload = Screen(
                     decision, explain(decision, scenario),

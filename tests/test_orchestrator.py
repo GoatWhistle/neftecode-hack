@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
-from neftecode.orchestrator import (MAX_ROUNDS, AgentError, Orchestrator, QualityAgent,
+from neftecode.application.use_cases.make_decision import (MAX_ROUNDS, AgentError, MakeDecision, QualityAgent,
                                     ReliabilityAgent)
 from neftecode.scenario import load_scenario, parse_scenario
 
@@ -16,7 +16,7 @@ BUDGET = 400
 
 
 def orchestrator(path=BASELINE):
-    return Orchestrator(load_scenario(path))
+    return MakeDecision(load_scenario(path))
 
 
 def decide(path=BASELINE, **kw):
@@ -104,13 +104,13 @@ def test_a_veto_creates_feedback_candidates_for_the_following_round():
 
 
 def test_quality_rejection_produces_a_physically_different_feasible_plan():
-    from neftecode.planner import PlanCandidate, PlanStep
+    from neftecode.application.use_cases.plan_operation import PlanCandidate, PlanStep
     from neftecode.scenario import parse_scenario
     raw = json.loads(BASELINE.read_text())
     raw["product"]["sulfur_mgkg"]["value"] = 7.0
     raw["current_operation"]["throughput"]["value"] = 20.0
     raw["current_operation"]["recipe"] = {"main": 1.0}
-    engine = Orchestrator(parse_scenario(raw))
+    engine = MakeDecision(parse_scenario(raw))
     original = PlanCandidate("initial", (PlanStep(0.0, engine.planner.base_controls(),
                                                      {"main": 1.0}, 20.0),), 0)
     engine.planner.build_plans = lambda budget: ([original], {})
@@ -130,7 +130,7 @@ def test_agent_veto_of_best_candidate_selects_another_approved_plan():
                     "vetoes": ["hold запрещён политикой"] if veto else [], "unknown": [],
                     "verdict": "fail" if veto else "pass"}
 
-    decision = Orchestrator(load_scenario(BASELINE), quality=VetoHold()).decide(budget=BUDGET)
+    decision = MakeDecision(load_scenario(BASELINE), quality=VetoHold()).decide(budget=BUDGET)
     assert decision["status"] == RECOMMEND_SCENARIO
     assert decision["selected_plan"]["plan_id"] != "hold"
 
@@ -146,7 +146,7 @@ def test_fail_all_or_incomplete_agent_cannot_release_a_plan():
             return {"agent": "quality", "verdict": "pass"}
 
     for agent in (FailAll(), IncompletePass()):
-        decision = Orchestrator(load_scenario(BASELINE), quality=agent).decide(budget=BUDGET)
+        decision = MakeDecision(load_scenario(BASELINE), quality=agent).decide(budget=BUDGET)
         assert decision["status"] == REFUSE
         assert decision["selected_plan"] is None
 
@@ -269,7 +269,7 @@ def test_the_result_states_its_scope():
 
 
 def test_search_respects_one_budget_and_deduplicates_content():
-    engine = Orchestrator(load_scenario(NO_FEASIBLE))
+    engine = MakeDecision(load_scenario(NO_FEASIBLE))
     seen = []
     evaluate = engine.planner.evaluate
     def recording(plan, confirmed=()):
@@ -283,7 +283,7 @@ def test_search_respects_one_budget_and_deduplicates_content():
 
 
 def test_budget_sampling_does_not_drop_all_transition_plans():
-    engine = Orchestrator(load_scenario(BASELINE))
+    engine = MakeDecision(load_scenario(BASELINE))
     plans, _ = engine.planner.build_plans(600)
     sampled = engine._sample_plans(plans, 200)
     assert sampled[0].plan_id == "hold"

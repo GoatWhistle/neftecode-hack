@@ -23,9 +23,11 @@ from neftecode.domain.shared.primitives import ContractError
 from neftecode.domain.shared.actions import PendingAction
 from neftecode.domain.production.state import TankState
 from neftecode.domain.production.inventory import draw_step, initial_state
-from .planner import Planner
-from .orchestrator import Orchestrator
+from .plan_operation import PlanOperation
+from .make_decision import MakeDecision
 from neftecode.domain.production.scenario import Scenario
+from neftecode.application.contracts import ReplayCommand, ReplayResult
+from neftecode.application.ports import RobustnessEvaluator
 
 HISTORICAL = "historical"
 SIMULATED = "simulated"
@@ -54,7 +56,7 @@ class ExecutionState:
     @classmethod
     def from_scenario(cls, scenario: Scenario) -> "ExecutionState":
         operation = scenario.current_operation
-        controls = Planner(scenario).base_controls()
+        controls = PlanOperation(scenario).base_controls()
         return cls(initial_state(scenario), current_operation={
             "recipe": dict(operation.recipe),
             "throughput_tph": operation.throughput.value,
@@ -156,16 +158,17 @@ def versions(scenario: Scenario, raw_scenario: dict | None = None) -> dict:
 
 
 @dataclass
-class Replay:
+class ReplayDecisions:
     """Runs the same decision core in either mode and records what it depended on."""
 
     scenario: Scenario
     raw_scenario: dict | None = None
     budget: int = 400
-    orchestrator: Orchestrator = field(init=False)
+    orchestrator: MakeDecision = field(init=False)
+    robustness_evaluator: RobustnessEvaluator | None = None
 
     def __post_init__(self):
-        self.orchestrator = Orchestrator(self.scenario)
+        self.orchestrator = MakeDecision(self.scenario, robustness_evaluator=self.robustness_evaluator)
 
     def step(self, mode: str, state: dict | None = None, execution: ExecutionState | None = None,
              future_truth: dict | None = None) -> dict:
@@ -195,7 +198,7 @@ class Replay:
         }
 
     def run(self, moments, mode: str = SIMULATED, execution: ExecutionState | None = None) -> dict:
-        """Replay a list of moments. Returns each decision plus the final execution state."""
+        """ReplayDecisions a list of moments. Returns each decision plus the final execution state."""
         state = execution or (ExecutionState.from_scenario(self.scenario)
                               if mode == SIMULATED else None)
         records = []
@@ -210,7 +213,13 @@ class Replay:
         return {"mode": mode, "records": records,
                 "final_execution": state.to_dict() if state is not None else None,
                 "separation": "Результаты истории и моделирования не смешиваются: режим указан "
-                              "у каждой записи."}
+                "у каждой записи."}
+
+    def execute(self, command: ReplayCommand) -> ReplayResult:
+        """Application entry point for deterministic replay."""
+        if not isinstance(command, ReplayCommand):
+            raise TypeError("ReplayDecisions.execute expects ReplayCommand")
+        return self.run(command.moments, mode=command.mode, execution=command.execution)
 
     def _apply(self, state: ExecutionState, moment: dict, decision: dict) -> ExecutionState:
         """Apply only what the operator confirmed in this moment, never the advice itself."""

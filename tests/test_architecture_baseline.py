@@ -6,10 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from neftecode.orchestrator import Orchestrator
-from neftecode.replay import ExecutionState, Replay, SIMULATED
+from neftecode.application.use_cases.make_decision import MakeDecision
+from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, SIMULATED
 from neftecode.scenario import load_scenario
 from neftecode.server import DemoService
+from neftecode.robustness import RobustnessCheck
 
 
 ROOT = Path(".")
@@ -30,7 +31,9 @@ DECISION_KEYS = {
 
 def decision(path: Path) -> dict:
     raw = json.loads(path.read_text())
-    return Orchestrator(load_scenario(path)).decide(budget=400, raw_scenario=raw)
+    scenario = load_scenario(path)
+    return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(
+        budget=400, raw_scenario=raw)
 
 
 def test_four_scenario_outputs_are_frozen():
@@ -52,7 +55,10 @@ def test_http_payload_keeps_the_decision_json_shape():
 
 def test_pause_resume_remains_bit_for_bit_reproducible():
     path = SCENARIOS / "sour_crude.json"
-    replay = Replay(load_scenario(path), json.loads(path.read_text()), budget=300)
+    scenario = load_scenario(path)
+    document = json.loads(path.read_text())
+    replay = ReplayDecisions(scenario, document, budget=300,
+                             robustness_evaluator=RobustnessCheck(scenario, document))
     moments = [
         {"at": "2026-01-05T08:00:00"},
         {"at": "2026-01-05T08:30:00"},
@@ -73,3 +79,10 @@ def test_cli_keeps_all_commands():
     )
     for command in ("train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes", "serve"):
         assert command in completed.stdout
+
+
+def test_application_has_no_outer_library_dependencies():
+    forbidden = ("pandas", "numpy", "catboost", "sklearn", "openpyxl", "http", "pathlib")
+    application = Path("src/neftecode/application")
+    text = "\n".join(path.read_text() for path in application.rglob("*.py"))
+    assert not any(name in text for name in forbidden)

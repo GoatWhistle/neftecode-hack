@@ -1,7 +1,7 @@
 """Different data problems must produce different, checkable verdicts."""
 import pytest
 
-from neftecode.trust import (DataTrustAgent, MISSING, OK, PLACEHOLDER_VALUE, SOURCE_PRIORITY,
+from neftecode.application.services.trust import (DataTrustAgent, MISSING, OK, PLACEHOLDER_VALUE, SOURCE_PRIORITY,
                              UNUSABLE, inspect_value)
 
 CFG = {"lab_max_age_hours": 48, "pak_max_age_minutes": 30}

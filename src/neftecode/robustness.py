@@ -19,7 +19,7 @@ import copy
 import json
 import math
 
-from .planner import Planner
+from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.scenario import Scenario, parse_scenario
 
 #: Deviations applied one at a time. Each is a named, reproducible edit of the scenario.
@@ -103,7 +103,7 @@ class RobustnessCheck:
                 results.append({"perturbation": spec["name"], "outcome": "not_applicable",
                                 "reason": str(exc)})
                 continue
-            planner = Planner(altered)
+            planner = PlanOperation(altered)
             try:
                 stocks = initial_tanks
                 if stocks is not None and spec["path"].startswith("tank."):
@@ -156,6 +156,12 @@ class RobustnessCheck:
                 "применимость определяется объявленной областью модели.",
             ],
         }
+
+    def evaluate(self, scenario, raw_scenario, plan, confirmed=(), initial_tanks=None,
+                 current_operation=None) -> dict:
+        """Application port adapter."""
+        return type(self)(scenario, raw_scenario, self.perturbations).run(
+            plan, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
 
 
 def choose_robust(evaluations, checks: dict[str, dict]) -> dict:

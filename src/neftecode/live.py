@@ -23,13 +23,14 @@ import numpy as np
 import pandas as pd
 
 from .data import build_features
-from .explain import explain
+from neftecode.application.services.explain import explain
 from .forecast import interval, predict_candidate
 from neftecode.domain.production.inventory import initial_state
-from .orchestrator import Orchestrator
+from neftecode.application.use_cases.make_decision import MakeDecision
 from .runtime import validate_origin
 from neftecode.scenario import ScenarioError, parse_scenario
-from .trust import DataTrustAgent
+from neftecode.application.services.trust import DataTrustAgent
+from .robustness import RobustnessCheck
 from .ui import Screen
 
 
@@ -113,7 +114,7 @@ class LiveAdvisor:
 
         if not trust.usable:
             scenario = parse_scenario(self.raw_scenario)
-            decision = Orchestrator(scenario).decide(state=state, budget=self.budget,
+            decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, self.raw_scenario)).decide(state=state, budget=self.budget,
                                                      trust_cfg=self.bundle["config"],
                                                      raw_scenario=self.raw_scenario)
             return {**result, "decision": decision,
@@ -132,7 +133,7 @@ class LiveAdvisor:
                     "error": str(exc),
                     "note": "Реальный прогноз не удалось связать со сценарием; решение не выдаётся."}
 
-        decision = Orchestrator(scenario).decide(state=state, budget=self.budget,
+        decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(state=state, budget=self.budget,
                                                  trust_cfg=self.bundle["config"],
                                                  raw_scenario=raw)
         return {

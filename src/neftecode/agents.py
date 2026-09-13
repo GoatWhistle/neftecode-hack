@@ -5,7 +5,7 @@ import json
 import math
 
 from .claims import Ledger, measurement, model_result, scenario_input
-from .trust import DataTrustAgent
+from neftecode.application.services.trust import DataTrustAgent
 
 
 @dataclass(frozen=True)

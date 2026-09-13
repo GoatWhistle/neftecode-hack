@@ -18,9 +18,11 @@ import hashlib
 import json
 
 from neftecode.domain.shared.primitives import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
-from .planner import Planner, PlannerError
+from .plan_operation import PlanOperation, PlannerError
 from neftecode.domain.production.scenario import Scenario
-from .trust import DataTrustAgent
+from neftecode.application.contracts import DecisionCommand, DecisionResult
+from neftecode.application.ports import RobustnessEvaluator
+from ..services.trust import DataTrustAgent
 
 #: How many times the orchestrator may ask for a changed search before giving up.
 MAX_ROUNDS = 3
@@ -78,17 +80,18 @@ class ReliabilityAgent:
 
 
 @dataclass
-class Orchestrator:
+class MakeDecision:
     """Runs the loop and produces the decision, or explains why there is none."""
 
     scenario: Scenario
-    planner: Planner = field(init=False)
+    planner: PlanOperation = field(init=False)
     quality: QualityAgent = field(default_factory=QualityAgent)
     reliability: ReliabilityAgent = field(default_factory=ReliabilityAgent)
     max_rounds: int = MAX_ROUNDS
+    robustness_evaluator: RobustnessEvaluator | None = None
 
     def __post_init__(self):
-        self.planner = Planner(self.scenario)
+        self.planner = PlanOperation(self.scenario)
 
     def decide(self, state: dict | None = None, confirmed=(), budget: int = 600,
                trust_cfg: dict | None = None, raw_scenario: dict | None = None,
@@ -214,10 +217,9 @@ class Orchestrator:
         # 4. Robustness: a plan that only holds when every coefficient is exactly right is
         #    reported as fragile rather than released as reliable.
         robustness = None
-        if raw_scenario is not None:
-            from .robustness import RobustnessCheck
-            robustness = RobustnessCheck(self.scenario, raw_scenario).run(
-                chosen, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
+        if raw_scenario is not None and self.robustness_evaluator is not None:
+            robustness = self.robustness_evaluator.evaluate(
+                self.scenario, raw_scenario, chosen, confirmed, initial_tanks, current_operation)
             trace.append({"agent": "robustness", "held": robustness["held"],
                           "evaluated": robustness["perturbations_evaluated"],
                           "fragile": robustness["fragile"]})
@@ -230,6 +232,17 @@ class Orchestrator:
                        f"{robustness['violated']} из {robustness['perturbations_evaluated']} "
                        f"заданных отклонений и надёжным не считается")
         return self._finish(status, reason, trace, chosen, final, None, selected, robustness)
+
+    def execute(self, command: DecisionCommand) -> DecisionResult:
+        """Application entry point; accepts a mapping or explicit decision arguments."""
+        if not isinstance(command, DecisionCommand):
+            raise TypeError("MakeDecision.execute expects DecisionCommand")
+        state = dict(command.state) if command.state is not None else None
+        return self.decide(state=state, confirmed=command.confirmed,
+                           budget=command.budget, trust_cfg=command.trust_cfg,
+                           raw_scenario=command.raw_scenario,
+                           initial_tanks=command.initial_tanks,
+                           current_operation=command.current_operation)
 
     # --- Internals ---
 
