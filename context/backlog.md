@@ -413,14 +413,21 @@ T01–T27 — целевой объём согласованной идеи, а 
 
 ### T32. Выделить интерфейсы приложения
 
-- **Зависимости:** T31. **Статус:** в работе.
+- **Зависимости:** T31. **Статус:** готово.
+- **Результат:** CLI перенесён в `presentation/cli.py`, demo — в `presentation/demo.py`,
+  HTTP и HTML — в `presentation/web`. Сборка application, infrastructure, evaluation и
+  presentation вынесена в верхнеуровневый `bootstrap.py`. Команда `advise` вызывает
+  `GetLiveAdvice` через `LiveAdviceAdapter`. Старые плоские интерфейсные модули удалены.
+- **Проверка:** 752 теста проходят; `neftecode --help`, `python -m
+  neftecode.presentation.cli --help`, `scenes`, `screen` и `benchmark` проверены. Эталонные
+  решения, HTTP JSON и replay не изменились; Luna medium блокеров не нашёл.
 - **Сделать:** перенести CLI, HTTP, HTML, demo и composition root в `presentation`.
 - **Готово:** команды и JSON API совместимы; браузер использует те же прикладные сценарии.
 - **Коммит:** `refactor: выделить интерфейсы приложения`.
 
 ### T33. Выделить контур оценки решения
 
-- **Зависимости:** T32. **Статус:** ожидает.
+- **Зависимости:** T32. **Статус:** в работе.
 - **Сделать:** перенести benchmark, ВАК, эпизоды, лаги, margin и robustness в `evaluation`.
 - **Готово:** evaluation направлен внутрь, не входит в domain/runtime; benchmark не изменился.
 - **Коммит:** `refactor: выделить контур оценки решения`.

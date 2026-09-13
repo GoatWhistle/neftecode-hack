@@ -5,8 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.demo import (CHANGES, SOURCE_FAULTS, Demo, DemoError, apply_change,
-                            apply_source_failure, healthy_state, scenes)
+from neftecode.bootstrap import run_demo_decision
+from neftecode.presentation.demo import (CHANGES, SOURCE_FAULTS, Demo, DemoError, apply_change,
+                                         apply_source_failure, healthy_state, scenes)
 
 BASELINE = Path("config/scenarios/baseline.json")
 BUDGET = 300
@@ -14,7 +15,7 @@ BUDGET = 300
 
 @pytest.fixture(scope="module")
 def demo():
-    return Demo.from_path(BASELINE, budget=BUDGET)
+    return Demo.from_path(BASELINE, run_demo_decision, budget=BUDGET)
 
 
 def raw():

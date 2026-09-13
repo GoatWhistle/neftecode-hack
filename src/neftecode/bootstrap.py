@@ -1,4 +1,3 @@
-import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -13,15 +12,53 @@ from neftecode.infrastructure.data.data import load_sources, make_dataset
 from neftecode.infrastructure.ml.forecast import run_experiment
 from neftecode.infrastructure.ml.risk import run_risk_experiment
 from neftecode.infrastructure.ml.runtime import decision_at, validate_origin
-from .benchmark import compare as compare_strategies
+from neftecode.benchmark import compare as compare_strategies
 from neftecode.infrastructure.ml.batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
 from neftecode.infrastructure.ml.margin import lead_times, margin_series
 from neftecode.infrastructure.data.quality import report as quality_report, read_quality_series
-from .demo import Demo, scenes as demo_scenes
+from neftecode.presentation.demo import Demo, scenes as demo_scenes
 from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
-from .server import serve as serve_demo
-from .ui import Screen, error_payload, write_screen
-from .vak import check_all
+from neftecode.presentation.web.server import DemoService, serve as serve_demo
+from neftecode.presentation.web.ui import Screen, error_payload, write_screen
+from neftecode.vak import check_all
+from neftecode.application.contracts import LiveAdviceCommand
+from neftecode.application.services.explain import explain
+from neftecode.application.services.trust import DataTrustAgent
+from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
+from neftecode.application.use_cases.make_decision import MakeDecision
+from neftecode.domain.production.inventory import initial_state
+from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
+from neftecode.robustness import RobustnessCheck
+from neftecode.presentation import cli
+
+
+def run_demo_decision(raw: dict, state: dict, budget: int) -> dict:
+    """Compose the interactive demo with the real parser, core and robustness check."""
+    try:
+        scenario = parse_scenario(raw)
+    except ScenarioError as exc:
+        return {"ok": False, "rejected": True, "reason": str(exc),
+                "screen": error_payload(str(exc))}
+    decision = MakeDecision(
+        scenario, robustness_evaluator=RobustnessCheck(scenario, raw)
+    ).decide(state=state, budget=budget, raw_scenario=raw)
+    trust = DataTrustAgent({}).assess(state)
+    screen = Screen(
+        decision,
+        explain(decision, scenario),
+        inventories={key: value.inventory_t for key, value in initial_state(scenario).items()},
+        sources=[source.to_dict() for source in trust.sources.values()],
+    ).payload()
+    return {"ok": True, "rejected": False, "scenario_id": scenario.scenario_id,
+            "decision": decision, "screen": screen}
+
+
+def make_interactive_demo(raw: dict, budget: int = 400) -> Demo:
+    return Demo(raw, run_demo_decision, budget)
+
+
+def make_demo_service(root: Path, budget: int = 400) -> DemoService:
+    return DemoService(Path(root), make_interactive_demo, budget)
 
 
 def clean(value):
@@ -282,17 +319,7 @@ def make_report(out, demos):
     (out / "report.md").write_text("\n".join(lines))
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Локальный исследовательский прототип Нефтекод")
-    parser.add_argument("command", choices=["train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes", "serve"])
-    parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--out", type=Path, default=Path("artifacts"))
-    parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
-    parser.add_argument("--at", help="Местное время решения для advise, например 2026-01-05T08:00:00")
-    parser.add_argument("--scenario", type=Path, help="Файл сценария для screen")
-    parser.add_argument("--decision", type=Path, help="Сохранённое решение для повторного просмотра")
-    parser.add_argument("--port", type=int, default=8765, help="Порт демонстрационного сервера")
-    args = parser.parse_args()
+def execute(args, parser):
     root = args.root.resolve()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -301,10 +328,10 @@ def main():
             cfg = json.loads(args.config.read_text())
             train(root, out, cfg)
         elif args.command == "serve":
-            serve_demo(root, args.port)
+            serve_demo(make_demo_service(root), args.port)
         elif args.command == "scenes":
             scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
-            demo = Demo.from_path(scenario_path, budget=400)
+            demo = Demo.from_path(scenario_path, run_demo_decision, budget=400)
             folder = out / "scenes"
             folder.mkdir(parents=True, exist_ok=True)
             index = []
@@ -323,11 +350,6 @@ def main():
                         "Инъекции отказов помечены как модельные."})
             print(f"Журнал: {out / 'scenes.json'}")
         elif args.command == "screen":
-            from neftecode.application.services.explain import explain
-            from neftecode.domain.production.inventory import initial_state
-            from neftecode.application.use_cases.make_decision import MakeDecision
-            from neftecode.robustness import RobustnessCheck
-            from neftecode.infrastructure.config.scenario import load_scenario
             target = out / "screen.html"
             try:
                 scenario_path = args.scenario or (root / "config/scenarios/sour_crude.json")
@@ -349,7 +371,6 @@ def main():
             write_screen(target, payload)
             print(f"Экран оператора: {target}")
         elif args.command == "benchmark":
-            from neftecode.infrastructure.config.scenario import load_scenario
             items = []
             for path in sorted((root / "config/scenarios").glob("*.json")):
                 items.append((load_scenario(path), json.loads(path.read_text())))
@@ -421,20 +442,16 @@ def main():
             signals, lab, online = load_sources(root / "task")
             scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
             raw_scenario = json.loads(Path(scenario_path).read_text())
-            from neftecode.infrastructure.config.scenario import parse_scenario
-            from neftecode.robustness import RobustnessCheck
             advisor = LiveAdviceAdapter(signals, lab, online, bundle,
                                   raw_scenario,
                                   robustness_evaluator=RobustnessCheck(parse_scenario(raw_scenario), raw_scenario))
-            result = advisor.advise(when)
+            result = GetLiveAdvice(advisor).execute(LiveAdviceCommand(at=args.at))
             stamp = when.strftime("%Y%m%d-%H%M%S")
             path = out / f"decision-{stamp}.json"
             write_json(path, result)
             if result.get("decision") is None:
                 screen_payload = error_payload(result.get("error", "Решение не получено"))
             else:
-                from neftecode.infrastructure.config.scenario import parse_scenario
-                from neftecode.domain.production.inventory import initial_state
                 raw_for_screen = (advisor.raw_scenario
                                    if not result["forecast"].get("available")
                                    else advisor.raw_scenario.copy())
@@ -462,6 +479,10 @@ def main():
             make_demo(root, out)
     except (ValueError, FileNotFoundError) as exc:
         parser.exit(2, f"Ошибка: {exc}\n")
+
+
+def main(argv=None):
+    return cli.main(argv=argv, execute=execute)
 
 
 if __name__ == "__main__":

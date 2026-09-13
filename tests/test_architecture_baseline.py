@@ -9,7 +9,7 @@ from pathlib import Path
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, SIMULATED
 from neftecode.infrastructure.config.scenario import load_scenario
-from neftecode.server import DemoService
+from neftecode.bootstrap import make_demo_service
 from neftecode.robustness import RobustnessCheck
 
 
@@ -48,7 +48,7 @@ def test_four_scenario_outputs_are_frozen():
 
 
 def test_http_payload_keeps_the_decision_json_shape():
-    payload = DemoService(ROOT, 400).decide({"scenario": ["baseline"]})
+    payload = make_demo_service(ROOT, 400).decide({"scenario": ["baseline"]})
     assert set(payload["decision"]) == DECISION_KEYS
     assert payload["decision"]["status"] == "hold"
 
@@ -74,7 +74,7 @@ def test_pause_resume_remains_bit_for_bit_reproducible():
 
 def test_cli_keeps_all_commands():
     completed = subprocess.run(
-        [sys.executable, "-m", "neftecode.cli", "--help"],
+        [sys.executable, "-m", "neftecode.presentation.cli", "--help"],
         cwd=ROOT, text=True, capture_output=True, check=True,
     )
     for command in ("train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes", "serve"):

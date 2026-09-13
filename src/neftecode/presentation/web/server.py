@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
-from .demo import SOURCE_FAULTS, Demo, DemoError
-from neftecode.infrastructure.config.scenario import ScenarioError
+from neftecode.presentation.demo import SOURCE_FAULTS, Demo, DemoError
 from .ui import RENDER_JS, STYLE, error_payload
 
 #: Where the scenario files live, relative to the project root.
@@ -244,6 +244,7 @@ class DemoService:
     """Holds the scenarios and runs one recomputation per request."""
 
     root: Path
+    demo_factory: Callable[[dict, int], Demo]
     budget: int = 400
 
     def scenarios(self) -> list[str]:
@@ -260,7 +261,7 @@ class DemoService:
         fault = (values.get("fault") or ["healthy"])[0]
         if fault not in SOURCE_FAULTS:
             raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
-        result = Demo(raw, self.budget).run(changes_from(values, raw), fault)
+        result = self.demo_factory(raw, self.budget).run(changes_from(values, raw), fault)
         payload = dict(result["screen"])
         payload["defaults"] = defaults_for(raw)
         payload["applied"] = result.get("applied", [])
@@ -272,7 +273,7 @@ class DemoService:
         chosen = name if name in names else names[0]
         try:
             payload = self.decide({"scenario": [chosen]})
-        except (DemoServerError, DemoError, ScenarioError) as exc:
+        except (DemoServerError, DemoError, ValueError) as exc:
             payload = error_payload(str(exc))
             payload["defaults"] = {}
         options = "".join(f'<option value="{n}"{" selected" if n == chosen else ""}>{n}</option>'
@@ -325,7 +326,7 @@ def make_handler(service: DemoService):
                     self._json({"scenarios": service.scenarios()})
                 else:
                     self._json({"error": "Неизвестный путь"}, status=404)
-            except (DemoServerError, DemoError, ScenarioError) as exc:
+            except (DemoServerError, DemoError, ValueError) as exc:
                 # An inadmissible condition is an answer, not a crash: the screen shows it.
                 self._json({**error_payload(str(exc)), "defaults": {}}, status=200)
             except Exception as exc:  # pragma: no cover - last resort, never a silent success
@@ -335,9 +336,8 @@ def make_handler(service: DemoService):
     return Handler
 
 
-def serve(root: Path, port: int = 8765, budget: int = 400):
+def serve(service: DemoService, port: int = 8765):
     """Run the demonstration server on localhost until interrupted."""
-    service = DemoService(Path(root), budget)
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service))
     print(f"Демонстрация: http://127.0.0.1:{port}/")
     print(f"Сценарии: {', '.join(service.scenarios())}")

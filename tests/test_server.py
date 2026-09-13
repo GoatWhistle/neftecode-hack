@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.server import (DemoService, DemoServerError, changes_from, defaults_for,
-                              make_handler)
+from neftecode.bootstrap import make_demo_service
+from neftecode.presentation.web.server import (DemoServerError, changes_from, defaults_for,
+                                               make_handler)
 
 ROOT = Path(".")
 BUDGET = 250
@@ -13,7 +14,7 @@ BUDGET = 250
 
 @pytest.fixture(scope="module")
 def service():
-    return DemoService(ROOT, BUDGET)
+    return make_demo_service(ROOT, BUDGET)
 
 
 def query(**kw):
