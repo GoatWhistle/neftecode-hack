@@ -59,7 +59,15 @@ def test_evaluation_receives_io_inputs_from_the_composition_root():
 
 
 def test_moved_flat_modules_are_deleted():
-    for name in ("benchmark.py", "vak.py", "lag.py", "robustness.py"):
+    for name in (
+        "agents.py", "attribution.py", "batch.py", "benchmark.py", "blending.py",
+        "claims.py", "cli.py", "contracts.py", "data.py", "demo.py", "economics.py",
+        "explain.py", "forecast.py", "gate.py", "inventory.py", "lag.py", "live.py",
+        "margin.py", "optimizer.py", "orchestrator.py", "planner.py", "process.py",
+        "quality.py", "replay.py", "risk.py", "robustness.py", "runtime.py",
+        "scenario.py", "server.py", "support.py", "trust.py", "twins.py", "ui.py",
+        "vak.py",
+    ):
         assert not (PACKAGE / name).exists(), name
     for name in ("batch.py", "margin.py"):
         assert not (PACKAGE / "infrastructure" / "ml" / name).exists(), name
