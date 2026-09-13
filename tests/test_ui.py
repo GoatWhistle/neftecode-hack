@@ -5,9 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.explain import explain
+from neftecode.application.services.explain import explain
 from neftecode.domain.production.inventory import initial_state
-from neftecode.orchestrator import Orchestrator
+from neftecode.application.use_cases.make_decision import MakeDecision
+from neftecode.robustness import RobustnessCheck
 from neftecode.scenario import load_scenario
 from neftecode.ui import STATES, Screen, UiError, error_payload, render, write_screen
 
@@ -18,7 +19,9 @@ BUDGET = 300
 def built(name="sour_crude"):
     path = SCENARIOS / f"{name}.json"
     scenario = load_scenario(path)
-    decision = Orchestrator(scenario).decide(budget=BUDGET, raw_scenario=json.loads(path.read_text()))
+    raw = json.loads(path.read_text())
+    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(
+        budget=BUDGET, raw_scenario=raw)
     screen = Screen(decision, explain(decision, scenario),
                     inventories={k: v.inventory_t for k, v in initial_state(scenario).items()})
     return scenario, decision, screen.payload()

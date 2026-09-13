@@ -22,8 +22,8 @@ import json
 
 from neftecode.domain.advisory.gate import check_plan
 from neftecode.domain.advisory.optimizer import Candidate, Evaluation
-from .orchestrator import Orchestrator
-from .planner import Planner, PlanCandidate, PlanStep
+from neftecode.application.use_cases.make_decision import MakeDecision
+from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
 from neftecode.scenario import Scenario, parse_scenario
 
 HOLD = "hold"
@@ -79,7 +79,7 @@ class Benchmark:
     budget: int = 400
 
     def hold_plan(self) -> PlanCandidate:
-        planner = Planner(self.scenario)
+        planner = PlanOperation(self.scenario)
         operation = self.scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in self.scenario.tanks}
         return PlanCandidate(HOLD, (PlanStep(0.0, planner.base_controls(), recipe,
@@ -92,7 +92,7 @@ class Benchmark:
         It raises the reserve one notch at a time and stops at the first recipe whose blend
         passes: no planning over time, no stock horizon, no cost comparison.
         """
-        planner = Planner(self.scenario)
+        planner = PlanOperation(self.scenario)
         operation = self.scenario.current_operation
         tanks = [t.tank_id for t in self.scenario.available_tanks()]
         step = 0.05
@@ -117,7 +117,8 @@ class Benchmark:
 
     def _advisor(self, raw: dict, transition: bool = True) -> tuple:
         scenario = parse_scenario(raw)
-        orchestrator = Orchestrator(scenario)
+        from .robustness import RobustnessCheck
+        orchestrator = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw))
         if not transition:
             planner = orchestrator.planner
             original = planner.build_plans
@@ -136,10 +137,10 @@ class Benchmark:
         plan = PlanCandidate(selected["plan_id"],
                              tuple(PlanStep(**step) for step in selected["steps"]),
                              selected["changes"], selected.get("intent", ""))
-        return plan, Planner(scenario).evaluate(plan), decision
+        return plan, PlanOperation(scenario).evaluate(plan), decision
 
     def run(self) -> dict:
-        planner = Planner(self.scenario)
+        planner = PlanOperation(self.scenario)
         results: dict[str, dict] = {}
 
         for name, plan in ((HOLD, self.hold_plan()), (THRESHOLD, self.threshold_plan())):

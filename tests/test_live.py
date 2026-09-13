@@ -8,7 +8,7 @@ import pytest
 
 from neftecode.data import series_frame
 from neftecode.live import LiveError, bind_forecast, forecast_at, state_at
-from neftecode.planner import Planner, PlanCandidate, PlanStep
+from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
 from neftecode.scenario import ScenarioError, load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -78,7 +78,7 @@ def test_a_bound_forecast_changes_the_computed_blend():
     """The scenario chain model must not overwrite a real forecast."""
     def blend_sulfur(upper):
         scenario = parse_scenario(bind_forecast(raw(), forecast(upper=upper)))
-        planner = Planner(scenario)
+        planner = PlanOperation(scenario)
         operation = scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
         plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
@@ -93,7 +93,7 @@ def test_a_bound_forecast_changes_the_computed_blend():
 
 def test_a_high_forecast_makes_the_current_regime_infeasible():
     scenario = parse_scenario(bind_forecast(raw(), forecast(upper=25.0)))
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     operation = scenario.current_operation
     recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
     plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
@@ -107,7 +107,7 @@ def test_crude_quality_still_reaches_the_decision_without_a_bound_forecast():
         document = raw()
         document["crude"]["sulfur_wt_pct"]["value"] = crude_sulfur
         scenario = parse_scenario(document)
-        planner = Planner(scenario)
+        planner = PlanOperation(scenario)
         operation = scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
         plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
@@ -125,7 +125,7 @@ def test_crude_quality_still_reaches_the_decision_without_a_bound_forecast():
 def test_an_action_still_shifts_the_bound_level():
     """The chain supplies the response ratio even when the level comes from a measurement."""
     scenario = parse_scenario(bind_forecast(raw(), forecast(upper=13.0)))
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     operation = scenario.current_operation
     recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
 
@@ -182,11 +182,11 @@ def test_the_forecast_interval_brackets_its_point_estimate():
 
 def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant():
     """The scenario calls the declared value a reference; it must not stand in for a real level."""
-    from neftecode.planner import Planner
+    from neftecode.application.use_cases.plan_operation import PlanOperation
     from neftecode.domain.production.process import StreamState
 
     scenario = load_scenario(BASELINE)
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     assert scenario.tank("main").sulfur_from_chain is True
     original = planner.chain.run_at
 
@@ -200,11 +200,11 @@ def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant()
 
 
 def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
-    from neftecode.planner import Planner
+    from neftecode.application.use_cases.plan_operation import PlanOperation
     from neftecode.domain.production.process import StreamState
 
     scenario = load_scenario(BASELINE)
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     original = planner.chain.run_at
 
     def unavailable(time_hours, pending=(), controls=None):

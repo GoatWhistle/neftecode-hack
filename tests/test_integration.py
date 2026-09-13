@@ -14,14 +14,15 @@ from neftecode.domain.shared.primitives import ContractError
 from neftecode.domain.monitoring.entities import Observation, PlantState
 from neftecode.domain.shared.actions import PendingAction
 from neftecode.demo import Demo, apply_change
-from neftecode.explain import explain
+from neftecode.application.services.explain import explain
 from neftecode.domain.advisory.gate import TrajectoryPoint, check_plan
 from neftecode.domain.production.inventory import InventoryLedger
-from neftecode.orchestrator import AgentError, Orchestrator
-from neftecode.planner import Planner, PlanCandidate, PlanStep
-from neftecode.replay import ExecutionState, Replay, ReplayError, SIMULATED
+from neftecode.application.use_cases.make_decision import AgentError, MakeDecision
+from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
+from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, ReplayError, SIMULATED
 from neftecode.scenario import ScenarioError, load_scenario, parse_scenario
-from neftecode.trust import DataTrustAgent
+from neftecode.application.services.trust import DataTrustAgent
+from neftecode.robustness import RobustnessCheck
 
 SCENARIOS = Path("config/scenarios")
 BASELINE = SCENARIOS / "baseline.json"
@@ -35,7 +36,9 @@ def raw(path=BASELINE):
 
 def decide(path=BASELINE, **kw):
     scenario = load_scenario(path)
-    return scenario, Orchestrator(scenario).decide(budget=BUDGET, raw_scenario=raw(path), **kw)
+    scenario_raw = raw(path)
+    return scenario, MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
+        scenario, scenario_raw)).decide(budget=BUDGET, raw_scenario=scenario_raw, **kw)
 
 
 def healthy_state():
@@ -62,7 +65,10 @@ def test_a_model_cannot_be_used_before_its_calibration_existed():
 
 
 def test_the_future_truth_never_reaches_a_replayed_decision():
-    replay = Replay(load_scenario(SOUR), raw(SOUR), budget=BUDGET)
+    scenario = load_scenario(SOUR)
+    document = raw(SOUR)
+    replay = ReplayDecisions(scenario, document, budget=BUDGET,
+                             robustness_evaluator=RobustnessCheck(scenario, document))
     plain = replay.step(SIMULATED)
     marker = 424242.125
     seeded = replay.step(SIMULATED, future_truth={"actual_sulfur": marker})
@@ -108,7 +114,7 @@ def test_nan_anywhere_becomes_unknown_and_blocks_the_plan():
 
 def test_a_component_without_cetane_makes_the_blend_unknown_and_blocks_it():
     scenario = load_scenario(BASELINE)
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     plan = PlanCandidate("light_only",
                          (PlanStep(0.0, planner.base_controls(), {"light": 1.0}, 20.0),))
     evaluation = planner.evaluate(plan)
@@ -121,7 +127,7 @@ def test_an_unknown_limit_blocks_rather_than_passes():
     broken = raw()
     broken["product"]["cetane_number"] = None
     scenario = parse_scenario(broken)
-    decision = Orchestrator(scenario).decide(budget=BUDGET)
+    decision = MakeDecision(scenario).decide(budget=BUDGET)
     assert decision["status"] == "refuse", "неизвестный предел не может пройти молча"
 
 
@@ -145,7 +151,7 @@ def test_the_advisor_does_not_propose_a_recipe_the_stock_cannot_carry():
         if tank["tank_id"] == "reserve":
             tank["inventory"]["value"] = 1.0
     scenario = parse_scenario(empty)
-    decision = Orchestrator(scenario).decide(budget=BUDGET)
+    decision = MakeDecision(scenario).decide(budget=BUDGET)
     if decision["selected_plan"] is not None:
         for step in decision["selected_plan"]["steps"]:
             used = step["throughput_tph"] * step["recipe"].get("reserve", 0.0) * 3.0
@@ -165,7 +171,7 @@ def test_a_correction_cannot_help_before_its_lag_has_passed():
 def test_a_plan_relying_on_an_immediate_effect_is_rejected_by_the_gate():
     """The transition must be covered by the blend, not by a correction that has not acted."""
     scenario = load_scenario(SOUR)
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     naive = PlanCandidate("naive", (PlanStep(
         0.0, {**planner.base_controls(), "ht_reactor_inlet_temp_c": 360.0},
         {"main": 1.0, "reserve": 0.0, "light": 0.0}, 80.0),))
@@ -198,7 +204,7 @@ def test_no_decision_ever_permits_commercial_release():
 # --- Error chain: an agent failure ---
 
 def test_a_failing_optimizer_raises_rather_than_returning_a_decision():
-    orchestrator = Orchestrator(load_scenario(BASELINE))
+    orchestrator = MakeDecision(load_scenario(BASELINE))
 
     def broken(budget):
         raise ValueError("оптимизатор сломан")
@@ -212,7 +218,7 @@ def test_unusable_data_stops_the_loop_before_any_model_runs():
     scenario = load_scenario(BASELINE)
     state = dict(healthy_state(), lab_value=None, lab_usable=False,
                  pak_frozen=True, pak_usable=False)
-    decision = Orchestrator(scenario).decide(state=state, budget=BUDGET)
+    decision = MakeDecision(scenario).decide(state=state, budget=BUDGET)
     assert decision["status"] == "refuse"
     assert not any(t.get("agent") == "optimizer" for t in decision["trace"])
 
@@ -237,7 +243,10 @@ def test_repeating_the_same_correction_does_not_double_its_effect():
 
 
 def test_issuing_advice_twice_does_not_change_the_plant():
-    replay = Replay(load_scenario(SOUR), raw(SOUR), budget=BUDGET)
+    scenario = load_scenario(SOUR)
+    document = raw(SOUR)
+    replay = ReplayDecisions(scenario, document, budget=BUDGET,
+                             robustness_evaluator=RobustnessCheck(scenario, document))
     run = replay.run([{"at": "2026-01-05T08:00:00"}, {"at": "2026-01-05T08:30:00"}], SIMULATED)
     assert run["final_execution"]["executed"] == []
 

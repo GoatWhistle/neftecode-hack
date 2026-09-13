@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.orchestrator import Orchestrator
-from neftecode.planner import Planner
+from neftecode.application.use_cases.make_decision import MakeDecision
+from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck, RobustnessError,
                                   choose_robust, perturb)
 from neftecode.scenario import load_scenario, parse_scenario
@@ -22,8 +22,8 @@ def raw(path):
 
 def chosen_plan(path):
     scenario = load_scenario(path)
-    decision = Orchestrator(scenario).decide(budget=BUDGET)
-    plans, _ = Planner(scenario).build_plans(BUDGET)
+    decision = MakeDecision(scenario).decide(budget=BUDGET)
+    plans, _ = PlanOperation(scenario).build_plans(BUDGET)
     plan = next(p for p in plans if p.plan_id == decision["selected_plan"]["plan_id"])
     return scenario, plan
 
@@ -114,14 +114,18 @@ def test_the_broken_perturbations_are_named_with_their_first_violation():
 
 def test_a_fragile_plan_is_released_with_a_warning_not_as_reliable():
     scenario = load_scenario(SOUR)
-    decision = Orchestrator(scenario).decide(budget=BUDGET, raw_scenario=raw(SOUR))
+    document = raw(SOUR)
+    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, document)).decide(
+        budget=BUDGET, raw_scenario=document)
     assert decision["robustness"]["fragile"] is True
     assert "надёжным не считается" in decision["reason"]
 
 
 def test_a_robust_plan_carries_no_such_warning():
     scenario = load_scenario(BASELINE)
-    decision = Orchestrator(scenario).decide(budget=BUDGET, raw_scenario=raw(BASELINE))
+    document = raw(BASELINE)
+    decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, document)).decide(
+        budget=BUDGET, raw_scenario=document)
     assert decision["robustness"]["fragile"] is False
     assert "надёжным не считается" not in decision["reason"]
 
@@ -180,7 +184,7 @@ def test_the_check_is_reproducible():
 
 def test_a_robust_plan_is_preferred_over_a_fragile_one():
     scenario = load_scenario(BASELINE)
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     plans, _ = planner.build_plans(BUDGET)
     evaluations = [planner.evaluate(p) for p in plans[:12]]
     feasible = [e for e in evaluations if e.feasible]
@@ -196,7 +200,7 @@ def test_a_robust_plan_is_preferred_over_a_fragile_one():
 
 def test_when_every_plan_is_fragile_the_result_says_so():
     scenario = load_scenario(BASELINE)
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     plans, _ = planner.build_plans(BUDGET)
     evaluations = [e for e in (planner.evaluate(p) for p in plans[:12]) if e.feasible]
     checks = {e.candidate.candidate_id: {"fragile": True} for e in evaluations}

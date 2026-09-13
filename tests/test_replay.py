@@ -1,4 +1,4 @@
-"""Replay: the same core on history and in simulation, with the two kept apart."""
+"""ReplayDecisions: the same core on history and in simulation, with the two kept apart."""
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -6,9 +6,10 @@ from pathlib import Path
 import pytest
 
 from neftecode.domain.shared.actions import PendingAction
-from neftecode.replay import (HISTORICAL, SIMULATED, ExecutionState, Replay, ReplayError,
+from neftecode.application.use_cases.replay_decisions import (HISTORICAL, SIMULATED, ExecutionState, ReplayDecisions, ReplayError,
                               compare_runs, versions)
 from neftecode.scenario import load_scenario
+from neftecode.robustness import RobustnessCheck
 
 SOUR = Path("config/scenarios/sour_crude.json")
 BASELINE = Path("config/scenarios/baseline.json")
@@ -16,7 +17,10 @@ BUDGET = 300
 
 
 def replay(path=SOUR):
-    return Replay(load_scenario(path), json.loads(Path(path).read_text()), budget=BUDGET)
+    scenario = load_scenario(path)
+    document = json.loads(Path(path).read_text())
+    return ReplayDecisions(scenario, document, budget=BUDGET,
+                           robustness_evaluator=RobustnessCheck(scenario, document))
 
 
 def moments():
@@ -264,7 +268,7 @@ def test_a_confirmed_action_changes_what_the_advisor_proposes_next():
 
 
 def test_saved_current_operation_drives_inflow_without_an_action_log():
-    from neftecode.planner import Planner, PlanCandidate, PlanStep
+    from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
     r = replay()
     state = ExecutionState.from_scenario(load_scenario(SOUR))
     operation = {**state.current_operation, "controls": {
@@ -274,7 +278,7 @@ def test_saved_current_operation_drives_inflow_without_an_action_log():
     cold_state = replace(ExecutionState.from_scenario(load_scenario(SOUR)), last_at=state.last_at)
     cold = r._advance_to(cold_state, "2026-01-05T08:30:00")
     assert hot.tanks["main"].properties["t95_c"] > cold.tanks["main"].properties["t95_c"]
-    p = Planner(r.scenario)
+    p = PlanOperation(r.scenario)
     plans, _ = p.build_plans(100, current_operation=operation)
     hold = plans[0]
     assert hold.steps[0].controls["avt_furnace_outlet_temp_c"] == 400.0
@@ -285,13 +289,13 @@ def test_saved_current_operation_drives_inflow_without_an_action_log():
 
 
 def test_current_recipe_flow_and_dose_define_hold_and_screen_baseline():
-    from neftecode.planner import Planner
+    from neftecode.application.use_cases.plan_operation import PlanOperation
     r = replay()
     state = ExecutionState.from_scenario(load_scenario(SOUR))
     operation = {**state.current_operation, "recipe": {"main": .8, "reserve": .2},
                  "throughput_tph": 50.0, "additive_dose": .015}
     state = state.set_operation(operation)
-    plans, _ = Planner(r.scenario).build_plans(100, current_operation=operation)
+    plans, _ = PlanOperation(r.scenario).build_plans(100, current_operation=operation)
     hold = plans[0].steps[0]
     assert hold.recipe["reserve"] == .2
     assert hold.throughput_tph == 50.0

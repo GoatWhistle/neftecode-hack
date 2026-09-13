@@ -13,7 +13,7 @@ ALLOWED = {
     "evaluation": {"evaluation", "application", "domain"},
     "presentation": {"presentation", "application", "domain"},
 }
-DOMAIN_FORBIDDEN = {"catboost", "http", "numpy", "openpyxl", "pandas", "pickle", "sklearn"}
+INNER_FORBIDDEN = {"catboost", "http", "numpy", "openpyxl", "pandas", "pickle", "sklearn"}
 
 
 def imports(path: Path):
@@ -40,10 +40,13 @@ def test_new_layers_only_depend_inwards():
                 target = parts[1] if parts[:1] == ["neftecode"] and len(parts) > 1 else parts[0]
                 if target in LAYERS:
                     assert target in ALLOWED[layer], f"{path}: {layer} -> {target}"
+                if layer in {"domain", "application"} and parts[:1] == ["neftecode"]:
+                    assert target in ALLOWED[layer], f"{path}: {layer} -> flat module {target}"
 
 
-def test_domain_has_no_framework_or_adapter_dependencies():
-    folder = PACKAGE / "domain"
-    for path in folder.rglob("*.py") if folder.exists() else ():
-        for imported in imports(path):
-            assert imported.split(".")[0] not in DOMAIN_FORBIDDEN, f"{path}: {imported}"
+def test_inner_layers_have_no_framework_or_adapter_dependencies():
+    for layer in ("domain", "application"):
+        folder = PACKAGE / layer
+        for path in folder.rglob("*.py") if folder.exists() else ():
+            for imported in imports(path):
+                assert imported.split(".")[0] not in INNER_FORBIDDEN, f"{path}: {imported}"

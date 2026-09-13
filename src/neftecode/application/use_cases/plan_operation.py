@@ -26,6 +26,7 @@ from neftecode.domain.production.inventory import InventoryLedger
 from neftecode.domain.advisory.optimizer import Candidate, CandidateGenerator, Evaluation, rank
 from neftecode.domain.production.process import ChainModel
 from neftecode.domain.production.scenario import Scenario
+from neftecode.application.contracts import PlanningCommand, PlanningResult
 
 
 class PlannerError(ValueError):
@@ -54,7 +55,7 @@ class PlanCandidate:
 
 
 @dataclass
-class Planner:
+class PlanOperation:
     """Builds short plans and evaluates each one end to end through the same core."""
 
     scenario: Scenario
@@ -357,3 +358,9 @@ class Planner:
         result["note"] = ("Выданный план не считается исполненным. Он войдёт в состояние только "
                           "как подтверждённое оператором действие.")
         return result
+
+    def execute(self, command: PlanningCommand) -> PlanningResult:
+        """Application entry point for planning an operation."""
+        if not isinstance(command, PlanningCommand):
+            raise TypeError("PlanOperation.execute expects PlanningCommand")
+        return self.plan(confirmed=command.confirmed, budget=command.budget)

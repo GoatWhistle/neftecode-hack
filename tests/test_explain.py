@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.explain import (BAD_DATA, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN,
+from neftecode.application.services.explain import (BAD_DATA, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN,
                                Evidence, ExplanationError, Statement, explain, explain_decision,
                                explain_refusal)
-from neftecode.orchestrator import Orchestrator
+from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.scenario import load_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -17,7 +17,7 @@ BUDGET = 400
 
 def decide(path):
     scenario = load_scenario(path)
-    return Orchestrator(scenario).decide(budget=BUDGET), scenario
+    return MakeDecision(scenario).decide(budget=BUDGET), scenario
 
 
 def healthy_state():
@@ -144,7 +144,7 @@ def test_a_data_refusal_asks_for_a_measurement_and_states_its_delay():
     scenario = load_scenario(BASELINE)
     state = dict(healthy_state(), lab_value=None, lab_usable=False,
                  pak_frozen=True, pak_usable=False)
-    decision = Orchestrator(scenario).decide(state=state, budget=BUDGET)
+    decision = MakeDecision(scenario).decide(state=state, budget=BUDGET)
     explanation = explain_refusal(decision, scenario)
     assert explanation["kind"] == BAD_DATA
     lab = [s for s in explanation["next_steps"] if "лабораторный" in s["need"]]

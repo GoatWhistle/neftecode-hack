@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.planner import Planner, PlanCandidate, PlanStep, PlannerError
+from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep, PlannerError
 from neftecode.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -14,7 +14,7 @@ BUDGET = 600
 
 
 def planner(path=BASELINE):
-    return Planner(load_scenario(path))
+    return PlanOperation(load_scenario(path))
 
 
 def result(path=BASELINE, **kw):

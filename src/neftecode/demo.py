@@ -18,11 +18,12 @@ import copy
 import json
 from pathlib import Path
 
-from .explain import explain
+from neftecode.application.services.explain import explain
 from neftecode.domain.production.inventory import initial_state
-from .orchestrator import Orchestrator
+from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.scenario import Scenario, ScenarioError, parse_scenario
-from .trust import DataTrustAgent
+from neftecode.application.services.trust import DataTrustAgent
+from .robustness import RobustnessCheck
 from .ui import Screen, error_payload
 
 #: What the jury may change, and where it lands in the scenario document.
@@ -133,7 +134,8 @@ class Demo:
                     "screen": error_payload(str(exc)),
                     "note": "Недопустимое изменение отклонено загрузчиком сценария, а не исправлено молча."}
         state = apply_source_failure(healthy_state(), fault)
-        decision = Orchestrator(scenario).decide(state=state, budget=self.budget, raw_scenario=raw)
+        decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(
+            state=state, budget=self.budget, raw_scenario=raw)
         trust = DataTrustAgent({}).assess(state)
         screen = Screen(decision, explain(decision, scenario),
                         inventories={k: v.inventory_t for k, v in initial_state(scenario).items()},

@@ -6,7 +6,7 @@ import pytest
 
 from neftecode.benchmark import (ADVISOR, ADVISOR_NO_TERMINAL, ADVISOR_NO_TRANSITION, HOLD,
                                  STRATEGIES, THRESHOLD, Benchmark, compare)
-from neftecode.planner import Planner
+from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.scenario import load_scenario
 
 SCENARIOS = Path("config/scenarios")
@@ -46,7 +46,7 @@ def test_every_strategy_runs_on_every_scenario(report):
 def test_all_strategies_face_the_same_limits():
     """Different recipes produce different check ids, but the limits behind them are one set."""
     scenario, _ = loaded("sour_crude")
-    planner = Planner(scenario)
+    planner = PlanOperation(scenario)
     hold = planner.evaluate(bench("sour_crude").hold_plan())
     threshold = planner.evaluate(bench("sour_crude").threshold_plan())
 
