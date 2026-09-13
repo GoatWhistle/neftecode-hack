@@ -1,47 +1,30 @@
-# Сервисная архитектура
+# Сервисный deployment T38
 
-Статус: целевая схема T35–T38; фактический статус каждого этапа хранится в `state.md` и
-`backlog.md`.
+Проект остаётся monorepo, но расчётные границы запускаются четырьмя независимыми Python-процессами. `neftecode-stack` запускает их через `sys.executable -m`, проверяет `healthz`/`readyz` и при ошибке завершает process groups.
 
-## Процессы
+| Процесс | Порт | Владеет | Зависит от |
+|---|---:|---|---|
+| data-service | 8766 | `config/scenarios`, `task/`, snapshots и trust | файловая система |
+| model-service | 8767 | `artifacts/model.pkl`, `manifest.json`, forecast | bundle и manifest |
+| decision-service | 8768 | `MakeDecision`, binding прогноза, live orchestration | data + model HTTP |
+| gateway-service | 8765 | HTML и legacy `/api/*` интерфейс | data + decision HTTP |
 
-| Процесс | Порт | Владеет |
-|---|---:|---|
-| `data-service` | 8766 | сценарии `config/scenarios`, чтение `task/`, снимок состояния и признаки на момент времени |
-| `model-service` | 8767 | `artifacts/model.pkl`, версия модели, прогноз и диапазон неопределённости |
-| `decision-service` | 8768 | `MakeDecision`, `PlanOperation`, проверка ограничений и итоговое решение |
-| `gateway-service` | 8765 | HTML, совместимый браузерный API и маршрутизация запросов |
+Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза со сценарием и запускает доменное решение. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
 
-Все процессы находятся в одном репозитории и используют общее неизменяемое доменное ядро.
-Через сеть передаётся только JSON: DataFrame и pickle границы процессов не пересекают.
+## Контракты и endpoints
 
-```text
-браузер / CLI → gateway → decision → data → model
-```
+Data: `GET /v1/scenarios`, `POST /v1/scenarios/get` с `{scenario_id}`, `GET /v1/capabilities`, `POST /v1/snapshots` с `{at}`. Snapshot содержит `schema_version`, `at`, `state`, `trust`, JSON `features`, `source_period`, `feature_schema`, `feature_schema_hash` и `snapshot_id`. `snapshot_id` — SHA-256 канонического содержимого без самого идентификатора; pandas/numpy наружу не проходят.
 
-Для сценарной демонстрации `decision-service` получает готовые сценарий и состояние. Для совета
-по историческим данным он получает сценарий и снимок у `data-service`, отправляет только признаки
-в `model-service`, связывает верхнюю границу прогноза со сценарием и запускает то же ядро решения.
+Model: `GET /v1/models`, `POST /v1/forecast` с `{snapshot, fallback}`. Он проверяет структуру и хеши snapshot, совпадение `at` и `state.decision_time`, диапазон источника, `trust.usable` и полный набор признаков. Ответ содержит `model`, `value`, `lower`, `upper`, `available`, `reason` и `at`.
 
-## Контракты
+Decision: `POST /v1/decisions`, `POST /v1/live/advice`, `GET /v1/capabilities`. Gateway сохраняет `/`, `/index.html`, `/api/scenarios`, `/api/defaults`, `/api/decide`; envelope новых endpoints имеет `contract_version=v1`.
 
-Каждый ответ содержит `contract_version`, `request_id`, `service` и либо `data`, либо `error`.
-Базовая версия — `v1`. Ошибка содержит стабильный `code`, понятное `message` и при необходимости
-`details`.
+## Запуск и настройки
 
-У каждого процесса есть:
+Отдельно: `uv run neftecode-data`, `uv run neftecode-model`, `uv run neftecode-decision`, `uv run neftecode-gateway`. Полный запуск: `uv run neftecode-stack --root . --artifacts artifacts`.
 
-- `GET /healthz` — процесс жив;
-- `GET /readyz` — нужные файлы загружены и зависимости доступны;
-- ограничение размера JSON, timeout межсервисного вызова и явный `503/504`;
-- запуск только на `127.0.0.1` по умолчанию.
+Supervisor принимает `--host`, `--data-port`, `--model-port`, `--decision-port`, `--gateway-port`, `--root`, `--artifacts`, `--timeout`. Env: `NEFTECODE_STACK_HOST`, `NEFTECODE_DATA_PORT`, `NEFTECODE_MODEL_PORT`, `NEFTECODE_DECISION_PORT`, `NEFTECODE_GATEWAY_PORT`; CLI имеет приоритет над env, env над defaults. Отдельные процессы также принимают свой `NEFTECODE_*_HOST/PORT`.
 
-Публичные пути браузера `/api/scenarios`, `/api/defaults`, `/api/decide` и JSON решения сохраняются.
-Старые CLI-команды продолжают работать локально. Новые команды позволяют запустить каждый процесс
-отдельно и весь набор одной командой.
+`/healthz` показывает живой процесс. `/readyz` data означает наличие валидных сценариев; capabilities отдельно сообщает `measurements`. Model readiness означает успешную загрузку bundle и совпадающего `manifest.json`. Поэтому отсутствие `task/` не мешает сценарному decision/gateway, но ограничивает snapshots и live advice; отсутствие model artifact ограничивает model и live.
 
-## Границы
-
-Отдельная база, брокер сообщений и Kubernetes этому прототипу не нужны. Benchmark, ВАК и анализ
-эпизодов остаются пакетными CLI-задачами: это расчёты оценки, а не постоянно работающий контур
-решения. Распределение процессов не делает сценарные коэффициенты промышленно подтверждёнными.
+Evaluation (`benchmark`, `vak`, `episodes`) остаётся batch CLI и в supervisor не входит. Полный stack не является промышленным контуром управления и не разрешает выпуск продукции.

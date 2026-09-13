@@ -125,8 +125,8 @@ def main(argv=None):
     parser.add_argument("--host", default=None); parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--data-url", default=None); parser.add_argument("--model-url", default=None)
     args = parser.parse_args(argv)
-    env = ServiceSettings.from_env("NEFTECODE_DECISION_")
-    settings = ServiceSettings(host=args.host or env.host, port=args.port or 8768,
+    env = ServiceSettings.from_env("NEFTECODE_DECISION_", ServiceSettings(port=8768))
+    settings = ServiceSettings(host=args.host or env.host, port=args.port or env.port,
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
                                 max_workers=env.max_workers, max_body_bytes=env.max_body_bytes,
                                 max_response_bytes=env.max_response_bytes)

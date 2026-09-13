@@ -5,13 +5,14 @@ from pathlib import Path
 
 
 PACKAGE = Path("src/neftecode")
-LAYERS = {"domain", "application", "infrastructure", "evaluation", "presentation"}
+LAYERS = {"domain", "application", "infrastructure", "evaluation", "presentation", "services"}
 ALLOWED = {
     "domain": {"domain"},
     "application": {"application", "domain"},
     "infrastructure": {"infrastructure", "application", "domain"},
     "evaluation": {"evaluation", "application", "domain"},
     "presentation": {"presentation", "application", "domain"},
+    "services": {"services", "presentation", "infrastructure", "evaluation", "application", "domain"},
 }
 INNER_FORBIDDEN = {"catboost", "http", "numpy", "openpyxl", "pandas", "pickle", "sklearn"}
 
@@ -71,3 +72,13 @@ def test_moved_flat_modules_are_deleted():
         assert not (PACKAGE / name).exists(), name
     for name in ("batch.py", "margin.py"):
         assert not (PACKAGE / "infrastructure" / "ml" / name).exists(), name
+
+
+def test_service_processes_do_not_import_each_other():
+    services = {"data_service", "model_service", "decision_service", "gateway_service", "stack"}
+    for name in services:
+        path = PACKAGE / "services" / f"{name}.py"
+        for imported in imports(path):
+            parts = imported.split(".")
+            if parts[:2] == ["neftecode", "services"] and len(parts) > 2:
+                assert parts[2] in {"common", name}, f"{path}: imports peer service {imported}"
