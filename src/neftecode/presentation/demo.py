@@ -17,14 +17,10 @@ from dataclasses import dataclass, field
 import copy
 import json
 from pathlib import Path
+from typing import Callable
 
-from neftecode.application.services.explain import explain
-from neftecode.domain.production.inventory import initial_state
-from neftecode.application.use_cases.make_decision import MakeDecision
-from neftecode.infrastructure.config.scenario import Scenario, ScenarioError, parse_scenario
-from neftecode.application.services.trust import DataTrustAgent
-from .robustness import RobustnessCheck
-from .ui import Screen, error_payload
+
+DemoRunner = Callable[[dict, dict, int], dict]
 
 #: What the jury may change, and where it lands in the scenario document.
 CHANGES = {
@@ -109,16 +105,17 @@ class Demo:
     """Holds the original scenario and recomputes from it after every change."""
 
     raw: dict
+    runner: DemoRunner
     budget: int = 400
     changes: list = field(default_factory=list)
 
     @classmethod
-    def from_path(cls, path, budget: int = 400) -> "Demo":
-        return cls(json.loads(Path(path).read_text()), budget)
+    def from_path(cls, path, runner: DemoRunner, budget: int = 400) -> "Demo":
+        return cls(json.loads(Path(path).read_text()), runner, budget)
 
     def reset(self) -> "Demo":
         """Back to the original conditions. Nothing accumulated is kept."""
-        return Demo(self.raw, self.budget)
+        return Demo(self.raw, self.runner, self.budget)
 
     def run(self, changes=(), fault: str = "healthy") -> dict:
         """Apply the changes to a fresh copy, then run the same core on the result."""
@@ -127,27 +124,14 @@ class Demo:
         for change in changes:
             raw = apply_change(raw, change["change"], change.get("value"), change.get("target"))
             applied.append(change)
-        try:
-            scenario = parse_scenario(raw)
-        except ScenarioError as exc:
-            return {"ok": False, "rejected": True, "reason": str(exc), "applied": applied,
-                    "screen": error_payload(str(exc)),
-                    "note": "Недопустимое изменение отклонено загрузчиком сценария, а не исправлено молча."}
         state = apply_source_failure(healthy_state(), fault)
-        decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(
-            state=state, budget=self.budget, raw_scenario=raw)
-        trust = DataTrustAgent({}).assess(state)
-        screen = Screen(decision, explain(decision, scenario),
-                        inventories={k: v.inventory_t for k, v in initial_state(scenario).items()},
-                        sources=[v.to_dict() for v in trust.sources.values()]).payload()
-        return {
-            "ok": True, "rejected": False, "applied": applied, "fault": fault,
-            "scenario_id": scenario.scenario_id,
-            "decision": decision, "screen": screen,
-            "injection": state.get("injection"),
-            "note": ("Изменение проведено через тот же загрузчик и то же ядро решения; "
-                     "заранее заготовленных ответов здесь нет."),
-        }
+        result = self.runner(raw, state, self.budget)
+        return {**result, "applied": applied, "fault": fault,
+                "injection": state.get("injection"),
+                "note": (("Недопустимое изменение отклонено загрузчиком сценария, а не "
+                          "исправлено молча.") if result["rejected"] else
+                         ("Изменение проведено через тот же загрузчик и то же ядро решения; "
+                          "заранее заготовленных ответов здесь нет."))}
 
 
 def scenes(path) -> list[dict]:

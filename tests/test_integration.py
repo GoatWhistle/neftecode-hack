@@ -13,7 +13,8 @@ import pytest
 from neftecode.domain.shared.primitives import ContractError
 from neftecode.domain.monitoring.entities import Observation, PlantState
 from neftecode.domain.shared.actions import PendingAction
-from neftecode.demo import Demo, apply_change
+from neftecode.bootstrap import run_demo_decision
+from neftecode.presentation.demo import Demo, apply_change
 from neftecode.application.services.explain import explain
 from neftecode.domain.advisory.gate import TrajectoryPoint, check_plan
 from neftecode.domain.production.inventory import InventoryLedger
@@ -327,5 +328,5 @@ def test_each_scenario_matches_its_recorded_expectation():
 
 def test_the_demo_and_the_advisor_agree_on_the_same_conditions():
     scenario, decision = decide(BASELINE)
-    demo = Demo.from_path(BASELINE, budget=BUDGET).run()
+    demo = Demo.from_path(BASELINE, run_demo_decision, budget=BUDGET).run()
     assert demo["decision"]["status"] == decision["status"]

@@ -10,7 +10,7 @@ from neftecode.domain.production.inventory import initial_state
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.robustness import RobustnessCheck
 from neftecode.infrastructure.config.scenario import load_scenario
-from neftecode.ui import STATES, Screen, UiError, error_payload, render, write_screen
+from neftecode.presentation.web.ui import STATES, Screen, UiError, error_payload, render, write_screen
 
 SCENARIOS = Path("config/scenarios")
 BUDGET = 300
@@ -44,7 +44,7 @@ def test_the_page_carries_the_decision_itself():
 
 def test_no_computed_number_is_written_into_the_markup():
     """Only the embedded JSON holds values; the template is pure structure."""
-    from neftecode.ui import TEMPLATE
+    from neftecode.presentation.web.ui import TEMPLATE
     _, decision, _ = built()
     assert str(round(decision["production_t"], 1)) not in TEMPLATE
     assert decision["decision_id"] not in TEMPLATE
