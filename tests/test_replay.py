@@ -8,7 +8,7 @@ import pytest
 from neftecode.domain.shared.actions import PendingAction
 from neftecode.application.use_cases.replay_decisions import (HISTORICAL, SIMULATED, ExecutionState, ReplayDecisions, ReplayError,
                               compare_runs, versions)
-from neftecode.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario
 from neftecode.robustness import RobustnessCheck
 
 SOUR = Path("config/scenarios/sour_crude.json")

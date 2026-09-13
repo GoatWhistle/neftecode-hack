@@ -16,22 +16,18 @@ said as much.
 """
 from dataclasses import dataclass
 import copy
-import json
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from .data import build_features
+from neftecode.infrastructure.data.data import build_features
+from neftecode.application.ports.robustness import RobustnessEvaluator
 from neftecode.application.services.explain import explain
-from .forecast import interval, predict_candidate
-from neftecode.domain.production.inventory import initial_state
+from neftecode.infrastructure.ml.forecast import interval, predict_candidate
 from neftecode.application.use_cases.make_decision import MakeDecision
-from .runtime import validate_origin
-from neftecode.scenario import ScenarioError, parse_scenario
+from neftecode.infrastructure.ml.runtime import validate_origin
+from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
-from .robustness import RobustnessCheck
-from .ui import Screen
 
 
 class LiveError(ValueError):
@@ -92,7 +88,7 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main") -> dict:
 
 
 @dataclass
-class LiveAdvisor:
+class LiveAdviceAdapter:
     """One decision at one real moment, through the full agent loop."""
 
     signals: pd.DataFrame
@@ -101,6 +97,7 @@ class LiveAdvisor:
     bundle: dict
     raw_scenario: dict
     budget: int = 400
+    robustness_evaluator: RobustnessEvaluator | None = None
 
     def advise(self, at) -> dict:
         when = validate_origin(at, self.bundle)
@@ -114,7 +111,7 @@ class LiveAdvisor:
 
         if not trust.usable:
             scenario = parse_scenario(self.raw_scenario)
-            decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, self.raw_scenario)).decide(state=state, budget=self.budget,
+            decision = MakeDecision(scenario, robustness_evaluator=self.robustness_evaluator).decide(state=state, budget=self.budget,
                                                      trust_cfg=self.bundle["config"],
                                                      raw_scenario=self.raw_scenario)
             return {**result, "decision": decision,
@@ -133,7 +130,7 @@ class LiveAdvisor:
                     "error": str(exc),
                     "note": "Реальный прогноз не удалось связать со сценарием; решение не выдаётся."}
 
-        decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, raw)).decide(state=state, budget=self.budget,
+        decision = MakeDecision(scenario, robustness_evaluator=self.robustness_evaluator).decide(state=state, budget=self.budget,
                                                  trust_cfg=self.bundle["config"],
                                                  raw_scenario=raw)
         return {
@@ -145,17 +142,3 @@ class LiveAdvisor:
                      "Резервуары, цены, отклики и пределы T95/цетана заданы сценарием. "
                      "Решение не разрешает выпуск товарного топлива."),
         }
-
-    def screen(self, result: dict) -> dict:
-        """Payload for the operator screen, carrying the real source verdicts."""
-        if result.get("decision") is None:
-            from .ui import error_payload
-            return error_payload(result.get("error", "Решение не получено"))
-        scenario = parse_scenario(
-            bind_forecast(self.raw_scenario, result["forecast"])
-            if result["forecast"].get("available") and result["trust"]["usable"]
-            else self.raw_scenario)
-        sources = [v for v in result["trust"]["sources"].values()]
-        return Screen(result["decision"], result["explanation"],
-                      inventories={k: v.inventory_t for k, v in initial_state(scenario).items()},
-                      sources=sources).payload()

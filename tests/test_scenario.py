@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.scenario import (QUALITIES, Scenario, ScenarioError, describe, load_scenario,
+from neftecode.infrastructure.config.scenario import (QUALITIES, Scenario, ScenarioError, describe, load_scenario,
                                 parse_scenario)
 
 SCENARIOS = Path("config/scenarios")

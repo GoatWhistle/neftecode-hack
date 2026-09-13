@@ -11,3 +11,7 @@ catboost_info/
 # Ожидаемое размещение описано в README; репозиторий их не хранит.
 task/
 dist/
+
+# Keep infrastructure artifact adapter sources tracked
+!src/neftecode/infrastructure/artifacts/
+!src/neftecode/infrastructure/artifacts/*.py

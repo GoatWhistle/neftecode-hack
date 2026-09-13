@@ -6,7 +6,7 @@ import pytest
 
 from neftecode.domain.production.blending import (MASS_BALANCE, SCENARIO_LINEAR, UNKNOWN, BlendError, Blender,
                                 check_recipe, mass_balance)
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 
@@ -224,6 +224,6 @@ def test_additive_effect_is_labelled_as_an_assumption():
 def test_scenario_cannot_declare_the_additive_removes_sulfur():
     raw = json.loads(BASELINE.read_text())
     raw["additive"]["affects"] = ["sulfur_mgkg"]
-    from neftecode.scenario import ScenarioError
+    from neftecode.infrastructure.config.scenario import ScenarioError
     with pytest.raises(ScenarioError, match="удаление серы"):
         parse_scenario(raw)

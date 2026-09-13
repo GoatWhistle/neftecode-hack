@@ -7,7 +7,7 @@ import pytest
 from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
 from neftecode.application.use_cases.make_decision import (MAX_ROUNDS, AgentError, MakeDecision, QualityAgent,
                                     ReliabilityAgent)
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 SOUR = Path("config/scenarios/sour_crude.json")
@@ -105,7 +105,7 @@ def test_a_veto_creates_feedback_candidates_for_the_following_round():
 
 def test_quality_rejection_produces_a_physically_different_feasible_plan():
     from neftecode.application.use_cases.plan_operation import PlanCandidate, PlanStep
-    from neftecode.scenario import parse_scenario
+    from neftecode.infrastructure.config.scenario import parse_scenario
     raw = json.loads(BASELINE.read_text())
     raw["product"]["sulfur_mgkg"]["value"] = 7.0
     raw["current_operation"]["throughput"]["value"] = 20.0

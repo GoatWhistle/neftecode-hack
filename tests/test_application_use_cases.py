@@ -5,7 +5,7 @@ from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.application.use_cases.replay_decisions import ReplayDecisions
-from neftecode.scenario import load_scenario
+from neftecode.infrastructure.config.scenario import load_scenario
 
 
 def scenario():

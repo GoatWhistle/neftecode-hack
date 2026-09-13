@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from neftecode.agents import Coordinator, Forecast
+from neftecode.infrastructure.ml.agents import Coordinator, Forecast
 
 
 @pytest.fixture

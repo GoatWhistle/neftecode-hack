@@ -21,7 +21,7 @@ from pathlib import Path
 from neftecode.application.services.explain import explain
 from neftecode.domain.production.inventory import initial_state
 from neftecode.application.use_cases.make_decision import MakeDecision
-from neftecode.scenario import Scenario, ScenarioError, parse_scenario
+from neftecode.infrastructure.config.scenario import Scenario, ScenarioError, parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
 from .robustness import RobustnessCheck
 from .ui import Screen, error_payload

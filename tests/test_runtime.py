@@ -4,8 +4,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from neftecode.agents import Coordinator, Forecast
-from neftecode.runtime import decision_at, validate_origin
+from neftecode.infrastructure.ml.agents import Coordinator, Forecast
+from neftecode.infrastructure.ml.runtime import decision_at, validate_origin
 
 
 def test_query_cannot_use_a_model_before_its_calibration_is_available():

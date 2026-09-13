@@ -5,8 +5,21 @@
 import json
 from pathlib import Path
 
-from neftecode.domain.production.scenario import *
-from neftecode.domain.production.scenario import _finite
+from neftecode.domain.shared.primitives import QUALITIES
+from neftecode.domain.production.scenario import (
+    SCHEMA,
+    Additive,
+    CurrentOperation,
+    Horizon,
+    ProductSpec,
+    Scenario,
+    ScenarioError,
+    Stage,
+    Tank,
+    _finite,
+    optional_quantity,
+    quantity,
+)
 
 CRUDE_KINDS = {"sulfur_wt_pct": "sulfur_wt_pct", "density_kgm3": "density_kgm3", "flow_tph": "flow_tph"}
 
@@ -232,3 +245,19 @@ def describe(scenario: Scenario) -> dict:
         "scope": "Все параметры смешения, резервуаров, цен и откликов заданы для эксперимента "
                  "и не получены из данных завода.",
     }
+
+
+class FileScenarioRepository:
+    """Loads validated scenarios from a directory by their stable scenario id."""
+
+    def __init__(self, directory: str | Path):
+        self.directory = Path(directory)
+
+    def get(self, scenario_id: str) -> Scenario:
+        path = self.directory / f"{scenario_id}.json"
+        if not path.is_file():
+            raise ScenarioError(f"Сценарий «{scenario_id}» не найден в {self.directory}")
+        scenario = load_scenario(path)
+        if scenario.scenario_id != scenario_id:
+            raise ScenarioError(f"{path}: id сценария не совпадает с запрошенным «{scenario_id}»")
+        return scenario

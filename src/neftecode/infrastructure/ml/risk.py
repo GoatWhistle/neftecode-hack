@@ -7,7 +7,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from .data import split_periods
+from neftecode.infrastructure.data.data import split_periods
 
 
 def select_threshold(labels, scores, false_alarm_budget):

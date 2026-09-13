@@ -20,7 +20,7 @@ from neftecode.domain.production.inventory import InventoryLedger
 from neftecode.application.use_cases.make_decision import AgentError, MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, ReplayError, SIMULATED
-from neftecode.scenario import ScenarioError, load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.robustness import RobustnessCheck
 
@@ -59,7 +59,7 @@ def test_an_observation_not_yet_available_cannot_enter_the_state():
 
 
 def test_a_model_cannot_be_used_before_its_calibration_existed():
-    from neftecode.runtime import validate_origin
+    from neftecode.infrastructure.ml.runtime import validate_origin
     with pytest.raises(ValueError, match="утечк"):
         validate_origin("2025-12-31T23:00:00", {"config": {"calibration_end": "2026-01-01"}})
 
@@ -288,7 +288,7 @@ def test_every_horizon_is_within_the_case_bounds():
 
 
 def test_the_experiment_config_matches_the_confirmed_bounds():
-    from neftecode.data import check_time_assumptions
+    from neftecode.infrastructure.data.data import check_time_assumptions
     bounds = check_time_assumptions(json.loads(Path("config/experiment.json").read_text()))
     assert bounds["lab_delay_hours"] <= 4.0
     assert 0 < bounds["horizon_hours"] <= 3.0

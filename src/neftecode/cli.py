@@ -8,17 +8,17 @@ import platform
 import numpy as np
 import pandas as pd
 
-from .agents import Coordinator, Forecast
-from .data import load_sources, make_dataset
-from .forecast import run_experiment
-from .risk import run_risk_experiment
-from .runtime import decision_at, validate_origin
+from neftecode.infrastructure.ml.agents import Coordinator, Forecast
+from neftecode.infrastructure.data.data import load_sources, make_dataset
+from neftecode.infrastructure.ml.forecast import run_experiment
+from neftecode.infrastructure.ml.risk import run_risk_experiment
+from neftecode.infrastructure.ml.runtime import decision_at, validate_origin
 from .benchmark import compare as compare_strategies
-from .batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
-from .margin import lead_times, margin_series
-from .quality import report as quality_report, read_quality_series
+from neftecode.infrastructure.ml.batch import _as_series, classify_episodes, excursion_episodes, sampling_step_hours, violation_profile
+from neftecode.infrastructure.ml.margin import lead_times, margin_series
+from neftecode.infrastructure.data.quality import report as quality_report, read_quality_series
 from .demo import Demo, scenes as demo_scenes
-from .live import LiveAdvisor
+from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
 from .server import serve as serve_demo
 from .ui import Screen, error_payload, write_screen
 from .vak import check_all
@@ -327,7 +327,7 @@ def main():
             from neftecode.domain.production.inventory import initial_state
             from neftecode.application.use_cases.make_decision import MakeDecision
             from neftecode.robustness import RobustnessCheck
-            from neftecode.scenario import load_scenario
+            from neftecode.infrastructure.config.scenario import load_scenario
             target = out / "screen.html"
             try:
                 scenario_path = args.scenario or (root / "config/scenarios/sour_crude.json")
@@ -349,7 +349,7 @@ def main():
             write_screen(target, payload)
             print(f"Экран оператора: {target}")
         elif args.command == "benchmark":
-            from neftecode.scenario import load_scenario
+            from neftecode.infrastructure.config.scenario import load_scenario
             items = []
             for path in sorted((root / "config/scenarios").glob("*.json")):
                 items.append((load_scenario(path), json.loads(path.read_text())))
@@ -420,13 +420,34 @@ def main():
             when = validate_origin(args.at, bundle)
             signals, lab, online = load_sources(root / "task")
             scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
-            advisor = LiveAdvisor(signals, lab, online, bundle,
-                                  json.loads(Path(scenario_path).read_text()))
+            raw_scenario = json.loads(Path(scenario_path).read_text())
+            from neftecode.infrastructure.config.scenario import parse_scenario
+            from neftecode.robustness import RobustnessCheck
+            advisor = LiveAdviceAdapter(signals, lab, online, bundle,
+                                  raw_scenario,
+                                  robustness_evaluator=RobustnessCheck(parse_scenario(raw_scenario), raw_scenario))
             result = advisor.advise(when)
             stamp = when.strftime("%Y%m%d-%H%M%S")
             path = out / f"decision-{stamp}.json"
             write_json(path, result)
-            write_screen(out / f"screen-{stamp}.html", advisor.screen(result))
+            if result.get("decision") is None:
+                screen_payload = error_payload(result.get("error", "Решение не получено"))
+            else:
+                from neftecode.infrastructure.config.scenario import parse_scenario
+                from neftecode.domain.production.inventory import initial_state
+                raw_for_screen = (advisor.raw_scenario
+                                   if not result["forecast"].get("available")
+                                   else advisor.raw_scenario.copy())
+                if result["forecast"].get("available") and result["trust"].get("usable"):
+                    from neftecode.infrastructure.live.advisor import bind_forecast
+                    raw_for_screen = bind_forecast(advisor.raw_scenario, result["forecast"])
+                scenario_for_screen = parse_scenario(raw_for_screen)
+                screen_payload = Screen(
+                    result["decision"], result["explanation"],
+                    inventories={k: v.inventory_t for k, v in initial_state(scenario_for_screen).items()},
+                    sources=list(result["trust"].get("sources", {}).values()),
+                ).payload()
+            write_screen(out / f"screen-{stamp}.html", screen_payload)
             forecast = result["forecast"]
             print((f"Прогноз {forecast['model']}: {forecast['value']:.2f} мг/кг, "
                    f"верхняя граница {forecast['upper']:.2f}") if forecast["available"]

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep, PlannerError
-from neftecode.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
 SOUR = Path("config/scenarios/sour_crude.json")
