@@ -5,8 +5,9 @@ from pathlib import Path
 
 
 PACKAGE = Path("src/neftecode")
-LAYERS = {"domain", "application", "infrastructure", "evaluation", "presentation", "services"}
+LAYERS = {"domain", "application", "infrastructure", "evaluation", "presentation", "services", "composition"}
 ALLOWED = {
+    "composition": LAYERS,
     "domain": {"domain"},
     "application": {"application", "domain"},
     "infrastructure": {"infrastructure", "application", "domain"},
@@ -94,3 +95,18 @@ def test_make_decision_is_the_only_production_coordinator():
                   if isinstance(node, ast.ClassDef) and node.name == "Coordinator"]
         assert not legacy, f"{path}: legacy Coordinator is forbidden"
         assert "neftecode.infrastructure.ml.agents" not in set(imports(path)), path
+
+
+def test_composition_is_only_used_by_external_entry_points():
+    for layer in ("domain", "application", "infrastructure", "evaluation", "presentation"):
+        for path in (PACKAGE / layer).rglob("*.py"):
+            assert not any(name.startswith("neftecode.composition") for name in imports(path)), path
+    assert not (PACKAGE / "command_runtime.py").exists()
+    assert not (PACKAGE / "command_dispatcher.py").exists()
+
+
+def test_cli_dispatcher_covers_the_public_commands():
+    from neftecode.composition.commands.dispatcher import HANDLERS
+    from neftecode.presentation.cli import COMMANDS
+
+    assert set(HANDLERS) == set(COMMANDS)
