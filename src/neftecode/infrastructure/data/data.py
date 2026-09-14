@@ -232,8 +232,11 @@ def recent_quality_history(lab: pd.DataFrame, online: pd.DataFrame, when, cfg: d
     per_hour = float(3600 / steps.median()) if len(steps) and steps.median() > 0 else None
     available = lab.time + pd.Timedelta(value=bounds["lab_delay_hours"], unit="h")
     recent_lab = lab[(lab.time > start) & (available <= when)]
+    known = part[~untrusted]
     return {
         "quality_history_hours": QUALITY_HISTORY_HOURS,
+        "pak_last_trusted_value": float(known.iloc[-1]) if len(known) else None,
+        "pak_last_trusted_time": known.index[-1].isoformat() if len(known) else None,
         "pak_trusted_hourly": [[t.isoformat(), float(row["mean"]), int(row["count"])]
                                for t, row in hourly.iterrows()],
         "pak_expected_per_hour": per_hour,
