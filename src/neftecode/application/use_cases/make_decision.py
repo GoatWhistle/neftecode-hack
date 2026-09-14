@@ -98,7 +98,6 @@ class MakeDecision:
                initial_tanks=None, current_operation: dict | None = None) -> dict:
         trace: list[dict] = []
         state = state or {}
-        self._current_operation = current_operation
 
         # 1. Data first: a state that cannot carry a decision stops the loop before any model runs.
         if state:
@@ -107,7 +106,8 @@ class MakeDecision:
                           "reasons": list(report.reasons)})
             if not report.usable:
                 return self._finish(REFUSE, report.refusal_reason(), trace, None, None,
-                                    {"kind": "data", "missing": list(report.missing_requirements)})
+                                    {"kind": "data", "missing": list(report.missing_requirements)},
+                                    current_operation=current_operation)
 
         # 2. Bounded proposal/veto loop.
         forbidden: set[str] = set()
@@ -126,7 +126,7 @@ class MakeDecision:
                 break
             try:
                 round_budget = min(remaining, max(1, budget // 2)) if round_number == 1 else remaining
-                plans, info = self._build_plans(budget)
+                plans, info = self._build_plans(budget, current_operation)
             except (PlannerError, ValueError) as exc:
                 raise AgentError(f"Оптимизатор не смог построить кандидатов: {exc}") from exc
             if round_number == 1:
@@ -147,7 +147,9 @@ class MakeDecision:
                     seen_content.add(content)
                     evaluated_total += 1
                     round_evaluated += 1
-                    evaluation = self._evaluate_plan(plan, confirmed, initial_tanks)
+                    evaluation = self._evaluate_plan(
+                        plan, confirmed, initial_tanks, current_operation
+                    )
                 except (PlannerError, ValueError):
                     continue
                 evaluations.append(evaluation)
@@ -195,15 +197,16 @@ class MakeDecision:
             return self._finish(REFUSE,
                                 "Ни один вариант не проходит одновременно все обязательные проверки",
                                 trace, None, None,
-                                {"kind": "no_feasible_plan", "examples": reasons})
+                                {"kind": "no_feasible_plan", "examples": reasons},
+                                current_operation=current_operation)
 
         # 3. Re-check the chosen plan through the same gate before releasing it.
         plan_id = selected["selected"]["candidate_id"]
-        plans, _ = self._build_plans(budget)
+        plans, _ = self._build_plans(budget, current_operation)
         chosen = selected_plan_obj or next((p for p in plans if p.plan_id == plan_id), None)
         if chosen is None:
             raise AgentError(f"Выбранный план {plan_id} не найден при повторной проверке")
-        final = self._evaluate_plan(chosen, confirmed, initial_tanks)
+        final = self._evaluate_plan(chosen, confirmed, initial_tanks, current_operation)
         review = self._review(final)
         trace.append({"agent": "quality", "stage": "final", **review["quality"]})
         trace.append({"agent": "reliability", "stage": "final", **review["reliability"]})
@@ -212,7 +215,8 @@ class MakeDecision:
                                 "Повторная проверка выбранного плана не пройдена: решение не выдаётся",
                                 trace, None, None,
                                 {"kind": "final_recheck_failed",
-                                 "examples": list(final.gate.rejection_reasons())[:5]})
+                                 "examples": list(final.gate.rejection_reasons())[:5]},
+                                current_operation=current_operation)
 
         # 4. Robustness: a plan that only holds when every coefficient is exactly right is
         #    reported as fragile rather than released as reliable.
@@ -231,7 +235,10 @@ class MakeDecision:
             reason += (f". Предупреждение: план теряет допустимость при "
                        f"{robustness['violated']} из {robustness['perturbations_evaluated']} "
                        f"заданных отклонений и надёжным не считается")
-        return self._finish(status, reason, trace, chosen, final, None, selected, robustness)
+        return self._finish(
+            status, reason, trace, chosen, final, None, selected, robustness,
+            current_operation=current_operation,
+        )
 
     def execute(self, command: DecisionCommand) -> DecisionResult:
         """Application entry point; accepts a mapping or explicit decision arguments."""
@@ -246,15 +253,15 @@ class MakeDecision:
 
     # --- Internals ---
 
-    def _build_plans(self, budget):
-        if self._current_operation is not None:
-            return self.planner.build_plans(budget, current_operation=self._current_operation)
+    def _build_plans(self, budget, current_operation=None):
+        if current_operation is not None:
+            return self.planner.build_plans(budget, current_operation=current_operation)
         return self.planner.build_plans(budget)
 
-    def _evaluate_plan(self, plan, confirmed, initial_tanks):
-        if self._current_operation is not None:
+    def _evaluate_plan(self, plan, confirmed, initial_tanks, current_operation=None):
+        if current_operation is not None:
             return self.planner.evaluate(plan, confirmed, initial_tanks=initial_tanks,
-                                         current_operation=self._current_operation)
+                                         current_operation=current_operation)
         if initial_tanks is not None:
             return self.planner.evaluate(plan, confirmed, initial_tanks=initial_tanks)
         return self.planner.evaluate(plan, confirmed)
@@ -384,10 +391,10 @@ class MakeDecision:
         return False
 
     def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None,
-                robustness=None) -> dict:
+                robustness=None, current_operation=None) -> dict:
         result = {
             "status": status, "reason": reason, "scope": SCENARIO_SCOPE,
-            "current_operation": self._current_operation,
+            "current_operation": current_operation,
             "commercial_release_allowed": False,
             "scenario_id": self.scenario.scenario_id,
             "selected_plan": plan.to_dict() if plan is not None else None,
