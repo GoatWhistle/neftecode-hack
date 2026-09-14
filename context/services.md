@@ -11,7 +11,7 @@
 | decision-service | 8768 | `MakeDecision`, binding прогноза, live orchestration | data + model HTTP |
 | gateway-service | 8765 | HTML и legacy `/api/*` интерфейс | data + decision HTTP |
 
-Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; общий GetLiveAdvice в decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза со сценарием и запускает доменное решение. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
+Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; общий GetLiveAdvice в decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза с притоком основного резервуара, оценивает серу его содержимого по истории доверенных показаний из snapshot (T51–T52) и запускает доменное решение. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
 
 ## Контракты и endpoints
 
