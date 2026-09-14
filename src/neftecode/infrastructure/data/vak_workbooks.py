@@ -7,7 +7,18 @@ import openpyxl
 import pandas as pd
 
 
-LAB_POINT_COLUMNS = {"hydrotreating_2": range(82, 108, 2)}
+LAB_POINT_COLUMNS = {
+    "hydrotreating_2": range(82, 108, 2),
+    "avt_1": range(0, 22, 2),
+    "avt_3": range(50, 66, 2),
+}
+
+#: Header text of the first column of each point; checked so a changed export is not misread.
+LAB_POINT_HEADERS = {
+    "hydrotreating_2": "Установка 'Гидроочистка'.. Точка отбора '2'.",
+    "avt_1": "Установка 'АВТ'. Точка отбора '1'.",
+    "avt_3": "Установка 'АВТ'. Точка отбора '3'.",
+}
 
 
 def read_formula_rows(workbook_path: Path) -> list[tuple[str, str, str]]:
@@ -48,6 +59,19 @@ def read_lab_point(workbook_path: Path, columns) -> dict[str, pd.DataFrame]:
             frame.drop_duplicates("time").sort_values("time").reset_index(drop=True)
         )
     return series
+
+
+def read_avt_points(workbook_path: Path) -> dict[str, dict[str, pd.DataFrame]]:
+    """AVT laboratory points 1 and 3, after checking the export still has them where expected."""
+    book = openpyxl.load_workbook(workbook_path, read_only=True, data_only=True)
+    header = next(iter(book.active.values))
+    book.close()
+    for point in ("avt_1", "avt_3"):
+        first = LAB_POINT_COLUMNS[point][0]
+        if not isinstance(header[first], str) or not header[first].startswith(LAB_POINT_HEADERS[point]):
+            raise ValueError(f"ЛИМС: в колонке {first} ожидалась «{LAB_POINT_HEADERS[point]}», "
+                             f"найдено {header[first]!r}")
+    return {point: read_lab_point(workbook_path, LAB_POINT_COLUMNS[point]) for point in ("avt_1", "avt_3")}
 
 
 def load_vak_inputs(task_dir: Path) -> tuple[list[tuple[str, str, str]], dict[str, pd.DataFrame]]:
