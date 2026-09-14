@@ -27,7 +27,7 @@ def test_future_mutation_cannot_change_features_or_trust():
     signals.loc[signals.index > decisions.max()] = 999999
     online.loc[online.time > decisions.max(), "value"] = 999999
     # Even an earlier sample remains unknown if its result has not arrived.
-    lab.loc[lab.time + pd.Timedelta(hours=4) > decisions.max(), "value"] = 999999
+    lab.loc[lab.time + pd.Timedelta(value=4, unit="h") > decisions.max(), "value"] = 999999
     x2, m2 = build_features(signals, lab, online, decisions, CFG)
     pd.testing.assert_frame_equal(x1, x2)
     pd.testing.assert_frame_equal(m1, m2)

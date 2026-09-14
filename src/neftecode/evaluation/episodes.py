@@ -46,7 +46,7 @@ def excursion_episodes(readings, limit: float, gap_tolerance_minutes: float = 30
     if not above.any():
         return pd.DataFrame(columns=["start", "end", "duration_hours", "n_points", "peak", "mean"])
     step = series.index.to_series().diff()
-    broken = step > pd.Timedelta(minutes=gap_tolerance_minutes)
+    broken = step > pd.Timedelta(value=gap_tolerance_minutes, unit="m")
     group = (above.ne(above.shift()) | broken).cumsum()
     typical = sampling_step_hours(series)
     rows = []
@@ -71,7 +71,7 @@ def batch_average(readings, window_hours: float, min_coverage: float = .5) -> pd
     series = _as_series(readings)
     window = f"{int(round(window_hours * 60))}min"
     step = series.index.to_series().diff().median()
-    expected = max(1, int(pd.Timedelta(hours=window_hours) / step)) if pd.notna(step) else 1
+    expected = max(1, int(pd.Timedelta(value=window_hours, unit="h") / step)) if pd.notna(step) else 1
     mean = series.rolling(window, closed="right").mean()
     count = series.rolling(window, closed="right").count()
     return mean.where(count >= min_coverage * expected)
@@ -128,7 +128,7 @@ def trend_margin(readings, at, limit: float, window_hours: float = 8,
     """Hours until the batch proxy reaches the limit, from trailing data only."""
     when = pd.Timestamp(at)
     averaged = batch_average(readings, batch_window_hours)
-    history = averaged.loc[(averaged.index > when - pd.Timedelta(hours=window_hours)) &
+    history = averaged.loc[(averaged.index > when - pd.Timedelta(value=window_hours, unit="h")) &
                            (averaged.index <= when)].dropna()
     result = {"at": when.isoformat(), "limit": float(limit), "points": int(len(history)),
               "window_hours": float(window_hours), "batch_window_hours": float(batch_window_hours),
@@ -200,7 +200,7 @@ def margin_series(readings, limit: float, batch_window_hours: float = 8,
     """
     averaged = batch_average(readings, batch_window_hours)
     step = pd.Series(averaged.index).diff().median()
-    back = max(1, int(round(pd.Timedelta(hours=slope_window_hours) / step)))
+    back = max(1, int(round(pd.Timedelta(value=slope_window_hours, unit="h") / step)))
     slope = (averaged - averaged.shift(back)) / slope_window_hours
     with np.errstate(divide="ignore", invalid="ignore"):
         hours = (limit - averaged) / slope.where(slope > 0)
@@ -222,7 +222,7 @@ def alarm_events(stamps, rearm_hours: float = 1.0) -> pd.DatetimeIndex:
     if not len(stamps):
         return stamps
     gap = stamps.to_series().diff()
-    starts = gap.isna() | (gap > pd.Timedelta(hours=rearm_hours))
+    starts = gap.isna() | (gap > pd.Timedelta(value=rearm_hours, unit="h"))
     return pd.DatetimeIndex(stamps[starts.to_numpy()])
 
 
@@ -259,9 +259,9 @@ def lead_times(readings, alarms, limit: float, sustained_hours: float = 4,
             rows.append({"start": row.start, "duration_hours": row.duration_hours,
                          "outcome": "unknown", "lead_hours": None, "first_alarm": None})
             continue
-        window = ((events >= row.start - pd.Timedelta(hours=max_lead_hours)) &
+        window = ((events >= row.start - pd.Timedelta(value=max_lead_hours, unit="h")) &
                   (events <= row.end) & ~used)
-        covered |= ((events >= row.start - pd.Timedelta(hours=max_lead_hours)) & (events <= row.end))
+        covered |= ((events >= row.start - pd.Timedelta(value=max_lead_hours, unit="h")) & (events <= row.end))
         if not window.any():
             rows.append({"start": row.start, "duration_hours": row.duration_hours,
                          "outcome": "missed", "lead_hours": None, "first_alarm": None})

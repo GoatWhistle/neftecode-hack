@@ -51,8 +51,8 @@ def test_non_sulfur_experiment_does_not_inherit_sulfur_limit():
     decision = pd.to_datetime(np.concatenate([pd.date_range(t, periods=30, freq="D") for t in times]))
     y = np.linspace(350., 360., len(decision))
     x = pd.DataFrame({"lab.target": y, "signal": np.sin(np.arange(len(y)))}, index=range(len(y)))
-    meta = pd.DataFrame({"decision_time": decision, "target_available_time": decision + pd.Timedelta(hours=1),
-                         "target_time": decision + pd.Timedelta(hours=2), "actual_target": y})
+    meta = pd.DataFrame({"decision_time": decision, "target_available_time": decision + pd.Timedelta(value=1, unit="h"),
+                         "target_time": decision + pd.Timedelta(value=2, unit="h"), "actual_target": y})
     cfg = {"seed": 1, "train_end": "2025-01-01", "validation_end": "2025-07-01",
            "calibration_end": "2026-01-01", "interval_coverage": .9, "sulfur_limit": 10.,
            "assumptions": []}
