@@ -92,6 +92,54 @@ def test_healthy_data_lets_the_loop_proceed():
     assert decision["trace"][0]["usable"] is True
 
 
+def test_request_operation_is_not_stored_on_the_reusable_use_case():
+    scenario = load_scenario(BASELINE)
+    raw = json.loads(BASELINE.read_text())
+
+    class RobustnessSpy:
+        seen = None
+
+        def evaluate(self, scenario, document, plan, confirmed, tanks, current_operation):
+            self.seen = current_operation
+            return {"held": True, "perturbations_evaluated": 1, "violated": 0,
+                    "fragile": False}
+
+    robustness = RobustnessSpy()
+    engine = MakeDecision(scenario, robustness_evaluator=robustness)
+    operation = {
+        "controls": engine.planner.base_controls(),
+        "recipe": {"main": 0.85, "reserve": 0.15, "light": 0.0},
+        "throughput_tph": 90.0,
+        "additive_dose": 0.0,
+    }
+    built_with, evaluated_with = [], []
+    build_plans = engine.planner.build_plans
+    evaluate = engine.planner.evaluate
+
+    def record_build(budget, current_operation=None):
+        built_with.append(current_operation)
+        return build_plans(budget, current_operation=current_operation)
+
+    def record_evaluation(plan, confirmed=(), initial_tanks=None, current_operation=None):
+        evaluated_with.append(current_operation)
+        return evaluate(plan, confirmed, initial_tanks, current_operation)
+
+    engine.planner.build_plans = record_build
+    engine.planner.evaluate = record_evaluation
+
+    first = engine.decide(
+        budget=BUDGET, raw_scenario=raw, current_operation=operation
+    )
+    second = engine.decide(budget=BUDGET)
+
+    assert first["current_operation"] == operation
+    assert built_with[0] == operation
+    assert evaluated_with[0] == operation
+    assert robustness.seen == operation
+    assert second["current_operation"] is None
+    assert not hasattr(engine, "_current_operation")
+
+
 # --- A veto changes the next search ---
 
 def test_a_veto_creates_feedback_candidates_for_the_following_round():
