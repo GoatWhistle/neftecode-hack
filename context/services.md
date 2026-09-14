@@ -1,4 +1,6 @@
-# Сервисный deployment T38
+# Сервисная архитектура
+
+Актуально после T44 и исправления T41/T43, 2026-09-14.
 
 Проект остаётся monorepo, но расчётные границы запускаются четырьмя независимыми Python-процессами. `neftecode-stack` запускает их через `sys.executable -m`, проверяет `healthz`/`readyz` и при ошибке завершает process groups.
 
@@ -9,11 +11,11 @@
 | decision-service | 8768 | `MakeDecision`, binding прогноза, live orchestration | data + model HTTP |
 | gateway-service | 8765 | HTML и legacy `/api/*` интерфейс | data + decision HTTP |
 
-Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза со сценарием и запускает доменное решение. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
+Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; общий GetLiveAdvice в decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза со сценарием и запускает доменное решение. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
 
 ## Контракты и endpoints
 
-Data: `GET /v1/scenarios`, `POST /v1/scenarios/get` с `{scenario_id}`, `GET /v1/capabilities`, `POST /v1/snapshots` с `{at}`. Snapshot содержит `schema_version`, `at`, `state`, `trust`, JSON `features`, `source_period`, `feature_schema`, `feature_schema_hash` и `snapshot_id`. `snapshot_id` — SHA-256 канонического содержимого без самого идентификатора; pandas/numpy наружу не проходят.
+Data: `GET /v1/scenarios`, `POST /v1/scenarios/get` с `{scenario_id}`, `GET /v1/capabilities`, `POST /v1/snapshots` с `{at}`. Snapshot содержит `schema_version`, `at`, `state`, `trust`, JSON `features`, `trust_config`, `source_period`, `feature_schema`, `feature_schema_hash` и `snapshot_id`. `snapshot_id` — SHA-256 канонического содержимого без самого идентификатора; pandas/numpy наружу не проходят.
 
 Model: `GET /v1/models`, `POST /v1/forecast` с `{snapshot, fallback}`. Он проверяет структуру и хеши snapshot, совпадение `at` и `state.decision_time`, диапазон источника, `trust.usable` и полный набор признаков. Ответ содержит `model`, `value`, `lower`, `upper`, `available`, `reason` и `at`.
 
