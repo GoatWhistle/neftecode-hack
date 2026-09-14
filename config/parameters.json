@@ -1,5 +1,5 @@
 {
-  "version": "2026-09-12",
+  "version": "2026-09-14",
   "purpose": "Машиночитаемый реестр требований, управляющих переменных и открытых вопросов. Поле status у каждой записи обязательно и определяет, как значение разрешено использовать.",
   "status_meaning": {
     "given": "Значение задано ТЗ или ответом эксперта. Можно использовать как факт.",
@@ -49,14 +49,16 @@
   },
 
   "control_variables": {
-    "_note": "Имена и единицы взяты со схем task/АВТ_схемы.pdf, где переменные помечены как управляемые. Соответствие коротким тегам CSV в пакете не задано, поэтому модель последствий работает в этих именованных физических переменных, а не в сырых тегах.",
-    "crude_feed_rate_tph": {"unit": "т/ч", "stage": "avt", "status": "given", "source": "схемы, блок «управляемые переменные»", "csv_tag": null, "csv_candidates": ["avt.F7", "avt.F8", "avt.F9"], "mapping_status": "open"},
-    "avt_furnace_outlet_temp_c": {"unit": "°C", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "csv_candidates": ["avt.T55"], "mapping_status": "open"},
-    "avt_column_top_temp_c": {"unit": "°C", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "csv_candidates": ["avt.T1", "avt.T20"], "mapping_status": "open"},
-    "avt_column_pressure_mpa_abs": {"unit": "МПа абс.", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "csv_candidates": ["avt.P22", "avt.P23", "avt.P67"], "mapping_status": "open"},
-    "avt_diesel_flow_tph": {"unit": "т/ч", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "csv_candidates": ["avt.W70", "avt.F30"], "mapping_status": "open"},
-    "ht_feed_flow_m3h": {"unit": "м3/ч", "stage": "hydrotreating", "status": "given", "source": "схемы", "csv_tag": null, "csv_candidates": ["ht.F26"], "mapping_status": "open"},
-    "ht_pressure_mpa": {"unit": "МПа", "stage": "hydrotreating", "status": "given", "source": "схемы", "csv_tag": null, "csv_candidates": ["ht.F19"], "mapping_status": "open"},
+    "_note": "Имена и единицы — английские подписи со старых схем task/АВТ_схемы.pdf. Обновлённые сканы 14.09 (context/avt-schemes-2026-09-14.md) подписали короткие теги АВТ и показали, что одно имя стоит на физически разных приборах. Поэтому имена остаются логическими переменными сценарной модели; привязка к CSV — только как проверенное соответствие со статусом mapping_status. Код эти поля не читает.",
+    "_legend": "На старых схемах толстый синий и зелёный кружок подписан как «управляемые переменные». Это указание схемы, а не подтверждённый список регуляторов: зелёными отмечены и показывающие F65 FI, T33 TI.",
+    "crude_feed_rate_tph": {"unit": "т/ч", "stage": "avt", "status": "given", "source": "схемы: FC сырой нефти до ЭЛОУ", "csv_tag": null, "scheme_instruments": "три FC сырой нефти и FC «суммарный расход» — без номеров тегов", "related_tags": ["avt.F7", "avt.F8", "avt.F9"], "mapping_status": "open", "note": "F7–F9 — расходомеры FI обессоленной нефти после ЭЛОУ; сумма медиан ≈738, единица не указана."},
+    "avt_furnace_outlet_temp_c": {"unit": "°C", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "scheme_instruments": "имя стоит на avt.T6 (TC низа К-1, горячая струя П-1/1), avt.F65 (FI питания К-2) и avt.T49 (TC верха К-10)", "related_tags": ["avt.T33", "avt.T71", "avt.T66", "avt.F65"], "rejected_candidates": {"avt.T55": "выход вакуумной печи П-3 перед К-10; к дизельной фракции К-2 не относится, имени рядом нет"}, "mapping_status": "contradicted", "note": "Выходы атмосферных печей П-1/2, П-1/3 имеют TC без номера. Единого тега нет."},
+    "avt_column_top_temp_c": {"unit": "°C", "stage": "avt", "status": "given", "source": "схемы: жёлтая рамка у TI ввода в К-1", "csv_tag": null, "scheme_instruments": "жёлтый TI без номера", "related_tags": ["avt.T1", "avt.T20"], "mapping_status": "open"},
+    "avt_column_pressure_mpa_abs": {"unit": "МПа абс.", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "scheme_instruments": "avt.P2 (PIRC верха К-1), avt.P22 (PIC верха К-2), avt.P50/P51 (PI верха К-10)", "related_tags": ["avt.P2", "avt.P22", "avt.P23", "avt.P67"], "mapping_status": "semantics_by_scheme_scale_open", "note": "Для дизельной фракции ближайший — avt.P22, давление верха К-2; единица в данных не указана, у P22 есть хвост до 240."},
+    "avt_diesel_flow_tph": {"unit": "т/ч", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "scheme_instruments": "avt.F32 (FC ДТ из К-9), avt.F59/F60 (фр. 350–560 К-10), avt.F45 (Т-7/2 в К-10), линии без номера", "related_tags": ["avt.F32", "avt.F30", "avt.W70"], "mapping_status": "open", "note": "Дизельная фракция по справочнику: F32 (240–290) и F30/W70 (290–350)."},
+    "steam_t": {"unit": "не указана", "stage": "avt", "status": "given", "source": "схемы", "csv_tag": null, "scheme_instruments": "avt.F5 (пар в К-1), FC пара в низ К-10 без номера", "related_tags": ["avt.F5", "avt.F29"], "mapping_status": "open", "note": "Не используется в сценарной модели."},
+    "ht_feed_flow_m3h": {"unit": "м3/ч", "stage": "hydrotreating", "status": "given", "source": "имя со схемы АВТ", "csv_tag": null, "scheme_instruments": "на схеме АВТ стоит на avt.F45 (холодный гудрон в К-10)", "related_tags": ["ht.F26"], "mapping_status": "open", "note": "Эксперт на Q&A 11.09: 24-2000 к схемам АВТ не относится. ht.F26 — объёмный расход сырья по листу КИП 24-2000, связь со схемой не подтверждена."},
+    "ht_pressure_mpa": {"unit": "МПа", "stage": "hydrotreating", "status": "given", "source": "имя со схемы АВТ", "csv_tag": null, "scheme_instruments": "на схеме АВТ стоит на avt.P44 (вакуум низа К-10)", "related_tags": ["ht.F19"], "mapping_status": "open", "note": "ht.F19 — давление на входе Р-202 по эксперту (сообщение 520), масштаб противоречит."},
     "ht_reactor_inlet_temp_c": {"unit": "°C", "stage": "hydrotreating", "status": "given", "source": "Эксперт, сообщение 520: P8 — температура ГСС на входе Р-202", "csv_tag": "ht.P8", "mapping_status": "semantics_confirmed_scale_contradicted"}
   },
 
@@ -128,5 +130,13 @@
     "status": "given",
     "source": "ТЗ, раздел 2: при расхождении лабораторный результат — контрольный факт",
     "note": "ПАК периодически выходит из строя. Приоритет эталона не меняется от того, какой источник даёт лучший прогноз."
+  },
+
+  "deployment_requirements": {
+    "offline_operation": {"value": true, "status": "given", "source": "Q&A 11.09, Кызродев: технологическая сеть не связана с интернетом, решение должно работать локально"},
+    "closed_environment_is_evaluated": {"value": true, "status": "given", "source": "Q&A 11.09, Шишкин: оценивается архитектурная грамотность и запуск в закрытой среде"},
+    "local_llm": {"value": "OpenAI-совместимое API, модели примерно до 30 млрд параметров", "status": "given", "source": "Q&A 11.09, Шишкин", "note": "LLM не обязательна; в текущем решении не используется."},
+    "engineering_models": {"status": "given", "source": "Q&A 11.09, Шишкин: физико-химические и математические модели приветствуются при обосновании"},
+    "plant_feedback_control": {"status": "given_qualitative", "source": "Q&A 11.09, Шишкин: на АВТ и 24-2000 стоят системы управления с обратной связью, быстро реагирующие на изменения", "note": "Совет относится к уставкам и режиму, которые отрабатывают регуляторы. В модели последствий явно не описано."}
   }
 }
