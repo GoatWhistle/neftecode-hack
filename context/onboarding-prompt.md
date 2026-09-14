@@ -9,7 +9,8 @@
 2. Прочитай полный кейс в task/, разбор context/task-review/ и organizer-clarifications.md,
    затем avt-schemes-2026-09-14.md (сканы схем АВТ с тегами) и qa-session-2026-09-11.md
    (транскрипция Q&A). Различай исходное ТЗ, ответы организаторов, материалы от пользователя
-   и наши предположения. Telegram проверен только до сообщения 552; не заявляй, что чат проверен сегодня.
+   и наши предположения. Telegram проверен до сообщения 572 (2026-09-15); не заявляй, что чат проверен сегодня.
+   Машинное распознавание видео Q&A — history/qa-session-2026-09-11-whisper.md, доверие ниже официального текста.
 3. Прочитай context/solution.md, architecture.md, services.md, code-tour.md,
    requirements-map.md, backlog.md и defence.md.
 4. Прочитай context/self-review-2026-09-14.md, затем live-fixes-2026-09-14.md:
