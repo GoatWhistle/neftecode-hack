@@ -25,7 +25,7 @@ from neftecode.application.ports.robustness import RobustnessEvaluator
 from neftecode.application.services.explain import explain
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
 from neftecode.application.use_cases.make_decision import MakeDecision
-from neftecode.infrastructure.ml.runtime import validate_origin
+from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
 
@@ -73,6 +73,13 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main") -> dict:
     """
     if not forecast.get("available"):
         raise LiveError(forecast.get("reason", "Прогноз недоступен"))
+    values = tuple(forecast.get(key) for key in ("lower", "value", "upper"))
+    if (not all(isinstance(value, (int, float)) and not isinstance(value, bool)
+                and np.isfinite(value) for value in values)
+            or not values[0] <= values[1] <= values[2]):
+        raise LiveError("Прогноз содержит некорректное значение или доверительный интервал")
+    if not isinstance(forecast.get("model"), str) or not forecast["model"].strip():
+        raise LiveError("Прогноз не содержит версию модели")
     out = copy.deepcopy(raw)
     for tank in out["tanks"]:
         if tank["tank_id"] == tank_id:

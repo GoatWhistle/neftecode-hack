@@ -1,6 +1,6 @@
 import pytest
 
-from neftecode.infrastructure.ml.agents import DataAgent
+from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.data.data import series_frame
 
 
@@ -10,7 +10,7 @@ def test_series_frame_refuses_non_numeric_measurements_instead_of_dropping_them(
 
 
 def test_data_agent_refuses_impossible_negative_missing_fraction():
-    decision = DataAgent().assess({
+    decision = DataTrustAgent({}).assess({
         "lab_value": 8.0,
         "lab_usable": True,
         "pak_value": 8.4,
@@ -20,6 +20,6 @@ def test_data_agent_refuses_impossible_negative_missing_fraction():
         "pak_conflict": False,
         "telemetry_missing_fraction": -0.01,
     })
-    assert decision["usable"] is False
-    assert any("доля пропусков" in reason for reason in decision["reasons"])
-    assert "полная свежая телеметрия за последний срез" in decision["missing_requirements"]
+    assert decision.usable is False
+    assert any("доля пропусков" in reason for reason in decision.reasons)
+    assert "полная свежая телеметрия за последний срез" in decision.missing_requirements

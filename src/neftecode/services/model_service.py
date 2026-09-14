@@ -12,7 +12,7 @@ from typing import Any
 import pandas as pd
 
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
-from neftecode.infrastructure.ml.runtime import validate_origin
+from neftecode.infrastructure.live.origin import validate_origin
 from .common import Request, ServiceError, ServiceSettings, clean, serve, content_hash
 
 
