@@ -213,3 +213,25 @@ def test_dispatch_picks_the_right_explanation():
 def test_explanations_are_reproducible():
     decision, scenario = decide(SOUR)
     assert explain(decision, scenario) == explain(decision, scenario)
+
+
+def test_a_control_is_explained_as_a_setpoint_with_its_loop_and_lag():
+    decision, scenario = decide(SOUR)
+    result = explain(decision, scenario)
+    controls = [s for s in result["statements"] if s["topic"].startswith("control.")]
+    assert controls, "в совете нет управляющих переменных"
+    ht = next(s for s in controls if s["topic"] == "control.ht_reactor_inlet_temp_c")
+    assert "уставку регулятора" in ht["text"] and "Р-202" in ht["text"]
+    assert any("ht.P8" in (e.get("detail") or "") for e in ht["evidence"])
+    # sour_crude keeps the hydrotreater setpoint, so the operator is told to keep it, not to change it.
+    assert ht["text"].startswith("ht_reactor_inlet_temp_c: сохранить уставку регулятора 348")
+    assert any("регулятор" in limit for limit in result["limits"])
+
+
+def test_a_moved_setpoint_names_the_change_and_the_response_delay():
+    decision, scenario = decide(SOUR)
+    decision["immediate_action"]["controls"]["ht_reactor_inlet_temp_c"] = 352.0
+    statement = next(s for s in explain(decision, scenario)["statements"]
+                     if s["topic"] == "control.ht_reactor_inlet_temp_c")
+    assert "изменить уставку регулятора с 348 до 352" in statement["text"]
+    assert "через 2 ч" in statement["text"]

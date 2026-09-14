@@ -9,6 +9,7 @@ from neftecode.domain.shared.primitives import QUALITIES
 from neftecode.domain.production.scenario import (
     SCHEMA,
     Additive,
+    ControlActuation,
     CurrentOperation,
     Horizon,
     ProductSpec,
@@ -115,8 +116,19 @@ def _parse_stage(stage_id: str, raw: dict) -> Stage:
             raise ScenarioError(f"{where}.controls.{name}: текущее значение {current.value} вне "
                                 f"заданного диапазона [{low.value}, {high.value}]")
         step = spec.get("step")
+        raw_actuation = spec.get("actuation")
+        if not isinstance(raw_actuation, dict):
+            raise ScenarioError(f"{where}.controls.{name}.actuation: не описано, как исполняется изменение "
+                                f"(регулятор с обратной связью, контур, тег)")
+        try:
+            actuation = ControlActuation(raw_actuation.get("kind"), raw_actuation.get("loop"),
+                                         raw_actuation.get("measured_tag"), raw_actuation.get("source"),
+                                         raw_actuation.get("note", ""))
+        except ScenarioError as exc:
+            raise ScenarioError(f"{where}.controls.{name}.{exc}") from exc
         controls[name] = {"min": low, "max": high, "current": current,
-                          "step": quantity(step, kind, f"{where}.controls.{name}.step") if step else None}
+                          "step": quantity(step, kind, f"{where}.controls.{name}.step") if step else None,
+                          "actuation": actuation}
     return Stage(stage_id, controls, lag, raw.get("model", {}))
 
 

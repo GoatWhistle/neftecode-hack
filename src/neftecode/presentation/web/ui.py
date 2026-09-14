@@ -83,6 +83,8 @@ function render() {
             .map(([k, v]) => [k, change(current.controls?.[k], v, 2)])
             .concat([["Выпуск, т/ч", change(current.throughput_tph, d.immediate_action?.throughput_tph, 1)],
                      ["Доля присадки", change(current.additive_dose, d.immediate_action?.additive_dose, 4)]]))}</table>
+        <p class="note">Уставки задаются регуляторам с обратной связью:<br>${(e.statements || [])
+            .filter(s => s.topic.startsWith("control.")).map(s => esc(s.text)).join("<br>")}</p>
         <h3>Состав смеси: сейчас → предложено</h3>
         <table>${rows(recipeRows(current.recipe, d.immediate_action?.recipe))}</table>`));
 
