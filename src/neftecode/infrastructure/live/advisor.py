@@ -22,16 +22,54 @@ import pandas as pd
 
 from neftecode.infrastructure.data.data import build_features
 from neftecode.application.ports.robustness import RobustnessEvaluator
-from neftecode.application.services.explain import explain
+from neftecode.application.contracts import LiveForecast, LiveSnapshot, LiveAdviceCommand
+from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
-from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.infrastructure.live.origin import validate_origin
-from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
+from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
 
 
 class LiveError(ValueError):
     """Raised when the real measurements cannot be joined to a scenario."""
+
+
+class LocalScenarioProvider:
+    def __init__(self, raw_scenario: dict):
+        self.raw_scenario = raw_scenario
+
+    def get(self, scenario_id):
+        scenario = parse_scenario(self.raw_scenario)
+        if scenario.scenario_id != scenario_id:
+            raise LiveError(f"Сценарий «{scenario_id}» не совпадает с загруженным")
+        return scenario, copy.deepcopy(self.raw_scenario)
+
+
+class LocalSnapshotProvider:
+    def __init__(self, signals, lab, online, bundle):
+        self.signals, self.lab, self.online, self.bundle = signals, lab, online, bundle
+
+    def snapshot(self, at):
+        when = validate_origin(at, self.bundle)
+        state = state_at(self.signals, self.lab, self.online, self.bundle, when)
+        trust = DataTrustAgent(self.bundle["config"]).assess(state)
+        return LiveSnapshot(when.isoformat(), state, trust.to_dict(), trust_cfg=self.bundle["config"])
+
+
+class LocalForecastProvider:
+    def __init__(self, signals, lab, online, bundle):
+        self.signals, self.lab, self.online, self.bundle = signals, lab, online, bundle
+
+    def forecast(self, snapshot):
+        raw = forecast_at(self.signals, self.lab, self.online, self.bundle,
+                          pd.Timestamp(snapshot.at), fallback=snapshot.trust.get("fallback", False))
+        return LiveForecast.from_dict(raw)
+
+
+class LocalForecastScenarioBinder:
+    def bind(self, raw_scenario, forecast):
+        raw = bind_forecast(dict(raw_scenario), forecast.to_dict())
+        return parse_scenario(raw), raw
 
 
 def state_at(signals, lab, online, bundle, when) -> dict:
@@ -106,46 +144,15 @@ class LiveAdviceAdapter:
     budget: int = 400
     robustness_evaluator: RobustnessEvaluator | None = None
 
+    def __post_init__(self):
+        self._use_case = GetLiveAdvice(
+            scenarios=LocalScenarioProvider(self.raw_scenario),
+            snapshots=LocalSnapshotProvider(self.signals, self.lab, self.online, self.bundle),
+            forecasts=LocalForecastProvider(self.signals, self.lab, self.online, self.bundle),
+            binder=LocalForecastScenarioBinder(),
+            robustness_factory=(lambda scenario, raw: self.robustness_evaluator),
+        )
+
     def advise(self, at) -> dict:
-        when = validate_origin(at, self.bundle)
-        state = state_at(self.signals, self.lab, self.online, self.bundle, when)
-        trust = DataTrustAgent(self.bundle["config"]).assess(state)
-
-        forecast = {"model": None, "value": None, "lower": None, "upper": None,
-                    "available": False, "reason": "Прогноз не вычислялся: источники не прошли проверку"}
-        result = {"at": when.isoformat(), "state": state, "forecast": forecast,
-                  "trust": trust.to_dict(), "scenario_id": self.raw_scenario.get("id")}
-
-        if not trust.usable:
-            scenario = parse_scenario(self.raw_scenario)
-            decision = MakeDecision(scenario, robustness_evaluator=self.robustness_evaluator).decide(state=state, budget=self.budget,
-                                                     trust_cfg=self.bundle["config"],
-                                                     raw_scenario=self.raw_scenario)
-            return {**result, "decision": decision,
-                    "explanation": explain(decision, scenario),
-                    "note": "Источники не прошли проверку: решение принято без запуска моделей."}
-        # Only an admissible state may reach a prediction model. A rejected analyser also
-        # excludes models using its features, even if the laboratory remains usable.
-        forecast = forecast_at(self.signals, self.lab, self.online, self.bundle, when,
-                               fallback=trust.fallback_mode)
-        result["forecast"] = forecast
-        try:
-            raw = bind_forecast(self.raw_scenario, forecast)
-            scenario = parse_scenario(raw)
-        except (LiveError, ScenarioError) as exc:
-            return {**result, "decision": None, "explanation": None,
-                    "error": str(exc),
-                    "note": "Реальный прогноз не удалось связать со сценарием; решение не выдаётся."}
-
-        decision = MakeDecision(scenario, robustness_evaluator=self.robustness_evaluator).decide(state=state, budget=self.budget,
-                                                 trust_cfg=self.bundle["config"],
-                                                 raw_scenario=raw)
-        return {
-            **result,
-            "decision": decision,
-            "explanation": explain(decision, scenario),
-            "bound_sulfur_mgkg": scenario.tank("main").property_value("sulfur_mgkg"),
-            "note": ("Реальны: телеметрия, анализы, прогноз серы и проверка источников. "
-                     "Резервуары, цены, отклики и пределы T95/цетана заданы сценарием. "
-                     "Решение не разрешает выпуск товарного топлива."),
-        }
+        return self._use_case.execute(LiveAdviceCommand(
+            at=at, scenario_id=self.raw_scenario.get("id", ""), budget=self.budget)).to_dict()

@@ -22,10 +22,8 @@ from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, bind_foreca
 from neftecode.presentation.web.server import DemoService, serve as serve_demo
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 from neftecode.evaluation.vak import check_all
-from neftecode.application.contracts import LiveAdviceCommand
 from neftecode.application.services.explain import explain
 from neftecode.application.services.trust import DataTrustAgent
-from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
@@ -504,7 +502,7 @@ def execute(args, parser):
                                   robustness_evaluator=RobustnessCheck(
                                       parse_scenario(raw_scenario), raw_scenario,
                                       scenario_parser=parse_scenario))
-            result = GetLiveAdvice(advisor).execute(LiveAdviceCommand(at=args.at))
+            result = advisor.advise(args.at)
             stamp = when.strftime("%Y%m%d-%H%M%S")
             path = out / f"decision-{stamp}.json"
             write_json(path, result)
