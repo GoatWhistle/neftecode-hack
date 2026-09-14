@@ -56,7 +56,7 @@ class GetLiveAdvice:
                                     None, None, error=forecast.reason,
                                     note="Реальный прогноз недоступен; решение не выдаётся.", inventories=inventories)
         try:
-            bound_scenario, bound_raw = self.binder.bind(raw, forecast)
+            bound_scenario, bound_raw = self.binder.bind(raw, forecast, snapshot)
         except ForecastBindingError as exc:
             return LiveAdviceResult(
                 snapshot.at, command.scenario_id, snapshot.state, trust, forecast, None, None,
@@ -67,7 +67,9 @@ class GetLiveAdvice:
         return LiveAdviceResult(snapshot.at, command.scenario_id, snapshot.state, trust, forecast,
                                 decision, explain(decision, bound_scenario), inventories=inventories,
                                 bound_sulfur_mgkg=self._bound_sulfur(bound_scenario),
-                                note=("Реальны: телеметрия, анализы, прогноз серы и проверка источников. "
+                                bound_inflow_sulfur_mgkg=self._bound_inflow(bound_scenario),
+                                note=("Реальны: телеметрия, анализы, прогноз серы притока, оценка серы резервуара "
+                                      "по истории и проверка источников. "
                                       "Резервуары, цены, отклики и пределы T95/цетана заданы сценарием. "
                                       "Решение не разрешает выпуск товарного топлива."))
 
@@ -76,6 +78,14 @@ class GetLiveAdvice:
                      if self.robustness_factory and rejection is None else None)
         return MakeDecision(scenario, robustness_evaluator=evaluator).decide(
             state=dict(snapshot.state), trust_cfg=dict(snapshot.trust_cfg or {}), budget=budget, raw_scenario=dict(raw), data_rejection=rejection)
+
+    @staticmethod
+    def _bound_inflow(scenario):
+        try:
+            inflow = scenario.tank("main").inflow_sulfur
+        except KeyError:
+            return None
+        return None if inflow is None else inflow.value
 
     @staticmethod
     def _bound_sulfur(scenario):

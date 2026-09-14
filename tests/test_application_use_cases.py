@@ -39,7 +39,8 @@ def test_live_use_case_orchestrates_typed_ports(monkeypatch):
             return LiveForecast("test", 8.0, 7.0, 9.0, True, "")
 
     class Binder:
-        def bind(self, raw, forecast):
+        def bind(self, raw, forecast, snapshot=None):
+            assert snapshot is not None, "привязка должна видеть состояние измерений"
             calls.append("bind")
             return current, raw
 

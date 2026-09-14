@@ -94,7 +94,11 @@ class PlanOperation:
         tank = self.scenario.tank(self._main_id())
         sulfur = incoming.sulfur_mgkg if tank.sulfur_from_chain else tank.property_value("sulfur_mgkg")
         declared = tank.properties.get("sulfur_mgkg")
-        if declared is not None and declared.source == "derived":
+        if tank.inflow_sulfur is not None:
+            # A forecast of the hydrotreated stream enters the tank; the action model shifts it.
+            ratio = self._response_ratio(time_hours, pending)
+            sulfur = None if ratio is None else tank.inflow_sulfur.value * ratio
+        elif declared is not None and declared.source == "derived":
             level = self._main_sulfur()
             ratio = self._response_ratio(time_hours, pending)
             sulfur = None if level is None or ratio is None else level * ratio

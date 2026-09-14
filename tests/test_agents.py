@@ -26,9 +26,14 @@ def state():
             "telemetry_missing_fraction": 0.0}
 
 
-def decide(raw, state, value, lower, upper):
+def decide(raw, state, value, lower, upper, stored=None):
     forecast = {"model": "test", "value": value, "lower": lower, "upper": upper,
                 "available": True, "reason": "test"}
+    if stored is not None:
+        for tank in raw["tanks"]:
+            if tank["tank_id"] == "main":
+                tank["sulfur_from_chain"] = False
+                tank["properties"]["sulfur_mgkg"] = {"value": stored, "unit": "мг/кг", "source": "scenario"}
     bound = bind_forecast(raw, forecast)
     return run_demo_decision(bound, state, 400)["decision"]
 
@@ -41,7 +46,10 @@ def test_normal_state_does_not_produce_unnecessary_actions(raw, state):
 
 
 def test_point_forecast_below_limit_is_not_sufficient(raw, state):
-    decision = decide(raw, state, 9.0, 7.0, 11.0)
+    # Stored 10.7 mg/kg: the point inflow 9 keeps the blend in spec, the upper bound 14 does not.
+    judged_by_point = decide(json.loads(json.dumps(raw)), state, 9.0, 7.0, 9.0, stored=10.7)
+    assert judged_by_point["status"] == "hold"
+    decision = decide(raw, state, 9.0, 7.0, 14.0, stored=10.7)
     assert decision["status"] != "hold"
     assert decision["selected_plan"] is None or decision["selected_plan"]["changes"] > 0
 

@@ -57,7 +57,9 @@ def test_real_data_model_decision_live_contract():
         assert result["scenario_id"] == "baseline"
         assert result["forecast"]["value"] == 5.883740425109863
         assert result["forecast"]["upper"] == 9.167584757282347
-        assert result["bound_sulfur_mgkg"] == 9.1676
+        # The forecast upper bound feeds the tank inflow; the stored sulfur comes from 42 h of trusted readings.
+        assert result["bound_inflow_sulfur_mgkg"] == 9.1676
+        assert result["bound_sulfur_mgkg"] == 5.1857
         assert result["decision"]["status"] == "hold"
         assert set(result["inventories"]) == {"main", "reserve", "light"}
         assert {source["name"] for source in result["sources"]} == {"ЛИМС", "ПАК"}
