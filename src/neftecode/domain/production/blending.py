@@ -1,4 +1,7 @@
-"""Blending three qualities, and what the cetane additive may and may not be credited with.
+"""Blending four qualities, and what the cetane additive may and may not be credited with.
+
+Density is blended by volume additivity (total mass over total volume), a declared ideal-mixing
+assumption; the product carries a two-sided density limit.
 
 Sulfur is a mass balance: no reaction happens in a tank, so the blend carries the mass-weighted
 sulfur of its components. That is the only one of the three with a defensible exact rule here.
@@ -14,11 +17,13 @@ number unknown — not "fine", not "the average of the others".
 from dataclasses import dataclass
 import math
 
-from neftecode.domain.production.scenario import QUALITIES, QUALITY_DIRECTION, Additive, Scenario, Tank
+from neftecode.domain.production.scenario import QUALITIES, Additive, Scenario, Tank
+from neftecode.domain.shared.primitives import PRODUCT_LIMITS, volume_additive_density
 
 #: How each property is obtained. Reported with every blend so no rule is applied invisibly.
 MASS_BALANCE = "mass_balance"
 SCENARIO_LINEAR = "scenario_linear_index"
+VOLUME_ADDITIVE = "volume_additive"
 UNKNOWN = "unknown"
 
 #: Properties the cetane additive is allowed to touch. Sulfur is deliberately absent:
@@ -160,6 +165,21 @@ class Blender:
                          f"В действительности этот показатель смешивается нелинейно; индексов "
                          f"смешения в пакете нет, поэтому правило объявлено допущением.")
 
+        # Density: total mass over total volume, assuming volumes add (no contraction on mixing).
+        density = volume_additive_density(masses if component_mass > 0 else dict(recipe),
+                                          values["density_kgm3"])
+        if density is None:
+            qualities["density_kgm3"], methods["density_kgm3"] = None, UNKNOWN
+            missing = [n for n in recipe if recipe[n] > 1e-12 and values["density_kgm3"].get(n) is None]
+            notes.append(f"density_kgm3: плотность неизвестна у компонентов {', '.join(missing)}; "
+                         f"смесь не получает значения и не проходит проверку по умолчанию.")
+        else:
+            qualities["density_kgm3"], methods["density_kgm3"] = density, VOLUME_ADDITIVE
+            notes.append("Плотность смеси — масса, делённая на сумму объёмов компонентов: допущение "
+                         "аддитивности объёмов при смешении.")
+            if additive_mass > 0:
+                notes.append("Плотность присадки не задана: её вклад в плотность (не более 3% массы) не учтён.")
+
         # The additive acts only on what the scenario says it acts on.
         additive = self._additive()
         if additive_dose > 0 and additive is not None:
@@ -185,17 +205,16 @@ class Blender:
     def meets_spec(self, result: BlendResult) -> dict[str, dict]:
         """Compare each quality with its limit. Unknown is reported as unknown, never as a pass."""
         checks = {}
-        for quality in QUALITIES:
+        for quality, (prop, direction) in PRODUCT_LIMITS.items():
             limit = self.scenario.product.limit_value(quality)
-            value = result.qualities.get(quality)
+            value = result.qualities.get(prop)
             if limit is None:
                 checks[quality] = {"status": "unknown", "value": value, "limit": None,
                                    "reason": f"Предел {quality} не задан ни ТЗ, ни сценарием"}
             elif value is None:
                 checks[quality] = {"status": "unknown", "value": None, "limit": limit,
-                                   "reason": f"Значение {quality} для смеси неизвестно"}
+                                   "reason": f"Значение {prop} для смеси неизвестно"}
             else:
-                direction = QUALITY_DIRECTION[quality]
                 ok = value <= limit + 1e-9 if direction == "max" else value >= limit - 1e-9
                 checks[quality] = {
                     "status": "pass" if ok else "fail", "value": value, "limit": limit,

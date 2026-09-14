@@ -297,3 +297,25 @@ def test_actuation_without_a_loop_description_is_rejected():
 def test_actuation_survives_serialisation():
     stage = parse_scenario(raw()).stages["hydrotreating"].to_dict()
     assert stage["controls"]["ht_reactor_inlet_temp_c"]["actuation"]["measured_tag"] == "ht.P8"
+
+
+def test_every_shipped_tank_declares_density_and_the_product_a_range():
+    for path in sorted(SCENARIOS.glob("*.json")):
+        scenario = load_scenario(path)
+        assert all(t.property_value("density_kgm3") is not None for t in scenario.tanks), path
+        assert scenario.product.limit_value("density_min_kgm3") == 820.0
+        assert scenario.product.limit_value("density_max_kgm3") == 845.0
+
+
+def test_inverted_density_range_is_rejected():
+    data = raw()
+    data["product"]["density_min_kgm3"]["value"] = 850.0
+    with pytest.raises(ScenarioError, match="нижний предел"):
+        parse_scenario(data)
+
+
+def test_density_in_a_wrong_unit_is_rejected():
+    data = raw()
+    data["tanks"][0]["properties"]["density_kgm3"]["unit"] = "г/см3"
+    with pytest.raises(ScenarioError):
+        parse_scenario(data)

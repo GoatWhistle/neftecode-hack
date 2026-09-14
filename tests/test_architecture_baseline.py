@@ -16,10 +16,10 @@ from neftecode.evaluation.robustness import RobustnessCheck
 ROOT = Path(".")
 SCENARIOS = ROOT / "config/scenarios"
 EXPECTED = {
-    "ample_reserve": ("recommend_scenario", 300.0, "7b6fec76cf8b8610cc82054e2e049ba5feab7b502f5fc6379fe0fd473f599d34"),
-    "baseline": ("hold", 300.0, "2a1a343130263a7192405c0678fd614ecdaebecafe16f8cf942578c036fce9d9"),
-    "no_feasible": ("refuse", None, "bc1332d52d43bfb919df29434099fa7e8f8be0a47c48f38779652732cd3432c6"),
-    "sour_crude": ("recommend_scenario", 180.0, "232906cde45fe0090cb39f9ceeda4cb525f67372052c6e60d157d57e3b21e680"),
+    "ample_reserve": ("recommend_scenario", 300.0, "b3119241b1c64ecfa28d5b529c32b33c50a166d6d0d11670a7aab1104340282e"),
+    "baseline": ("hold", 300.0, "28aea5be7bde62147fedba620daade38281bbd688cd9ab67d6e7819ad6d53ba4"),
+    "no_feasible": ("refuse", None, "c9ef061e1458ce3bbbd195d525655b3edf4ba944b51959174a67fc758eb8b9bd"),
+    "sour_crude": ("recommend_scenario", 180.0, "40d948927b86d239acf0578ba4af4dbb2b26b0211113976e1a599de6651949da"),
 }
 DECISION_KEYS = {
     "alternatives", "commercial_release_allowed", "cost_per_tonne", "current_operation",

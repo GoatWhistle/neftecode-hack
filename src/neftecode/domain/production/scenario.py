@@ -7,7 +7,7 @@ a missing optional quality is preserved as unknown instead of silently becoming 
 from dataclasses import dataclass, field
 import math
 
-from neftecode.domain.shared.primitives import QUALITIES, QUALITY_DIRECTION, SOURCES
+from neftecode.domain.shared.primitives import PRODUCT_LIMITS, QUALITIES, QUALITY_DIRECTION, SOURCES
 
 SCHEMA = "neftecode.scenario.v1"
 
@@ -143,7 +143,7 @@ class ProductSpec:
         return None if q is None else q.value
 
     def unknown_limits(self) -> list[str]:
-        return [name for name in QUALITIES if self.limits.get(name) is None]
+        return [name for name in PRODUCT_LIMITS if self.limits.get(name) is None]
 
     def to_dict(self) -> dict:
         return {k: (v.to_dict() if v else None) for k, v in self.limits.items()}
