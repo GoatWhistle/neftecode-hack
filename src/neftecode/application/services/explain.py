@@ -115,12 +115,26 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
 
     action = decision.get("immediate_action")
     if action:
+        standing = (decision.get("current_operation") or {}).get("controls") or {}
+        actuations = {name: (stage_id, spec.get("actuation"))
+                      for stage_id, stage in scenario.stages.items()
+                      for name, spec in stage.controls.items()}
         for name, value in sorted(action.get("controls", {}).items()):
-            statements.append(Statement(
-                f"control.{name}",
-                f"{name}: предлагаемое значение {value:g}",
-                value,
-                (Evidence("scenario", f"controls.{name}", value, "уставка из плана"),)))
+            stage_id, actuation = actuations.get(name, (None, None))
+            evidence = [Evidence("scenario", f"controls.{name}", value, "уставка из плана")]
+            text = f"{name}: предлагаемое значение {value:g}"
+            if actuation is not None:
+                lag = scenario.stages[stage_id].response_lag_hours.value
+                current = standing.get(name, scenario.stages[stage_id].controls[name]["current"].value)
+                if abs(value - current) < 1e-9:
+                    text = f"{name}: сохранить уставку регулятора {value:g} ({actuation.loop})"
+                else:
+                    text = (f"{name}: {actuation.instruction} с {current:g} до {value:g} ({actuation.loop}); "
+                            f"регулятор отрабатывает задание, качество отвечает через {lag:g} ч")
+                tag = f"тег {actuation.measured_tag}; " if actuation.measured_tag else "тег CSV не подписан; "
+                evidence.append(Evidence("scenario", f"stages.{stage_id}.controls.{name}.actuation",
+                                         None, tag + (actuation.note or actuation.source)))
+            statements.append(Statement(f"control.{name}", text, value, tuple(evidence)))
         throughput = action.get("throughput_tph")
         if _finite(throughput):
             statements.append(Statement(
@@ -173,6 +187,7 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
             for a in decision.get("alternatives", [])[:5]],
         "limits": [
             "Объяснение описывает расчёт и проверенные ограничения, а не причину поведения установки.",
+            "Изменение режима исполняет регулятор по новой уставке; динамика самого контура не моделируется.",
             "Все параметры смешения, цен и откликов заданы сценарием и не получены из данных завода.",
             "Результат не разрешает выпуск товарного топлива: проверены не все требуемые свойства.",
         ],

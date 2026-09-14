@@ -166,6 +166,42 @@ class Additive:
                 "affects": list(self.affects)}
 
 
+#: How a proposed control change reaches the plant. Experts said (Q&A 11.09) that both units run
+#: feedback control systems that react quickly, so the operator changes a setpoint and the loop moves
+#: the equipment. The response of product quality is still the stage's declared lag.
+FEEDBACK_SETPOINT = "feedback_setpoint"
+ACTUATION_KINDS = (FEEDBACK_SETPOINT,)
+
+
+@dataclass(frozen=True)
+class ControlActuation:
+    """Who executes a control change and what is known about the loop."""
+
+    kind: str
+    loop: str
+    measured_tag: str | None
+    source: str
+    note: str = ""
+
+    def __post_init__(self):
+        if self.kind not in ACTUATION_KINDS:
+            raise ScenarioError(f"actuation.kind: неизвестный способ исполнения {self.kind!r}")
+        if not isinstance(self.loop, str) or not self.loop.strip():
+            raise ScenarioError("actuation.loop: нужно описать контур регулирования или его отсутствие на схеме")
+        if self.measured_tag is not None and (not isinstance(self.measured_tag, str) or not self.measured_tag.strip()):
+            raise ScenarioError("actuation.measured_tag: тег должен быть строкой или null")
+        if self.source not in SOURCES:
+            raise ScenarioError(f"actuation.source: неизвестное происхождение {self.source!r}")
+
+    @property
+    def instruction(self) -> str:
+        return "изменить уставку регулятора"
+
+    def to_dict(self) -> dict:
+        return {"kind": self.kind, "loop": self.loop, "measured_tag": self.measured_tag,
+                "source": self.source, "note": self.note}
+
+
 @dataclass(frozen=True)
 class Stage:
     """Controls of one process stage with their declared ranges and response lag."""
@@ -181,7 +217,7 @@ class Stage:
 
     def to_dict(self) -> dict:
         return {"stage_id": self.stage_id, "response_lag_hours": self.response_lag_hours.to_dict(),
-                "controls": {name: {k: (v.to_dict() if isinstance(v, Quantity) else v)
+                "controls": {name: {k: (v.to_dict() if isinstance(v, (Quantity, ControlActuation)) else v)
                                     for k, v in spec.items()} for name, spec in self.controls.items()},
                 "model": self.model}
 

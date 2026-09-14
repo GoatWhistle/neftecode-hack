@@ -260,3 +260,40 @@ def test_round_trip_preserves_units_and_provenance():
     restored = parse_scenario(json.loads(json.dumps(scenario.to_dict(), ensure_ascii=False)))
     assert restored.to_dict() == scenario.to_dict()
     assert copy.deepcopy(scenario).tanks[0].inventory.source == "scenario"
+
+
+# --- Every control says how a change is executed (Q&A 11.09: plants run feedback control) ---
+
+def test_every_shipped_control_is_a_setpoint_for_a_feedback_loop():
+    for path in sorted(SCENARIOS.glob("*.json")):
+        for stage in load_scenario(path).stages.values():
+            for name, spec in stage.controls.items():
+                actuation = spec["actuation"]
+                assert actuation.kind == "feedback_setpoint", f"{path}: {name}"
+                assert actuation.loop.strip() and actuation.source == "given"
+
+
+def test_control_without_actuation_is_rejected():
+    data = raw()
+    del data["stages"]["avt"]["controls"]["crude_feed_rate_tph"]["actuation"]
+    with pytest.raises(ScenarioError, match="actuation"):
+        parse_scenario(data)
+
+
+def test_unknown_actuation_kind_is_rejected():
+    data = raw()
+    data["stages"]["hydrotreating"]["controls"]["ht_reactor_inlet_temp_c"]["actuation"]["kind"] = "valve_open"
+    with pytest.raises(ScenarioError, match="способ исполнения"):
+        parse_scenario(data)
+
+
+def test_actuation_without_a_loop_description_is_rejected():
+    data = raw()
+    data["stages"]["avt"]["controls"]["avt_furnace_outlet_temp_c"]["actuation"]["loop"] = " "
+    with pytest.raises(ScenarioError, match="контур"):
+        parse_scenario(data)
+
+
+def test_actuation_survives_serialisation():
+    stage = parse_scenario(raw()).stages["hydrotreating"].to_dict()
+    assert stage["controls"]["ht_reactor_inlet_temp_c"]["actuation"]["measured_tag"] == "ht.P8"
