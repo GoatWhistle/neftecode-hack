@@ -115,6 +115,7 @@ class DataService:
         schema = [{"name": str(name), "type": str(features[name].dtype)} for name in features.columns]
         result = {"schema_version": "v1", "at": when.isoformat(), "state": state,
                   "trust": clean(trust), "features": feature_map,
+                  "trust_config": clean(cfg),
                   "source_period": source_period, "feature_schema": schema,
                   "feature_schema_hash": content_hash(schema)}
         result["snapshot_id"] = content_hash(result)

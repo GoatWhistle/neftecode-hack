@@ -3,16 +3,85 @@ from __future__ import annotations
 
 import argparse
 import os
-from typing import Any
+from typing import Any, Mapping
 
 from neftecode.application.services.explain import explain
 from neftecode.application.services.trust import DataTrustAgent
+from neftecode.application.contracts import LiveAdviceCommand, LiveForecast, LiveSnapshot
+from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.infrastructure.live.advisor import bind_forecast
 from neftecode.evaluation.robustness import RobustnessCheck
 from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, serve, clean
+
+
+class HTTPScenarioProvider:
+    def __init__(self, client: ServiceHTTPClient, url: str, headers: Mapping[str, str]):
+        self.client = client
+        self.url = url
+        self.headers = headers
+
+    def get(self, scenario_id: str):
+        raw = self.client.request(
+            "POST",
+            self.url + "/v1/scenarios/get",
+            {"scenario_id": scenario_id},
+            headers=self.headers,
+        ).data
+        if not isinstance(raw, dict):
+            raise ServiceError("Data service вернул неполный ответ", 502, "invalid_upstream")
+        try:
+            return parse_scenario(raw), raw
+        except (ScenarioError, ValueError, TypeError) as exc:
+            raise ServiceError(str(exc), 422, "scenario_rejected") from exc
+
+
+class HTTPSnapshotProvider:
+    def __init__(self, client: ServiceHTTPClient, url: str, headers: Mapping[str, str]):
+        self.client = client
+        self.url = url
+        self.headers = headers
+
+    def snapshot(self, at: str):
+        raw = self.client.request("POST", self.url + "/v1/snapshots", {"at": at}, headers=self.headers).data
+        if not isinstance(raw, dict) or not isinstance(raw.get("state"), dict) or not isinstance(raw.get("trust"), dict):
+            raise ServiceError("Snapshot не содержит state/trust", 502, "invalid_snapshot")
+        try:
+            return LiveSnapshot.from_dict(raw)
+        except ValueError as exc:
+            raise ServiceError(str(exc), 502, "invalid_snapshot") from exc
+
+
+class HTTPForecastProvider:
+    def __init__(self, client: ServiceHTTPClient, url: str, headers: Mapping[str, str]):
+        self.client = client
+        self.url = url
+        self.headers = headers
+
+    def forecast(self, snapshot: LiveSnapshot):
+        raw = self.client.request("POST", self.url + "/v1/forecast",
+                                  {"snapshot": snapshot.to_dict(), "fallback": snapshot.trust.get("fallback", False)},
+                                  headers=self.headers).data
+        if not isinstance(raw, dict):
+            raise ServiceError("Model service вернул неполный ответ", 502, "invalid_upstream")
+        try:
+            result = LiveForecast.from_dict(raw)
+        except ValueError as exc:
+            raise ServiceError(str(exc), 502, "invalid_upstream") from exc
+        if not result.available:
+            raise ServiceError("Прогноз недоступен", 503, "model_unavailable", retryable=True)
+        return result
+
+
+class HTTPForecastScenarioBinder:
+    def bind(self, raw: Mapping[str, object], forecast: LiveForecast):
+        try:
+            bound = bind_forecast(raw, forecast.to_dict())
+            return parse_scenario(bound), bound
+        except (ValueError, KeyError, TypeError, ScenarioError) as exc:
+            raise ServiceError(str(exc), 422, "forecast_binding_failed") from exc
 
 
 class DecisionService:
@@ -59,49 +128,14 @@ class DecisionService:
             raise ServiceError("Нужны at и scenario_id", 400, "invalid_live_request")
         budget = body.get("budget", 400)
         headers = {"X-Request-ID": request.request_id or "unknown"}
-        scenario_env = self.client.request("POST", self.data_url + "/v1/scenarios/get",
-                                            {"scenario_id": scenario_id}, headers=headers)
-        raw = scenario_env.data
-        snapshot_env = self.client.request("POST", self.data_url + "/v1/snapshots", {"at": at}, headers=headers)
-        snapshot = snapshot_env.data
-        if not isinstance(raw, dict) or not isinstance(snapshot, dict):
-            raise ServiceError("Data service вернул неполный ответ", 502, "invalid_upstream")
-        normalized_at = snapshot.get("at")
-        if not isinstance(normalized_at, str) or not normalized_at.strip():
-            raise ServiceError("Snapshot не содержит нормализованное время at", 502, "invalid_snapshot")
-        at = normalized_at
-        state = snapshot.get("state")
-        trust = snapshot.get("trust")
-        if not isinstance(state, dict) or not isinstance(trust, dict):
-            raise ServiceError("Snapshot не содержит state/trust", 502, "invalid_snapshot")
-        if trust.get("usable") is not True:
-            result = self._decision(raw, state, budget)
-            result.update({"at": at, "scenario_id": scenario_id,
-                           "forecast": {"available": False, "model": None, "value": None,
-                                        "lower": None, "upper": None,
-                                        "reason": "Прогноз не вычислялся: источники не прошли проверку"},
-                           "trust": clean(trust),
-                           "note": "Источники не прошли проверку: решение принято без запуска моделей."})
-            return result
-        model_env = self.client.request("POST", self.model_url + "/v1/forecast",
-                                        {"snapshot": snapshot, "fallback": trust.get("fallback", False)},
-                                        headers=headers)
-        forecast = model_env.data
-        if not isinstance(forecast, dict) or not forecast.get("available"):
-            raise ServiceError("Прогноз недоступен", 503, "model_unavailable", retryable=True)
-        try:
-            bound_raw = bind_forecast(raw, forecast)
-        except (ValueError, KeyError, TypeError) as exc:
-            raise ServiceError(str(exc), 422, "forecast_binding_failed") from exc
-        result = self._decision(bound_raw, state, budget)
-        main_tank = next((tank for tank in bound_raw.get("tanks", [])
-                          if tank.get("tank_id") == "main"), None)
-        if main_tank is None:
-            raise ServiceError("В сценарии отсутствует резервуар main", 422, "invalid_scenario")
-        result.update({"at": at, "scenario_id": scenario_id, "forecast": clean(forecast),
-                       "trust": clean(trust),
-                       "bound_sulfur_mgkg": main_tank["properties"]["sulfur_mgkg"]["value"]})
-        return result
+        advice = GetLiveAdvice(
+            scenarios=HTTPScenarioProvider(self.client, self.data_url, headers),
+            snapshots=HTTPSnapshotProvider(self.client, self.data_url, headers),
+            forecasts=HTTPForecastProvider(self.client, self.model_url, headers),
+            binder=HTTPForecastScenarioBinder(),
+            robustness_factory=lambda scenario, raw: RobustnessCheck(scenario, raw, scenario_parser=parse_scenario),
+        )
+        return clean(advice.execute(LiveAdviceCommand(at=at, scenario_id=scenario_id, budget=budget)).to_dict())
 
     def capabilities(self, _request):
         return {"service": "decision-service", "decisions": True, "live_advice": True,

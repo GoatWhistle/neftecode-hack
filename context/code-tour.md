@@ -54,15 +54,17 @@ CLI / HTTP / браузер                    показывает резуль
 ```text
 gateway-service
   → decision-service
-      → data-service: состояние на выбранное время
-      → model-service: прогноз и диапазон
-      → MakeDecision: тот же цикл агентов
+      → GetLiveAdvice
+          → data-service: сценарий и состояние на выбранное время
+          → model-service: прогноз и диапазон
+          → MakeDecision: тот же цикл агентов
   → ответ браузеру
 ```
 
 - `services/data_service.py` владеет исходными данными и собирает snapshot.
 - `services/model_service.py` единственный загружает обученную модель.
-- `services/decision_service.py` связывает snapshot, прогноз и сценарное решение.
+- `application/use_cases/get_live_advice.py` задаёт единственный порядок сборки live-решения.
+- `services/decision_service.py` подключает к нему HTTP-адаптеры данных и модели.
 - `services/gateway_service.py` отдаёт HTML и переводит браузерные запросы в запросы сервисов.
 - `services/stack.py` запускает все четыре процесса.
 - `services/common.py` содержит общий HTTP-формат, ошибки, лимиты и клиент.

@@ -1,6 +1,5 @@
-from neftecode.application.ports import LiveAdviceGateway
 from neftecode.application.contracts import (DecisionCommand, LiveAdviceCommand,
-                                             PlanningCommand, ReplayCommand)
+                                             PlanningCommand, ReplayCommand, LiveForecast, LiveSnapshot)
 from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation
@@ -20,10 +19,40 @@ def test_use_cases_expose_execute_entry_points():
     assert replay["records"] == []
 
 
-def test_live_advice_delegates_through_port():
-    class Gateway:
-        def advise(self, at):
-            return {"at": at, "source": "gateway"}
+def test_live_use_case_orchestrates_typed_ports(monkeypatch):
+    current = scenario()
+    calls = []
 
-    assert isinstance(Gateway(), LiveAdviceGateway)
-    assert GetLiveAdvice(Gateway()).execute(LiveAdviceCommand(at="2026-01-01T00:00:00"))["source"] == "gateway"
+    class Scenarios:
+        def get(self, scenario_id):
+            calls.append("scenario")
+            return current, current.to_dict()
+
+    class Snapshots:
+        def snapshot(self, at):
+            calls.append("snapshot")
+            return LiveSnapshot(at, {}, {"usable": True, "fallback": False})
+
+    class Forecasts:
+        def forecast(self, snapshot):
+            calls.append("forecast")
+            return LiveForecast("test", 8.0, 7.0, 9.0, True, "")
+
+    class Binder:
+        def bind(self, raw, forecast):
+            calls.append("bind")
+            return current, raw
+
+    class Decision:
+        def __init__(self, *args, **kwargs):
+            calls.append("decision")
+        def decide(self, **kwargs):
+            calls.append("decide")
+            return {"status": "hold", "scenario_id": "baseline"}
+
+    monkeypatch.setattr("neftecode.application.use_cases.get_live_advice.MakeDecision", Decision)
+    monkeypatch.setattr("neftecode.application.use_cases.get_live_advice.explain", lambda *args: {"ok": True})
+    result = GetLiveAdvice(Scenarios(), Snapshots(), Forecasts(), Binder()).execute(
+        LiveAdviceCommand(at="2026-01-01T00:00:00", scenario_id="baseline"))
+    assert calls == ["scenario", "snapshot", "forecast", "bind", "decision", "decide"]
+    assert result.to_dict()["forecast"]["upper"] == 9.0
