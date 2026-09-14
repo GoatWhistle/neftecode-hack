@@ -265,6 +265,40 @@ class PlanOperation:
             gate, summary["production_t"], summary["cost_per_tonne"],
             max(known) if known else None)
 
+    def lookahead(self, plan: PlanCandidate, hours: float, confirmed=(), initial_tanks=None,
+                  current_operation=None) -> dict:
+        """Continue a plan past the horizon and report when product quality would first fail.
+
+        The forecast is not extended: the same stock and blend calculation runs on, the last plan
+        step is held, and the inflow keeps its end-of-horizon properties. The projection stops where
+        a stock runs out, because past that point the recipe itself is no longer possible.
+        """
+        if not _finite(hours) or hours <= 0:
+            raise PlannerError("lookahead: длительность должна быть положительной")
+        base = self.scenario.horizon.hours
+        extended = replace(self.scenario, horizon=replace(self.scenario.horizon, hours=base + hours))
+        evaluation = PlanOperation(extended).evaluate(plan, confirmed, initial_tanks=initial_tanks,
+                                                      current_operation=current_operation)
+        checks = [c for c in evaluation.gate.checks if c.time_hours is not None]
+        stock_ends = min((c.time_hours for c in checks if c.status == "fail"
+                          and (c.constraint_id.startswith("inventory.") or c.constraint_id.startswith("outflow."))
+                          and c.constraint_id != "inventory.terminal"), default=None)
+        violations = sorted((c for c in checks if c.constraint_id.startswith("quality.") and c.status == "fail"
+                             and (stock_ends is None or c.time_hours < stock_ends)),
+                            key=lambda c: c.time_hours)
+        first = violations[0] if violations else None
+        return {
+            "plan_id": plan.plan_id, "lookahead_hours": hours,
+            "projected_until_hours": stock_ends if stock_ends is not None else base + hours,
+            "stock_ends_at_hours": stock_ends,
+            "hours_to_violation": first.time_hours if first else None,
+            "constraint": first.constraint_id if first else None,
+            "observed": first.observed if first else None,
+            "limit": first.limit if first else None,
+            "assumption": ("За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства "
+                           "конца горизонта, расчёт останавливается при исчерпании запаса."),
+        }
+
     def _effective_controls(self, time_hours: float, pending) -> dict[str, float]:
         """Setpoints actually acting at this time: the baseline updated by what is in effect."""
         controls = dict(self.base_controls())

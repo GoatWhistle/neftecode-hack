@@ -160,6 +160,27 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
             (Evidence("model", "economics.severity", severity,
                       "индекс режима, не возраст катализатора и не вероятность отказа"),)))
 
+    look = decision.get("lookahead") or {}
+    if look.get("available"):
+        projected = look.get("selected") or {}
+        remaining = projected.get("hours_to_violation")
+        evidence_note = projected.get("assumption") or "расчёт за горизонтом"
+        if remaining is not None:
+            name = str(projected.get("constraint", "quality")).split(".", 1)[-1]
+            statements.append(Statement(
+                "lookahead",
+                f"За горизонтом: при сохранении плана {name} выйдет за предел через {remaining:g} ч "
+                f"(запас реакции {look.get('min_reaction_hours'):g} ч)",
+                remaining, (Evidence("model", "plan_operation.lookahead", remaining, evidence_note),)))
+        else:
+            stock = projected.get("stock_ends_at_hours")
+            tail = (f"; расчёт остановлен на {stock:g} ч, когда заканчивается запас компонента"
+                    if stock is not None else "")
+            statements.append(Statement(
+                "lookahead",
+                f"За горизонтом {look.get('lookahead_hours'):g} ч нарушений качества при сохранении плана не видно{tail}",
+                None, (Evidence("model", "plan_operation.lookahead", None, evidence_note),)))
+
     lag = scenario.stages["hydrotreating"].response_lag_hours.value
     statements.append(Statement(
         "delay", f"Эффект коррекции гидроочистки ожидается через {lag:g} ч", lag,
