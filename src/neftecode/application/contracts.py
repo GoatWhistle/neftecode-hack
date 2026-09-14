@@ -112,6 +112,8 @@ class LiveAdviceResult:
     bound_sulfur_mgkg: float | None = None
     error: str | None = None
     note: str = ""
+    error_kind: str | None = None
+    inventories: Mapping[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
         result = {"at": self.at, "scenario_id": self.scenario_id, "state": dict(self.state),
@@ -126,6 +128,12 @@ class LiveAdviceResult:
 
 
 @dataclass(frozen=True)
+class DataRejection:
+    reason: str
+    missing: Sequence[str] = ()
+
+
+@dataclass(frozen=True)
 class DecisionCommand:
     state: Mapping[str, object] | None = None
     confirmed: Sequence[tuple[float, Mapping[str, float]]] = ()
@@ -134,6 +142,7 @@ class DecisionCommand:
     raw_scenario: Mapping[str, object] | None = None
     initial_tanks: Mapping[str, TankState] | None = None
     current_operation: Mapping[str, object] | None = None
+    data_rejection: DataRejection | None = None
 
 
 @dataclass(frozen=True)

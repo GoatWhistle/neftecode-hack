@@ -12,7 +12,7 @@ from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
-from neftecode.infrastructure.live.advisor import bind_forecast
+from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder
 from neftecode.evaluation.robustness import RobustnessCheck
 from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, serve, clean
 
@@ -75,15 +75,6 @@ class HTTPForecastProvider:
         return result
 
 
-class HTTPForecastScenarioBinder:
-    def bind(self, raw: Mapping[str, object], forecast: LiveForecast):
-        try:
-            bound = bind_forecast(raw, forecast.to_dict())
-            return parse_scenario(bound), bound
-        except (ValueError, KeyError, TypeError, ScenarioError) as exc:
-            raise ServiceError(str(exc), 422, "forecast_binding_failed") from exc
-
-
 class DecisionService:
     def __init__(self, data_url: str = "http://127.0.0.1:8766", model_url: str = "http://127.0.0.1:8767",
                  timeout_s: float = 10.0):
@@ -132,10 +123,18 @@ class DecisionService:
             scenarios=HTTPScenarioProvider(self.client, self.data_url, headers),
             snapshots=HTTPSnapshotProvider(self.client, self.data_url, headers),
             forecasts=HTTPForecastProvider(self.client, self.model_url, headers),
-            binder=HTTPForecastScenarioBinder(),
+            binder=LocalForecastScenarioBinder(),
             robustness_factory=lambda scenario, raw: RobustnessCheck(scenario, raw, scenario_parser=parse_scenario),
         )
-        return clean(advice.execute(LiveAdviceCommand(at=at, scenario_id=scenario_id, budget=budget)).to_dict())
+        if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
+            raise ServiceError("budget должен быть положительным целым", 422, "invalid_budget")
+        result = advice.execute(LiveAdviceCommand(at=at, scenario_id=scenario_id, budget=budget))
+        if result.error_kind is not None:
+            raise ServiceError(result.error or "Ошибка связывания прогноза", 422, result.error_kind)
+        payload = result.to_dict()
+        payload["inventories"] = dict(result.inventories)
+        payload["sources"] = list(result.trust.get("sources", {}).values())
+        return clean(payload)
 
     def capabilities(self, _request):
         return {"service": "decision-service", "decisions": True, "live_advice": True,
