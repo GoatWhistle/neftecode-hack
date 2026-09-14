@@ -227,3 +227,41 @@ def test_scenario_cannot_declare_the_additive_removes_sulfur():
     from neftecode.infrastructure.config.scenario import ScenarioError
     with pytest.raises(ScenarioError, match="удаление серы"):
         parse_scenario(raw)
+
+
+# --- Density: volume additivity and a two-sided product limit ---
+
+from neftecode.domain.shared.primitives import volume_additive_density  # noqa: E402
+from neftecode.domain.production.state import TankState  # noqa: E402
+
+
+def test_density_blends_by_volume_not_by_mass():
+    rho = volume_additive_density({"a": 50.0, "b": 50.0}, {"a": 800.0, "b": 900.0})
+    assert rho == pytest.approx(100.0 / (50 / 800 + 50 / 900))
+    assert rho < 850.0, "линейное среднее по массе переоценило бы плотность"
+
+
+def test_unknown_density_of_a_used_component_makes_the_blend_unknown():
+    assert volume_additive_density({"a": 1.0, "b": 1.0}, {"a": 836.0, "b": None}) is None
+    assert volume_additive_density({"a": 1.0, "b": 0.0}, {"a": 836.0, "b": None}) == pytest.approx(836.0)
+
+
+def test_shipped_blend_carries_density_and_checks_both_limits():
+    from neftecode.domain.production.blending import Blender, VOLUME_ADDITIVE
+    from neftecode.infrastructure.config.scenario import load_scenario
+    blender = Blender(load_scenario(Path("config/scenarios/baseline.json")))
+    ok = blender.blend({"main": 0.9, "reserve": 0.1}, 100.0)
+    assert ok.methods["density_kgm3"] == VOLUME_ADDITIVE
+    assert 832.0 < ok.qualities["density_kgm3"] < 836.1
+    spec = blender.meets_spec(ok)
+    assert spec["density_min_kgm3"]["status"] == "pass" and spec["density_max_kgm3"]["status"] == "pass"
+    light = blender.meets_spec(blender.blend({"light": 1.0}, 10.0))
+    assert light["density_min_kgm3"]["status"] == "fail"
+
+
+def test_inflow_mixes_density_by_volume():
+    tank = TankState("main", True, 100.0, {"sulfur_mgkg": 8.0, "t95_c": 350.0, "cetane_number": 51.0,
+                                            "density_kgm3": 800.0})
+    mixed = tank.mix_in(100.0, {"sulfur_mgkg": 8.0, "t95_c": 350.0, "cetane_number": 51.0,
+                                "density_kgm3": 900.0})
+    assert mixed.properties["density_kgm3"] == pytest.approx(200.0 / (100 / 800 + 100 / 900))

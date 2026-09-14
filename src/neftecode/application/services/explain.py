@@ -16,7 +16,8 @@ from dataclasses import dataclass
 import math
 
 from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN
-from neftecode.domain.production.scenario import QUALITIES, Scenario
+from neftecode.domain.production.scenario import Scenario
+from neftecode.domain.shared.primitives import PRODUCT_LIMITS
 
 #: Kinds of refusal. They are answered differently, so they are never merged.
 BAD_DATA = "bad_data"
@@ -89,7 +90,7 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
     gate = decision.get("gate") or {}
     checks = gate.get("checks", [])
 
-    for quality in QUALITIES:
+    for quality in PRODUCT_LIMITS:
         own = [c for c in checks if c["constraint_id"] == f"quality.{quality}"]
         unknown = [c for c in own if c["status"] == UNKNOWN]
         if unknown:

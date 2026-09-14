@@ -150,13 +150,14 @@ def test_withdrawal_reduces_inventory_without_mutating_the_original():
 
 
 def test_tank_without_sulfur_stays_unknown():
-    assert TankState("x", True, 10.0, {"sulfur_mgkg": None, "t95_c": 350.0, "cetane_number": 51.0}).unknown_properties() == ["sulfur_mgkg"]
+    assert TankState("x", True, 10.0, {"sulfur_mgkg": None, "t95_c": 350.0, "cetane_number": 51.0,
+                                       "density_kgm3": 836.0}).unknown_properties() == ["sulfur_mgkg"]
 
 
 def test_missing_optional_property_stays_unknown():
     t = TankState("light", True, 10.0, {"sulfur_mgkg": 6.0})
     assert t.properties["cetane_number"] is None
-    assert t.unknown_properties() == ["t95_c", "cetane_number"]
+    assert t.unknown_properties() == ["t95_c", "cetane_number", "density_kgm3"]
 
 
 # --- Forecast: unavailable is explicit ---
@@ -282,7 +283,7 @@ def test_negative_inventory_in_a_trajectory_is_rejected():
 def test_unknown_quality_in_a_trajectory_is_preserved():
     point = TrajectoryPoint(0.0, {"sulfur_mgkg": 8.0}, {"main": 100.0})
     assert point.qualities["cetane_number"] is None
-    assert point.unknown_qualities() == ["t95_c", "cetane_number"]
+    assert point.unknown_qualities() == ["t95_c", "cetane_number", "density_kgm3"]
 
 
 def test_terminal_inventory_comes_from_the_last_point():

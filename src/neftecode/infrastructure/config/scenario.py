@@ -41,7 +41,11 @@ ECONOMICS_KINDS = {
     "treating_cost_per_extra_degree_per_t": "cost_per_t",
 }
 
-QUALITY_KINDS = {"sulfur_mgkg": "sulfur_mgkg", "t95_c": "t95_c", "cetane_number": "cetane_number"}
+QUALITY_KINDS = {"sulfur_mgkg": "sulfur_mgkg", "t95_c": "t95_c", "cetane_number": "cetane_number",
+                 "density_kgm3": "density_kgm3"}
+
+PRODUCT_KINDS = {"sulfur_mgkg": "sulfur_mgkg", "t95_c": "t95_c", "cetane_number": "cetane_number",
+                 "density_min_kgm3": "density_kgm3", "density_max_kgm3": "density_kgm3"}
 
 
 def _require(raw: dict, key: str, where: str):
@@ -156,11 +160,14 @@ def parse_scenario(raw: dict) -> Scenario:
     stages = {sid: _parse_stage(sid, spec) for sid, spec in stages_raw.items()}
 
     product_raw = _require(raw, "product", "scenario")
-    unknown = set(product_raw) - set(QUALITY_KINDS)
+    unknown = set(product_raw) - set(PRODUCT_KINDS)
     if unknown:
         raise ScenarioError(f"product: неизвестные показатели {', '.join(sorted(unknown))}")
     limits = {name: optional_quantity(product_raw.get(name), kind_, f"product.{name}")
-              for name, kind_ in QUALITY_KINDS.items()}
+              for name, kind_ in PRODUCT_KINDS.items()}
+    low, high = limits["density_min_kgm3"], limits["density_max_kgm3"]
+    if low is not None and high is not None and low.value > high.value:
+        raise ScenarioError(f"product.density: нижний предел {low.value} выше верхнего {high.value}")
     if limits["sulfur_mgkg"] is None:
         raise ScenarioError("product.sulfur_mgkg: предел серы обязателен, это жёсткое требование ТЗ")
     if limits["sulfur_mgkg"].value > 10.0 + 1e-9:

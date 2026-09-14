@@ -1,6 +1,7 @@
 from dataclasses import dataclass, replace
 
-from neftecode.domain.shared.primitives import ContractError, QUALITIES, _finite, _clean_number, _time
+from neftecode.domain.shared.primitives import (ContractError, QUALITIES, _finite, _clean_number, _time,
+                                                volume_additive_density)
 
 @dataclass(frozen=True)
 class TankState:
@@ -61,6 +62,9 @@ class TankState:
                     merged[name] = incoming
                 elif current is None:
                     merged[name] = None
+                elif name == "density_kgm3":
+                    merged[name] = volume_additive_density({"stock": self.inventory_t, "inflow": mass_t},
+                                                           {"stock": current, "inflow": incoming})
                 else:
                     merged[name] = (self.inventory_t * current + mass_t * incoming) / total
         return replace(self, inventory_t=total, properties=merged)

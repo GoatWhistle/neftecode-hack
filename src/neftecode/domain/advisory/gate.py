@@ -16,7 +16,7 @@ two checked points nothing is known, so `step_hours` is reported and a coarse gr
 rather than silently trusted.
 """
 from neftecode.domain.advisory.entities import CheckResult, GateResult, TrajectoryPoint
-from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN, QUALITIES, QUALITY_DIRECTION, _finite
+from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN, PRODUCT_LIMITS, _finite
 from neftecode.domain.production.scenario import Scenario
 
 #: Grid finer than this is considered adequate for a 0-3 hour horizon; coarser is flagged.
@@ -28,9 +28,9 @@ MAX_TRUSTED_STEP_HOURS = 1.0
 def quality_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
     """Compare each product quality with its limit at this point."""
     checks = []
-    for quality in QUALITIES:
+    for quality, (prop, direction) in PRODUCT_LIMITS.items():
         limit = scenario.product.limit_value(quality)
-        value = step.qualities.get(quality)
+        value = step.qualities.get(prop)
         constraint = f"quality.{quality}"
         if limit is None:
             checks.append(CheckResult(constraint, UNKNOWN, value, None, step.time_hours,
@@ -38,13 +38,12 @@ def quality_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResul
             continue
         if value is None or not _finite(value):
             checks.append(CheckResult(constraint, UNKNOWN, None, limit, step.time_hours,
-                                      reason=f"Значение {quality} для смеси неизвестно"))
+                                      reason=f"Значение {prop} для смеси неизвестно"))
             continue
-        direction = QUALITY_DIRECTION[quality]
         ok = value <= limit + 1e-9 if direction == "max" else value >= limit - 1e-9
         checks.append(CheckResult(
             constraint, PASS if ok else FAIL, value, limit, step.time_hours,
-            reason="" if ok else f"{quality} = {value:.3f} нарушает предел {limit:g} "
+            reason="" if ok else f"{prop} = {value:.3f} нарушает предел {'' if quality == prop else quality + ' '}{limit:g} "
                                  f"на {step.time_hours:g} ч"))
     return checks
 

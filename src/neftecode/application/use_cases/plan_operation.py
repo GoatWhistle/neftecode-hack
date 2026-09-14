@@ -98,8 +98,10 @@ class PlanOperation:
             level = self._main_sulfur()
             ratio = self._response_ratio(time_hours, pending)
             sulfur = None if level is None or ratio is None else level * ratio
+        # The chain does not model diesel density; the inflow keeps the component's declared density.
         return {self._main_id(): {"sulfur_mgkg": sulfur, "t95_c": incoming.t95_c,
-                                 "cetane_number": tank.property_value("cetane_number")}}
+                                 "cetane_number": tank.property_value("cetane_number"),
+                                 "density_kgm3": tank.property_value("density_kgm3")}}
 
     def build_plans(self, budget: int = 120, current_operation: dict | None = None) -> tuple[list[PlanCandidate], dict]:
         """Single-step plans plus transitional two-phase plans, in a fixed order."""

@@ -3,8 +3,34 @@ import math
 from datetime import datetime
 
 SOURCES = ("given", "derived", "scenario", "open")
-QUALITIES = ("sulfur_mgkg", "t95_c", "cetane_number")
+QUALITIES = ("sulfur_mgkg", "t95_c", "cetane_number", "density_kgm3")
 QUALITY_DIRECTION = {"sulfur_mgkg": "max", "t95_c": "max", "cetane_number": "min"}
+#: Product limits: limit id -> (property, direction). Density is two-sided, so one property can
+#: carry two limits; every other property has exactly one, named like the property itself.
+PRODUCT_LIMITS = {
+    "sulfur_mgkg": ("sulfur_mgkg", "max"),
+    "t95_c": ("t95_c", "max"),
+    "cetane_number": ("cetane_number", "min"),
+    "density_min_kgm3": ("density_kgm3", "min"),
+    "density_max_kgm3": ("density_kgm3", "max"),
+}
+
+
+def volume_additive_density(masses: dict, densities: dict):
+    """Density of a mixture assuming ideal additivity of volumes: total mass over total volume.
+
+    One unknown density among the components actually present makes the result unknown.
+    """
+    total_mass, total_volume = 0.0, 0.0
+    for name, mass in masses.items():
+        if mass <= 1e-12:
+            continue
+        density = densities.get(name)
+        if density is None or not _finite(density) or density <= 0:
+            return None
+        total_mass += mass
+        total_volume += mass / density
+    return total_mass / total_volume if total_volume > 0 else None
 PASS, FAIL, UNKNOWN = "pass", "fail", "unknown"
 CHECK_STATUSES = (PASS, FAIL, UNKNOWN)
 PROPOSED, CONFIRMED, REJECTED, EXPIRED = "proposed", "confirmed", "rejected", "expired"

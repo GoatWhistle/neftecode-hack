@@ -15,9 +15,10 @@ def scenario(path=BASELINE):
     return load_scenario(path)
 
 
-def step(time_hours=0.0, sulfur=8.0, t95=352.0, cetane=51.5, **kw):
+def step(time_hours=0.0, sulfur=8.0, t95=352.0, cetane=51.5, density=836.0, **kw):
     base = {
-        "qualities": {"sulfur_mgkg": sulfur, "t95_c": t95, "cetane_number": cetane},
+        "qualities": {"sulfur_mgkg": sulfur, "t95_c": t95, "cetane_number": cetane,
+                      "density_kgm3": density},
         "controls": {"crude_feed_rate_tph": 740.0, "avt_furnace_outlet_temp_c": 372.0,
                      "ht_reactor_inlet_temp_c": 348.0, "ht_feed_flow_m3h": 256.0},
         "inventories": {"main": 3000.0, "reserve": 400.0, "light": 900.0},
@@ -282,3 +283,24 @@ def test_nonfinite_throughput_and_recipe_fraction_are_unknown():
     assert gate.feasible is False
     assert UNKNOWN in statuses(gate, "throughput")
     assert UNKNOWN in statuses(gate, "recipe.non_negative")
+
+
+# --- Density is two-sided (Q&A 11.09: sulfur, cetane and density are mandatory) ---
+
+def test_density_below_the_lower_limit_fails():
+    gate = check_plan("p", [step(density=815.0)], scenario())
+    assert FAIL in statuses(gate, "quality.density_min_kgm3")
+    assert PASS in statuses(gate, "quality.density_max_kgm3")
+    assert not gate.feasible
+
+
+def test_density_above_the_upper_limit_fails():
+    gate = check_plan("p", [step(density=850.0)], scenario())
+    assert FAIL in statuses(gate, "quality.density_max_kgm3")
+    assert not gate.feasible
+
+
+def test_unknown_density_blocks_the_plan():
+    gate = check_plan("p", [step(density=None)], scenario())
+    assert UNKNOWN in statuses(gate, "quality.density_min_kgm3")
+    assert not gate.feasible
