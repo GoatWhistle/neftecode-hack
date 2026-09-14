@@ -84,7 +84,7 @@ def backward_readings(times, readings: pd.DataFrame, delay_hours: float = 0) -> 
         raise ValueError("Задержка доступности анализа не может быть отрицательной или неизвестной")
     left = pd.DataFrame({"decision_time": pd.to_datetime(times), "order": np.arange(len(times))})
     right = readings.rename(columns={"time": "sample_time"}).copy()
-    right["available_time"] = right.sample_time + pd.Timedelta(hours=delay_hours)
+    right["available_time"] = right.sample_time + pd.Timedelta(value=delay_hours, unit="h")
     joined = pd.merge_asof(left.sort_values("decision_time"), right.sort_values("available_time"),
                            left_on="decision_time", right_on="available_time", direction="backward")
     return joined.sort_values("order").reset_index(drop=True)
@@ -96,13 +96,13 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
     window = bounds["history_window_hours"]
     suffix = f"{window:g}h"
     times = pd.DatetimeIndex(decisions)
-    current = signals.reindex(times, method="ffill", tolerance=pd.Timedelta(minutes=20))
-    old = signals.reindex(times - pd.Timedelta(hours=window), method="ffill", tolerance=pd.Timedelta(minutes=20))
+    current = signals.reindex(times, method="ffill", tolerance=pd.Timedelta(value=20, unit="m"))
+    old = signals.reindex(times - pd.Timedelta(value=window, unit="h"), method="ffill", tolerance=pd.Timedelta(value=20, unit="m"))
     old.index = times
     # Time-based trailing windows, right closed. No centered windows/interpolation.
     # This window looks BACKWARD over available history; it is not the forecast horizon.
     mean = signals.rolling(suffix, min_periods=6).mean().reindex(
-        times, method="ffill", tolerance=pd.Timedelta(minutes=20))
+        times, method="ffill", tolerance=pd.Timedelta(value=20, unit="m"))
     x = pd.concat([current.add_suffix(".now"), mean.add_suffix(f".mean{suffix}"),
                    (current - old).add_suffix(f".delta{suffix}")], axis=1).reset_index(drop=True)
     latest_lab = backward_readings(times, lab, bounds["lab_delay_hours"])
@@ -112,13 +112,13 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
 
     p = online.set_index("time").value
     frozen = ((p.rolling("1h", min_periods=6).max() - p.rolling("1h", min_periods=6).min()) <= 1e-6)
-    frozen = frozen.reindex(times, method="ffill", tolerance=pd.Timedelta(minutes=30)).fillna(False).to_numpy(bool)
+    frozen = frozen.reindex(times, method="ffill", tolerance=pd.Timedelta(value=30, unit="m")).fillna(False).to_numpy(bool)
     # Compare a known lab result with PAK at the SAME sample time, not with current PAK.
     aligned = latest_lab[["sample_time"]].copy()
     valid = aligned.sample_time.notna()
     pak_at_lab = np.full(len(times), np.nan)
     pak_at_lab[valid] = p.reindex(pd.DatetimeIndex(aligned.loc[valid, "sample_time"]),
-                                method="ffill", tolerance=pd.Timedelta(minutes=30)).to_numpy()
+                                method="ffill", tolerance=pd.Timedelta(value=30, unit="m")).to_numpy()
     conflict = (np.abs(pak_at_lab - latest_lab.value) > np.maximum(3, .5 * latest_lab.value))
     lab_good = age_lab.le(cfg["lab_max_age_hours"]) & latest_lab.value.notna()
     conflict = conflict & lab_good
@@ -158,10 +158,10 @@ def make_dataset(signals, lab, online, cfg, target_lab=None):
     """
     bounds = check_time_assumptions(cfg)
     targets = (lab if target_lab is None else target_lab).copy()
-    targets["decision_time"] = targets.time - pd.Timedelta(hours=bounds["horizon_hours"])
+    targets["decision_time"] = targets.time - pd.Timedelta(value=bounds["horizon_hours"], unit="h")
     # Need a complete history window and no forecast origin beyond telemetry coverage.
     targets = targets.loc[
-        (targets.decision_time >= signals.index.min() + pd.Timedelta(hours=bounds["history_window_hours"])) &
+        (targets.decision_time >= signals.index.min() + pd.Timedelta(value=bounds["history_window_hours"], unit="h")) &
         (targets.decision_time <= signals.index.max())].reset_index(drop=True)
     if targets.time.duplicated().any():
         raise ValueError("Целевые анализы содержат повторяющееся время отбора: одна проба дала бы "
@@ -175,7 +175,7 @@ def make_dataset(signals, lab, online, cfg, target_lab=None):
         x["lab.target"] = own.value.where(own_age.le(cfg["lab_max_age_hours"]) & own.value.notna()).to_numpy()
         x["lab.target_age_hours"] = own_age.to_numpy()
     meta["target_time"] = targets.time
-    meta["target_available_time"] = targets.time + pd.Timedelta(hours=bounds["lab_delay_hours"])
+    meta["target_available_time"] = targets.time + pd.Timedelta(value=bounds["lab_delay_hours"], unit="h")
     meta["actual_sulfur"] = targets.value
     meta["actual_target"] = targets.value
     leak = meta.lab_sample_time.notna() & (meta.lab_sample_time >= meta.target_time)

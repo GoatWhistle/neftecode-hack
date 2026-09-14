@@ -247,7 +247,7 @@ def check_formula(formula: Formula, signals: pd.DataFrame, lab: pd.DataFrame,
         return FormulaCheck(formula.name, "unavailable", reason=str(exc), limitations=(CAUSALITY_NOTE,))
     series = pd.Series(computed, index=signals.index)
     times = pd.DatetimeIndex(lab.time)
-    aligned = series.reindex(times, method="nearest", tolerance=pd.Timedelta(minutes=tolerance_minutes))
+    aligned = series.reindex(times, method="nearest", tolerance=pd.Timedelta(value=tolerance_minutes, unit="m"))
     actual = pd.Series(lab.value.to_numpy(float), index=times)
     good = aligned.notna() & actual.notna() & np.isfinite(aligned.to_numpy()) & np.isfinite(actual.to_numpy())
     n = int(good.sum())

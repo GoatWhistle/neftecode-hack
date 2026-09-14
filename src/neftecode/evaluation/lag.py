@@ -22,8 +22,8 @@ def _steps(index: pd.DatetimeIndex, max_lag_hours: float, step_hours: float) -> 
     spacing = pd.Series(index).diff().median()
     if pd.isna(spacing) or spacing <= pd.Timedelta(0):
         raise ValueError("Не удалось определить шаг ряда")
-    stride = max(1, int(round(pd.Timedelta(hours=step_hours) / spacing)))
-    top = int(round(pd.Timedelta(hours=max_lag_hours) / spacing))
+    stride = max(1, int(round(pd.Timedelta(value=step_hours, unit="h") / spacing)))
+    top = int(round(pd.Timedelta(value=max_lag_hours, unit="h") / spacing))
     return list(range(0, top + 1, stride)), spacing
 
 

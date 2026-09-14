@@ -7,7 +7,7 @@ from neftecode.evaluation.episodes import (DURATION_RULE, alarm_events, classify
                                            excursion_episodes, lead_times, sampling_step_hours,
                                            violation_profile)
 
-STEP = pd.Timedelta(minutes=10)
+STEP = pd.Timedelta(value=10, unit="m")
 
 
 def series(values, start="2026-01-01"):
