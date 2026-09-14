@@ -8,6 +8,7 @@ from neftecode.evaluation.episodes import (
 )
 from neftecode.evaluation.vak import check_all
 from neftecode.infrastructure.artifacts import write_json
+from neftecode.infrastructure.config.avt_tags import load_avt_tags
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.infrastructure.data.data import load_sources
 from neftecode.infrastructure.data.vak_workbooks import load_vak_inputs
@@ -72,7 +73,8 @@ def episodes(args, parser, root, out):
 def vak(args, parser, root, out):
     signals, _, _ = load_sources(root / "task")
     formula_rows, lab_series = load_vak_inputs(root / "task")
-    report = check_all(formula_rows, lab_series, signals)
+    report = check_all(formula_rows, lab_series, signals,
+                       tag_map=load_avt_tags(root / "config/avt_tags.json"))
     write_json(out / "vak_check.json", report)
     print(f"Разобрано формул: {len(report['formulas'])}; итог проверки: {report['summary']}")
     print(f"Прошли порог корреляции: {report['passed_correlation_threshold'] or 'ни одной'}")
