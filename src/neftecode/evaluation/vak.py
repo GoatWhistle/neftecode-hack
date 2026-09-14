@@ -286,10 +286,38 @@ def ratio_features(formulas: dict[str, Formula], signals: pd.DataFrame, prefix_o
     return pd.DataFrame(out, index=signals.index)
 
 
-def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame) -> dict:
+def input_locations(formula: Formula, tag_map: dict[str, dict]) -> dict:
+    """Where the AVT inputs of a formula sit on the schemes: column, stream, legend mark.
+
+    The location explains which part of the unit a formula describes. It does not turn a
+    coefficient into a permission to move that tag.
+    """
+    if telemetry_prefix(formula.name) != "avt":
+        return {"locations": {}, "columns": [], "unmapped": [],
+                "note": "Схем 24-2000 нет: расположение входов не известно"}
+    locations, unmapped = {}, []
+    for tag in formula.inputs:
+        entry = tag_map.get(tag)
+        if entry is None:
+            unmapped.append(tag)
+            continue
+        locations[tag] = {"column": entry["column"], "place": entry["place"],
+                          "controlled_by_legend": entry["controlled_by_legend"]}
+    return {"locations": locations,
+            "columns": sorted({item["column"] for item in locations.values()}),
+            "unmapped": unmapped,
+            "note": "Расположение по схемам АВТ 14.09; не подтверждение единиц и управляемости"}
+
+
+def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame,
+              tag_map: dict[str, dict] | None = None) -> dict:
     """Run every published formula against the laboratory and report the outcome of each."""
     formulas = {name: parse_formula(name, source, group)
                 for name, source, group in formula_rows}
+    described = {name: f.to_dict() for name, f in formulas.items()}
+    if tag_map is not None:
+        for name, formula in formulas.items():
+            described[name]["input_locations"] = input_locations(formula, tag_map)
     checks = []
     for name, formula in formulas.items():
         column = GODT_LAB_COLUMN.get(name)
@@ -303,7 +331,7 @@ def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame)
     above_threshold = [c["name"] for c in checks
                        if c["status"] == "checked" and (c["correlation"] or 0) >= 0.5]
     return {
-        "formulas": {name: f.to_dict() for name, f in formulas.items()},
+        "formulas": described,
         "checks": checks,
         "summary": by_status,
         "passed_correlation_threshold": above_threshold,
