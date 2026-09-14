@@ -114,6 +114,7 @@ class LiveAdviceResult:
     note: str = ""
     error_kind: str | None = None
     inventories: Mapping[str, float] = field(default_factory=dict)
+    bound_inflow_sulfur_mgkg: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         result = {"at": self.at, "scenario_id": self.scenario_id, "state": dict(self.state),
@@ -122,6 +123,8 @@ class LiveAdviceResult:
                   "note": self.note}
         if self.bound_sulfur_mgkg is not None:
             result["bound_sulfur_mgkg"] = self.bound_sulfur_mgkg
+        if self.bound_inflow_sulfur_mgkg is not None:
+            result["bound_inflow_sulfur_mgkg"] = self.bound_inflow_sulfur_mgkg
         if self.error is not None:
             result["error"] = self.error
         return result

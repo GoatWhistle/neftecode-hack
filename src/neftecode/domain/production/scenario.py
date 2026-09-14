@@ -119,6 +119,9 @@ class Tank:
     #: produces at the current regime rather than a standing scenario constant. A real forecast
     #: bound into the scenario overrides it: a measurement outranks a model.
     sulfur_from_chain: bool = False
+    #: Sulfur of the stream entering this tank, when a measurement-based forecast supplies it.
+    #: The tank's own property stays the sulfur of what is already stored.
+    inflow_sulfur: Quantity | None = None
 
     def property_value(self, name: str) -> float | None:
         q = self.properties.get(name)
@@ -129,7 +132,8 @@ class Tank:
                 "inventory": self.inventory.to_dict(), "max_outflow": self.max_outflow.to_dict(),
                 "inflow": self.inflow.to_dict(), "cost_per_t": self.cost_per_t.to_dict(),
                 "properties": {k: (v.to_dict() if v else None) for k, v in self.properties.items()},
-                "note": self.note, "sulfur_from_chain": self.sulfur_from_chain}
+                "note": self.note, "sulfur_from_chain": self.sulfur_from_chain,
+                "inflow_sulfur_mgkg": self.inflow_sulfur.to_dict() if self.inflow_sulfur else None}
 
 
 @dataclass(frozen=True)

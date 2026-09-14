@@ -37,7 +37,7 @@ def handle(args, parser, root, out):
                            if not result["forecast"].get("available")
                            else advisor.raw_scenario.copy())
         if result["forecast"].get("available") and result["trust"].get("usable"):
-            raw_for_screen = bind_forecast(advisor.raw_scenario, result["forecast"])
+            raw_for_screen = bind_forecast(advisor.raw_scenario, result["forecast"], state=result["state"])
         scenario_for_screen = parse_scenario(raw_for_screen)
         screen_payload = Screen(
             result["decision"], result["explanation"],

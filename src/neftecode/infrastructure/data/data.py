@@ -195,3 +195,47 @@ def split_periods(meta: pd.DataFrame, cfg: dict) -> dict[str, np.ndarray]:
         "calibration": ((meta.decision_time >= b) & (meta.target_available_time < c)).to_numpy(),
         "test": (meta.decision_time >= c).to_numpy(),
     }
+
+
+#: How far back the decision state carries quality history for tank-level estimates.
+QUALITY_HISTORY_HOURS = 72
+#: A run of identical analyser readings at least this long is treated as a frozen instrument.
+FROZEN_RUN_HOURS = 1.0
+
+
+def _untrusted_runs(values: pd.Series) -> pd.Series:
+    """Mark readings inside a flat run lasting at least FROZEN_RUN_HOURS, as far as known by now."""
+    if values.empty:
+        return pd.Series(dtype=bool)
+    changed = values.diff().abs().gt(1e-6) | values.diff().isna()
+    run = changed.cumsum()
+    times = values.index.to_series()
+    span = times.groupby(run).transform("max") - times.groupby(run).transform("min")
+    return span.ge(pd.Timedelta(value=FROZEN_RUN_HOURS, unit="h"))
+
+
+def recent_quality_history(lab: pd.DataFrame, online: pd.DataFrame, when, cfg: dict) -> dict:
+    """Quality readings available at `when` over the last QUALITY_HISTORY_HOURS, as plain JSON values.
+
+    Only what was known at `when`: analyser readings up to `when`, laboratory results whose
+    availability (sample time plus the declared delay) is not later than `when`.
+    """
+    bounds = check_time_assumptions(cfg)
+    when = pd.Timestamp(when)
+    start = when - pd.Timedelta(value=QUALITY_HISTORY_HOURS, unit="h")
+    p = online.set_index("time").value
+    part = p[(p.index > start - pd.Timedelta(value=FROZEN_RUN_HOURS, unit="h")) & (p.index <= when)]
+    untrusted = _untrusted_runs(part)
+    trusted = part[~untrusted & (part.index > start)]
+    hourly = trusted.groupby(trusted.index.floor("h")).agg(["mean", "count"])
+    steps = part.index.to_series().diff().dt.total_seconds().dropna()
+    per_hour = float(3600 / steps.median()) if len(steps) and steps.median() > 0 else None
+    available = lab.time + pd.Timedelta(value=bounds["lab_delay_hours"], unit="h")
+    recent_lab = lab[(lab.time > start) & (available <= when)]
+    return {
+        "quality_history_hours": QUALITY_HISTORY_HOURS,
+        "pak_trusted_hourly": [[t.isoformat(), float(row["mean"]), int(row["count"])]
+                               for t, row in hourly.iterrows()],
+        "pak_expected_per_hour": per_hour,
+        "lab_recent": [[t.isoformat(), float(v)] for t, v in zip(recent_lab.time, recent_lab.value)],
+    }

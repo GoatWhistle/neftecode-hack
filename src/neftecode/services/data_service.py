@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 
-from neftecode.infrastructure.data.data import build_features, load_sources
+from neftecode.infrastructure.data.data import build_features, load_sources, recent_quality_history
 from neftecode.application.services.trust import DataTrustAgent
 from .common import Request, ServiceError, ServiceSettings, serve, clean, content_hash
 
@@ -109,6 +109,7 @@ class DataService:
             raise ServiceError(str(exc), 422, "snapshot_rejected") from exc
         state = self._state(meta)
         state["origin"] = "real_measurements_at_decision_time"
+        state.update(recent_quality_history(lab, online, when, cfg))
         trust = DataTrustAgent(cfg).assess(state).to_dict()
         feature_map = clean(features.iloc[0].to_dict())
         source_period = {"min": signals.index.min().isoformat(), "max": signals.index.max().isoformat()}

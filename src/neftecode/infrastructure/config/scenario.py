@@ -96,8 +96,12 @@ def _parse_tank(raw: dict, index: int) -> Tank:
     if from_chain and properties["sulfur_mgkg"].source == "derived":
         raise ScenarioError(f"{where}: сера не может одновременно приходить из модели цепочки "
                             f"и из выведенного измерения")
+    inflow_sulfur = optional_quantity(raw.get("inflow_sulfur_mgkg"), "sulfur_mgkg", f"{where}.inflow_sulfur_mgkg")
+    if inflow_sulfur is not None and from_chain:
+        raise ScenarioError(f"{where}: сера притока не может одновременно приходить из модели цепочки "
+                            f"и из прогноза по измерениям")
     return Tank(raw["tank_id"], raw["name"], raw["available"], inventory, max_outflow, inflow,
-                cost, properties, raw.get("note"), from_chain)
+                cost, properties, raw.get("note"), from_chain, inflow_sulfur)
 
 
 def _parse_stage(stage_id: str, raw: dict) -> Stage:

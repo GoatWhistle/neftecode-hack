@@ -25,25 +25,56 @@ def forecast(value=12.0, upper=14.0, model="last_pak", available=True):
 
 # --- Binding the forecast into the scenario ---
 
-def test_the_upper_bound_is_what_is_bound_not_the_point_estimate():
+def test_the_upper_bound_feeds_the_inflow_not_the_stored_product():
     bound = bind_forecast(raw(), forecast(value=8.0, upper=13.5))
     main = next(t for t in bound["tanks"] if t["tank_id"] == "main")
-    assert main["properties"]["sulfur_mgkg"]["value"] == pytest.approx(13.5)
-    assert "допуском" in main["properties"]["sulfur_mgkg"]["note"]
+    assert main["inflow_sulfur_mgkg"]["value"] == pytest.approx(13.5)
+    assert "точечная оценка" in main["inflow_sulfur_mgkg"]["note"]
+    # Without a measurement state the stored sulfur stays what the scenario declares.
+    assert main["properties"]["sulfur_mgkg"] == raw()["tanks"][0]["properties"]["sulfur_mgkg"]
 
 
 def test_the_bound_value_is_marked_as_derived_not_as_a_scenario_constant():
     bound = bind_forecast(raw(), forecast())
     main = next(t for t in bound["tanks"] if t["tank_id"] == "main")
-    assert main["properties"]["sulfur_mgkg"]["source"] == "derived"
+    assert main["inflow_sulfur_mgkg"]["source"] == "derived"
     assert parse_scenario(bound).tank("main").inventory.measured is False
 
 
-def test_a_measurement_outranks_the_chain_model_for_the_current_level():
+def test_a_measurement_outranks_the_chain_model_for_the_inflow():
     bound = bind_forecast(raw(), forecast(upper=13.5))
     main = next(t for t in bound["tanks"] if t["tank_id"] == "main")
     assert main["sulfur_from_chain"] is False
-    assert parse_scenario(bound).tank("main").property_value("sulfur_mgkg") == pytest.approx(13.5)
+    assert parse_scenario(bound).tank("main").inflow_sulfur.value == pytest.approx(13.5)
+
+
+def measured_state(hourly_mean, hours=72, decision_time="2026-03-01T12:00:00", per_hour=6, lab=()):
+    when = pd.Timestamp(decision_time)
+    return {"decision_time": decision_time, "origin": "real_measurements_at_decision_time",
+            "quality_history_hours": 72, "pak_expected_per_hour": float(per_hour),
+            "pak_trusted_hourly": [[(when.floor("h") - pd.Timedelta(value=h, unit="h")).isoformat(),
+                                    float(hourly_mean), per_hour] for h in range(hours)],
+            "lab_recent": [list(item) for item in lab]}
+
+
+def test_stored_sulfur_is_the_mean_of_trusted_readings_over_the_refresh_window():
+    bound = bind_forecast(raw(), forecast(upper=13.5), state=measured_state(7.25))
+    main = parse_scenario(bound).tank("main")
+    assert main.property_value("sulfur_mgkg") == pytest.approx(7.25)
+    assert main.properties["sulfur_mgkg"].source == "derived"
+    assert main.inflow_sulfur.value == pytest.approx(13.5)
+
+
+def test_thin_analyser_history_falls_back_to_the_laboratory():
+    state = measured_state(9.0, hours=5, lab=[("2026-03-01T10:00:00", 6.0), ("2026-02-28T20:00:00", 8.0)])
+    level = parse_scenario(bind_forecast(raw(), forecast(), state=state)).tank("main")
+    assert level.property_value("sulfur_mgkg") == pytest.approx(7.0)
+    assert "ЛИМС" in level.properties["sulfur_mgkg"].note
+
+
+def test_without_enough_history_no_stored_level_is_invented():
+    with pytest.raises(LiveError, match="не оценивается"):
+        bind_forecast(raw(), forecast(), state=measured_state(9.0, hours=5))
 
 
 def test_the_original_scenario_is_not_modified():
@@ -87,12 +118,14 @@ def test_a_bound_forecast_changes_the_computed_blend():
                   if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
         return max(c.observed for c in checks)
 
+    # 285 t of inflow enter a 4000 t stock over three hours: the forecast reaches the blend gradually.
     low, high = blend_sulfur(6.0), blend_sulfur(14.0)
-    assert high > low + 1.0, "прогноз не дошёл до расчёта смеси"
+    assert high > low + 0.2, "прогноз не дошёл до расчёта смеси"
+    assert high - low < 1.0, "приток не может мгновенно заменить весь запас"
 
 
-def test_a_high_forecast_makes_the_current_regime_infeasible():
-    scenario = parse_scenario(bind_forecast(raw(), forecast(upper=25.0)))
+def test_a_high_forecast_into_a_tank_near_the_limit_makes_the_regime_infeasible():
+    scenario = parse_scenario(bind_forecast(raw(), forecast(upper=25.0), state=measured_state(10.5)))
     planner = PlanOperation(scenario)
     operation = scenario.current_operation
     recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
@@ -134,7 +167,8 @@ def test_an_action_still_shifts_the_bound_level():
                                                 recipe, operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
                   if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
-        return min(c.observed for c in checks)
+        # The correction acts on the inflow after its lag, so compare the end of the horizon.
+        return max(checks, key=lambda c: c.time_hours).observed
 
     assert worst({"ht_reactor_inlet_temp_c": 358.0}) < worst({}), "коррекция не снижает серу"
 
@@ -284,3 +318,28 @@ def test_invalid_forecast_binding_returns_structured_local_refusal(monkeypatch):
     assert result['explanation'] is None
     assert 'интервал' in result['error']
     assert 'не удалось связать' in result['note']
+
+
+# --- History of trusted readings behind the stored-sulfur estimate ---
+
+def history_case():
+    from neftecode.infrastructure.data.data import recent_quality_history
+    times = pd.date_range("2026-03-01 00:00", "2026-03-03 12:00", freq="10min")
+    values = 7.0 + (np.arange(len(times)) % 5) * 0.1          # varying, trusted
+    values[-15:] = 18.45                                       # last 2.5 h flat: frozen analyser
+    online = pd.DataFrame({"time": times, "value": values})
+    lab = series_frame([("2026-03-03 09:00", 9.5), ("2026-03-03 11:00", 12.0)], "test")
+    cfg = {"horizon_hours": 2, "lab_delay_hours": 4, "history_window_hours": 6}
+    return recent_quality_history(lab, online, pd.Timestamp("2026-03-03 12:00"), cfg)
+
+
+def test_a_flat_analyser_run_is_not_trusted_history():
+    history = history_case()
+    means = [mean for _, mean, _ in history["pak_trusted_hourly"]]
+    assert max(means) < 8.0, "показания зависшего прибора попали в доверенную историю"
+    assert history["pak_expected_per_hour"] == pytest.approx(6.0)
+
+
+def test_laboratory_history_respects_the_publication_delay():
+    history = history_case()
+    assert [value for _, value in history["lab_recent"]] == [], "проба 09:00 доступна только в 13:00"

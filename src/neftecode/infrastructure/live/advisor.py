@@ -20,7 +20,7 @@ import copy
 import numpy as np
 import pandas as pd
 
-from neftecode.infrastructure.data.data import build_features
+from neftecode.infrastructure.data.data import build_features, recent_quality_history
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.ports.robustness import RobustnessEvaluator
 from neftecode.application.contracts import LiveForecast, LiveSnapshot, LiveAdviceCommand
@@ -68,9 +68,10 @@ class LocalForecastProvider:
 
 
 class LocalForecastScenarioBinder:
-    def bind(self, raw_scenario, forecast):
+    def bind(self, raw_scenario, forecast, snapshot=None):
         try:
-            raw = bind_forecast(dict(raw_scenario), forecast.to_dict())
+            state = dict(snapshot.state) if snapshot is not None else None
+            raw = bind_forecast(dict(raw_scenario), forecast.to_dict(), state=state)
             return parse_scenario(raw), raw
         except (ValueError, KeyError, TypeError) as exc:
             raise ForecastBindingError(str(exc)) from exc
@@ -90,6 +91,7 @@ def state_at(signals, lab, online, bundle, when) -> dict:
         else:
             state[key] = value
     state["origin"] = "real_measurements_at_decision_time"
+    state.update(recent_quality_history(lab, online, when, bundle["config"]))
     return state
 
 
@@ -107,11 +109,54 @@ def forecast_at(signals, lab, online, bundle, when, fallback: bool = False) -> d
             "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"}
 
 
-def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main") -> dict:
-    """Put the forecast's UPPER bound into the main component's sulfur, on a copy.
+def _policy_number(raw: dict, key: str, low: float, high: float) -> float:
+    value = (raw.get("policy") or {}).get(key)
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not np.isfinite(value) \
+            or not low <= value <= high:
+        raise LiveError(f"policy.{key}: нужно число в пределах [{low:g}, {high:g}], получено {value!r}")
+    return float(value)
 
-    Using the upper bound is the conservative reading: the blend is judged against what the
-    sulfur could be, not against the middle of the interval.
+
+def estimate_tank_sulfur(raw: dict, state: dict) -> dict:
+    """Sulfur of what is already stored in the main tank, from what flowed in before the decision.
+
+    The tank is treated as well mixed over its refresh window (inventory over inflow): the mean of
+    trusted analyser readings in that window. Readings inside a flat run of at least an hour are not
+    trusted. With too few trusted readings the laboratory mean in the window is used (at least two
+    results); otherwise the level is unknown and no advice may be produced.
+    """
+    window = _policy_number(raw, "tank_level_window_hours", 1.0, 72.0)
+    coverage_min = _policy_number(raw, "tank_level_min_coverage", 0.0, 1.0)
+    when = pd.Timestamp(state.get("decision_time"))
+    if pd.isna(when):
+        raise LiveError("Состояние не содержит времени решения: уровень резервуара не оценивается")
+    if window > float(state.get("quality_history_hours") or 0):
+        raise LiveError("История показаний короче окна резервуара: уровень не оценивается")
+    start = when - pd.Timedelta(value=window, unit="h")
+    hours = [(pd.Timestamp(t), m, n) for t, m, n in state.get("pak_trusted_hourly") or []]
+    inside = [(m, n) for t, m, n in hours if t >= start.floor("h") and t <= when]
+    count = sum(n for _, n in inside)
+    per_hour = state.get("pak_expected_per_hour")
+    coverage = count / (window * per_hour) if per_hour else 0.0
+    if count and coverage >= coverage_min:
+        value = sum(m * n for m, n in inside) / count
+        return {"value": value, "source": "pak", "coverage": min(1.0, coverage), "n": count, "window_hours": window}
+    lab = [v for t, v in state.get("lab_recent") or [] if start < pd.Timestamp(t) <= when]
+    if len(lab) >= 2:
+        return {"value": float(np.mean(lab)), "source": "lims", "coverage": coverage, "n": len(lab),
+                "window_hours": window}
+    raise LiveError(f"Уровень серы в резервуаре не оценивается: за {window:g} ч доверенных показаний ПАК "
+                    f"{coverage:.0%} при требуемых {coverage_min:.0%} и проб ЛИМС {len(lab)}")
+
+
+def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict | None = None) -> dict:
+    """Bind a hydrotreated-sulfur forecast to the main tank, on a copy.
+
+    The forecast describes the stream leaving hydrotreating, not the stored product, so its UPPER
+    bound becomes the sulfur of the tank's inflow: the blend is judged against what the incoming
+    stream could be, and the stored mass dilutes it as it does in the plant. With a measurement
+    state the stored sulfur is estimated from history; without one (synthetic scenes) the scenario's
+    declared stored sulfur is kept.
     """
     if not forecast.get("available"):
         raise LiveError(forecast.get("reason", "Прогноз недоступен"))
@@ -125,13 +170,20 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main") -> dict:
     out = copy.deepcopy(raw)
     for tank in out["tanks"]:
         if tank["tank_id"] == tank_id:
-            # A measurement-derived value outranks the chain model for the CURRENT level.
+            # A measurement-derived value outranks the chain model.
             tank["sulfur_from_chain"] = False
-            tank["properties"]["sulfur_mgkg"] = {
-                "value": round(forecast["upper"], 4), "unit": "мг/кг", "source": "derived",
-                "note": (f"Верхняя граница прогноза модели {forecast['model']} на момент решения. "
-                         f"Точечная оценка {forecast['value']:.3f} мг/кг сама по себе допуском "
-                         f"не является.")}
+            inflow = float(forecast["upper"])
+            tank["inflow_sulfur_mgkg"] = {
+                "value": round(inflow, 4), "unit": "мг/кг", "source": "derived",
+                "note": (f"Сера притока с гидроочистки: верхняя граница прогноза модели {forecast['model']} "
+                         f"на момент решения; точечная оценка {forecast['value']:.3f} мг/кг.")}
+            if state is not None and state.get("origin") == "real_measurements_at_decision_time":
+                level = estimate_tank_sulfur(out, state)
+                tank["properties"]["sulfur_mgkg"] = {
+                    "value": round(level["value"], 4), "unit": "мг/кг", "source": "derived",
+                    "note": (f"Сера содержимого резервуара: среднее {level['n']} доверенных показаний "
+                             f"{'ПАК' if level['source'] == 'pak' else 'ЛИМС'} за {level['window_hours']:g} ч "
+                             f"окна обновления; допущение полного перемешивания.")}
             return out
     raise LiveError(f"Резервуар {tank_id} не описан в сценарии")
 

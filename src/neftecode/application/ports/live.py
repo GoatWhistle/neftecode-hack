@@ -21,4 +21,5 @@ class ForecastProvider(Protocol):
 
 
 class ForecastScenarioBinder(Protocol):
-    def bind(self, raw_scenario: Mapping[str, object], forecast: LiveForecast) -> tuple[Scenario, Mapping[str, object]]: ...
+    def bind(self, raw_scenario: Mapping[str, object], forecast: LiveForecast,
+             snapshot: LiveSnapshot | None = None) -> tuple[Scenario, Mapping[str, object]]: ...

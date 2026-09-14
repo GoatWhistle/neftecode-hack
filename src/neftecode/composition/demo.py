@@ -51,7 +51,15 @@ def make_demo(root, out):
         "model": "synthetic", "value": 6.0, "lower": 4.0, "upper": 8.0,
         "available": True, "reason": "Синтетическая проверка механики решения",
     })
-    conflict = bind_forecast(baseline, {
+    # The tank already stores sulfur close to the limit, and the incoming stream could be worse.
+    near_limit = json.loads(json.dumps(baseline))
+    for tank in near_limit["tanks"]:
+        if tank["tank_id"] == "main":
+            tank["sulfur_from_chain"] = False
+            tank["properties"]["sulfur_mgkg"] = {
+                "value": 10.7, "unit": "мг/кг", "source": "scenario",
+                "note": "Синтетическая проверка: запас резервуара уже близок к пределу."}
+    conflict = bind_forecast(near_limit, {
         "model": "synthetic", "value": 12.0, "lower": 10.0, "upper": 14.0,
         "available": True, "reason": "Синтетическая проверка механики решения",
     })
