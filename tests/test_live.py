@@ -343,3 +343,42 @@ def test_a_flat_analyser_run_is_not_trusted_history():
 def test_laboratory_history_respects_the_publication_delay():
     history = history_case()
     assert [value for _, value in history["lab_recent"]] == [], "проба 09:00 доступна только в 13:00"
+
+
+# --- A frozen analyser does not lower the risk (T52) ---
+
+def frozen_state(last=13.25, last_at="2026-03-01T10:00:00", lab=()):
+    state = measured_state(8.0, lab=lab)
+    state.update({"pak_frozen": True, "pak_last_trusted_value": last, "pak_last_trusted_time": last_at})
+    return state
+
+
+def test_a_frozen_analyser_keeps_the_last_trusted_reading_as_the_inflow_floor():
+    bound = bind_forecast(raw(), forecast(value=6.5, upper=8.9, model="catboost_no_pak"), state=frozen_state())
+    inflow = parse_scenario(bound).tank("main").inflow_sulfur
+    assert inflow.value == pytest.approx(13.25)
+    assert "завис" in inflow.note
+
+
+def test_a_later_laboratory_result_replaces_the_held_reading():
+    lab = [("2026-03-01T11:00:00", 7.1)]
+    bound = bind_forecast(raw(), forecast(value=6.5, upper=8.9), state=frozen_state(lab=lab))
+    assert parse_scenario(bound).tank("main").inflow_sulfur.value == pytest.approx(8.9)
+
+
+def test_an_old_trusted_reading_is_not_held_forever():
+    state = frozen_state(last_at="2026-02-20T10:00:00")
+    bound = bind_forecast(raw(), forecast(value=6.5, upper=8.9), state=state)
+    assert parse_scenario(bound).tank("main").inflow_sulfur.value == pytest.approx(8.9)
+
+
+def test_the_hold_only_applies_while_the_analyser_is_frozen():
+    state = dict(frozen_state(), pak_frozen=False)
+    bound = bind_forecast(raw(), forecast(value=6.5, upper=8.9), state=state)
+    assert parse_scenario(bound).tank("main").inflow_sulfur.value == pytest.approx(8.9)
+
+
+def test_history_reports_the_reading_before_the_flat_run():
+    history = history_case()
+    assert history["pak_last_trusted_value"] < 8.0
+    assert history["pak_last_trusted_time"] < "2026-03-03T10:00:00"

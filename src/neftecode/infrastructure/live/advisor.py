@@ -149,6 +149,30 @@ def estimate_tank_sulfur(raw: dict, state: dict) -> dict:
                     f"{coverage:.0%} при требуемых {coverage_min:.0%} и проб ЛИМС {len(lab)}")
 
 
+def frozen_analyser_hold(raw: dict, state: dict) -> dict | None:
+    """What the inflow may not fall below while the analyser is frozen.
+
+    A frozen analyser removes the most recent evidence, and the fallback model without it may read
+    lower than what was last measured. Until a laboratory result arrives the last trusted analyser
+    reading stands; a laboratory result sampled after it is the control fact instead.
+    """
+    if not state.get("pak_frozen"):
+        return None
+    value, at = state.get("pak_last_trusted_value"), state.get("pak_last_trusted_time")
+    when = pd.Timestamp(state.get("decision_time"))
+    if value is None or at is None or pd.isna(when):
+        return None
+    max_age = _policy_number(raw, "frozen_hold_max_age_hours", 0.0, 72.0)
+    age = (when - pd.Timestamp(at)).total_seconds() / 3600
+    if age > max_age:
+        return None
+    later_lab = [(pd.Timestamp(t), v) for t, v in state.get("lab_recent") or [] if pd.Timestamp(t) > pd.Timestamp(at)]
+    if later_lab:
+        sampled, lab_value = max(later_lab)
+        return {"value": float(lab_value), "source": "lims", "at": sampled.isoformat()}
+    return {"value": float(value), "source": "pak", "at": pd.Timestamp(at).isoformat()}
+
+
 def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict | None = None) -> dict:
     """Bind a hydrotreated-sulfur forecast to the main tank, on a copy.
 
@@ -173,11 +197,17 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict 
             # A measurement-derived value outranks the chain model.
             tank["sulfur_from_chain"] = False
             inflow = float(forecast["upper"])
-            tank["inflow_sulfur_mgkg"] = {
-                "value": round(inflow, 4), "unit": "мг/кг", "source": "derived",
-                "note": (f"Сера притока с гидроочистки: верхняя граница прогноза модели {forecast['model']} "
-                         f"на момент решения; точечная оценка {forecast['value']:.3f} мг/кг.")}
-            if state is not None and state.get("origin") == "real_measurements_at_decision_time":
+            note = (f"Сера притока с гидроочистки: верхняя граница прогноза модели {forecast['model']} "
+                    f"на момент решения; точечная оценка {forecast['value']:.3f} мг/кг.")
+            measured = state is not None and state.get("origin") == "real_measurements_at_decision_time"
+            hold = frozen_analyser_hold(out, state) if measured else None
+            if hold is not None and hold["value"] > inflow:
+                inflow = hold["value"]
+                note += (f" Анализатор завис: приток не ниже последнего доверенного значения "
+                         f"{hold['value']:.3f} мг/кг ({'ЛИМС' if hold['source'] == 'lims' else 'ПАК'}, {hold['at']}).")
+            tank["inflow_sulfur_mgkg"] = {"value": round(inflow, 4), "unit": "мг/кг", "source": "derived",
+                                          "note": note}
+            if measured:
                 level = estimate_tank_sulfur(out, state)
                 tank["properties"]["sulfur_mgkg"] = {
                     "value": round(level["value"], 4), "unit": "мг/кг", "source": "derived",
