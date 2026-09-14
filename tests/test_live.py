@@ -77,7 +77,7 @@ def test_a_scenario_cannot_claim_both_chain_and_measurement():
 def test_a_bound_forecast_changes_the_computed_blend():
     """The scenario chain model must not overwrite a real forecast."""
     def blend_sulfur(upper):
-        scenario = parse_scenario(bind_forecast(raw(), forecast(upper=upper)))
+        scenario = parse_scenario(bind_forecast(raw(), forecast(value=upper - 2, upper=upper)))
         planner = PlanOperation(scenario)
         operation = scenario.current_operation
         recipe = {t.tank_id: float(operation.recipe.get(t.tank_id, 0.0)) for t in scenario.tanks}
@@ -241,3 +241,27 @@ def test_live_refuses_bad_data_before_calling_a_forecast(monkeypatch):
     assert result["decision"]["status"] == "refuse"
     assert result["forecast"]["available"] is False
     assert result["forecast"]["model"] is None
+
+
+def test_frozen_pak_selects_the_separate_fallback_forecast(monkeypatch):
+    from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
+
+    state = {"decision_time": "2026-01-05T08:00:00", "lab_value": 8.0,
+             "lab_age_hours": 5.0, "lab_usable": True, "pak_value": 8.4,
+             "pak_age_minutes": 10.0, "pak_usable": True, "pak_frozen": True,
+             "pak_conflict": False, "telemetry_missing_fraction": 0.0}
+    monkeypatch.setattr("neftecode.infrastructure.live.advisor.state_at", lambda *args: state)
+    called = []
+
+    def forecast(*args, fallback=False, **kwargs):
+        called.append(fallback)
+        return {"model": "fallback", "value": 8.0, "lower": 7.0, "upper": 9.0,
+                "available": True, "reason": "test"}
+
+    monkeypatch.setattr("neftecode.infrastructure.live.advisor.forecast_at", forecast)
+    advisor = LiveAdviceAdapter(None, None, None,
+                                {"config": {"calibration_end": "2026-01-01"}}, raw())
+    result = advisor.advise("2026-01-05T08:00:00")
+    assert called == [True]
+    assert result["forecast"]["model"] == "fallback"
+    assert result["decision"]["status"] in ("hold", "recommend_scenario")

@@ -163,7 +163,7 @@ def test_split_boundaries_must_increase():
 
 
 def test_model_is_not_usable_before_its_calibration_period_ended():
-    from neftecode.infrastructure.ml.runtime import validate_origin
+    from neftecode.infrastructure.live.origin import validate_origin
     bundle = {"config": {"calibration_end": "2026-01-01"}}
     with pytest.raises(ValueError, match="утечк"):
         validate_origin("2025-12-31T23:00:00", bundle)
@@ -171,7 +171,7 @@ def test_model_is_not_usable_before_its_calibration_period_ended():
 
 
 def test_origin_with_timezone_is_refused_since_sources_share_one_local_clock():
-    from neftecode.infrastructure.ml.runtime import validate_origin
+    from neftecode.infrastructure.live.origin import validate_origin
     with pytest.raises(ValueError, match="часового пояса"):
         validate_origin("2026-01-02T00:00:00+03:00", {"config": {"calibration_end": "2026-01-01"}})
 

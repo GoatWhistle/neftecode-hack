@@ -82,3 +82,15 @@ def test_service_processes_do_not_import_each_other():
             parts = imported.split(".")
             if parts[:2] == ["neftecode", "services"] and len(parts) > 2:
                 assert parts[2] in {"common", name}, f"{path}: imports peer service {imported}"
+
+
+def test_make_decision_is_the_only_production_coordinator():
+    assert not (PACKAGE / "infrastructure/ml/agents.py").exists()
+    assert not (PACKAGE / "infrastructure/ml/runtime.py").exists()
+    assert not Path("config/blending-demo.json").exists()
+    for path in PACKAGE.rglob("*.py"):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        legacy = [node.name for node in ast.walk(tree)
+                  if isinstance(node, ast.ClassDef) and node.name == "Coordinator"]
+        assert not legacy, f"{path}: legacy Coordinator is forbidden"
+        assert "neftecode.infrastructure.ml.agents" not in set(imports(path)), path

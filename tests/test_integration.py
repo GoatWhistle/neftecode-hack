@@ -61,7 +61,7 @@ def test_an_observation_not_yet_available_cannot_enter_the_state():
 
 
 def test_a_model_cannot_be_used_before_its_calibration_existed():
-    from neftecode.infrastructure.ml.runtime import validate_origin
+    from neftecode.infrastructure.live.origin import validate_origin
     with pytest.raises(ValueError, match="утечк"):
         validate_origin("2025-12-31T23:00:00", {"config": {"calibration_end": "2026-01-01"}})
 

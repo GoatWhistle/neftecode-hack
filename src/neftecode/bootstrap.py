@@ -7,19 +7,18 @@ import platform
 import numpy as np
 import pandas as pd
 
-from neftecode.infrastructure.ml.agents import Coordinator, Forecast
 from neftecode.infrastructure.data.data import load_sources, make_dataset
 from neftecode.infrastructure.ml.forecast import run_experiment
 from neftecode.infrastructure.ml.risk import run_risk_experiment
-from neftecode.infrastructure.ml.runtime import decision_at as infrastructure_decision_at, validate_origin
+from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.evaluation.benchmark import compare as compare_strategies
-from neftecode.evaluation.episodes import (_as_series, classify_episodes, evaluate_margin,
+from neftecode.evaluation.episodes import (_as_series, classify_episodes,
                                            excursion_episodes, lead_times, margin_series,
                                            sampling_step_hours, violation_profile)
 from neftecode.infrastructure.data.quality import report as quality_report, read_quality_series
 from neftecode.infrastructure.data.vak_workbooks import load_vak_inputs
 from neftecode.presentation.demo import Demo, scenes as demo_scenes
-from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
+from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, bind_forecast
 from neftecode.presentation.web.server import DemoService, serve as serve_demo
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 from neftecode.evaluation.vak import check_all
@@ -33,14 +32,8 @@ from neftecode.infrastructure.config.scenario import ScenarioError, load_scenari
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.presentation import cli
 
-
-def decision_at(*args, **kwargs):
-    """Compose historical advice with the evaluation-owned margin calculation."""
-    kwargs.setdefault("margin_evaluator", evaluate_margin)
-    return infrastructure_decision_at(*args, **kwargs)
-
-
-def run_demo_decision(raw: dict, state: dict, budget: int) -> dict:
+def run_demo_decision(raw: dict, state: dict, budget: int,
+                      trust_cfg: dict | None = None) -> dict:
     """Compose the interactive demo with the real parser, core and robustness check."""
     try:
         scenario = parse_scenario(raw)
@@ -51,8 +44,8 @@ def run_demo_decision(raw: dict, state: dict, budget: int) -> dict:
         scenario, robustness_evaluator=RobustnessCheck(
             scenario, raw, scenario_parser=parse_scenario
         )
-    ).decide(state=state, budget=budget, raw_scenario=raw)
-    trust = DataTrustAgent({}).assess(state)
+    ).decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
+    trust = DataTrustAgent(trust_cfg or {}).assess(state)
     screen = Screen(
         decision,
         explain(decision, scenario),
@@ -169,8 +162,18 @@ STATE_COLUMNS = ["decision_time", "lab_sample_time", "lab_available_time", "lab_
                  "pak_conflict", "pak_usable", "telemetry_missing_fraction"]
 
 
-def from_row(row, prefix, model):
-    return Forecast(*[clean(row[prefix + c]) for c in ("prediction", "lower", "upper")], model)
+def forecast_from_row(row, prefix: str, model: str) -> dict:
+    """Build the live forecast wire shape from one frozen replay row."""
+    value, lower, upper = [clean(row.get(prefix + column))
+                           for column in ("prediction", "lower", "upper")]
+    values = (lower, value, upper)
+    available = (all(isinstance(number, (int, float)) for number in values)
+                 and lower <= value <= upper)
+    return {"model": model, "value": value if available else None,
+            "lower": lower if available else None, "upper": upper if available else None,
+            "available": available,
+            "reason": ("Замороженный прогноз из тестового периода" if available
+                       else "Прогноз недоступен на этом тестовом моменте")}
 
 
 def risk_from_row(row):
@@ -178,48 +181,91 @@ def risk_from_row(row):
             for name, prefix in [("main", "risk_"), ("fallback", "risk_fallback_")]}
 
 
+def risk_alarm(reading: dict) -> bool | None:
+    score, threshold = reading.get("score"), reading.get("threshold")
+    if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
+               and np.isfinite(value) for value in (score, threshold)):
+        return None
+    return score >= threshold
+
+
 def make_demo(root, out):
-    cfg = json.loads((root / "config/blending-demo.json").read_text())
-    coordinator = Coordinator(cfg)
-    # Synthetic inputs test the decision mechanics independently of forecast performance.
+    scenario_dir = root / "config/scenarios"
+    baseline = json.loads((scenario_dir / "baseline.json").read_text())
     healthy = {"decision_time": "2026-01-15T10:00:00",
                "lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
                "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
                "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0,
                "origin": "synthetic_acceptance_test"}
-    demos = {}
-    demos["normal_synthetic"] = coordinator.run(healthy, Forecast(6, 4, 8, "synthetic"))
-    demos["conflict_synthetic"] = coordinator.run(healthy, Forecast(12, 10, 14, "synthetic"))
-    demos["missing_synthetic"] = coordinator.run(
-        dict(healthy, lab_value=None, lab_usable=False, pak_value=None, pak_usable=False,
-             telemetry_missing_fraction=1), Forecast(None, None, None, "missing"))
-    demos["no_feasible_synthetic"] = coordinator.run(healthy, Forecast(100, 80, 120, "synthetic"))
+    normal = bind_forecast(baseline, {
+        "model": "synthetic", "value": 6.0, "lower": 4.0, "upper": 8.0,
+        "available": True, "reason": "Синтетическая проверка механики решения",
+    })
+    conflict = bind_forecast(baseline, {
+        "model": "synthetic", "value": 12.0, "lower": 10.0, "upper": 14.0,
+        "available": True, "reason": "Синтетическая проверка механики решения",
+    })
+    demos = {
+        "normal_synthetic": run_demo_decision(normal, healthy, 400)["decision"],
+        "conflict_synthetic": run_demo_decision(conflict, healthy, 400)["decision"],
+        "missing_synthetic": run_demo_decision(
+            baseline,
+            dict(healthy, lab_value=None, lab_usable=False, pak_value=None, pak_usable=False,
+                 telemetry_missing_fraction=1),
+            400,
+        )["decision"],
+        "no_feasible_synthetic": run_demo_decision(
+            json.loads((scenario_dir / "no_feasible.json").read_text()), healthy, 400
+        )["decision"],
+    }
     replay_rows = []
     if (out / "predictions.csv").exists():
         frame = pd.read_csv(out / "predictions.csv")
         summary = json.loads((out / "metrics.json").read_text())
+        model_cfg = {}
+        selected = summary["selected"]
+        fallback_model = "catboost_no_pak"
+        model_path = out / "model.pkl"
+        if model_path.exists():
+            with model_path.open("rb") as stream:
+                bundle = pickle.load(stream)
+            model_cfg = bundle.get("config", {})
+            selected = bundle.get("selected", selected)
+            fallback_model = bundle.get("fallback", fallback_model)
+        unavailable = 0
         for _, row in frame.iterrows():
             # Deliberate allowlist: future target and its actual value NEVER reach agents.
             state = clean({key: row[key] for key in STATE_COLUMNS})
             state["origin"] = "historical_replay_with_synthetic_blending"
-            forecast = from_row(row, "", summary["selected"])
-            fallback = from_row(row, "fallback_", "catboost_no_pak")
+            trust = DataTrustAgent(model_cfg).assess(state)
+            prefix, model = (("fallback_", fallback_model) if trust.fallback_mode
+                             else ("", selected))
+            forecast = forecast_from_row(row, prefix, model)
             risk = risk_from_row(row)
-            decision = coordinator.run(state, forecast, fallback, risk)
+            active_risk = risk["fallback" if trust.fallback_mode else "main"]
+            if trust.usable and not forecast["available"]:
+                unavailable += 1
+                replay_rows.append({"decision_time": row.decision_time, "decision_id": None,
+                                    "status": "unavailable", "source": trust.primary,
+                                    "forecast_model": model,
+                                    "risk_model": active_risk["model"],
+                                    "risk_alarm": risk_alarm(active_risk)})
+                continue
+            raw = bind_forecast(baseline, forecast) if trust.usable else baseline
+            decision = run_demo_decision(raw, state, 400, trust_cfg=model_cfg)["decision"]
             key = "historical_" + decision["status"]
             if key not in demos:
                 demos[key] = decision
             replay_rows.append({"decision_time": row.decision_time, "decision_id": decision["decision_id"],
-                                "status": decision["status"], "source": decision["trust"]["source"],
-                                "forecast_model": decision["forecast"]["model"],
-                                "risk_model": decision["risk"]["model"], "risk_alarm": decision["risk"]["alarm"]})
-            if state["pak_usable"] and state["lab_usable"] and "frozen_pak_injected" not in demos:
-                damaged = dict(state, pak_usable=False, pak_frozen=True, origin="historical_state_with_injected_pak_failure")
-                demos["frozen_pak_injected"] = coordinator.run(damaged, forecast, fallback, risk)
+                                "status": decision["status"], "source": trust.primary,
+                                "forecast_model": forecast["model"],
+                                "risk_model": active_risk["model"],
+                                "risk_alarm": risk_alarm(active_risk)})
         pd.DataFrame(replay_rows).to_csv(out / "replay.csv", index=False)
         summary["replay"] = {
             "n": len(replay_rows),
             "statuses": pd.Series([r["status"] for r in replay_rows]).value_counts().to_dict(),
+            "unavailable_forecasts": unavailable,
             "scope": "Работа механизма рекомендаций в синтетическом смешении; не доказательство экономии или безопасности реального выпуска.",
         }
         write_json(out / "metrics.json", summary)
@@ -316,16 +362,15 @@ def make_report(out, demos):
         lines.append(f"| {name} | {d['status']} | {d['reason']} |")
     lines += ["", "## Проверяемый конфликт", ""]
     conflict = demos["conflict_synthetic"]
-    c = conflict["chosen"]
-    if c:
-        lines += [f"При верхней оценке серы 14 мг/кг исходные 100 т/ч не проходят ограничения. "
-                  f"После запрета оборудования выбран расход {c['throughput_tph']:g} т/ч с массовой долей резерва {c['reserve_fraction']:.0%}. "
-                  f"Верхняя оценка смеси {c['quality']['sulfur_upper']:.2f} мг/кг; "
-                  f"насос {c['throughput_tph'] * c['reserve_fraction']:g} т/ч при пределе 30 т/ч.", ""]
-    lines += ["Все численные условия этого конфликта заданы в config/blending-demo.json. "
-              "audit.jsonl содержит входы, оценки, все кандидаты и причины запрета. Фактическое будущее в журнал агентов не передается.", "",
-              "Полный промышленный советчик пока не готов: нужны подтвержденные управляющие теги, "
-              "остальные спецификации качества и проверка модели последствий действий.", ""]
+    action = conflict["immediate_action"]
+    if action:
+        reserve = action["recipe"].get("reserve", 0.0)
+        lines += [f"При верхней оценке серы 14 мг/кг исходный режим не проходит ограничения. "
+                  f"Единый контур MakeDecision выбрал расход {action['throughput_tph']:g} т/ч "
+                  f"с массовой долей резерва {reserve:.0%}.", ""]
+    lines += ["Численные условия берутся из config/scenarios/*.json. audit.jsonl содержит решения, "
+              "проверки и причины запретов. Фактическое будущее в решение не передается.", "",
+              "Результат остаётся исследовательским советом: решение не разрешает промышленный выпуск.", ""]
     (out / "report.md").write_text("\n".join(lines))
 
 
