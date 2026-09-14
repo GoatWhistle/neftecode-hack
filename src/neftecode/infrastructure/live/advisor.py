@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from neftecode.infrastructure.data.data import build_features
+from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.ports.robustness import RobustnessEvaluator
 from neftecode.application.contracts import LiveForecast, LiveSnapshot, LiveAdviceCommand
 from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
@@ -68,8 +69,11 @@ class LocalForecastProvider:
 
 class LocalForecastScenarioBinder:
     def bind(self, raw_scenario, forecast):
-        raw = bind_forecast(dict(raw_scenario), forecast.to_dict())
-        return parse_scenario(raw), raw
+        try:
+            raw = bind_forecast(dict(raw_scenario), forecast.to_dict())
+            return parse_scenario(raw), raw
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ForecastBindingError(str(exc)) from exc
 
 
 def state_at(signals, lab, online, bundle, when) -> dict:

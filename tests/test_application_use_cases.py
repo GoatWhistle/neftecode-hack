@@ -56,3 +56,20 @@ def test_live_use_case_orchestrates_typed_ports(monkeypatch):
         LiveAdviceCommand(at="2026-01-01T00:00:00", scenario_id="baseline"))
     assert calls == ["scenario", "snapshot", "forecast", "bind", "decision", "decide"]
     assert result.to_dict()["forecast"]["upper"] == 9.0
+
+
+def test_explicit_data_rejection_stops_decision_before_search(monkeypatch):
+    from neftecode.application.contracts import DataRejection
+
+    use_case = MakeDecision(scenario())
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Rejected data must not reach plan evaluation')
+
+    monkeypatch.setattr(use_case.planner, 'evaluate', forbidden)
+    result = use_case.execute(DecisionCommand(
+        data_rejection=DataRejection('Snapshot rejected', ('fresh laboratory sample',))))
+    assert result['status'] == 'refuse'
+    assert result['selected_plan'] is None
+    assert result['refusal'] == {'kind': 'data', 'missing': ['fresh laboratory sample']}
+    assert result['trace'][0]['usable'] is False

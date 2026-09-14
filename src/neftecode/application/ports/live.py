@@ -4,6 +4,10 @@ from neftecode.application.contracts import LiveForecast, LiveSnapshot
 from neftecode.domain.production.scenario import Scenario
 
 
+class ForecastBindingError(ValueError):
+    """A forecast cannot be safely bound to the production scenario."""
+
+
 class ScenarioProvider(Protocol):
     def get(self, scenario_id: str) -> tuple[Scenario, Mapping[str, object]]: ...
 

@@ -59,6 +59,8 @@ def test_real_data_model_decision_live_contract():
         assert result["forecast"]["upper"] == 9.167584757282347
         assert result["bound_sulfur_mgkg"] == 9.1676
         assert result["decision"]["status"] == "hold"
+        assert set(result["inventories"]) == {"main", "reserve", "light"}
+        assert {source["name"] for source in result["sources"]} == {"ЛИМС", "ПАК"}
         assert payload["request_id"] == "integration-1"
     finally:
         for server, thread in ((decision, decision_thread), (model, model_thread), (data, data_thread)):
@@ -78,3 +80,60 @@ def test_live_upstream_failure_is_explicit():
         assert "decision" not in payload.get("data", {})
     finally:
         server.shutdown(); server.server_close(); thread.join(timeout=3)
+
+
+def test_live_rejected_snapshot_cannot_be_overridden_by_healthy_state():
+    from types import SimpleNamespace
+    from neftecode.services.common import Request
+
+    raw = json.loads((ROOT / 'config/scenarios/baseline.json').read_text())
+    state = {'decision_time': '2026-01-05T08:00:00', 'lab_value': 8.0,
+             'lab_age_hours': 5.0, 'lab_usable': True, 'pak_value': 8.4,
+             'pak_age_minutes': 10.0, 'pak_usable': True, 'pak_frozen': False,
+             'pak_conflict': False, 'telemetry_missing_fraction': 0.0}
+    sources = {'ЛИМС': {'name': 'ЛИМС', 'usable': False, 'status': 'unusable'}}
+
+    class Client:
+        def request(self, method, url, body=None, headers=None):
+            if url.endswith('/v1/scenarios/get'):
+                return SimpleNamespace(data=raw)
+            if url.endswith('/v1/snapshots'):
+                return SimpleNamespace(data={'at': state['decision_time'], 'state': state,
+                    'trust': {'usable': False, 'sources': sources,
+                              'refusal_reason': 'Отклонено внешней проверкой'}})
+            raise AssertionError('Rejected snapshot must not reach forecast')
+
+    service = DecisionService()
+    service.client = Client()
+    result = service.live(Request('POST', '/v1/live/advice', {},
+        {'at': state['decision_time'], 'scenario_id': 'baseline', 'budget': 30}))
+    assert result['decision']['status'] == 'refuse'
+    assert result['decision']['immediate_action'] is None
+    assert result['decision']['reason'] == 'Отклонено внешней проверкой'
+    assert result['sources'] == list(sources.values())
+    assert result['inventories'] == {tank['tank_id']: tank['inventory']['value'] for tank in raw['tanks']}
+
+
+def test_live_binding_failure_keeps_http_error_contract():
+    from types import SimpleNamespace
+    from neftecode.services.common import Request, ServiceError
+
+    raw = json.loads((ROOT / 'config/scenarios/baseline.json').read_text())
+
+    class Client:
+        def request(self, method, url, body=None, headers=None):
+            if url.endswith('/v1/scenarios/get'):
+                return SimpleNamespace(data=raw)
+            if url.endswith('/v1/snapshots'):
+                return SimpleNamespace(data={'at': '2026-01-05T08:00:00', 'state': {},
+                                             'trust': {'usable': True}})
+            return SimpleNamespace(data={'available': True, 'model': 'test',
+                'value': 8.0, 'lower': 7.0, 'upper': 6.0})
+
+    service = DecisionService()
+    service.client = Client()
+    with pytest.raises(ServiceError) as error:
+        service.live(Request('POST', '/v1/live/advice', {},
+            {'at': '2026-01-05T08:00:00', 'scenario_id': 'baseline'}))
+    assert error.value.status == 422
+    assert error.value.code == 'forecast_binding_failed'

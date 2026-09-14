@@ -20,7 +20,7 @@ import json
 from neftecode.domain.shared.primitives import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
 from .plan_operation import PlanOperation, PlannerError
 from neftecode.domain.production.scenario import Scenario
-from neftecode.application.contracts import DecisionCommand, DecisionResult
+from neftecode.application.contracts import DataRejection, DecisionCommand, DecisionResult
 from neftecode.application.ports import RobustnessEvaluator
 from ..services.trust import DataTrustAgent
 
@@ -95,9 +95,16 @@ class MakeDecision:
 
     def decide(self, state: dict | None = None, confirmed=(), budget: int = 600,
                trust_cfg: dict | None = None, raw_scenario: dict | None = None,
-               initial_tanks=None, current_operation: dict | None = None) -> dict:
+               initial_tanks=None, current_operation: dict | None = None,
+               data_rejection: DataRejection | None = None) -> dict:
         trace: list[dict] = []
         state = state or {}
+        if data_rejection is not None:
+            trace.append({"agent": "data", "usable": False, "primary": None,
+                          "reasons": [data_rejection.reason]})
+            return self._finish(REFUSE, data_rejection.reason, trace, None, None,
+                                {"kind": "data", "missing": list(data_rejection.missing)},
+                                current_operation=current_operation)
 
         # 1. Data first: a state that cannot carry a decision stops the loop before any model runs.
         if state:
@@ -249,7 +256,8 @@ class MakeDecision:
                            budget=command.budget, trust_cfg=command.trust_cfg,
                            raw_scenario=command.raw_scenario,
                            initial_tanks=command.initial_tanks,
-                           current_operation=command.current_operation)
+                           current_operation=command.current_operation,
+                           data_rejection=command.data_rejection)
 
     # --- Internals ---
 

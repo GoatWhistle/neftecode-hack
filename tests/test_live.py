@@ -265,3 +265,22 @@ def test_frozen_pak_selects_the_separate_fallback_forecast(monkeypatch):
     assert called == [True]
     assert result["forecast"]["model"] == "fallback"
     assert result["decision"]["status"] in ("hold", "recommend_scenario")
+
+
+def test_invalid_forecast_binding_returns_structured_local_refusal(monkeypatch):
+    from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
+
+    state = {'decision_time': '2026-01-05T08:00:00', 'lab_value': 8.0,
+             'lab_age_hours': 5.0, 'lab_usable': True, 'pak_value': 8.4,
+             'pak_age_minutes': 10.0, 'pak_usable': True, 'pak_frozen': False,
+             'pak_conflict': False, 'telemetry_missing_fraction': 0.0}
+    monkeypatch.setattr('neftecode.infrastructure.live.advisor.state_at', lambda *args: state)
+    monkeypatch.setattr('neftecode.infrastructure.live.advisor.forecast_at',
+        lambda *args, **kwargs: {'model': 'test', 'value': 8.0, 'lower': 7.0,
+                                 'upper': 6.0, 'available': True, 'reason': 'test'})
+    result = LiveAdviceAdapter(None, None, None,
+        {'config': {'calibration_end': '2026-01-01'}}, raw()).advise(state['decision_time'])
+    assert result['decision'] is None
+    assert result['explanation'] is None
+    assert 'интервал' in result['error']
+    assert 'не удалось связать' in result['note']
