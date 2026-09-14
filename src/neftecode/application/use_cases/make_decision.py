@@ -16,6 +16,7 @@ agent answer produces a refusal, never a decision that quietly skipped a check.
 from dataclasses import dataclass, field, replace
 import hashlib
 import json
+import math
 
 from neftecode.domain.shared.primitives import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
 from .plan_operation import PlanOperation, PlannerError
@@ -26,6 +27,9 @@ from ..services.trust import DataTrustAgent
 
 #: How many times the orchestrator may ask for a changed search before giving up.
 MAX_ROUNDS = 3
+
+#: How many feasible alternatives the look-ahead may project when the chosen plan fails early.
+LOOKAHEAD_CANDIDATES = 40
 
 #: Constraint families a veto can forbid, mapped to the search restriction they imply.
 VETO_FAMILIES = {
@@ -207,6 +211,17 @@ class MakeDecision:
                                 {"kind": "no_feasible_plan", "examples": reasons},
                                 current_operation=current_operation)
 
+        # 2b. Look past the horizon: a plan that is fine for three hours may still run the stored
+        #     product out of spec before anyone can react. This never waives a gate check.
+        lookahead = None
+        try:
+            lookahead, selected, selected_plan_obj = self._look_ahead(
+                selected, selected_plan_obj, feasible, by_id, confirmed, initial_tanks, current_operation)
+        except (PlannerError, ValueError) as exc:
+            lookahead = {"available": False, "reason": f"Расчёт за горизонтом не выполнен: {exc}"}
+        if lookahead is not None:
+            trace.append({"agent": "lookahead", **{k: v for k, v in lookahead.items() if k != "alternatives"}})
+
         # 3. Re-check the chosen plan through the same gate before releasing it.
         plan_id = selected["selected"]["candidate_id"]
         plans, _ = self._build_plans(budget, current_operation)
@@ -238,13 +253,16 @@ class MakeDecision:
         status = HOLD if chosen.changes == 0 else RECOMMEND_SCENARIO
         reason = ("Текущий режим проходит все обязательные проверки; изменения не требуются"
                   if status == HOLD else selected["reason"])
+        warning = (lookahead or {}).get("warning")
+        if warning:
+            reason += f". {warning}"
         if robustness is not None and robustness["fragile"]:
             reason += (f". Предупреждение: план теряет допустимость при "
                        f"{robustness['violated']} из {robustness['perturbations_evaluated']} "
                        f"заданных отклонений и надёжным не считается")
         return self._finish(
             status, reason, trace, chosen, final, None, selected, robustness,
-            current_operation=current_operation,
+            current_operation=current_operation, lookahead=lookahead,
         )
 
     def execute(self, command: DecisionCommand) -> DecisionResult:
@@ -398,8 +416,63 @@ class MakeDecision:
             return True
         return False
 
+    def _look_ahead(self, selected, plan_obj, feasible, by_id, confirmed, initial_tanks, current_operation):
+        """Project the chosen plan past the horizon; prefer a feasible plan that leaves time to react."""
+        policy = self.scenario.policy or {}
+        hours, window = policy.get("lookahead_hours"), policy.get("min_reaction_hours")
+        numbers = all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+                      for v in (hours, window))
+        if not numbers or hours <= 0 or window <= 0:
+            return None, selected, plan_obj
+        plan_id = selected["selected"]["candidate_id"]
+        plan = plan_obj or by_id[plan_id]
+        first = self.planner.lookahead(plan, hours, confirmed, initial_tanks, current_operation)
+        result = {"available": True, "lookahead_hours": hours, "min_reaction_hours": window,
+                  "initial_plan": plan_id, "initial": first, "selected": first, "switched": False,
+                  "examined": 0, "warning": None}
+        if first["hours_to_violation"] is None or first["hours_to_violation"] >= window:
+            return result, selected, plan
+        best_reach, best_eval, best_info = first["hours_to_violation"], None, first
+        for evaluation in sorted(feasible, key=lambda e: e.key()):
+            candidate_id = evaluation.candidate.candidate_id
+            if candidate_id == plan_id or candidate_id not in by_id:
+                continue
+            if result["examined"] >= LOOKAHEAD_CANDIDATES:
+                break
+            result["examined"] += 1
+            try:
+                info = self.planner.lookahead(by_id[candidate_id], hours, confirmed, initial_tanks, current_operation)
+            except (PlannerError, ValueError):
+                continue
+            # A projection that stopped because a stock ran out does not prove the plan holds.
+            reach = next((v for v in (info["hours_to_violation"], info["stock_ends_at_hours"]) if v is not None),
+                         math.inf)
+            if reach > best_reach:
+                best_reach, best_eval, best_info = reach, evaluation, info
+            if reach >= window:
+                break
+        what = (f"{first['constraint'].split('.', 1)[1]} = {first['observed']:.2f} при пределе {first['limit']:g}"
+                if first["observed"] is not None else first["constraint"])
+        if best_eval is not None:
+            selected = {**selected, "selected": best_eval.to_dict(),
+                        "reason": (f"Упреждение за горизонтом: при плане {plan_id} {what} через "
+                                   f"{first['hours_to_violation']:g} ч, раньше запаса реакции {window:g} ч; "
+                                   f"выбран допустимый план, отодвигающий нарушение")}
+            plan = by_id[best_eval.candidate.candidate_id]
+            result.update(selected=best_info, switched=True)
+        remaining = result["selected"]["hours_to_violation"]
+        stock_ends = result["selected"]["stock_ends_at_hours"]
+        if remaining is not None and remaining < window:
+            result["warning"] = (f"Предупреждение: при сохранении выбранного плана за горизонтом "
+                                 f"{result['selected']['constraint'].split('.', 1)[1]} выйдет за предел через "
+                                 f"{remaining:g} ч; допустимого плана с запасом реакции {window:g} ч не найдено")
+        elif remaining is None and stock_ends is not None and stock_ends < window:
+            result["warning"] = (f"Предупреждение: выбранный план отодвигает нарушение качества, но запас компонента "
+                                 f"закончится через {stock_ends:g} ч, раньше запаса реакции {window:g} ч")
+        return result, selected, plan
+
     def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None,
-                robustness=None, current_operation=None) -> dict:
+                robustness=None, current_operation=None, lookahead=None) -> dict:
         result = {
             "status": status, "reason": reason, "scope": SCENARIO_SCOPE,
             "current_operation": current_operation,
@@ -415,6 +488,7 @@ class MakeDecision:
             "rejected": (ranking or {}).get("rejected", []),
             "refusal": refusal,
             "robustness": robustness,
+            "lookahead": lookahead,
             "trace": trace,
             "note": ("Результат сценарный. Выданный план не считается исполненным и не разрешает "
                      "выпуск товарного топлива."),

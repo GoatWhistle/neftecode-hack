@@ -54,7 +54,7 @@ with OUT.open("w") as stream:
                 "production_t": decision.get("production_t"), "cost_per_tonne": decision.get("cost_per_tonne"),
                 "refusal": decision.get("refusal"),
                 "robustness": {k: (decision.get("robustness") or {}).get(k) for k in ("held", "perturbations_evaluated", "fragile")},
-                "bound_sulfur": result.get("bound_sulfur_mgkg"), "seconds": round(time.time() - t0, 1),
+                "bound_sulfur": result.get("bound_sulfur_mgkg"), "bound_inflow": result.get("bound_inflow_sulfur_mgkg"), "lookahead": decision.get("lookahead"), "seconds": round(time.time() - t0, 1),
             }
         except Exception as exc:  # record, never hide
             record = {"episode": number, "moment": label, "at": when.isoformat(), "exception": repr(exc)}

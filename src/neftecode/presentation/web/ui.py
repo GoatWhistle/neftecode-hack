@@ -97,7 +97,7 @@ function render() {
       <p class="note">Условные единицы сценария. Это не тарифы завода и не измеренная экономия.</p>`);
 
     body += card("Качество и запас до предела", `<table>${rows(
-      (e.statements || []).filter(s => ["sulfur_mgkg","t95_c","cetane_number","density_min_kgm3","density_max_kgm3"].includes(s.topic))
+      (e.statements || []).filter(s => ["sulfur_mgkg","t95_c","cetane_number","density_min_kgm3","density_max_kgm3","lookahead"].includes(s.topic))
         .map(s => [s.topic, s.value === null ? '<span class="unknown">неизвестно</span>' : esc(s.text)]))}</table>`);
 
     if (d.selected_plan && d.selected_plan.steps.length > 1) {
