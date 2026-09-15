@@ -51,7 +51,7 @@ push не делать; после каждой задачи обновлять 
   layer tests зелёные (нет «http» в application).
 - Коммит: `feat: добавить порты LLM и эффекта отклика`.
 
-### [ ] T63. Контракты агентов и строгие парсеры
+### [x] T63. Контракты агентов и строгие парсеры
 - Файлы: `application/agentic/__init__.py`, `contracts.py`, `budget.py`, `tests/agentic/test_agent_contracts.py`, `test_budget.py`.
 - Зависимости: T62.
 - Готово: QualityOpinion/ReliabilityOpinion/OrchestratorFinal/AgentConstraint/AgentSettings/AgentTraceEvent;
