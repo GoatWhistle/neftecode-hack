@@ -825,5 +825,8 @@ CLI-команд, HTTP-контрактов и JSON решений четырё�
 ### T62. Порты LLM и эффекта отклика
 - **Статус:** готово (выполнено до T61: не зависит от legacy). **Результат:** `application/ports/llm.py`, `response_effect.py`, адаптер `infrastructure/response/unavailable.py`. **Коммит:** `feat: добавить порты LLM и эффекта отклика`.
 
-### T61, T63–T74
+### T61. Выделить поиск и выпуск решения в MakeDecision
+- **Статус:** готово. **Результат:** `SearchOutcome`, `MakeDecision._search`, `MakeDecision.release`; golden hash 4 сценариев не изменился; 859 passed. **Коммит:** `refactor: выделить поиск и выпуск решения в MakeDecision`.
+
+### T63–T74
 - **Статус:** не начато. Описание, файлы, зависимости и критерии — `plan/05-implementation-tasks.md`.
