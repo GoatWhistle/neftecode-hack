@@ -5,6 +5,7 @@ import pickle
 
 from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.data.data import load_sources
@@ -25,7 +26,8 @@ def handle(args, parser, root, out):
                           raw_scenario,
                           robustness_evaluator=RobustnessCheck(
                               parse_scenario(raw_scenario), raw_scenario,
-                              scenario_parser=parse_scenario))
+                              scenario_parser=parse_scenario),
+                          decision_factory=default_decision_factory())
     result = advisor.advise(args.at)
     stamp = when.strftime("%Y%m%d-%H%M%S")
     path = out / f"decision-{stamp}.json"

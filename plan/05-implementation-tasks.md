@@ -115,7 +115,7 @@ push не делать; после каждой задачи обновлять 
 
 ## Фаза 7 — интеграция
 
-### [ ] T70. Wiring за флагом
+### [x] T70. Wiring за флагом
 - Файлы: `infrastructure/agentic/__init__.py`, `infrastructure/agentic/factory.py`, `composition/decision.py`,
   `composition/commands/screens.py`, `composition/commands/live.py`, `infrastructure/live/advisor.py`
   (передача фабрики), `application/use_cases/get_live_advice.py` (поле `decision_factory`), `services/decision_service.py`,

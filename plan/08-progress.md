@@ -2,7 +2,7 @@
 
 ## Итог на текущий момент
 
-Фазы 2–3 в работе: план готов, регрессионная сетка T60 готова. Production-код не менялся.
+Фазы 2–7 выполнены: план, регрессионная сетка, провайдеры, контракты, специалисты, оркестратор, подключение за флагом.
 
 ## Базовая линия (2026-09-16, HEAD 1c795ca)
 
@@ -25,7 +25,8 @@
 | T66 сессия и детерминированные tools | готово | c58d157 | application/agentic/{session,tools,context}.py, make_decision.py (обёртки) | test_session_tools 14; tests/agentic 166 passed; golden без изменений |
 | T67 bounded tool loop | готово | c6c6908 | application/agentic/loop.py | test_loop 11 |
 | T68 QualityAgent и ReliabilityAgent | готово | fcd88d5 | application/agentic/{specialist,quality,reliability}.py | test_specialists 8: разные пути tools в разных ситуациях (PolicyLLM) |
-| T69 OrchestratorAgent и AgenticMakeDecision | готово | см. git log | application/agentic/{orchestrator,decision}.py, infrastructure/llm/demo_policy.py | test_orchestrator_agent 7, test_safety 32; tests/agentic 225 passed |
+| T69 OrchestratorAgent и AgenticMakeDecision | готово | f75079d | application/agentic/{orchestrator,decision}.py, infrastructure/llm/demo_policy.py | test_orchestrator_agent 7, test_safety 32; tests/agentic 225 passed |
+| T70 подключение за флагом | готово | см. git log | infrastructure/agentic/*, composition/decision.py, commands/{screens,live}.py, get_live_advice.py (поле decision_factory), live/advisor.py, services/decision_service.py, services/explain.py (agent_rejected) | test_wiring 10; полный suite 1057 passed; CLI screen: флаг выкл. — decision_id d6a1ab7f26398791 (как legacy), флаг вкл. + scripted — c0030, outcome selected |
 
 ## Нерешённые вопросы
 
@@ -34,6 +35,8 @@
 - Семантика T11/F26 для response layer — ждёт организаторов.
 
 ## Заметки
+
+- T70: `AGENTIC_DECISION_ENABLED` читается только из окружения процесса; `.env` — только настройки провайдера и лимиты при включённом флаге. `DecisionService()` без фабрики остаётся legacy; `main()` передаёт фабрику из окружения. Replay и benchmark не переключаются.
 
 - T69, demo-политика (не LLM) на сценариях, budget 400:
   | Сценарий | legacy | agentic | outcome | вызовы (orch/quality/reliability) | путь |
