@@ -70,7 +70,7 @@ push не делать; после каждой задачи обновлять 
   для не-scripted провайдеров.
 - Коммит: `feat: добавить адаптеры Z.AI, OpenAI и Anthropic`.
 
-### [ ] T65. ScriptedLLM, PolicyLLM и сетевой guard тестов
+### [x] T65. ScriptedLLM, PolicyLLM и сетевой guard тестов
 - Файлы: `infrastructure/llm/scripted.py`, `tests/agentic/conftest.py`, `tests/agentic/test_scripted.py`.
 - Зависимости: T62.
 - Готово: autouse fixture делает `urllib.request.urlopen` и `socket.create_connection` падающими во всех `tests/agentic`;

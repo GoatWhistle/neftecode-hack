@@ -19,7 +19,8 @@
 | T62 порты LLM и response effect | готово | 329037d | application/ports/llm.py, response_effect.py, ports/__init__.py, infrastructure/response/* | tests/agentic/test_ports.py 5; architecture зелёные |
 | — `.env` в .gitignore | готово | 0ae092f | .gitignore | найдено при работе: `.env` не игнорировался; в истории git отсутствует |
 | T61 экстракция `_search`/`release` | готово | a82c9f3 | application/use_cases/make_decision.py | golden hash без изменений; полный suite 859 passed |
-| T63 контракты и бюджет | готово | см. git log | application/agentic/{__init__,contracts,budget}.py | tests/agentic/test_agent_contracts.py 66 |
+| T63 контракты и бюджет | готово | 5642762 | application/agentic/{__init__,contracts,budget}.py | tests/agentic/test_agent_contracts.py 66 |
+| T65 ScriptedLLM/PolicyLLM и сетевой guard | готово | см. git log | infrastructure/llm/scripted.py, tests/agentic/conftest.py | tests/agentic/test_scripted.py 4 |
 
 ## Нерешённые вопросы
 
