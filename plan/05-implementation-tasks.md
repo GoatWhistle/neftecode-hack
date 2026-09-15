@@ -43,10 +43,10 @@ push не делать; после каждой задачи обновлять 
 
 ## Фаза 4 — провайдеры и контракты
 
-### [ ] T62. Порты LLM и response effect
+### [x] T62. Порты LLM и response effect
 - Файлы: `application/ports/llm.py`, `application/ports/response_effect.py`, `application/ports/__init__.py`,
   `infrastructure/response/__init__.py`, `infrastructure/response/unavailable.py`, `tests/agentic/test_ports.py`.
-- Зависимости: T61.
+- Зависимости: T60 (порядок изменён: порты не трогают legacy, выполнены до T61, чтобы адаптеры T64 шли параллельно).
 - Готово: dataclass-валидация сообщений; `UnavailableResponseEffect` возвращает `available=false` с причиной про T11/F26;
   layer tests зелёные (нет «http» в application).
 - Коммит: `feat: добавить порты LLM и эффекта отклика`.
