@@ -15,7 +15,8 @@
 | Задача | Статус | Коммит | Изменённые файлы | Тесты |
 |---|---|---|---|---|
 | T59 план | готово | 5f534cc | plan/00–08, context/backlog.md, context/state.md | — |
-| T60 regression net | готово | см. git log | tests/agentic/test_legacy_baseline.py | 17 новых; полный suite 854 passed |
+| T60 regression net | готово | a07284c | tests/agentic/test_legacy_baseline.py | 17 новых; полный suite 854 passed |
+| T62 порты LLM и response effect | готово | см. git log | application/ports/llm.py, response_effect.py, ports/__init__.py, infrastructure/response/* | tests/agentic/test_ports.py 5; architecture зелёные |
 
 ## Нерешённые вопросы
 
