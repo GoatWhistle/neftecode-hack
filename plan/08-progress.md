@@ -28,7 +28,7 @@
 | T69 OrchestratorAgent и AgenticMakeDecision | готово | f75079d | application/agentic/{orchestrator,decision}.py, infrastructure/llm/demo_policy.py | test_orchestrator_agent 7, test_safety 32; tests/agentic 225 passed |
 | T70 подключение за флагом | готово | 2340e62 | infrastructure/agentic/*, composition/decision.py, commands/{screens,live}.py, get_live_advice.py (поле decision_factory), live/advisor.py, services/decision_service.py, services/explain.py (agent_rejected) | test_wiring 10; полный suite 1057 passed; CLI screen: флаг выкл. — decision_id d6a1ab7f26398791 (как legacy), флаг вкл. + scripted — c0030, outcome selected |
 | T71 детерминированный demo trace | готово | 64f7d15 | composition/commands/agentic.py, presentation/reports/agent_trace.py, presentation/cli.py, dispatcher.py, orchestrator.py (событие consult) | test_agent_demo 2; `neftecode agent-demo` пишет artifacts/agent-demo.{json,md} (artifacts не коммитятся) |
-| T72 old vs new и fuzz | готово | см. git log | tests/agentic/test_old_vs_new.py | 41 тест; полный suite 1100 passed, 88 с |
+| T72 old vs new и fuzz | готово | 2bad66d | tests/agentic/test_old_vs_new.py | 41 тест; полный suite 1100 passed, 88 с |
 
 ### Old vs new (budget 400, без state)
 
@@ -42,10 +42,21 @@
 Исходы 32 случайных прогонов: confirmed_legacy 12, fallback 16 (selection_not_allowed 7, refuse_without_evidence 6, нет finalize 3),
 refused 3, selected 1. Во всех: выпущенный план проходит свежий Gate, `unexpected_error` нет, вызовов LLM ≤ 12, при fallback
 решение совпадает с legacy байт-в-байт.
+| T73 один live smoke | выполнен, результат отрицательный | см. git log | scripts/agent_live_smoke.py, loop.py (код ошибки в trace) | dry-run: provider zai, model glm-5.3-flash, base_url .../api/coding/paas/v4, ключ present. Один запуск `--live` 2026-09-16: первый же запрос — ошибка класса `quota`, 1 вызов, usage 0; слой вернул legacy hold, Gate PASS |
+
+### Итог live smoke (2026-09-16)
+
+Ровно один живой запуск. Провайдер отклонил запрос ошибкой класса `quota` (коды этого класса: 1113 недостаточный
+баланс или использование вне условий плана, 1308/1310 исчерпан лимит, 1309 план истёк, 1311 модель недоступна плану,
+1313 нарушение правил использования, 1315 ключ ограничен coding-инструментами). Точный код в тот прогон не сохранился —
+запись кода ошибки в trace добавлена после него. Повторный live не выполнялся: по правилу одного запуска.
+Проверено на практике главное свойство: при отказе провайдера решение остаётся детерминированным (hold, Gate PASS,
+устойчивость 8 из 8), лишних повторов нет (1 вызов).
 
 ## Нерешённые вопросы
 
-- Условия Z.AI Coding Plan (R10) — риск принят пользователем; live smoke один.
+- Условия Z.AI Coding Plan (R10) — риск принят пользователем; единственный live smoke отклонён провайдером как `quota`.
+  Причина не определена: нужен либо ещё один запуск (по решению пользователя), либо проверка лимитов плана в личном кабинете.
 - Offline-требование (R12) — агентный режим по умолчанию выключен.
 - Семантика T11/F26 для response layer — ждёт организаторов.
 

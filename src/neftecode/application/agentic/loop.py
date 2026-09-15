@@ -68,7 +68,8 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
         try:
             response = llm.chat(messages, tools, max_tokens=settings.max_tokens, timeout_s=timeout)
         except LLMError as exc:
-            trace.add(role, step, "fallback", decision=f"llm_error:{exc.kind}", provider=llm.provider, model=llm.model)
+            trace.add(role, step, "fallback", decision=f"llm_error:{exc.kind}", provider=llm.provider, model=llm.model,
+                      reason_codes=(str(exc.code)[:40],) if exc.code else (), tool_result_summary=str(exc)[:300])
             return LoopResult(None, f"llm_error:{exc.kind}", calls, tuple(evidence), exc)
         budget.add_usage(response.usage.to_dict())
         trace.add(role, step, "llm_call", provider=response.provider or llm.provider, model=response.model or llm.model,

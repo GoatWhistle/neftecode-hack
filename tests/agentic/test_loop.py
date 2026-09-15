@@ -120,3 +120,11 @@ def test_usage_is_accumulated(session):
     _, trace, budget = run(session, llm)
     assert budget.usage["total_tokens"] == 120
     assert trace.events[0].usage == {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}
+
+
+def test_provider_error_code_and_message_reach_the_trace(session):
+    llm = ScriptedLLM([LLMError("quota", "HTTP 429, код 1113: insufficient balance", code="1113")])
+    result, trace, _ = run(session, llm)
+    event = trace.events[-1]
+    assert result.stop_reason == "llm_error:quota"
+    assert event.reason_codes == ("1113",) and "1113" in event.tool_result_summary
