@@ -18,7 +18,7 @@ push не делать; после каждой задачи обновлять 
 
 ## Фаза 3 — регрессионная сеть
 
-### [ ] T60. Зафиксировать поведение legacy
+### [x] T60. Зафиксировать поведение legacy
 - Цель: сетка до любых изменений src.
 - Файлы: `tests/agentic/__init__.py`, `tests/agentic/test_legacy_baseline.py`.
 - Зависимости: T59.
@@ -52,7 +52,7 @@ push не делать; после каждой задачи обновлять 
 - Коммит: `feat: добавить порты LLM и эффекта отклика`.
 
 ### [ ] T63. Контракты агентов и строгие парсеры
-- Файлы: `application/agentic/__init__.py`, `contracts.py`, `budget.py`, `tests/agentic/test_contracts.py`, `test_budget.py`.
+- Файлы: `application/agentic/__init__.py`, `contracts.py`, `budget.py`, `tests/agentic/test_agent_contracts.py`, `test_budget.py`.
 - Зависимости: T62.
 - Готово: QualityOpinion/ReliabilityOpinion/OrchestratorFinal/AgentConstraint/AgentSettings/AgentTraceEvent;
   тесты на валидный JSON, лишние ключи, неверные типы/перечисления, диапазоны ограничений, обрезку строк, пустые списки,
