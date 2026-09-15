@@ -46,6 +46,27 @@ class AgentError(RuntimeError):
     """Raised when an agent cannot answer; never swallowed into a successful decision."""
 
 
+@dataclass
+class SearchOutcome:
+    """What the bounded search examined and chose.
+
+    `feasible` and `by_id` belong to the round that produced the choice (or the last round);
+    `examined` and `examined_by_id` cover every round, so a later step can avoid repeating work.
+    """
+
+    selected: dict | None
+    selected_plan: object | None
+    feasible: list
+    by_id: dict
+    rounds: list[dict]
+    evaluated: int
+    last_result: dict | None
+    examined: list = field(default_factory=list)
+    examined_by_id: dict = field(default_factory=dict)
+    seen_content: set[str] = field(default_factory=set)
+    forbidden: frozenset[str] = frozenset()
+
+
 def _family(constraint_id: str) -> str:
     return constraint_id.split(".")[0]
 
@@ -121,6 +142,24 @@ class MakeDecision:
                                     current_operation=current_operation)
 
         # 2. Bounded proposal/veto loop.
+        outcome = self._search(budget, confirmed, initial_tanks, current_operation)
+        trace.append({"agent": "optimizer", "rounds": outcome.rounds, "max_rounds": self.max_rounds,
+                      "evaluated": outcome.evaluated, "evaluation_budget": budget,
+                      "note": "Бюджет поиска общий; финальная проверка выбранного плана выполняется отдельно."})
+        if outcome.selected is None or outcome.selected.get("selected") is None:
+            reasons = sorted({r for e in (outcome.last_result or {}).get("rejected", [])
+                              for r in e["rejection_reasons"]})[:5]
+            return self._finish(REFUSE,
+                                "Ни один вариант не проходит одновременно все обязательные проверки",
+                                trace, None, None,
+                                {"kind": "no_feasible_plan", "examples": reasons},
+                                current_operation=current_operation)
+        return self.release(outcome.selected, outcome.selected_plan, outcome.feasible, outcome.by_id, trace,
+                            confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
+                            initial_tanks=initial_tanks, current_operation=current_operation)
+
+    def _search(self, budget: int, confirmed=(), initial_tanks=None, current_operation=None) -> "SearchOutcome":
+        """The bounded proposal/veto loop. Returns what was examined and, if any, the ranked choice."""
         forbidden: set[str] = set()
         rounds = []
         selected = None
@@ -129,6 +168,8 @@ class MakeDecision:
         feedback: dict[str, list[str]] = {}
         evaluated_total = 0
         seen_content: set[str] = set()
+        feasible, by_id = [], {}
+        examined, examined_by_id = [], {}
         for round_number in range(1, self.max_rounds + 1):
             remaining = budget - evaluated_total
             if remaining <= 0:
@@ -165,6 +206,8 @@ class MakeDecision:
                     continue
                 evaluations.append(evaluation)
                 by_id[plan.plan_id] = plan
+                examined.append(evaluation)
+                examined_by_id[plan.plan_id] = plan
             if not evaluations:
                 rounds.append({"round": round_number, "proposed": 0, "feasible": 0,
                                "candidate_ids": [p.plan_id for p in search_plans[:20]],
@@ -198,19 +241,18 @@ class MakeDecision:
             if not added:
                 rounds[-1]["note"] = "Запреты не сузили поиск: повторять бессмысленно"
                 break
+        return SearchOutcome(selected=selected, selected_plan=selected_plan_obj, feasible=feasible, by_id=by_id,
+                             rounds=rounds, evaluated=evaluated_total, last_result=last_result,
+                             examined=examined, examined_by_id=examined_by_id, seen_content=seen_content,
+                             forbidden=frozenset(forbidden))
 
-        trace.append({"agent": "optimizer", "rounds": rounds, "max_rounds": self.max_rounds,
-                      "evaluated": evaluated_total, "evaluation_budget": budget,
-                      "note": "Бюджет поиска общий; финальная проверка выбранного плана выполняется отдельно."})
-        if selected is None or selected.get("selected") is None:
-            reasons = sorted({r for e in (last_result or {}).get("rejected", [])
-                              for r in e["rejection_reasons"]})[:5]
-            return self._finish(REFUSE,
-                                "Ни один вариант не проходит одновременно все обязательные проверки",
-                                trace, None, None,
-                                {"kind": "no_feasible_plan", "examples": reasons},
-                                current_operation=current_operation)
+    def release(self, selected: dict, selected_plan_obj, feasible, by_id, trace: list[dict], *, confirmed=(),
+                budget: int = 600, raw_scenario: dict | None = None, initial_tanks=None,
+                current_operation: dict | None = None) -> dict:
+        """Look past the horizon, re-check the chosen plan through the gate, test robustness, finish.
 
+        Shared by every path that releases a decision, so no path can skip the final checks.
+        """
         # 2b. Look past the horizon: a plan that is fine for three hours may still run the stored
         #     product out of spec before anyone can react. This never waives a gate check.
         lookahead = None

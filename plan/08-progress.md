@@ -16,7 +16,9 @@
 |---|---|---|---|---|
 | T59 план | готово | 5f534cc | plan/00–08, context/backlog.md, context/state.md | — |
 | T60 regression net | готово | a07284c | tests/agentic/test_legacy_baseline.py | 17 новых; полный suite 854 passed |
-| T62 порты LLM и response effect | готово | см. git log | application/ports/llm.py, response_effect.py, ports/__init__.py, infrastructure/response/* | tests/agentic/test_ports.py 5; architecture зелёные |
+| T62 порты LLM и response effect | готово | 329037d | application/ports/llm.py, response_effect.py, ports/__init__.py, infrastructure/response/* | tests/agentic/test_ports.py 5; architecture зелёные |
+| — `.env` в .gitignore | готово | 0ae092f | .gitignore | найдено при работе: `.env` не игнорировался; в истории git отсутствует |
+| T61 экстракция `_search`/`release` | готово | см. git log | application/use_cases/make_decision.py | golden hash без изменений; полный suite 859 passed |
 
 ## Нерешённые вопросы
 
