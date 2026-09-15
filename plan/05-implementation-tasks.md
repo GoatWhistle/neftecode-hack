@@ -88,7 +88,7 @@ push не делать; после каждой задачи обновлять 
   allowlist по ролям; обрезка результата; исключение tool → `{"error"}`; контекст ≤ лимита символов.
 - Коммит: `feat: дать агентам детерминированные инструменты`.
 
-### [ ] T67. Bounded tool loop
+### [x] T67. Bounded tool loop
 - Файлы: `application/agentic/loop.py`, `tests/agentic/test_loop.py`.
 - Зависимости: T63, T65, T66.
 - Готово: финал через final tool; repair текста; один корректирующий вызов; неизвестный/запрещённый tool; лимит tool_calls
