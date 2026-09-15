@@ -135,7 +135,7 @@ push не делать; после каждой задачи обновлять 
 
 ## Фаза 8 — тесты
 
-### [ ] T72. Old vs new на сценариях и полный suite
+### [x] T72. Old vs new на сценариях и полный suite
 - Файлы: `tests/agentic/test_old_vs_new.py`, `plan/08-progress.md`.
 - Зависимости: T71.
 - Готово: для 4 сценариев × набор политик (accept, veto, constraint, garbage, provider error): agentic не выдаёт HOLD/
