@@ -17,7 +17,7 @@
 |---|---|---|
 | Regression (legacy) | golden sha256 4 сценариев (существующий), статусы/планы/refusal kinds, final_recheck_failed, unknown limit, fragile, DataRejection | `tests/test_architecture_baseline.py`, `tests/agentic/test_legacy_baseline.py` |
 | Architecture | слои, запрет «http» в application, Coordinator, flat-модули | `tests/architecture/test_layers.py`, `tests/test_architecture_baseline.py` |
-| Unit: contracts | парсеры opinion/final/constraint, диапазоны, обрезка, лишние ключи, типы | `test_contracts.py` |
+| Unit: contracts | парсеры opinion/final/constraint, диапазоны, обрезка, лишние ключи, типы | `test_agent_contracts.py` (имя `test_contracts.py` уже занято в tests/) |
 | Unit: budget | вызовы, шаги, replans, consults, дедлайн (фиктивные часы) | `test_budget.py` |
 | Unit: session/tools | margins/utilization/changes против ручного расчёта из gate checks; фильтры; shortlist; кэши; allowlist; обрезка | `test_session_tools.py` |
 | Provider (mock HTTP) | формат запросов Z.AI/OpenAI/Anthropic, разбор tool_calls, usage, ошибки, retry, timeout, secret redaction, .env | `test_llm_providers.py`, `test_llm_config.py` |
