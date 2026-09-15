@@ -319,6 +319,18 @@ class MakeDecision:
                            current_operation=command.current_operation,
                            data_rejection=command.data_rejection)
 
+    # --- Deterministic building blocks reused by the agent layer ---
+
+    def build_plans(self, budget: int, current_operation: dict | None = None):
+        return self._build_plans(budget, current_operation)
+
+    def evaluate_plan(self, plan, confirmed=(), initial_tanks=None, current_operation: dict | None = None):
+        return self._evaluate_plan(plan, confirmed, initial_tanks, current_operation)
+
+    def passes_review(self, evaluation) -> bool:
+        """Gate feasibility plus the deterministic quality and reliability validators, as in the search."""
+        return evaluation.feasible and self._review_passes(self._review(evaluation))
+
     # --- Internals ---
 
     def _build_plans(self, budget, current_operation=None):

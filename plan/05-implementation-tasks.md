@@ -79,8 +79,8 @@ push не делать; после каждой задачи обновлять 
 
 ## Фаза 5 — специалисты
 
-### [ ] T66. DecisionSession и детерминированные tools
-- Файлы: `application/agentic/session.py`, `context.py`, `tools.py`, `tests/agentic/test_session_tools.py`.
+### [x] T66. DecisionSession и детерминированные tools
+- Файлы: `application/agentic/session.py`, `context.py`, `tools.py`, `tests/agentic/test_session_tools.py`, `tests/agentic/_agentic_support.py`; в `make_decision.py` добавлены публичные обёртки `build_plans`, `evaluate_plan`, `passes_review` (без изменения поведения).
 - Зависимости: T61, T63.
 - Готово: сессия строится из `SearchOutcome`; margins/utilization/changes считаются из gate checks и совпадают с ручным
   расчётом; фильтры ограничений; shortlist детерминирован (legacy selected, hold, далее по `Evaluation.key()`);

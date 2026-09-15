@@ -21,7 +21,8 @@
 | T61 экстракция `_search`/`release` | готово | a82c9f3 | application/use_cases/make_decision.py | golden hash без изменений; полный suite 859 passed |
 | T63 контракты и бюджет | готово | 5642762 | application/agentic/{__init__,contracts,budget}.py | tests/agentic/test_agent_contracts.py 66 |
 | T65 ScriptedLLM/PolicyLLM и сетевой guard | готово | 3000d3a | infrastructure/llm/scripted.py, tests/agentic/conftest.py | tests/agentic/test_scripted.py 4 |
-| T64 адаптеры провайдеров | готово (субагент, проверено главным) | см. git log | infrastructure/llm/{__init__,config,errors,openai_compatible,anthropic,factory}.py | test_llm_config 19, test_llm_providers 29; всё tests/agentic 152 passed |
+| T64 адаптеры провайдеров | готово (субагент, проверено главным) | dc85498 | infrastructure/llm/{__init__,config,errors,openai_compatible,anthropic,factory}.py | test_llm_config 19, test_llm_providers 29; всё tests/agentic 152 passed |
+| T66 сессия и детерминированные tools | готово | см. git log | application/agentic/{session,tools,context}.py, make_decision.py (обёртки) | test_session_tools 14; tests/agentic 166 passed; golden без изменений |
 
 ## Нерешённые вопросы
 
@@ -30,6 +31,8 @@
 - Семантика T11/F26 для response layer — ждёт организаторов.
 
 ## Заметки
+
+- T66: `require_not_fragile` проверяет устойчивость только у первых `max_candidates` допустимых (порядок: legacy, hold, ключ ранжирования), `min_hours_to_violation` — у первых 40; остальные исключаются (консервативно). Сценарная оценка эффекта температуры ищет уже оценённый постоянный план с тем же рецептом и выпуском.
 
 - T64 выполнен субагентом на эксклюзивных файлах. Проверка главным: `Secret` был dataclass — `dataclasses.asdict(settings)` раскрыл бы ключ; переделан в обычный неизменяемый класс + тест.
 
