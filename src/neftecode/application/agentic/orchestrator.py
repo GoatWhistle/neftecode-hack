@@ -76,6 +76,9 @@ class OrchestratorAgent:
             def handler(arguments: dict) -> dict:
                 if not budget.take_consult(role):
                     raise SessionError(f"consult_limit_reached: {role}")
+                trace.add("orchestrator", 0, "consult", tool_name=f"ask_{role}_agent",
+                          candidate_ids=tuple(str(c)[:80] for c in arguments["candidate_ids"]),
+                          tool_input_summary=compact(arguments, 200))
                 opinion = agent.review(llm=llm, session=session, registry=registry,
                                        candidate_ids=arguments["candidate_ids"], focus=arguments.get("focus"),
                                        budget=budget, settings=settings, trace=trace)

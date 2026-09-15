@@ -125,9 +125,9 @@ push не делать; после каждой задачи обновлять 
   `LLM_PROVIDER=scripted` — demo/screen/`/v1/decisions` возвращают `agentic`; UI `Screen` и `explain` принимают dict.
 - Коммит: `feat: подключить агентный режим за флагом`.
 
-### [ ] T71. Детерминированный demo trace
-- Файлы: `infrastructure/llm/scripted.py` (политика демо), `presentation/cli.py` + `composition/commands/dispatcher.py` +
-  `composition/commands/agentic.py` (команда `agent-demo`), `tests/agentic/test_agent_demo.py`.
+### [x] T71. Детерминированный demo trace
+- Файлы: `infrastructure/llm/demo_policy.py` (политика демо, создана в T69), `presentation/reports/agent_trace.py` (читаемый trace), `presentation/cli.py` + `composition/commands/dispatcher.py` +
+  `composition/commands/agentic.py` (команда `agent-demo`), событие `consult` в оркестраторе, `tests/agentic/test_agent_demo.py`.
 - Зависимости: T70.
 - Готово: `neftecode agent-demo --out artifacts` пишет `agent-demo.json` и `agent-demo.md` для baseline и sour_crude;
   пути агентов различаются; файл явно помечен «scripted policy, не LLM».

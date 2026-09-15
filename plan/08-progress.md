@@ -26,7 +26,8 @@
 | T67 bounded tool loop | готово | c6c6908 | application/agentic/loop.py | test_loop 11 |
 | T68 QualityAgent и ReliabilityAgent | готово | fcd88d5 | application/agentic/{specialist,quality,reliability}.py | test_specialists 8: разные пути tools в разных ситуациях (PolicyLLM) |
 | T69 OrchestratorAgent и AgenticMakeDecision | готово | f75079d | application/agentic/{orchestrator,decision}.py, infrastructure/llm/demo_policy.py | test_orchestrator_agent 7, test_safety 32; tests/agentic 225 passed |
-| T70 подключение за флагом | готово | см. git log | infrastructure/agentic/*, composition/decision.py, commands/{screens,live}.py, get_live_advice.py (поле decision_factory), live/advisor.py, services/decision_service.py, services/explain.py (agent_rejected) | test_wiring 10; полный suite 1057 passed; CLI screen: флаг выкл. — decision_id d6a1ab7f26398791 (как legacy), флаг вкл. + scripted — c0030, outcome selected |
+| T70 подключение за флагом | готово | 2340e62 | infrastructure/agentic/*, composition/decision.py, commands/{screens,live}.py, get_live_advice.py (поле decision_factory), live/advisor.py, services/decision_service.py, services/explain.py (agent_rejected) | test_wiring 10; полный suite 1057 passed; CLI screen: флаг выкл. — decision_id d6a1ab7f26398791 (как legacy), флаг вкл. + scripted — c0030, outcome selected |
+| T71 детерминированный demo trace | готово | см. git log | composition/commands/agentic.py, presentation/reports/agent_trace.py, presentation/cli.py, dispatcher.py, orchestrator.py (событие consult) | test_agent_demo 2; `neftecode agent-demo` пишет artifacts/agent-demo.{json,md} (artifacts не коммитятся) |
 
 ## Нерешённые вопросы
 
