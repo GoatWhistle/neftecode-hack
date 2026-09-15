@@ -64,7 +64,7 @@ HTTP — только stdlib `urllib.request` (через атрибут мод�
   Параметр `thinking` не отправляется (для glm-5.3-flash принудителен); `max_tokens` учитывает расход на thinking.
 - Ответ: `choices[0].message.content`, `tool_calls[].{id, function.name, function.arguments}`, `finish_reason`, `usage`.
   `reasoning_content` отбрасывается.
-- `finish_reason=length` без tool_calls → `LLMError bad_response` (retryable=false).
+- `finish_reason=length` без tool_calls и с пустым content → `LLMError bad_response` (retryable=false); текст при `length` отдаётся loop, где строгий парсер решает, годится ли он. `network_error` → provider retryable; `model_context_window_exceeded` → bad_request.
 
 Маппинг ошибок (infrastructure/llm/errors.py):
 
@@ -128,7 +128,7 @@ tools `{name, description, input_schema}`; ответ — блоки `text`/`too
 | `AGENT_MAX_ROBUSTNESS_RUNS` | `2` | Запусков robustness через tools |
 | `AGENT_MAX_TOOL_CALLS_PER_RESPONSE` | `3` | Лишние tool_calls в одном ответе отклоняются |
 
-Загрузка: `infrastructure/llm/config.py::load_settings(environ, dotenv_path)`. `.env` читается **только** при
+Загрузка: `infrastructure/llm/config.py::load_environment(environ, dotenv_path)` + `llm_settings_from_env(env)` + `agent_limits_from_env(env)`. `.env` читается **только** при
 включённом флаге и не перекрывает уже заданные переменные окружения. Парсер: `KEY=VALUE`, комментарии `#`, кавычки.
 
 ## 4. Секреты

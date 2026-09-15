@@ -59,7 +59,7 @@ push не делать; после каждой задачи обновлять 
   NaN/inf, bool вместо int; `AgentBudget` — вызовы, шаги, replans, consults, дедлайн с инжектируемыми часами.
 - Коммит: `feat: описать контракты агентов и бюджеты`.
 
-### [ ] T64. Адаптеры провайдеров с mock HTTP
+### [x] T64. Адаптеры провайдеров с mock HTTP
 - Файлы: `infrastructure/llm/__init__.py`, `config.py`, `errors.py`, `openai_compatible.py`, `anthropic.py`, `factory.py`,
   `tests/agentic/test_llm_config.py`, `test_llm_providers.py`.
 - Зависимости: T62.
