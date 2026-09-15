@@ -104,8 +104,8 @@ push не делать; после каждой задачи обновлять 
 
 ## Фаза 6 — оркестратор
 
-### [ ] T69. OrchestratorAgent и AgenticMakeDecision
-- Файлы: `application/agentic/orchestrator.py`, `decision.py`, `tests/agentic/test_orchestrator_agent.py`,
+### [x] T69. OrchestratorAgent и AgenticMakeDecision
+- Файлы: `application/agentic/orchestrator.py`, `decision.py`, `infrastructure/llm/demo_policy.py` (детерминированная политика для тестов и демо), `tests/agentic/test_orchestrator_agent.py`,
   `tests/agentic/test_safety.py`.
 - Зависимости: T68.
 - Готово: resolution по 01 §6; guard; fallback на каждый класс сбоя; adversarial PolicyLLM (выбор infeasible, unknown id,

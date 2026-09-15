@@ -33,3 +33,27 @@ def session_for(name: str, settings: AgentSettings | None = None, document: dict
     settings = settings or AgentSettings()
     return DecisionSession(maker, outcome, legacy, settings, AgentBudget(settings), evaluation_budget=BUDGET,
                            raw_scenario=document, response_effect=UnavailableResponseEffect(), **overrides)
+
+
+def agentic_for(name: str, llm, settings: AgentSettings | None = None, document: dict | None = None):
+    from neftecode.application.agentic.decision import AgenticMakeDecision
+
+    document = document or raw(name)
+    scenario = parse_scenario(document)
+    return AgenticMakeDecision(scenario, llm, settings=settings or AgentSettings(),
+                               robustness_evaluator=RobustnessCheck(scenario, document, scenario_parser=parse_scenario),
+                               response_effect=UnavailableResponseEffect())
+
+
+def agentic_decide(name: str, llm, settings: AgentSettings | None = None, **kwargs) -> dict:
+    document = raw(name)
+    return agentic_for(name, llm, settings, document).decide(budget=BUDGET, raw_scenario=document, **kwargs)
+
+
+def legacy_decide(name: str, **kwargs) -> dict:
+    document = raw(name)
+    return maker_for(document).decide(budget=BUDGET, raw_scenario=document, **kwargs)
+
+
+def without_agentic(decision: dict) -> dict:
+    return {k: v for k, v in decision.items() if k != "agentic"}

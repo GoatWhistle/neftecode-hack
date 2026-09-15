@@ -24,7 +24,8 @@
 | T64 адаптеры провайдеров | готово (субагент, проверено главным) | dc85498 | infrastructure/llm/{__init__,config,errors,openai_compatible,anthropic,factory}.py | test_llm_config 19, test_llm_providers 29; всё tests/agentic 152 passed |
 | T66 сессия и детерминированные tools | готово | c58d157 | application/agentic/{session,tools,context}.py, make_decision.py (обёртки) | test_session_tools 14; tests/agentic 166 passed; golden без изменений |
 | T67 bounded tool loop | готово | c6c6908 | application/agentic/loop.py | test_loop 11 |
-| T68 QualityAgent и ReliabilityAgent | готово | см. git log | application/agentic/{specialist,quality,reliability}.py | test_specialists 8: разные пути tools в разных ситуациях (PolicyLLM) |
+| T68 QualityAgent и ReliabilityAgent | готово | fcd88d5 | application/agentic/{specialist,quality,reliability}.py | test_specialists 8: разные пути tools в разных ситуациях (PolicyLLM) |
+| T69 OrchestratorAgent и AgenticMakeDecision | готово | см. git log | application/agentic/{orchestrator,decision}.py, infrastructure/llm/demo_policy.py | test_orchestrator_agent 7, test_safety 32; tests/agentic 225 passed |
 
 ## Нерешённые вопросы
 
@@ -33,6 +34,16 @@
 - Семантика T11/F26 для response layer — ждёт организаторов.
 
 ## Заметки
+
+- T69, demo-политика (не LLM) на сценариях, budget 400:
+  | Сценарий | legacy | agentic | outcome | вызовы (orch/quality/reliability) | путь |
+  |---|---|---|---|---|---|
+  | baseline | hold | hold | confirmed_legacy | 3/2/2 | quality: margins → ACCEPT; reliability: setpoint_changes → ACCEPT |
+  | sour_crude | recommend c0025 180 т | recommend c0030 150 т | selected | 5/3/3 | quality: margins → forecast+tank → REVISE(min_quality_margin) → search → rank → reliability: changes → robustness |
+  | ample_reserve | recommend c0029 | recommend c0158 | selected | 5/3/3 | как sour_crude |
+  | no_feasible | refuse | refuse | confirmed_legacy | 3/0/0 | search → rank (пусто) → keep_legacy |
+- AgenticMakeDecision запускает `_search` второй раз (детерминированно, ~0.1 с) вместо изменения `decide`: legacy остаётся нетронутым.
+- Порядок событий в trace — по завершении: события специалиста идут раньше события `ask_*_agent` оркестратора.
 
 - T68: сессия и цикл обязаны делить один `AgentBudget` (лимит robustness считается в сессии, вызовы LLM — в цикле).
 
