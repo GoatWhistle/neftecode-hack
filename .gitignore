@@ -15,3 +15,7 @@ dist/
 # Keep infrastructure artifact adapter sources tracked
 !src/neftecode/infrastructure/artifacts/
 !src/neftecode/infrastructure/artifacts/*.py
+
+# Локальные секреты (ключи LLM-провайдеров). Никогда не коммитить.
+.env
+.env.*
