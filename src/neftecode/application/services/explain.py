@@ -246,6 +246,12 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
     elif kind == MODEL_NOT_APPLICABLE:
         next_steps.append({"need": "вернуть режим в объявленную область применимости модели",
                            "kind": "regime"})
+    elif refusal.get("kind") == "agent_rejected":
+        codes = ", ".join(refusal.get("reason_codes", [])[:5]) or "без кода"
+        next_steps.append({"need": f"проверить замечания агентов качества и надёжности ({codes})",
+                           "kind": "agent_review"})
+        next_steps.append({"need": "детерминированный вариант без агентов доступен при выключенном агентном режиме",
+                           "kind": "agent_review"})
     else:
         for example in refusal.get("examples", [])[:5]:
             next_steps.append({"need": example, "kind": "resource_or_scenario_condition"})

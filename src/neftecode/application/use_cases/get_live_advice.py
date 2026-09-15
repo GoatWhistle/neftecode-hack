@@ -14,6 +14,9 @@ from neftecode.domain.production.inventory import initial_state
 
 RobustnessFactory = Callable[[Scenario, Mapping[str, object]], RobustnessEvaluator | None]
 
+#: Builds the decision use case: (scenario, robustness evaluator, live context) -> object with `decide(...)`.
+DecisionFactory = Callable[[Scenario, RobustnessEvaluator | None, dict | None], object]
+
 
 @dataclass
 class GetLiveAdvice:
@@ -23,6 +26,7 @@ class GetLiveAdvice:
     forecasts: ForecastProvider
     binder: ForecastScenarioBinder
     robustness_factory: RobustnessFactory | None = None
+    decision_factory: DecisionFactory | None = None
 
     def execute(self, command: LiveAdviceCommand) -> LiveAdviceResult:
         if not isinstance(command, LiveAdviceCommand):
@@ -46,7 +50,7 @@ class GetLiveAdvice:
                 trust.get("refusal_reason") or "Источники snapshot не прошли проверку доверия",
                 tuple(trust.get("missing_requirements") or ()),
             )
-            decision = self._decision(scenario, raw, snapshot, command.budget, rejection)
+            decision = self._decision(scenario, raw, snapshot, command.budget, rejection, forecast)
             return LiveAdviceResult(snapshot.at, command.scenario_id, snapshot.state, trust, forecast,
                                     decision, explain(decision, scenario),
                                     note="Источники не прошли проверку: решение принято без запуска моделей.",
@@ -63,7 +67,7 @@ class GetLiveAdvice:
                 error=str(exc), error_kind="forecast_binding_failed", inventories=inventories,
                 note="Реальный прогноз не удалось связать со сценарием; решение не выдаётся.",
             )
-        decision = self._decision(bound_scenario, bound_raw, snapshot, command.budget)
+        decision = self._decision(bound_scenario, bound_raw, snapshot, command.budget, forecast=forecast)
         return LiveAdviceResult(snapshot.at, command.scenario_id, snapshot.state, trust, forecast,
                                 decision, explain(decision, bound_scenario), inventories=inventories,
                                 bound_sulfur_mgkg=self._bound_sulfur(bound_scenario),
@@ -73,10 +77,16 @@ class GetLiveAdvice:
                                       "Резервуары, цены, отклики и пределы T95/цетана заданы сценарием. "
                                       "Решение не разрешает выпуск товарного топлива."))
 
-    def _decision(self, scenario, raw, snapshot: LiveSnapshot, budget: int, rejection: DataRejection | None = None):
+    def _decision(self, scenario, raw, snapshot: LiveSnapshot, budget: int, rejection: DataRejection | None = None,
+                  forecast: LiveForecast | None = None):
         evaluator = (self.robustness_factory(scenario, raw)
                      if self.robustness_factory and rejection is None else None)
-        return MakeDecision(scenario, robustness_evaluator=evaluator).decide(
+        if self.decision_factory is None:
+            maker = MakeDecision(scenario, robustness_evaluator=evaluator)
+        else:
+            context = {"at": snapshot.at, "forecast": forecast.to_dict() if forecast is not None else None}
+            maker = self.decision_factory(scenario, evaluator, context)
+        return maker.decide(
             state=dict(snapshot.state), trust_cfg=dict(snapshot.trust_cfg or {}), budget=budget, raw_scenario=dict(raw), data_rejection=rejection)
 
     @staticmethod

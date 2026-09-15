@@ -3,10 +3,10 @@ import json
 from pathlib import Path
 
 from neftecode.application.services.explain import explain
-from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.composition.decision import run_demo_decision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.presentation.demo import Demo, scenes as demo_scenes
@@ -22,7 +22,7 @@ def screen(args, parser, root, out):
             decision = json.loads(args.decision.read_text())
         else:
             raw_scenario = json.loads(Path(scenario_path).read_text())
-            decision = MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
+            decision = default_decision_factory()(scenario, RobustnessCheck(
                 scenario, raw_scenario, scenario_parser=parse_scenario
             )).decide(budget=400, raw_scenario=raw_scenario)
             write_json(out / f"decision-{scenario.scenario_id}.json", decision)

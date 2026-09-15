@@ -229,6 +229,7 @@ class LiveAdviceAdapter:
     raw_scenario: dict
     budget: int = 400
     robustness_evaluator: RobustnessEvaluator | None = None
+    decision_factory: object | None = None
 
     def __post_init__(self):
         self._use_case = GetLiveAdvice(
@@ -237,6 +238,7 @@ class LiveAdviceAdapter:
             forecasts=LocalForecastProvider(self.signals, self.lab, self.online, self.bundle),
             binder=LocalForecastScenarioBinder(),
             robustness_factory=(lambda scenario, raw: self.robustness_evaluator),
+            decision_factory=self.decision_factory,
         )
 
     def advise(self, at) -> dict:
