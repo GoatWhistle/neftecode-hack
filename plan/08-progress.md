@@ -23,7 +23,8 @@
 | T65 ScriptedLLM/PolicyLLM и сетевой guard | готово | 3000d3a | infrastructure/llm/scripted.py, tests/agentic/conftest.py | tests/agentic/test_scripted.py 4 |
 | T64 адаптеры провайдеров | готово (субагент, проверено главным) | dc85498 | infrastructure/llm/{__init__,config,errors,openai_compatible,anthropic,factory}.py | test_llm_config 19, test_llm_providers 29; всё tests/agentic 152 passed |
 | T66 сессия и детерминированные tools | готово | c58d157 | application/agentic/{session,tools,context}.py, make_decision.py (обёртки) | test_session_tools 14; tests/agentic 166 passed; golden без изменений |
-| T67 bounded tool loop | готово | см. git log | application/agentic/loop.py | test_loop 11 |
+| T67 bounded tool loop | готово | c6c6908 | application/agentic/loop.py | test_loop 11 |
+| T68 QualityAgent и ReliabilityAgent | готово | см. git log | application/agentic/{specialist,quality,reliability}.py | test_specialists 8: разные пути tools в разных ситуациях (PolicyLLM) |
 
 ## Нерешённые вопросы
 
@@ -32,6 +33,8 @@
 - Семантика T11/F26 для response layer — ждёт организаторов.
 
 ## Заметки
+
+- T68: сессия и цикл обязаны делить один `AgentBudget` (лимит robustness считается в сессии, вызовы LLM — в цикле).
 
 - T66: `require_not_fragile` проверяет устойчивость только у первых `max_candidates` допустимых (порядок: legacy, hold, ключ ранжирования), `min_hours_to_violation` — у первых 40; остальные исключаются (консервативно). Сценарная оценка эффекта температуры ищет уже оценённый постоянный план с тем же рецептом и выпуском.
 
