@@ -8,7 +8,8 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 
-COMMANDS = ("train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes", "serve")
+COMMANDS = ("train", "demo", "advise", "vak", "episodes", "benchmark", "screen", "scenes", "serve",
+            "agent-demo")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,7 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", type=Path, default=Path("artifacts"))
     parser.add_argument("--config", type=Path, default=Path("config/experiment.json"))
     parser.add_argument("--at", help="Местное время решения для advise, например 2026-01-05T08:00:00")
-    parser.add_argument("--scenario", type=Path, help="Файл сценария для screen")
+    parser.add_argument("--scenario", type=Path, help="Файл сценария для screen и agent-demo")
     parser.add_argument("--decision", type=Path, help="Сохранённое решение для повторного просмотра")
     parser.add_argument("--port", type=int, default=8765, help="Порт демонстрационного сервера")
     return parser
