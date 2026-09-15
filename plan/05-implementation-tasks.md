@@ -95,8 +95,8 @@ push не делать; после каждой задачи обновлять 
   на ответ; forced final на последнем вызове; BudgetExhausted; LLMError; trace событий; ≤ max_calls вызовов.
 - Коммит: `feat: добавить ограниченный цикл вызова инструментов`.
 
-### [ ] T68. QualityAgent и ReliabilityAgent
-- Файлы: `application/agentic/quality.py`, `reliability.py`, `tests/agentic/test_specialists.py`.
+### [x] T68. QualityAgent и ReliabilityAgent
+- Файлы: `application/agentic/specialist.py` (общий цикл специалиста), `quality.py`, `reliability.py`, `tests/agentic/test_specialists.py`.
 - Зависимости: T67.
 - Готово: system prompts; opinion с grounding-правилами; PolicyLLM в двух ситуациях (маленький запас серы vs большой;
   переходный план с 2 изменениями vs hold) вызывает разные последовательности tools; ошибки → UNKNOWN.
