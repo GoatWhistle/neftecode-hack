@@ -27,7 +27,21 @@
 | T68 QualityAgent и ReliabilityAgent | готово | fcd88d5 | application/agentic/{specialist,quality,reliability}.py | test_specialists 8: разные пути tools в разных ситуациях (PolicyLLM) |
 | T69 OrchestratorAgent и AgenticMakeDecision | готово | f75079d | application/agentic/{orchestrator,decision}.py, infrastructure/llm/demo_policy.py | test_orchestrator_agent 7, test_safety 32; tests/agentic 225 passed |
 | T70 подключение за флагом | готово | 2340e62 | infrastructure/agentic/*, composition/decision.py, commands/{screens,live}.py, get_live_advice.py (поле decision_factory), live/advisor.py, services/decision_service.py, services/explain.py (agent_rejected) | test_wiring 10; полный suite 1057 passed; CLI screen: флаг выкл. — decision_id d6a1ab7f26398791 (как legacy), флаг вкл. + scripted — c0030, outcome selected |
-| T71 детерминированный demo trace | готово | см. git log | composition/commands/agentic.py, presentation/reports/agent_trace.py, presentation/cli.py, dispatcher.py, orchestrator.py (событие consult) | test_agent_demo 2; `neftecode agent-demo` пишет artifacts/agent-demo.{json,md} (artifacts не коммитятся) |
+| T71 детерминированный demo trace | готово | 64f7d15 | composition/commands/agentic.py, presentation/reports/agent_trace.py, presentation/cli.py, dispatcher.py, orchestrator.py (событие consult) | test_agent_demo 2; `neftecode agent-demo` пишет artifacts/agent-demo.{json,md} (artifacts не коммитятся) |
+| T72 old vs new и fuzz | готово | см. git log | tests/agentic/test_old_vs_new.py | 41 тест; полный suite 1100 passed, 88 с |
+
+### Old vs new (budget 400, без state)
+
+| Сценарий | legacy | agentic: demo-политика | agentic: сбой провайдера | agentic: 8 случайных политик |
+|---|---|---|---|---|
+| baseline | hold | hold (confirmed_legacy) | hold (fallback) | hold ×8 |
+| sour_crude | recommend c0025, 180 т, хрупкий 6/8 | recommend c0030, 150 т, хрупкий 7/8, запас серы ≥ 0.398 | как legacy | recommend или refuse (agent_rejected) |
+| ample_reserve | recommend c0029 | recommend c0158 | как legacy | recommend или refuse |
+| no_feasible | refuse no_feasible_plan | refuse (confirmed_legacy) | как legacy | refuse ×8 |
+
+Исходы 32 случайных прогонов: confirmed_legacy 12, fallback 16 (selection_not_allowed 7, refuse_without_evidence 6, нет finalize 3),
+refused 3, selected 1. Во всех: выпущенный план проходит свежий Gate, `unexpected_error` нет, вызовов LLM ≤ 12, при fallback
+решение совпадает с legacy байт-в-байт.
 
 ## Нерешённые вопросы
 
