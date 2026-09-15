@@ -42,7 +42,7 @@
 
 ## Результат
 
-Коммит правила `3c44bd4`; данные — `experiments/response-layer-2026-09-15.json`.
+Коммит правила `1b4bfcd`; данные — `experiments/response-layer-2026-09-15.json`.
 
 **Воспроизведение F.** На 249 пробах 2026 года из `artifacts/predictions.csv` F(state) совпал с production до 1.8e−15
 (248 проб); на одной пробе production-доверие прогноз не выдаёт — как и в советчике. Основная модель — 230 проб,
