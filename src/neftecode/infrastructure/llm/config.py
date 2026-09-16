@@ -12,6 +12,10 @@ from urllib.parse import urlsplit, urlunsplit
 ZAI_CODING_URL = "https://api.z.ai/api/coding/paas/v4"
 ZAI_DEFAULT_MODEL = "glm-5.3-flash"
 OPENAI_URL = "https://api.openai.com/v1"
+#: Q&A 11.09: the plant network has no internet and runs a local OpenAI-compatible model up to ~30B.
+#: That model is an option (`LLM_PROVIDER=local`); the default is Z.AI by the user's decision of 2026-09-17.
+LOCAL_URL = "http://127.0.0.1:8000/v1"
+DEFAULT_PROVIDER = "zai"
 ANTHROPIC_URL = "https://api.anthropic.com"
 
 #: Environment variables that hold a provider key, in priority order.
@@ -19,7 +23,10 @@ KEY_VARIABLES = {
     "zai": ("ZAI_API_KEY", "TOKEN", "token"),
     "openai": ("OPENAI_API_KEY",),
     "anthropic": ("ANTHROPIC_API_KEY",),
+    "local": ("LOCAL_LLM_API_KEY",),
 }
+#: Providers that work without a key (a local server inside the closed network).
+KEY_OPTIONAL = {"local"}
 
 AGENT_LIMITS = {
     "max_steps": ("AGENT_MAX_STEPS", 5),
@@ -157,7 +164,7 @@ def _number(env: Mapping[str, str], name: str, default, kind, *, minimum=0, stri
 
 def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
     """Build adapter settings from an environment mapping (see plan/03 §3)."""
-    provider = (_raw(env, "LLM_PROVIDER") or "zai").lower()
+    provider = (_raw(env, "LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     common = dict(
         request_timeout_s=_number(env, "LLM_REQUEST_TIMEOUT_SECONDS", 120.0, float),
         max_retries=_number(env, "LLM_MAX_RETRIES", 1, int, strict=False),
@@ -175,6 +182,9 @@ def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
     if provider == "anthropic":
         return LLMSettings(provider, _raw(env, "ANTHROPIC_MODEL") or "",
                            _raw(env, "ANTHROPIC_BASE_URL") or ANTHROPIC_URL, Secret(key), **common)
+    if provider == "local":
+        return LLMSettings(provider, _raw(env, "LOCAL_LLM_MODEL") or "",
+                           _raw(env, "LOCAL_LLM_BASE_URL") or LOCAL_URL, Secret(key), **common)
     if provider == "scripted":
         return LLMSettings(provider, "scripted", "", Secret(), **common)
     return LLMSettings(provider, "", "", Secret(), **common)

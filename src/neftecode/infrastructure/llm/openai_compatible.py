@@ -111,8 +111,9 @@ class OpenAICompatibleClient:
                 "name": tool.name, "description": tool.description, "parameters": tool.parameters}}
                 for tool in tools]
             body["tool_choice"] = "auto"
-        headers = {"Authorization": f"Bearer {self._api_key.reveal()}",
-                   "Content-Type": "application/json", "Accept": "application/json"}
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key.reveal()}"
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         started = self._clock()
         data = call_with_retries(lambda: self._once(url, headers, body, timeout_s), self.max_retries,

@@ -5,10 +5,11 @@ from typing import Mapping
 from neftecode.application.ports.llm import LLMClient, LLMError
 
 from .anthropic import AnthropicClient
-from .config import KEY_VARIABLES, LLMSettings
+from .config import KEY_OPTIONAL, KEY_VARIABLES, LLMSettings
 from .openai_compatible import OpenAICompatibleClient
 
-MODEL_VARIABLES = {"zai": "ZAI_MODEL", "openai": "OPENAI_MODEL", "anthropic": "ANTHROPIC_MODEL"}
+MODEL_VARIABLES = {"zai": "ZAI_MODEL", "openai": "OPENAI_MODEL", "anthropic": "ANTHROPIC_MODEL",
+                   "local": "LOCAL_LLM_MODEL"}
 
 
 def _refuse(message: str) -> LLMError:
@@ -23,7 +24,7 @@ def make_llm_client(settings: LLMSettings, environ: Mapping[str, str] = os.envir
         raise _refuse("live providers are disabled under pytest (LLM_ALLOW_LIVE_IN_TESTS=1 to allow)")
     if provider not in KEY_VARIABLES:
         raise _refuse(f"неизвестный LLM_PROVIDER {provider!r}; ожидается zai, openai, anthropic или scripted")
-    if not settings.api_key:
+    if not settings.api_key and provider not in KEY_OPTIONAL:
         raise _refuse(f"не задан ключ провайдера {provider}: {' / '.join(KEY_VARIABLES[provider])}")
     if not settings.model:
         raise _refuse(f"не задана модель провайдера {provider}: {MODEL_VARIABLES[provider]}")

@@ -85,7 +85,7 @@ def test_flag_on_without_a_key_falls_back_with_a_reason(tmp_path):
 
 
 def test_live_provider_is_refused_under_pytest_and_the_key_never_leaks(tmp_path):
-    factory = build_decision_factory({"AGENTIC_DECISION_ENABLED": "1", "ZAI_API_KEY": FAKE_KEY,
+    factory = build_decision_factory({"AGENTIC_DECISION_ENABLED": "1", "LLM_PROVIDER": "zai", "ZAI_API_KEY": FAKE_KEY,
                                       "PYTEST_CURRENT_TEST": "x"}, dotenv_path=tmp_path / "none.env")
     assert factory.llm is None and "pytest" in factory.configuration_error
     described = json.dumps(factory.describe(), ensure_ascii=False)
