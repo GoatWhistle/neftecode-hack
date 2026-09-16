@@ -27,7 +27,7 @@ AGENT_LIMITS = {
     "max_specialist_consults": ("AGENT_MAX_SPECIALIST_CONSULTS", 2),
     "max_llm_calls": ("AGENT_MAX_LLM_CALLS", 12),
     "max_replans": ("AGENT_MAX_REPLANS", 1),
-    "timeout_s": ("AGENT_TIMEOUT_SECONDS", 180.0),
+    "timeout_s": ("AGENT_TIMEOUT_SECONDS", 600.0),
     "max_candidates": ("AGENT_MAX_CANDIDATES_FOR_LLM", 5),
     "max_context_chars": ("AGENT_MAX_CONTEXT_CHARS", 12000),
     "max_tool_result_chars": ("AGENT_MAX_TOOL_RESULT_CHARS", 2500),
@@ -116,7 +116,7 @@ class LLMSettings:
     model: str
     base_url: str
     api_key: Secret = field(default_factory=Secret, repr=False)
-    request_timeout_s: float = 60.0
+    request_timeout_s: float = 120.0
     max_retries: int = 1
     max_tokens: int = 2048
     temperature: float = 0.2
@@ -154,7 +154,7 @@ def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
     """Build adapter settings from an environment mapping (see plan/03 §3)."""
     provider = (_raw(env, "LLM_PROVIDER") or "zai").lower()
     common = dict(
-        request_timeout_s=_number(env, "LLM_REQUEST_TIMEOUT_SECONDS", 60.0, float),
+        request_timeout_s=_number(env, "LLM_REQUEST_TIMEOUT_SECONDS", 120.0, float),
         max_retries=_number(env, "LLM_MAX_RETRIES", 1, int, strict=False),
         max_tokens=_number(env, "LLM_MAX_TOKENS", 2048, int),
         temperature=_number(env, "LLM_TEMPERATURE", 0.2, float, strict=False),

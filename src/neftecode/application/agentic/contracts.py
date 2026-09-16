@@ -340,14 +340,14 @@ class AgentSettings:
     max_specialist_consults: int = 2
     max_llm_calls: int = 12
     max_replans: int = 1
-    timeout_s: float = 180.0
+    timeout_s: float = 600.0
     max_candidates: int = 5
     max_context_chars: int = 12000
     max_tool_result_chars: int = 2500
     max_robustness_runs: int = 2
     max_tool_calls_per_response: int = 3
     max_tokens: int = 2048
-    request_timeout_s: float = 60.0
+    request_timeout_s: float = 120.0
 
     def __post_init__(self):
         for name, value in self.__dict__.items():
