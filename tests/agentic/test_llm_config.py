@@ -28,14 +28,26 @@ def test_real_environment_wins_over_dotenv(tmp_path):
 
 
 def test_zai_key_aliases_in_priority_order():
-    assert llm_settings_from_env({"ZAI_API_KEY": "k1", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k1"
-    assert llm_settings_from_env({"ZAI_API_KEY": " ", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k2"
-    assert llm_settings_from_env({"token": "k3"}).api_key.reveal() == "k3"
-    assert not llm_settings_from_env({}).api_key
+    zai = {"LLM_PROVIDER": "zai"}
+    assert llm_settings_from_env({**zai, "ZAI_API_KEY": "k1", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k1"
+    assert llm_settings_from_env({**zai, "ZAI_API_KEY": " ", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k2"
+    assert llm_settings_from_env({**zai, "token": "k3"}).api_key.reveal() == "k3"
+    assert not llm_settings_from_env(zai).api_key
 
 
-def test_defaults_point_to_zai_coding_plan():
-    settings = llm_settings_from_env({})
+def test_local_plant_model_is_an_option():
+    """Q&A 11.09: closed network, local OpenAI-compatible model; the model name must be configured."""
+    local = llm_settings_from_env({"LLM_PROVIDER": "local"})
+    assert (local.provider, local.model, local.base_url) == ("local", "", "http://127.0.0.1:8000/v1")
+    assert not local.api_key
+    configured = llm_settings_from_env({"LLM_PROVIDER": "local", "LOCAL_LLM_MODEL": "qwen-27b",
+                                        "LOCAL_LLM_BASE_URL": "http://llm:9000/v1"})
+    assert (configured.model, configured.base_url) == ("qwen-27b", "http://llm:9000/v1")
+
+
+def test_default_provider_is_the_zai_coding_plan():
+    assert llm_settings_from_env({}).provider == "zai"
+    settings = llm_settings_from_env({"LLM_PROVIDER": "zai"})
     assert (settings.provider, settings.model, settings.base_url) == (
         "zai", "glm-5.3-flash", "https://api.z.ai/api/coding/paas/v4")
     assert (settings.request_timeout_s, settings.max_retries, settings.max_tokens, settings.temperature) == (
@@ -57,7 +69,8 @@ def test_secret_never_prints():
     secret = Secret(FAKE)
     assert repr(secret) == str(secret) == "Secret(***)"
     assert f"{secret}" == "Secret(***)" and secret.reveal() == FAKE and secret and not Secret("")
-    settings = llm_settings_from_env({"ZAI_API_KEY": FAKE, "ZAI_BASE_URL": "https://h/api/coding/v4?x=1"})
+    settings = llm_settings_from_env({"LLM_PROVIDER": "zai", "ZAI_API_KEY": FAKE,
+                                      "ZAI_BASE_URL": "https://h/api/coding/v4?x=1"})
     assert FAKE not in repr(settings) and FAKE not in str(settings)
     described = settings.describe()
     assert described["api_key"] == "present" and FAKE not in str(described)

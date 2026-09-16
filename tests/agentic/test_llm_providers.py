@@ -329,3 +329,45 @@ def test_factory_builds_clients_without_network(http):
                                 live_env())
     assert isinstance(anthropic, AnthropicClient)
     assert fake.requests == []
+
+
+def test_local_provider_needs_no_key_and_sends_no_authorization(monkeypatch):
+    import json as _json
+
+    from neftecode.infrastructure.llm.config import llm_settings_from_env
+    from neftecode.infrastructure.llm.factory import make_llm_client
+
+    captured = {}
+
+    class Reply:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return _json.dumps({"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]}).encode()
+
+    def fake(request, timeout=None):
+        captured["url"] = request.full_url
+        captured["headers"] = {k.lower(): v for k, v in request.header_items()}
+        return Reply()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake)
+    settings = llm_settings_from_env({"LLM_PROVIDER": "local", "LOCAL_LLM_MODEL": "qwen-27b"})
+    client = make_llm_client(settings, {"LLM_ALLOW_LIVE_IN_TESTS": "1"})
+    from neftecode.application.ports.llm import LLMMessage
+    reply = client.chat([LLMMessage("user", "x")], max_tokens=10, timeout_s=1)
+    assert reply.content == "ok" and client.provider == "local"
+    assert captured["url"] == "http://127.0.0.1:8000/v1/chat/completions"
+    assert "authorization" not in captured["headers"]
+
+
+def test_local_provider_without_a_model_is_not_configured():
+    from neftecode.application.ports.llm import LLMError
+    from neftecode.infrastructure.llm.config import llm_settings_from_env
+    from neftecode.infrastructure.llm.factory import make_llm_client
+
+    with pytest.raises(LLMError, match="LOCAL_LLM_MODEL"):
+        make_llm_client(llm_settings_from_env({"LLM_PROVIDER": "local"}), {"LLM_ALLOW_LIVE_IN_TESTS": "1"})
