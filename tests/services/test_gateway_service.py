@@ -109,3 +109,11 @@ def test_gateway_upstream_down_still_serves_html_error_page():
         assert response.status == 200 and content_type.startswith("text/html") and "Ошибка" in body
     finally:
         gateway.shutdown(); gateway.server_close(); thread.join(timeout=3)
+
+
+def test_gateway_waits_long_enough_for_an_agentic_decision():
+    from neftecode.services.gateway_service import GatewayService
+
+    service = GatewayService()
+    assert service.decision_timeout_s >= 600
+    assert service.client.timeout_s == 10.0

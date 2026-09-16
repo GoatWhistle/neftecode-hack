@@ -13,9 +13,12 @@ from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSetting
 
 
 class GatewayService:
-    def __init__(self, data_url="http://127.0.0.1:8766", decision_url="http://127.0.0.1:8768", timeout_s=10.0):
+    def __init__(self, data_url="http://127.0.0.1:8766", decision_url="http://127.0.0.1:8768", timeout_s=10.0,
+                 decision_timeout_s=660.0):
         self.data_url, self.decision_url = data_url.rstrip("/"), decision_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
+        #: A decision with language model agents takes minutes, not seconds (AGENT_TIMEOUT_SECONDS + margin).
+        self.decision_timeout_s = decision_timeout_s
 
     def scenarios(self, request_id="gateway"):
         return self.client.request("GET", self.data_url + "/v1/scenarios",
@@ -34,7 +37,7 @@ class GatewayService:
         changes = changes_from(values, raw)
         env = self.client.request("POST", self.decision_url + "/v1/decisions",
                                   {"scenario": _changed(raw, changes), "state": state, "budget": 400},
-                                  headers={"X-Request-ID": request_id})
+                                  timeout_s=self.decision_timeout_s, headers={"X-Request-ID": request_id})
         result = env.data
         screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", [])).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
@@ -96,7 +99,8 @@ def main(argv=None):
                                 max_workers=env.max_workers, max_body_bytes=env.max_body_bytes,
                                 max_response_bytes=env.max_response_bytes)
     service = GatewayService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
-                             args.decision_url or os.getenv("NEFTECODE_DECISION_URL", "http://127.0.0.1:8768"), settings.request_timeout_s)
+                             args.decision_url or os.getenv("NEFTECODE_DECISION_URL", "http://127.0.0.1:8768"), settings.request_timeout_s,
+                             float(os.getenv("NEFTECODE_GATEWAY_DECISION_TIMEOUT_S", "660")))
     return serve(service.routes(), settings, service.ready, "gateway-service")
 
 

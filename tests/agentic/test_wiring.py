@@ -27,15 +27,29 @@ def test_flag_off_builds_the_deterministic_use_case_without_reading_configuratio
 
     monkeypatch.setattr(factory_module, "load_environment", forbidden)
     monkeypatch.setattr(factory_module, "make_llm_client", forbidden)
-    for environ in ({}, {"AGENTIC_DECISION_ENABLED": "false"}, {"AGENTIC_DECISION_ENABLED": "0", "TOKEN": FAKE_KEY}):
+    for environ in ({"AGENTIC_DECISION_ENABLED": "off"}, {"AGENTIC_DECISION_ENABLED": "false"},
+                    {"AGENTIC_DECISION_ENABLED": "0", "TOKEN": FAKE_KEY}):
         factory = build_decision_factory(environ)
         assert factory.enabled is False and factory.llm is None
         assert type(factory(parse_scenario(raw("baseline")))) is MakeDecision
 
 
+def test_agent_layer_is_on_by_default(tmp_path):
+    for environ in ({}, {"AGENTIC_DECISION_ENABLED": ""}, {"AGENTIC_DECISION_ENABLED": "1"}):
+        factory = build_decision_factory({**environ, "LLM_PROVIDER": "scripted"}, dotenv_path=tmp_path / "none.env")
+        assert factory.enabled is True
+        assert isinstance(factory(parse_scenario(raw("baseline"))), AgenticMakeDecision)
+
+
+def test_suite_pins_the_deterministic_mode():
+    import os
+
+    assert os.environ["AGENTIC_DECISION_ENABLED"] == "0"
+
+
 def test_flag_off_demo_decision_is_byte_identical_to_legacy():
     document = raw("sour_crude")
-    result = run_demo_decision(document, {}, 400, decision_factory=build_decision_factory({}))
+    result = run_demo_decision(document, {}, 400, decision_factory=build_decision_factory({"AGENTIC_DECISION_ENABLED": "0"}))
     assert result["decision"] == legacy_decide("sour_crude")
     assert "agentic" not in result["decision"]
 
@@ -59,8 +73,8 @@ def test_provider_settings_may_come_from_dotenv(tmp_path):
 
 
 def test_flag_on_without_a_key_falls_back_with_a_reason(tmp_path):
-    factory = build_decision_factory({"AGENTIC_DECISION_ENABLED": "1"}, dotenv_path=tmp_path / "none.env")
-    assert factory.llm is None and factory.configuration_error.startswith("llm_not_configured")
+    factory = build_decision_factory({}, dotenv_path=tmp_path / "none.env")
+    assert factory.enabled and factory.llm is None and factory.configuration_error.startswith("llm_not_configured")
     document = raw("baseline")
     scenario = parse_scenario(document)
     decision = factory(scenario).decide(budget=400, raw_scenario=document)

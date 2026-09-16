@@ -1,9 +1,9 @@
 """Choose the decision use case: deterministic `MakeDecision` or `AgenticMakeDecision` behind a flag.
 
-`AGENTIC_DECISION_ENABLED` is read from the process environment only. While it is off nothing else is read:
-no `.env`, no provider settings, no client. When it is on, provider settings may come from `.env`, and any
-configuration problem leaves the agent layer without a client, so every decision falls back to the
-deterministic result and says why.
+The agent layer is on by default. `AGENTIC_DECISION_ENABLED=0` (read from the process environment only)
+switches it off: then nothing else is read — no `.env`, no provider settings, no client. When it is on,
+provider settings may come from `.env`, and any configuration problem leaves the agent layer without a client,
+so every decision falls back to the deterministic result and says why.
 """
 from dataclasses import dataclass, field
 from functools import lru_cache

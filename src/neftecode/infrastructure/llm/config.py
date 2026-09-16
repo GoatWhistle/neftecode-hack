@@ -106,8 +106,13 @@ def truthy(value) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def falsy(value) -> bool:
+    return str(value or "").strip().lower() in {"0", "false", "no", "off"}
+
+
 def agentic_enabled(env: Mapping[str, str]) -> bool:
-    return truthy(env.get("AGENTIC_DECISION_ENABLED"))
+    """The agent layer is on unless explicitly switched off (tests pin the deterministic mode this way)."""
+    return not falsy(env.get("AGENTIC_DECISION_ENABLED"))
 
 
 @dataclass(frozen=True)
