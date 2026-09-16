@@ -1,0 +1,59 @@
+{
+ "schema_version": "v1",
+ "tag": "ht.T6",
+ "flow_tag": "ht.F9",
+ "tau": "2026-01-01",
+ "window_months": 12,
+ "beta_mgkg_per_c": -0.4332,
+ "ci": [
+  -0.4761,
+  -0.397
+ ],
+ "envelope_dt_c": 2.0,
+ "n_rows": 48938,
+ "method": "ARX(24 lags, 10-min differences of ht.T6, ht.F9, PAK 30-min mean), beta = mean cumulative PAK response at 3-8 h to a sustained +1 C step in T6; window (2025-01-01, 2025-12-31 18:00:00] = 12 months before tau minus 6 h guard; rows = unit running >=12 h before and 6 h after (T6,T5>320 C, P13>3 MPa, F2>30000, F9>q01=134.5 t/h, no NaN), PAK valid (0.05-50 mg/kg, not frozen >=1 h); ci = month-block bootstrap 90% (40 draws); drift = same ARX per half-year starting at tau (realized, not trailing); flow_beta null: F9 lags enter the ARX only as a control, no identified sustained flow effect (F9 vs F26 as flow tag changes beta by <0.002); rolling-origin realized/estimate ratio of the trailing-12 rule 0.97-1.71 over 2024H1-2026H1 (bootstrap ci understates next-half uncertainty)",
+ "drift": [
+  {
+   "tau": "2023-01-01",
+   "beta": -0.2847
+  },
+  {
+   "tau": "2023-07-01",
+   "beta": -0.2604
+  },
+  {
+   "tau": "2024-01-01",
+   "beta": -0.373
+  },
+  {
+   "tau": "2024-07-01",
+   "beta": -0.5075
+  },
+  {
+   "tau": "2025-01-01",
+   "beta": -0.4614
+  },
+  {
+   "tau": "2025-07-01",
+   "beta": -0.4911
+  },
+  {
+   "tau": "2026-01-01",
+   "beta": -0.4668
+  }
+ ],
+ "flow_beta": null,
+ "model_fingerprint": "dc9e09ab01a90275452ddb13abca1966e05df5e51284c66cad95c0ef48af6e95",
+ "t6_range_c": [
+  342.9,
+  386.1
+ ],
+ "f9_range_tph": [
+  150.3,
+  256.7
+ ],
+ "weak_strong": [
+  -0.217,
+  -0.739
+ ]
+}
