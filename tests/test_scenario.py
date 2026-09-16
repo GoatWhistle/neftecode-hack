@@ -296,7 +296,7 @@ def test_actuation_without_a_loop_description_is_rejected():
 
 def test_actuation_survives_serialisation():
     stage = parse_scenario(raw()).stages["hydrotreating"].to_dict()
-    assert stage["controls"]["ht_reactor_inlet_temp_c"]["actuation"]["measured_tag"] == "ht.P8"
+    assert stage["controls"]["ht_reactor_inlet_temp_c"]["actuation"]["measured_tag"] == "ht.T6"
 
 
 def test_every_shipped_tank_declares_density_and_the_product_a_range():
