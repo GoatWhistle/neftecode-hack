@@ -222,7 +222,7 @@ def test_a_control_is_explained_as_a_setpoint_with_its_loop_and_lag():
     assert controls, "в совете нет управляющих переменных"
     ht = next(s for s in controls if s["topic"] == "control.ht_reactor_inlet_temp_c")
     assert "уставку регулятора" in ht["text"] and "Р-202" in ht["text"]
-    assert any("ht.P8" in (e.get("detail") or "") for e in ht["evidence"])
+    assert any("ht.T6" in (e.get("detail") or "") for e in ht["evidence"])
     # sour_crude keeps the hydrotreater setpoint, so the operator is told to keep it, not to change it.
     assert ht["text"].startswith("ht_reactor_inlet_temp_c: сохранить уставку регулятора 348")
     assert any("регулятор" in limit for limit in result["limits"])
