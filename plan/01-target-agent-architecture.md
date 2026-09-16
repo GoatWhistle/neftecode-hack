@@ -62,7 +62,7 @@ infrastructure/agentic/factory.py        decision_factory(env): MakeDecision | A
 hash подтверждает идентичность. `AgenticMakeDecision` использует те же `_search`/`release`, поэтому финальная проверка,
 look-ahead и robustness у двух путей — один и тот же код.
 
-Feature flag `AGENTIC_DECISION_ENABLED` (default `false`) читается только во внешних слоях (`infrastructure/agentic/factory.py`,
+Флаг `AGENTIC_DECISION_ENABLED` (с 16.09 по решению пользователя включён по умолчанию; `0/false/no/off` — явное отключение) читается только во внешних слоях (`infrastructure/agentic/factory.py`,
 вызывается из composition и services). Replay и benchmark остаются legacy.
 
 ## 5. Sequence

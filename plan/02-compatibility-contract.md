@@ -21,7 +21,7 @@
 
 | # | Инвариант | Как проверяется |
 |---|---|---|
-| I1 | Flag off ⇒ decision dict 4 сценариев байт-в-байт прежний (sha256) и ровно 20 ключей | `tests/test_architecture_baseline.py` |
+| I1 | Явно выключенный флаг ⇒ decision dict 4 сценариев байт-в-байт прежний (sha256) и ровно 20 ключей; набор тестов фиксирует `AGENTIC_DECISION_ENABLED=0` в `tests/conftest.py` | `tests/test_architecture_baseline.py` |
 | I2 | Gate — единственный authoritative механизм допустимости; LLM ACCEPT + Gate FAIL ⇒ FAIL | `tests/agentic/test_safety.py` (adversarial FakeLLM) |
 | I3 | HOLD/RECOMMEND в agentic ⇒ выбранный план проходит `check_plan` при независимой переоценке | guard в `AgenticMakeDecision` + тест |
 | I4 | Final recheck, look-ahead, robustness — тот же код `release` для обоих путей | экстракция + golden |
@@ -67,7 +67,7 @@
 
 | Сбой | Поведение |
 |---|---|
-| Флаг выключен | Legacy, LLM-клиент не создаётся, .env не читается |
+| Флаг явно выключен (`AGENTIC_DECISION_ENABLED=0`) | Legacy, LLM-клиент не создаётся, .env не читается. По умолчанию слой включён (решение 16.09) |
 | Флаг включён, ключ/настройки не заданы | Legacy + `agentic.outcome=fallback`, `fallback_reason=llm_not_configured` |
 | Timeout / сеть / 5xx / 1302 / 1305 | ≤1 повтор (только retryable), затем fallback |
 | 401 / 1113 / 1308–1315 (квота, план, ToS) | Без повторов, fallback |

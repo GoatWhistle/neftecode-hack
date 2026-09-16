@@ -151,7 +151,7 @@ src/neftecode/
 не импортируют. Старые плоские модули удалены; публичные функции `bootstrap` сохранены. JSON решений и команды CLI
 сохранены без изменения.
 
-### Слой LLM-агентов (по умолчанию выключен)
+### Слой LLM-агентов (включён всегда)
 
 Поверх детерминированного контура добавлен ограниченный multi-agent слой: `OrchestratorAgent`,
 `QualityAgent` и `ReliabilityAgent` — настоящие tool-using агенты на языковой модели. Они рассуждают и
@@ -164,11 +164,17 @@ src/neftecode/
 исчерпанный бюджет — возвращает детерминированное решение.
 
 ```sh
-# по умолчанию агентный режим выключен и решения не отличаются от прежних
-AGENTIC_DECISION_ENABLED=1 LLM_PROVIDER=scripted uv run neftecode screen   # детерминированная политика, без сети
-AGENTIC_DECISION_ENABLED=1 LLM_PROVIDER=zai      uv run neftecode screen   # Z.AI Coding Plan, glm-5.3-flash
-uv run python scripts/agent_live_smoke.py                                   # сухой прогон настроек, без сети
+uv run neftecode screen                                    # агенты включены: Z.AI Coding Plan, glm-5.3-flash
+LLM_PROVIDER=scripted uv run neftecode screen              # детерминированная политика вместо модели, без сети
+AGENTIC_DECISION_ENABLED=0 uv run neftecode screen         # явное отключение: прежние решения байт-в-байт
+uv run python scripts/agent_live_smoke.py                  # сухой прогон настроек, без сети
 ```
+
+Агенты работают при каждом решении (`serve`, `scenes`, `screen`, `advise`, decision-service); benchmark и
+replay остаются детерминированными. Решение с живой моделью занимает минуты (10–45 с на вызов модели), поэтому
+gateway ждёт decision до 660 с. Нет ключа или провайдер недоступен — выдаётся детерминированное решение с
+пометкой `fallback`. Набор тестов фиксирует `AGENTIC_DECISION_ENABLED=0` (`tests/conftest.py`), чтобы сравнивать
+решения с эталонными и не обращаться к модели.
 
 Настройки — переменные окружения (`LLM_PROVIDER`, `ZAI_API_KEY`/`TOKEN`, `ZAI_MODEL`, `ZAI_BASE_URL`,
 `OPENAI_*`, `ANTHROPIC_*`, бюджеты `AGENT_*`); ключи только в окружении или `.env`, который не коммитится.

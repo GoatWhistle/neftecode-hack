@@ -174,7 +174,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
     <li><a href="#s8"><span>08</span>Gate</a></li>
     <li><a href="#s9"><span>09</span>Валидаторы и вето</a></li>
     <li><a href="#s10"><span>10</span>Выбор и перепроверка</a></li>
-    <li><a href="#llm"><span>10а</span>LLM-агенты (флаг)</a></li>
+    <li><a href="#llm"><span>10а</span>LLM-агенты</a></li>
     <li><a href="#s11"><span>11</span>Решение</a></li>
   </ol>
   <p>Вокруг</p>
@@ -189,21 +189,21 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
 <header class="masthead">
   <p class="sheet"><span>Лист <b>1</b></span><span>Установки <b>АВТ → 24-2000 → смешение ДТ</b></span><span>Код <b>src/neftecode</b></span><span>Сверено с репо <b>2b55c33</b></span><span>Аудит <b>16.09.2026</b></span></p>
   <h1>Нефтекод: путь данных от CSV до совета оператору</h1>
-  <p class="lede">Одна схема всей системы, затем каждый этап отдельно: что приходит на вход, что с данными делается, что уходит дальше. Сквозной пример — реальное решение на <b>5 января 2026, 08:00</b> из <code>artifacts/decision-20260105-080000.json</code> (пересчитано текущим кодом 16.09: <code>decision_id 086b5119b1dbe2f4</code> совпал). Контуров два: детерминированный работает всегда; слой LLM-агентов (этап 10а) подключается только флагом <code>AGENTIC_DECISION_ENABLED=1</code> и по умолчанию выключен.</p>
+  <p class="lede">Одна схема всей системы, затем каждый этап отдельно: что приходит на вход, что с данными делается, что уходит дальше. Сквозной пример — реальное решение на <b>5 января 2026, 08:00</b> из <code>artifacts/decision-20260105-080000.json</code> (пересчитано текущим кодом 16.09: <code>decision_id 086b5119b1dbe2f4</code> совпал). Контуров два, и оба работают всегда: детерминированный контур (этапы 1–10) и слой LLM-агентов поверх него (этап 10а). Отключить агентов можно только явно — <code>AGENTIC_DECISION_ENABLED=0</code>; так делают набор тестов и закрытая среда без модели.</p>
   <dl class="facts">
     <div><dt>Телеметрия</dt><dd>189 217 <small>строк · 10 мин</small></dd></div>
     <div><dt>Задержка ЛИМС</dt><dd>4 ч <small>допущение</small></dd></div>
     <div><dt>Горизонт плана</dt><dd>3 ч <small>сетка 30 мин</small></dd></div>
     <div><dt>Предел серы</dt><dd>≤ 10 <small>мг/кг</small></dd></div>
     <div><dt>Выпуск разрешён</dt><dd>false <small>всегда</small></dd></div>
-    <div><dt>LLM-агенты</dt><dd>выкл. <small>по умолчанию</small></dd></div>
+    <div><dt>LLM-агенты</dt><dd>вкл. <small>всегда · glm-5.3-flash</small></dd></div>
   </dl>
 </header>
 
 <section class="overview" id="steps" aria-labelledby="st-h">
   <p class="eyebrow">Шаги решения по порядку</p>
   <h2 id="st-h">Что происходит, когда модель обучена и приходит момент t</h2>
-  <p class="intro">Данные — выданные CSV и XLSX в <code>task/</code>, потока с завода нет. Берётся момент t, и используются только данные, доступные к t. Шаги ниже выполняются строго по порядку командой <code>neftecode advise --at t</code> или сервисом <code>/v1/live/advice</code>. Жёлтый шаг — единственное место, где работают LLM-агенты.</p>
+  <p class="intro">Данные — выданные CSV и XLSX в <code>task/</code>, потока с завода нет. Берётся момент t, и используются только данные, доступные к t. Шаги ниже выполняются строго по порядку командой <code>neftecode advise --at t</code> или сервисом <code>/v1/live/advice</code>. Жёлтый шаг — единственное место, где работают LLM-агенты; он выполняется при каждом решении.</p>
   <ol class="steps">
     <li class="pre"><span class="n">Шаг 0 · заранее, один раз</span><h3>Обучение</h3><p><code>neftecode train</code> → <code>model.pkl</code>: прогноз серы <code>last_pak</code>, запасная <code>catboost_no_pak</code>, T95 <code>last_lab</code>, радиусы интервала.</p><a class="where" href="#offline">Подробно: «Обучение offline»</a></li>
     <li><span class="n">Шаг 1</span><h3>Загрузка</h3><p>Телеметрия АВТ и 24-2000, ЛИМС, ПАК, сценарий JSON, <code>model.pkl</code>. Проверка, что t в допустимом для модели периоде.</p><a class="where" href="#s1">Этап 01</a></li>
@@ -216,7 +216,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
     <li class="gate"><span class="n">Шаг 6.3</span><h3>Gate</h3><p>Все обязательные условия в каждой точке: сера ≤ 10, T95, цетан, плотность, уставки, запасы, отбор. Неизвестное = запрет.</p><a class="where" href="#s8">Этап 08</a></li>
     <li class="gate"><span class="n">Шаг 6.4</span><h3>Валидаторы и вето</h3><p>Отказы Gate превращаются в запреты следующего раунда, до 3 раундов. Это не LLM.</p><span class="refuse">Допустимых нет → REFUSE no_feasible_plan</span><a class="where" href="#s9">Этап 09</a></li>
     <li class="gate"><span class="n">Шаг 6.5</span><h3>Выбор и проверки</h3><p><code>rank()</code> → упреждение 48 ч → повторный Gate → устойчивость к 8 отклонениям. Итог: детерминированное решение.</p><span class="refuse">Повторный Gate не пройден → REFUSE final_recheck_failed</span><a class="where" href="#s10">Этап 10</a></li>
-    <li class="llm"><span class="n">Шаг 7 · только при AGENTIC_DECISION_ENABLED=1</span><h3>LLM-агенты</h3><p>Оркестратор, агенты качества и надёжности смотрят готовых кандидатов через инструменты, могут наложить вето или сузить поиск. Выбор снова делает <code>rank()</code>, план снова проходит шаг 6.5 и независимый Gate. Сбой модели → решение шага 6 без изменений.</p><a class="where" href="#llm">Этап 10а</a></li>
+    <li class="llm"><span class="n">Шаг 7 · всегда, после шага 6</span><h3>LLM-агенты</h3><p>При каждом решении оркестратор, агенты качества и надёжности смотрят готовых кандидатов через инструменты, могут наложить вето или сузить поиск. Выбор снова делает <code>rank()</code>, план снова проходит шаг 6.5 и независимый Gate. Сбой модели → решение шага 6 без изменений.</p><a class="where" href="#llm">Этап 10а</a></li>
     <li class="out"><span class="n">Шаг 8</span><h3>Выход</h3><p>HOLD, RECOMMEND или REFUSE с причиной; объяснение со ссылками на проверки; <code>decision-&lt;время&gt;.json</code> и экран оператора. Выпуск топлива не разрешается никогда.</p><a class="where" href="#s11">Этап 11</a></li>
   </ol>
 </section>
@@ -226,7 +226,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
   <h2 id="ov-h">Два контура: данные превращаются в прогноз, прогноз — в проверенный план</h2>
   <figure>
     <div class="scroll">
-    <svg class="dg" viewBox="0 0 1120 620" role="img" aria-label="Общая схема: источники, срез на момент t, проверка доверия, прогноз серы, привязка к сценарию; затем оптимизатор, модель цепочки, gate, детерминированные валидаторы с петлёй вето, ранжирование, упреждение, финальная перепроверка и устойчивость; при включённом флаге слой LLM-агентов; итог hold, совет или отказ">
+    <svg class="dg" viewBox="0 0 1120 620" role="img" aria-label="Общая схема: источники, срез на момент t, проверка доверия, прогноз серы, привязка к сценарию; затем оптимизатор, модель цепочки, gate, детерминированные валидаторы с петлёй вето, ранжирование, упреждение, финальная перепроверка и устойчивость; слой LLM-агентов при каждом решении; итог hold, совет или отказ">
       <defs>
         <marker id="m0" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker>
         <marker id="m0m" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahm"/></marker>
@@ -322,11 +322,11 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <path d="M1025,410 V450" class="pipe" marker-end="url(#m0)"/>
       <rect x="780" y="452" width="320" height="64" rx="3" class="llm"/>
       <text x="940" y="476" text-anchor="middle" class="llmtx">Слой LLM-агентов · этап 10а</text>
-      <text x="940" y="496" text-anchor="middle" class="sub">только при AGENTIC_DECISION_ENABLED=1</text>
+      <text x="940" y="496" text-anchor="middle" class="sub">работает при каждом решении</text>
       <text x="940" y="511" text-anchor="middle" class="sub">сужает выбор → снова Gate · сбой → без изменений</text>
-      <text x="770" y="480" text-anchor="end" class="lbl">флаг выкл.:</text>
-      <text x="770" y="496" text-anchor="end" class="lbl">решение проходит</text>
-      <text x="770" y="512" text-anchor="end" class="lbl">без изменений</text>
+      <text x="770" y="480" text-anchor="end" class="lbl">сбой модели или</text>
+      <text x="770" y="496" text-anchor="end" class="lbl">AGENTIC_DECISION_ENABLED=0:</text>
+      <text x="770" y="512" text-anchor="end" class="lbl">решение без изменений</text>
 
       <!-- outputs -->
       <path d="M1025,516 V540" class="pipe"/>
@@ -343,7 +343,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <text x="1020" y="579" text-anchor="middle" class="mono badtx">refuse</text>
     </svg>
     </div>
-    <figcaption>Сплошная синяя линия — поток данных. Серый пунктир — загрузка готовых артефактов и обратная связь валидаторов. Красный — ранний отказ: если ни один источник качества не прошёл проверку, модели не запускаются вообще (и LLM-агенты тоже). Жёлтый пунктир — необязательный слой LLM-агентов. Всё, что левее и выше него, детерминировано: одинаковые данные дают одинаковое решение.</figcaption>
+    <figcaption>Сплошная синяя линия — поток данных. Серый пунктир — загрузка готовых артефактов и обратная связь валидаторов. Красный — ранний отказ: если ни один источник качества не прошёл проверку, модели не запускаются вообще (и LLM-агенты тоже). Жёлтый пунктир — слой LLM-агентов, он работает при каждом решении. Всё, что левее и выше него, детерминировано: одинаковые данные дают одинаковое решение до этого слоя; итог после слоя может различаться между запусками, но всегда проходит Gate.</figcaption>
   </figure>
 </section>
 
@@ -849,8 +849,8 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
 <!-- 10a -->
 <section class="stage" id="llm" aria-labelledby="hllm">
   <div class="stage-head"><div class="inst" aria-hidden="true"><b>LLM</b><i>10а</i></div>
-    <div><p class="eyebrow">Этап 10а · только при <code>AGENTIC_DECISION_ENABLED=1</code> · <code>application/agentic/</code></p><h2 id="hllm">LLM-агенты: второе мнение над готовым решением</h2></div></div>
-  <p class="intro">Этот слой запускается, когда этапы 1–10 уже дали решение. Он ничего не прогнозирует и не считает: три агента на языковой модели выбирают детерминированные инструменты, спорят о кандидатах и могут только <b>сузить</b> выбор. Итог снова проходит тот же код этапа 10 и ещё одну независимую проверку Gate. Любой сбой модели возвращает решение этапов 1–10 без изменений. По умолчанию флаг выключен, и этого этапа нет.</p>
+    <div><p class="eyebrow">Этап 10а · всегда включён · <code>application/agentic/</code></p><h2 id="hllm">LLM-агенты: второе мнение над готовым решением</h2></div></div>
+  <p class="intro">Этот слой запускается, когда этапы 1–10 уже дали решение. Он ничего не прогнозирует и не считает: три агента на языковой модели выбирают детерминированные инструменты, спорят о кандидатах и могут только <b>сузить</b> выбор. Итог снова проходит тот же код этапа 10 и ещё одну независимую проверку Gate. Любой сбой модели возвращает решение этапов 1–10 без изменений. Слой включён всегда; выключается только явно (<code>AGENTIC_DECISION_ENABLED=0</code>) — так работает набор тестов и закрытая среда без модели. Провайдер по умолчанию — Z.AI Coding Plan, модель <code>glm-5.3-flash</code>; ключ берётся из окружения или <code>.env</code>. Нет ключа или провайдер недоступен — решение этапов 1–10 с пометкой <code>fallback</code>.</p>
   <figure>
     <div class="scroll">
     <svg class="dg" viewBox="0 0 1000 340" role="img" aria-label="Слой LLM-агентов: готовое решение и оценённые планы попадают в сессию, оркестратор на LLM вызывает инструменты и агентов качества и надёжности, завершает действием finalize; код разрешает выбор среди допустимых, повторяет выпуск с Gate и устойчивостью, выполняет независимую проверку; сбой модели ведёт к решению без изменений">
@@ -1016,10 +1016,10 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
 <section class="stage" id="services" aria-labelledby="hsvc">
   <div class="stage-head"><div class="inst" aria-hidden="true"><b>HTTP</b><i>◇</i></div>
     <div><p class="eyebrow">Вокруг контура · <code>src/neftecode/services/</code></p><h2 id="hsvc">Процессы: четыре сервиса, одно ядро</h2></div></div>
-  <p class="intro">CLI собирает всё в одном процессе. Флаг агентного режима читает только <code>decision</code>: <code>main()</code> передаёт фабрику из окружения. <code>neftecode-stack</code> запускает те же части отдельными процессами, которые общаются только JSON по HTTP и не импортируют друг друга. Без агентного флага всё локально, без интернета.</p>
+  <p class="intro">CLI собирает всё в одном процессе. LLM-агентов вызывает <code>decision</code>: <code>main()</code> передаёт фабрику из окружения, агентный режим включён. <code>neftecode-stack</code> запускает те же части отдельными процессами, которые общаются только JSON по HTTP и не импортируют друг друга. Сеть наружу нужна только для LLM-провайдера; остальное локально.</p>
   <figure>
     <div class="scroll">
-    <svg class="dg" viewBox="0 0 1000 236" role="img" aria-label="Браузер обращается к gateway на порту 8765; gateway берёт сценарии у data на 8766 и просит решение у decision на 8768 через /v1/decisions; decision для живого совета берёт сценарий и snapshot у data и прогноз у model на 8767; при включённом флаге decision обращается к внешнему LLM-провайдеру">
+    <svg class="dg" viewBox="0 0 1000 236" role="img" aria-label="Браузер обращается к gateway на порту 8765; gateway берёт сценарии у data на 8766 и просит решение у decision на 8768 через /v1/decisions; decision для живого совета берёт сценарий и snapshot у data и прогноз у model на 8767; decision обращается к LLM-провайдеру при каждом решении">
       <defs><marker id="m6" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker></defs>
       <rect x="20" y="96" width="130" height="56" rx="3" class="soft"/>
       <text x="85" y="120" text-anchor="middle">Браузер</text>
@@ -1048,14 +1048,14 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <text x="850" y="63" text-anchor="middle" class="sub">task/, сценарии, snapshot + trust</text>
       <path d="M470,152 L412,184" class="ret"/>
       <rect x="210" y="176" width="200" height="50" rx="3" class="llm"/>
-      <text x="310" y="197" text-anchor="middle" class="llmtx">LLM-провайдер (флаг)</text>
+      <text x="310" y="197" text-anchor="middle" class="llmtx">LLM-провайдер</text>
       <text x="310" y="216" text-anchor="middle" class="sub">Z.AI · OpenAI-совм. · Anthropic</text>
       <rect x="720" y="166" width="260" height="56" rx="3" class="box"/>
       <text x="850" y="189" text-anchor="middle" class="mono">model :8767</text>
       <text x="850" y="209" text-anchor="middle" class="sub">model.pkl, проверка хешей snapshot</text>
     </svg>
     </div>
-    <figcaption>Snapshot несёт <code>snapshot_id</code> = SHA-256 содержимого; model-service сверяет хеш, время и полный набор признаков, прежде чем считать прогноз. Evaluation (<code>benchmark</code>, <code>vak</code>, <code>episodes</code>) остаётся batch-командами вне стека. Gateway не запрашивает живой совет: он передаёт в <code>/v1/decisions</code> сценарий и синтетическое состояние со сбоем, выбранным на странице. Живой совет — <code>/v1/live/advice</code> у decision напрямую или <code>neftecode advise</code>. Сеть наружу нужна только агентному режиму с облачным провайдером; без флага всё работает offline.</figcaption>
+    <figcaption>Snapshot несёт <code>snapshot_id</code> = SHA-256 содержимого; model-service сверяет хеш, время и полный набор признаков, прежде чем считать прогноз. Evaluation (<code>benchmark</code>, <code>vak</code>, <code>episodes</code>) остаётся batch-командами вне стека. Gateway не запрашивает живой совет: он передаёт в <code>/v1/decisions</code> сценарий и синтетическое состояние со сбоем, выбранным на странице. Живой совет — <code>/v1/live/advice</code> у decision напрямую или <code>neftecode advise</code>. Сеть наружу нужна только для облачного LLM-провайдера. Решение с агентами занимает минуты, поэтому gateway ждёт decision до 660 с (<code>NEFTECODE_GATEWAY_DECISION_TIMEOUT_S</code>), остальные вызовы — 10 с. В закрытой сети без модели агентов выключают (<code>AGENTIC_DECISION_ENABLED=0</code>) или направляют на локальную OpenAI-совместимую модель.</figcaption>
   </figure>
 </section>
 
@@ -1063,17 +1063,18 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
 <section class="stage" id="audit" aria-labelledby="haud">
   <div class="stage-head"><div class="inst" aria-hidden="true"><b>✓</b><i>ауд</i></div>
     <div><p class="eyebrow">Аудит страницы · 16.09.2026 · коммит <code>2b55c33</code></p><h2 id="haud">Что сверено с кодом и данными, что исправлено</h2></div></div>
-  <p class="intro">Каждое число и правило на странице сверено с кодом, конфигурацией, <code>artifacts/metrics.json</code> и пересчётом решения на 05.01.2026 08:00 текущим кодом: <code>neftecode advise</code> выдал тот же <code>decision_id 086b5119b1dbe2f4</code>, что и сохранённый артефакт. Полный набор тестов — 1101 passed.</p>
+  <p class="intro">Каждое число и правило на странице сверено с кодом, конфигурацией, <code>artifacts/metrics.json</code> и пересчётом решения на 05.01.2026 08:00 текущим кодом: <code>neftecode advise</code> выдал тот же <code>decision_id 086b5119b1dbe2f4</code>, что и сохранённый артефакт. Полный набор тестов — 1104 passed.</p>
   <div class="tbl"><table>
     <thead><tr><th>Было на странице</th><th>Как на самом деле</th><th>Источник</th></tr></thead>
     <tbody>
-      <tr><td>Слоя LLM-агентов нет</td><td class="fix">Добавлен этап 10а и блок на общей схеме: слой необязательный, флаг выключен по умолчанию</td><td><code>application/agentic/</code>, <code>infrastructure/agentic/factory.py</code></td></tr>
+      <tr><td>Слоя LLM-агентов нет</td><td class="fix">Добавлен этап 10а и блок на общей схеме: слой работает при каждом решении (с 16.09 включён всегда, выключается только явно)</td><td><code>application/agentic/</code>, <code>infrastructure/agentic/factory.py</code></td></tr>
       <tr><td>«Агенты» качества и надёжности на этапе 9</td><td class="fix">Это детерминированные валидаторы по проверкам Gate, без LLM; при пройденном Gate их вердикт всегда pass</td><td><code>make_decision.py</code>, тест <code>test_the_legacy_review_vetoes_only_what_the_gate_already_rejects</code></td></tr>
       <tr><td>107 планов отклонены «за выход уставок, отбор и запасы»</td><td class="fix">Все 107 отклонены Gate за отбор и запасы (<code>outflow</code> + <code>inventory</code>); выходов уставок нет; счётчик <code>control 1468</code> — артефакт записи вето</td><td>пересчёт сессии baseline; <code>_collect_vetoes</code></td></tr>
       <tr><td>«Агент данных» с четырьмя статусами</td><td class="fix">Детерминированные правила; статус <code>suspect</code> объявлен, но не выставляется</td><td><code>application/services/trust.py</code></td></tr>
       <tr><td>Hold: «пороговое правило дешевле на 3.7 %»</td><td class="fix">Дешевле на 3.7 % лучший допустимый кандидат <code>c0126</code> (1.05 против 1.09) при том же выпуске</td><td>пересчёт <code>rank</code> на baseline</td></tr>
       <tr><td>Итоговые отказы: три вида</td><td class="fix">В агентном режиме добавляется <code>agent_rejected</code> и ключ <code>agentic</code> в JSON</td><td><code>application/agentic/decision.py</code></td></tr>
       <tr><td>Gateway просит у decision живой совет</td><td class="fix">Gateway вызывает только <code>/v1/decisions</code> со сценарием и синтетическим состоянием; decision для живого совета ходит в data за <code>/v1/scenarios/get</code> и <code>/v1/snapshots</code></td><td><code>services/gateway_service.py</code>, <code>decision_service.py</code></td></tr>
+      <tr><td>LLM-агенты «выкл. по умолчанию»</td><td class="fix">С 16.09 слой включён всегда; выключается только явно <code>AGENTIC_DECISION_ENABLED=0</code> (набор тестов фиксирует этот режим, чтобы сравнивать с прежними решениями без обращения к модели)</td><td><code>infrastructure/llm/config.py</code> <code>agentic_enabled</code>, <code>tests/conftest.py</code></td></tr>
       <tr><td>Формула ГО без расхода</td><td class="fix">Добавлен множитель <code>(Q/256)^0.7</code>; на схеме он равен 1</td><td><code>domain/production/process.py</code>, <code>baseline.json</code></td></tr>
       <tr><td>Прогноз питает приток на весь горизонт</td><td class="fix">Прогноз строится на t + 2 ч; удержание на 3 ч и 48 ч — допущение (указано на этапе 5)</td><td><code>config/experiment.json</code>, <code>bind_forecast</code></td></tr>
     </tbody>

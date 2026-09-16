@@ -100,11 +100,12 @@ def test_agent_limits_reject_invalid_values(value):
         agent_limits_from_env({"AGENT_MAX_LLM_CALLS": value})
 
 
-def test_agentic_flag_truthy_parsing():
-    assert not agentic_enabled({})
-    for value in ("1", "true", "YES", "On", " on "):
-        assert agentic_enabled({"AGENTIC_DECISION_ENABLED": value}) and truthy(value)
-    for value in ("0", "false", "no", "off", "", "2"):
+def test_agent_layer_is_on_unless_explicitly_switched_off():
+    assert agentic_enabled({})
+    for value in ("1", "true", "YES", "On", " on ", "", "2"):
+        assert agentic_enabled({"AGENTIC_DECISION_ENABLED": value})
+    assert truthy("on") and not truthy("")
+    for value in ("0", "false", "No", " OFF "):
         assert not agentic_enabled({"AGENTIC_DECISION_ENABLED": value})
 
 
