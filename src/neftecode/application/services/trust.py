@@ -7,8 +7,9 @@ Three positions are kept apart on purpose:
   reported while losing the right to be the only basis of a recommendation;
 * a source is **unusable** — it cannot support a decision, and the reason says what is missing.
 
-Neither the value 307 nor a negative reading is deleted automatically: the package gives
-no confirmation that either is an instrument fault, and for a temperature 307 may be real.
+A telemetry value of exactly 307 is a polling stub (experts, chat message 582) and is already replaced by a
+missing value when the sources are loaded; here it is still flagged if it reaches a state. A negative
+reading is not deleted automatically: for vacuum and zero offsets it can be physically real.
 """
 from dataclasses import dataclass, field
 import math
@@ -102,8 +103,8 @@ def inspect_value(tag: str, value) -> dict | None:
         return {"tag": tag, "value": None, "note": "Значение отсутствует или не является числом"}
     if value == PLACEHOLDER_VALUE:
         return {"tag": tag, "value": float(value),
-                "note": "Ровно 307: подозрение на заглушку опроса. Подтверждения нет, значение не удаляется; "
-                        "для температуры оно может быть настоящим."}
+                "note": "Ровно 307: заглушка опроса, по ответу экспертов — выброс (сообщение 582). "
+                        "При загрузке источников такие значения заменяются пропуском."}
     if value < 0:
         return {"tag": tag, "value": float(value),
                 "note": "Отрицательное значение. Автоматически ошибкой не считается: для вакуума "
@@ -170,11 +171,11 @@ class DataTrustAgent:
             reasons.extend(f"{verdict.name}: {r}" for r in verdict.reasons)
 
         missing_fraction = state.get("telemetry_missing_fraction")
-        telemetry_ok = (_finite(missing_fraction) and 0 <= missing_fraction <= self.max_missing_fraction)
+        limit = cfg.get("telemetry_max_missing_fraction", self.max_missing_fraction)
+        telemetry_ok = (_finite(missing_fraction) and 0 <= missing_fraction <= limit)
         if not telemetry_ok:
-            shown = "неизвестна" if not _finite(missing_fraction) else f"{missing_fraction:.0%}"
-            reasons.append(f"Телеметрия: доля пропусков {shown} вне допустимых "
-                           f"0–{self.max_missing_fraction:.0%}")
+            shown = "неизвестна" if not _finite(missing_fraction) else f"{missing_fraction:.1%}"
+            reasons.append(f"Телеметрия: доля пропусков {shown} вне допустимых 0–{limit:.1%}")
             missing.append("полная свежая телеметрия за последний срез")
 
         suspect = tuple(found for found in

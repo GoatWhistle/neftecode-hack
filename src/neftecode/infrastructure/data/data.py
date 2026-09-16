@@ -20,6 +20,21 @@ def series_frame(records: list[tuple], name: str) -> pd.DataFrame:
     return frame.drop_duplicates("time").sort_values("time").reset_index(drop=True)
 
 
+#: Exactly this value is a polling stub, not a measurement. The experts confirmed it (chat, message 582,
+#: 2026-09-16: "307 — это выброс"); in the data it appears simultaneously in dozens of tags, including ones
+#: whose physical range excludes it (a sulfur analyser around 8 ppm, a separator at 35 °C).
+STUB_VALUE = 307.0
+#: A telemetry column that is a stub more often than this is not measured at all and is dropped.
+DEAD_COLUMN_STUB_SHARE = 0.9
+
+
+def mask_stubs(signals: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """Replace polling stubs by missing values and drop columns that never carry a measurement."""
+    masked = signals.mask(signals == STUB_VALUE)
+    dead = [c for c in masked.columns if (signals[c] == STUB_VALUE).mean() > DEAD_COLUMN_STUB_SHARE]
+    return masked.drop(columns=dead), dead
+
+
 def load_sources(task: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     telemetry = []
     for filename, prefix in [("avt_tags.csv", "avt"), ("242000_tags.csv", "ht")]:
@@ -32,6 +47,7 @@ def load_sources(task: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         telemetry.append(frame.add_prefix(prefix + "."))
     # Prefixes prevent collisions between equally named AVT and HT sensors.
     signals = pd.concat(telemetry, axis=1).sort_index().replace([np.inf, -np.inf], np.nan)
+    signals, _ = mask_stubs(signals)
 
     book = openpyxl.load_workbook(next(task.glob("ЛИМС*.xlsx")), read_only=True, data_only=True)
     rows = list(book.active.values)
@@ -111,7 +127,10 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
     age_pak = (latest_pak.decision_time - latest_pak.sample_time).dt.total_seconds() / 60
 
     p = online.set_index("time").value
-    frozen = ((p.rolling("1h", min_periods=6).max() - p.rolling("1h", min_periods=6).min()) <= 1e-6)
+    readings, period = frozen_rule(cfg)
+    window = pd.Timedelta(value=readings * period, unit="m")
+    frozen = ((p.rolling(window, min_periods=readings).max()
+               - p.rolling(window, min_periods=readings).min()) <= 1e-6)
     frozen = frozen.reindex(times, method="ffill", tolerance=pd.Timedelta(value=30, unit="m")).fillna(False).to_numpy(bool)
     # Compare a known lab result with PAK at the SAME sample time, not with current PAK.
     aligned = latest_lab[["sample_time"]].copy()
@@ -119,7 +138,7 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
     pak_at_lab = np.full(len(times), np.nan)
     pak_at_lab[valid] = p.reindex(pd.DatetimeIndex(aligned.loc[valid, "sample_time"]),
                                 method="ffill", tolerance=pd.Timedelta(value=30, unit="m")).to_numpy()
-    conflict = (np.abs(pak_at_lab - latest_lab.value) > np.maximum(3, .5 * latest_lab.value))
+    conflict = conflict_mask(pak_at_lab, latest_lab.value, cfg)
     lab_good = age_lab.le(cfg["lab_max_age_hours"]) & latest_lab.value.notna()
     conflict = conflict & lab_good
     pak_good = age_pak.le(cfg["pak_max_age_minutes"]) & ~frozen & ~conflict
@@ -199,19 +218,106 @@ def split_periods(meta: pd.DataFrame, cfg: dict) -> dict[str, np.ndarray]:
 
 #: How far back the decision state carries quality history for tank-level estimates.
 QUALITY_HISTORY_HOURS = 72
-#: A run of identical analyser readings at least this long is treated as a frozen instrument.
-FROZEN_RUN_HOURS = 1.0
+#: Legacy rules, used only when a configuration carries no rules derived from the data
+#: (old model bundles and synthetic tests): 6 identical readings, conflict above max(3; 0.5·LIMS).
+LEGACY_FROZEN_READINGS = 6
+DEFAULT_PAK_PERIOD_MINUTES = 10.0
 
 
-def _untrusted_runs(values: pd.Series) -> pd.Series:
-    """Mark readings inside a flat run lasting at least FROZEN_RUN_HOURS, as far as known by now."""
+def frozen_rule(cfg: dict) -> tuple[int, float]:
+    """How many identical consecutive analyser readings mean a frozen instrument, and the reading period."""
+    readings = int(cfg.get("pak_frozen_readings", LEGACY_FROZEN_READINGS))
+    period = float(cfg.get("pak_period_minutes", DEFAULT_PAK_PERIOD_MINUTES))
+    if readings < 2 or not np.isfinite(period) or period <= 0:
+        raise ValueError("pak_frozen_readings >= 2 и pak_period_minutes > 0 обязательны")
+    return readings, period
+
+
+def conflict_mask(pak_at_lab, lab_value, cfg: dict):
+    """PAK disagrees with the laboratory result of the same sample by more than the declared threshold."""
+    difference = np.abs(np.asarray(pak_at_lab, dtype=float) - np.asarray(lab_value, dtype=float))
+    threshold = cfg.get("pak_conflict_mgkg")
+    if threshold is None:
+        return difference > np.maximum(3, .5 * np.asarray(lab_value, dtype=float))
+    return difference > float(threshold)
+
+
+def _untrusted_runs(values: pd.Series, cfg: dict | None = None) -> pd.Series:
+    """Mark readings inside a flat run of at least the frozen number of readings, as far as known by now."""
     if values.empty:
         return pd.Series(dtype=bool)
+    readings, _ = frozen_rule(cfg or {})
     changed = values.diff().abs().gt(1e-6) | values.diff().isna()
     run = changed.cumsum()
-    times = values.index.to_series()
-    span = times.groupby(run).transform("max") - times.groupby(run).transform("min")
-    return span.ge(pd.Timedelta(value=FROZEN_RUN_HOURS, unit="h"))
+    return run.groupby(run).transform("size").ge(readings)
+
+
+def derive_source_rules(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFrame, until,
+                        cfg: dict) -> dict:
+    """Source-trust thresholds computed from the training period only, with the method written down.
+
+    The brief requires checks of completeness, freshness and consistency but gives no numbers, and the
+    experts gave none either (except the laboratory delay). Each threshold is therefore a declared
+    statistic of the history before `until`:
+
+    * laboratory result stale after `lab_age_intervals` typical sampling intervals;
+    * analyser reading stale after `pak_age_periods` typical polling periods;
+    * analyser frozen after the number of identical consecutive readings that a live analyser reaches in
+      no more than `frozen_run_rarity` of its runs;
+    * analyser in conflict with the laboratory above the `conflict_quantile` of their absolute difference
+      at the sample time;
+    * telemetry incomplete from the rarest number of simultaneously missing sensors between the normal mode and
+      the mode of simultaneous polling failures (the valley of the histogram).
+    """
+    method = {"lab_age_intervals": 2, "pak_age_periods": 3, "frozen_run_rarity": 0.001,
+              "conflict_quantile": 0.95, "missing_rule": "histogram_valley", **cfg.get("source_rule_method", {})}
+    until = pd.Timestamp(until)
+    lab_part = lab[lab.time < until].sort_values("time")
+    pak_part = online[online.time < until].sort_values("time")
+    if len(lab_part) < 10 or len(pak_part) < 100:
+        raise ValueError("Недостаточно истории для вывода порогов доверия к источникам")
+    lab_interval = float(lab_part.time.diff().dt.total_seconds().dropna().median() / 3600)
+    pak_period = float(pak_part.time.diff().dt.total_seconds().dropna().median() / 60)
+
+    values = pak_part.set_index("time").value
+    changed = values.diff().abs().gt(1e-6) | values.diff().isna()
+    runs = values.groupby(changed.cumsum()).size()
+    frozen_readings = 2
+    while (runs >= frozen_readings).mean() > method["frozen_run_rarity"]:
+        frozen_readings += 1
+
+    joined = pd.merge_asof(lab_part, pak_part.rename(columns={"value": "pak"}), on="time", direction="backward",
+                           tolerance=pd.Timedelta(value=pak_period * method["pak_age_periods"], unit="m")).dropna()
+    conflict = float((joined.pak - joined.value).abs().quantile(method["conflict_quantile"]))
+
+    telemetry = signals[signals.index < until]
+    missing_counts = telemetry.isna().sum(axis=1).value_counts().reindex(range(telemetry.shape[1] + 1), fill_value=0)
+    normal_mode = int(missing_counts.idxmax())
+    largest = int(missing_counts[missing_counts > 0].index.max())
+    # Simultaneous polling failures form the peak in the upper half of the observed range.
+    upper = missing_counts.loc[max(normal_mode + 2, largest // 2):largest]
+    outage_mode = int(upper.idxmax()) if len(upper) else largest + 1
+    gap = missing_counts.loc[normal_mode + 1:max(normal_mode + 1, outage_mode - 1)]
+    valley = int(gap.idxmin())
+    missing = (valley - 1) / telemetry.shape[1]
+    return {
+        "lab_max_age_hours": round(method["lab_age_intervals"] * lab_interval, 3),
+        "pak_max_age_minutes": round(method["pak_age_periods"] * pak_period, 3),
+        "pak_period_minutes": round(pak_period, 3),
+        "pak_frozen_readings": int(frozen_readings),
+        "pak_conflict_mgkg": round(conflict, 3),
+        "telemetry_max_missing_fraction": round(missing, 4),
+        "source_rules": {
+            "derived_until": until.isoformat(), "method": method,
+            "observed": {"lab_median_interval_hours": lab_interval, "pak_median_period_minutes": pak_period,
+                         "lab_samples": int(len(lab_part)), "paired_samples": int(len(joined)),
+                         "pak_runs": int(len(runs)), "telemetry_rows": int(len(telemetry)),
+                         "telemetry_columns": int(telemetry.shape[1]), "missing_normal_mode": normal_mode,
+                         "missing_outage_mode": outage_mode, "missing_valley": valley},
+            "note": ("Пороги выведены из истории до конца обучающего периода по объявленному методу; "
+                     "организаторы численных порогов не давали."),
+        },
+    }
 
 
 def recent_quality_history(lab: pd.DataFrame, online: pd.DataFrame, when, cfg: dict) -> dict:
@@ -224,8 +330,10 @@ def recent_quality_history(lab: pd.DataFrame, online: pd.DataFrame, when, cfg: d
     when = pd.Timestamp(when)
     start = when - pd.Timedelta(value=QUALITY_HISTORY_HOURS, unit="h")
     p = online.set_index("time").value
-    part = p[(p.index > start - pd.Timedelta(value=FROZEN_RUN_HOURS, unit="h")) & (p.index <= when)]
-    untrusted = _untrusted_runs(part)
+    readings, period = frozen_rule(cfg)
+    lookback = pd.Timedelta(value=readings * period, unit="m")
+    part = p[(p.index > start - lookback) & (p.index <= when)]
+    untrusted = _untrusted_runs(part, cfg)
     trusted = part[~untrusted & (part.index > start)]
     hourly = trusted.groupby(trusted.index.floor("h")).agg(["mean", "count"])
     steps = part.index.to_series().diff().dt.total_seconds().dropna()

@@ -121,13 +121,13 @@ def test_negative_laboratory_sulfur_is_rejected():
     assert any("Отрицательная сера" in r for r in report.verdict("ЛИМС").reasons)
 
 
-# --- 307 and negatives are suspected, not deleted ---
+# --- 307 is a confirmed polling stub; negatives are suspected, not deleted ---
 
-def test_placeholder_value_is_flagged_but_not_removed():
+def test_placeholder_value_is_flagged_as_a_confirmed_stub():
     found = inspect_value("avt.D10", PLACEHOLDER_VALUE)
     assert found is not None
-    assert found["value"] == 307.0, "значение сохраняется, а не обнуляется"
-    assert "не удаляется" in found["note"]
+    assert found["value"] == 307.0, "в состоянии значение показывается как есть"
+    assert "выброс" in found["note"] and "582" in found["note"]
 
 
 def test_negative_process_value_is_flagged_without_being_called_an_error():

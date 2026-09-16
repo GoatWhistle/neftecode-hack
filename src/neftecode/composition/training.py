@@ -3,7 +3,7 @@ import pickle
 
 from neftecode.composition.demo import make_demo
 from neftecode.infrastructure.artifacts import fingerprint, write_json
-from neftecode.infrastructure.data.data import load_sources, make_dataset
+from neftecode.infrastructure.data.data import derive_source_rules, load_sources, make_dataset
 from neftecode.infrastructure.data.quality import read_quality_series, report as quality_report
 from neftecode.infrastructure.ml.forecast import run_experiment
 from neftecode.infrastructure.ml.risk import run_risk_experiment
@@ -12,6 +12,11 @@ def train(root, out, cfg):
     manifest = fingerprint(root, cfg)
     print("Чтение телеметрии и независимых временных рядов ЛИМС/ПАК…", flush=True)
     signals, lab, online = load_sources(root / "task")
+    # Source-trust thresholds come from the training period, not from hand-set numbers.
+    rules = derive_source_rules(signals, lab, online, cfg["train_end"], cfg)
+    cfg = {**cfg, **rules}
+    print("Пороги доверия к источникам по данным до " + cfg["train_end"] + ": "
+          + ", ".join(f"{k}={rules[k]}" for k in rules if k != "source_rules"), flush=True)
     x, meta = make_dataset(signals, lab, online, cfg)
     print(f"{len(signals)} строк телеметрии, {len(meta)} независимых целевых анализов, {len(x.columns)} признаков", flush=True)
     print("Сравнение пяти методов на последовательных периодах…", flush=True)
@@ -58,6 +63,7 @@ def train(root, out, cfg):
             extra[name] = {"selected": None, "reason": str(exc)}
             print(f"  {name}: прогноз не построен — {exc}", flush=True)
     summary["extra_targets"] = extra
+    summary["source_rules"] = {k: v for k, v in rules.items()}
     bundle["manifest"] = manifest
     with (out / "model.pkl").open("wb") as stream:
         pickle.dump(bundle, stream)
