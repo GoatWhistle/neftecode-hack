@@ -404,8 +404,13 @@ class DecisionSession:
         return out
 
     def limits(self) -> dict:
-        return {limit_id: ({"value": q.value, "unit": q.unit, "source": q.source} if q is not None else None)
-                for limit_id, q in self.scenario.product.limits.items()}
+        out = {limit_id: ({"value": q.value, "unit": q.unit, "source": q.source} if q is not None else None)
+               for limit_id, q in self.scenario.product.limits.items()}
+        margin = (self.scenario.policy or {}).get("sulfur_operating_margin_mgkg")
+        if _finite(margin):
+            out["sulfur_operating_margin_mgkg"] = {"value": margin, "unit": "мг/кг",
+                                                   "source": "практика установки, Q&A 15.09 (1–2 ppm)"}
+        return out
 
     def operating_state(self) -> dict:
         base = self.base_controls()

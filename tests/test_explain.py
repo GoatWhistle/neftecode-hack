@@ -235,3 +235,20 @@ def test_a_moved_setpoint_names_the_change_and_the_response_delay():
                      if s["topic"] == "control.ht_reactor_inlet_temp_c")
     assert "изменить уставку регулятора с 348 до 352" in statement["text"]
     assert "через 2 ч" in statement["text"]
+
+
+def test_operating_margin_warning_follows_the_plant_practice():
+    import json
+
+    from neftecode.application.services.explain import operating_margin_warnings
+    from neftecode.application.use_cases.make_decision import MakeDecision
+    from neftecode.infrastructure.config.scenario import parse_scenario
+
+    for name, warned in (("sour_crude", True), ("baseline", False)):
+        scenario = parse_scenario(json.loads(Path(f"config/scenarios/{name}.json").read_text()))
+        decision = MakeDecision(scenario).decide(budget=400)
+        warnings = operating_margin_warnings(decision, scenario)
+        assert bool(warnings) is warned, name
+        if warned:
+            assert warnings[0]["operating_margin_mgkg"] == 1.0 and warnings[0]["observed_margin_mgkg"] < 1.0
+            assert "Q&A 15.09" in warnings[0]["text"]

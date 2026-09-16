@@ -300,8 +300,9 @@ def test_the_experiment_config_matches_the_confirmed_bounds():
 
 def test_control_candidates_contain_no_quality_analyser():
     config = json.loads(Path("config/experiment.json").read_text())
-    assert "ht.P13" not in config["control_candidates"], "анализатор качества не управляющий тег"
-    assert "ht.T5" not in config["control_candidates"]
+    # Official 24-2000 dictionary of 2026-09-16: Q20/Q21 are sulfur analysers, T6 is the reactor inlet temperature.
+    assert not {"ht.Q20", "ht.Q21", "ht.T11"} & set(config["control_candidates"]), "анализатор или следствие — не уставка"
+    assert config["control_candidates"][0] == "ht.T6"
 
 
 def test_every_scenario_declares_itself_synthetic_and_lists_assumptions():
