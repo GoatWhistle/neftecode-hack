@@ -910,3 +910,64 @@ CLI-команд, HTTP-контрактов и JSON решений четырё�
 - Повтор проверок на реальных данных (T55–T57, ретроспектива, сравнение с ЛИМС) с новыми правилами данных.
 - Docker-образ.
 - Стоимость некондиции 50–100× в экономике и бенчмарке.
+
+## Ветка real-inputs: правильно, не подогнано (2026-09-17)
+
+Поручение пользователя 2026-09-17. Критерий: каждое число `measured` / `derived` (с методом и интервалом) / `scenario` / `open`.
+Работа в ветке `real-inputs`, один коммит на задачу, автор — пользователь. Дорожки: A — код и тесты; B — исследование,
+параметры, документы. Оркестратор проверяет чек-лист после каждой задачи.
+
+### Контракты между дорожками
+- **C1** `artifacts/source_rules.json` — пишет `train`: `{schema_version, train_end, method, rules{lab_max_age_hours,
+  pak_max_age_minutes, pak_period_minutes, pak_frozen_readings, pak_conflict_mgkg, telemetry_max_missing_fraction},
+  source_rules, model_fingerprint}`. Читают все контуры (demo, HTTP, live).
+- **C2** `artifacts/response_model.json` — пишет B: `{schema_version, tag:"ht.T6", flow_tag:"ht.F9", tau, window_months,
+  beta_mgkg_per_c, ci:[lo,hi], envelope_dt_c, n_rows, method, drift:[{tau,beta}], flow_beta:null, model_fingerprint}`.
+- **C3** `artifacts/snapshots/<YYYYmmdd-HHMMSS>.json` — пишет `snapshot --at`: `{schema_version, at, state, trust, forecast
+  (+coverage_target, coverage_test_2026), measured{ht.T6, ht.F9, ht.F26: {value,time,age_min}|null}, derived{feed_flow_m3h,
+  inflow_tph, window_hours, density_kgm3}, model_fingerprint, source_rules_fingerprint}`. Список моментов — `config/snapshot_moments.json`.
+- **C4** `config/parameters.json` — B: `tank_inventory_t` (open), `tank_inflow_tph` (derived), `feed_density_kgm3` (derived),
+  `ht_response_beta` (derived → C2), `ht_flow_response` (open), `f15_scale` (по итогу исследования).
+
+### T83. Единый источник правил доверия (A)
+- **Статус:** в работе. `train` пишет C1; `load_trust_rules(root, out)` — experiment.json + оверлей C1 с `origin`; подключить в
+  `composition/decision.py`, `commands/screens.py`, gateway (`trust_config` в теле `/v1/decisions`), `decision_service.py`,
+  `data_service.py`; `rule_origin` на экране; `package.sh`. Тесты: ЛИМС 500 ч в демо ⇒ непригоден; origin с/без C1.
+  Хэши сценариев не меняются. **Коммит:** `feat: применять пороги доверия из данных во всех контурах`.
+
+### T84. Метка measured и привязка измерений в live (A)
+- **Статус:** ожидает. `SOURCES += measured`; `bind_measurements` в `advisor.py`: T6 → уставка температуры (measured, конверт ±envelope),
+  F9/ρ → расход (derived), `reference_temp_c`/`reference_space_velocity_m3h`/`conversion_per_degree = −β/S₀` (derived, CI в робастность),
+  приток main = F26·ρ (derived), окно = inventory/inflow; при NaN — сценарное значение, `min = max`, без числового совета.
+  Починить `RobustnessCheck` на связанном сценарии. **Коммит:** `feat: привязывать измеренные уставки и отклик к живому решению`.
+
+### T85. β на ht.T6 / ht.F9 (B)
+- **Статус:** ожидает. `response_model.py`: T11 → T6, F26 → F9; f6/f7/f8; C2 и `RESPONSE_MODEL_T6.md`; исследование масштаба F15;
+  моменты для C3 → `config/snapshot_moments.json`. **Коммит:** `docs: оценить отклик серы на температуру входа реактора T6`.
+
+### T86. Команда snapshot и демо на реальных срезах (A)
+- **Статус:** ожидает. `snapshot --at/--all` → C3; `Demo.run` на срезе; `serve`/`scenes`/`screen`/gateway грузят срезы, без них —
+  синтетика с плашкой. Сцена «ухудшение сырья» остаётся синтетической и подписывается. `package.sh` — `snapshots/`.
+  **Коммит:** `feat: показывать демонстрацию на замороженных реальных срезах`.
+
+### T87. Парк как параметр завода (B → A)
+- **Статус:** ожидает. B: C4 (приток — медиана F26·ρ, инвентарь — open с чувствительностью T56), вопрос экспертам 18.09.
+  A: сценарии — приток derived, окно вычисляется. Меняет хэши → вместе с T91. **Коммит:** `feat: взять приток резервуара из данных, парк — параметр завода`.
+
+### T88. Честность интервала (A + B)
+- **Статус:** ожидает. `coverage_target`/`coverage_test` в прогнозе и решении; в отчёте покрытие по годам и калибровка на
+  скользящем окне как дополнительная строка. **Коммит:** `feat: показывать фактическое покрытие интервала прогноза`.
+
+### T89. Частичная проверка оценки резервуара (A + B)
+- **Статус:** ожидает. `tank-check` → `artifacts/tank_level_check.json`; вклад прогноза за 3 ч как число.
+  **Коммит:** `feat: сверять оценку серы резервуара с лабораторией`.
+
+### T90. Документы (B)
+- **Статус:** ожидает. parameters.json, experiment.json.assumptions, README, report.md, data-flow.html, state, backlog.
+  **Коммит:** `docs: описать измеренные и выведенные величины решения`.
+
+### T91. Перебазирование золотых хэшей (A)
+- **Статус:** ожидает. Один раз, последним. **Коммит:** `test: перебазировать эталоны сценариев после привязки к данным`.
+
+### T92. Пакет и чистый запуск (A)
+- **Статус:** ожидает. `package.sh`, staging без `task/`. **Коммит:** `chore: собрать комплект с правилами, откликом и срезами`.
