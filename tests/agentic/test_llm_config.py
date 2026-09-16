@@ -39,7 +39,7 @@ def test_defaults_point_to_zai_coding_plan():
     assert (settings.provider, settings.model, settings.base_url) == (
         "zai", "glm-5.3-flash", "https://api.z.ai/api/coding/paas/v4")
     assert (settings.request_timeout_s, settings.max_retries, settings.max_tokens, settings.temperature) == (
-        60.0, 1, 2048, 0.2)
+        120.0, 1, 2048, 0.2)
     assert settings.allow_general_endpoint is False
     assert llm_settings_from_env({"ZAI_ALLOW_GENERAL_ENDPOINT": "Yes"}).allow_general_endpoint is True
 
@@ -87,7 +87,7 @@ def test_valid_number_overrides():
 def test_agent_limits_defaults_and_overrides():
     assert agent_limits_from_env({}) == {
         "max_steps": 5, "specialist_max_calls": 3, "max_specialist_consults": 2, "max_llm_calls": 12,
-        "max_replans": 1, "timeout_s": 180, "max_candidates": 5, "max_context_chars": 12000,
+        "max_replans": 1, "timeout_s": 600, "max_candidates": 5, "max_context_chars": 12000,
         "max_tool_result_chars": 2500, "max_robustness_runs": 2, "max_tool_calls_per_response": 3,
     }
     limits = agent_limits_from_env({"AGENT_MAX_STEPS": "7", "AGENT_TIMEOUT_SECONDS": "30.5"})

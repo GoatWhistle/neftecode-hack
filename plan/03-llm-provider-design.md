@@ -112,7 +112,7 @@ tools `{name, description, input_schema}`; ответ — блоки `text`/`too
 | `ZAI_ALLOW_GENERAL_ENDPOINT` | `0` | Защита от случайного General API |
 | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` | —, —, `https://api.openai.com/v1` | |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_BASE_URL` | —, —, `https://api.anthropic.com` | |
-| `LLM_REQUEST_TIMEOUT_SECONDS` | `60` | На один запрос |
+| `LLM_REQUEST_TIMEOUT_SECONDS` | `120` | На один запрос (живой замер: 10–45 с на вызов у glm-5.3-flash с принудительным thinking) |
 | `LLM_MAX_RETRIES` | `1` | Только retryable ошибки |
 | `LLM_MAX_TOKENS` | `2048` | Включая thinking |
 | `LLM_TEMPERATURE` | `0.2` | |
@@ -121,7 +121,7 @@ tools `{name, description, input_schema}`; ответ — блоки `text`/`too
 | `AGENT_MAX_SPECIALIST_CONSULTS` | `2` | Обращений к каждому специалисту за решение |
 | `AGENT_MAX_LLM_CALLS` | `12` | Всего на одно решение |
 | `AGENT_MAX_REPLANS` | `1` | `search_candidates` за решение |
-| `AGENT_TIMEOUT_SECONDS` | `180` | Всё agentic-решение |
+| `AGENT_TIMEOUT_SECONDS` | `600` | Всё agentic-решение (180 с не хватало: живой прогон упёрся в лимит времени) |
 | `AGENT_MAX_CANDIDATES_FOR_LLM` | `5` | Размер shortlist |
 | `AGENT_MAX_CONTEXT_CHARS` | `12000` | Начальный контекст агента |
 | `AGENT_MAX_TOOL_RESULT_CHARS` | `2500` | Результат одного tool |

@@ -11,6 +11,8 @@ def _step(event: dict) -> str | None:
     codes = ", ".join(event.get("reason_codes", []))
     if kind == "tool":
         name = event.get("tool_name")
+        if name is None:
+            return f"{agent:12s} ⚠ {codes or event.get('decision')}"
         status = "" if event.get("decision") == "ok" else f" — ошибка: {codes}"
         if name and name.startswith("ask_"):
             return f"{agent:12s} ← {name}: ответ получен{status}"
