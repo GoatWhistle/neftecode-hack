@@ -31,9 +31,19 @@ CORRECTED = {
     "24-2000:GODT:T95": "0.03814*F9 - 9.201 - 0.00002*F2 + 0.50*T6 + 0.48321*LIMSPipelineTninetyfive",
 }
 
-#: The AVT CFPP text carries one closing bracket too many. The expert fixed the ending to
-#: `F65/F32 + F30`; turning it into `F65/(F32+F30)` on our own is explicitly forbidden.
-AVT_CFPP_FIX = "31.40363 - 0.06784*T33 + 17.411*P67 - 8.11544*P4 - 0.47309*(F65/F32 + F30)"
+#: The AVT CFPP text carries one closing bracket too many. Before 2026-09-16 the only available fix was the
+#: expert's ending `F65/F32 + F30`; the official formula file of 2026-09-16 settles it as `F65/(F32+F30)`.
+AVT_CFPP_FIX = "31.40363 - 0.06784*T33 + 17.411*P67 - 8.11544*P4 - 0.47309*F65/(F32 + F30)"
+
+#: The official formula file sent by the organisers on 2026-09-16 (chat message 586, «формулы_ВАК.xlsx»).
+#: It supersedes the workbook text where the two differ; each formula there comes with a worked example.
+PUBLISHED_2026_09_16 = {
+    "AVT6:240-350:D15": "791.22872 - 5.30294*(F65/(F32 + F30)) + 0.52755*T66 - 0.15629*T33",
+    "AVT6:240-350:CFPP": AVT_CFPP_FIX,
+    "AVT6:350:T50": "493.6798 + 1.281193*T42 - 0.955342*T48 - 0.018454*F31 + 0.265904*F57 - 0.082047*T66 "
+                    "- 0.545083*T33",
+    "AVT6:350:I350": "39.562 - 1.62865*L43 + 0.76664*T6 - 0.22361*T18 + 0.00031*F64*(T15 - T11)",
+}
 
 #: Laboratory inputs with no declared sampling point. Formulas needing them cannot be computed.
 #: Identifiers deliberately carry no digits next to underscores: the punctuation
@@ -166,8 +176,8 @@ def _ratios(expression: str) -> tuple[str, ...]:
 
 
 def parse_formula(name: str, text: str, group: str) -> Formula:
-    corrected = name in CORRECTED
-    source = CORRECTED.get(name, AVT_CFPP_FIX if name == "AVT6:240-350:CFPP" else text)
+    corrected = name in CORRECTED or name in PUBLISHED_2026_09_16
+    source = PUBLISHED_2026_09_16.get(name, CORRECTED.get(name, text))
     expression = _balance(normalise(source))
     try:
         tree = ast.parse(expression, mode="eval")

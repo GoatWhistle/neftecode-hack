@@ -34,11 +34,19 @@ def test_empty_formula_is_refused():
 
 # --- The published bracket error is removed, not reinterpreted ---
 
-def test_extra_closing_bracket_is_dropped_not_regrouped():
+def test_avt_cfpp_uses_the_official_denominator_of_2026_09_16():
     parsed = formula("31,40363 - 0,47309x(F65/F32+ F30))", "AVT6:240-350:CFPP")
     assert parsed.expression == AVT_CFPP_FIX
-    assert "F65/F32 + F30" in parsed.expression
-    assert "(F32 + F30)" not in parsed.expression, "самовольная перегруппировка знаменателя запрещена"
+    assert "F65/(F32 + F30)" in parsed.expression
+
+
+def test_official_file_supersedes_the_workbook_text():
+    from neftecode.evaluation.vak import PUBLISHED_2026_09_16
+
+    for name, text in PUBLISHED_2026_09_16.items():
+        parsed = parse_formula(name, "1 + F30", "AVT6")
+        assert parsed.expression == text and parsed.corrected
+    assert "+ 0.76664*T6" in parse_formula("AVT6:350:I350", "-0.76664*T6", "AVT6").expression
 
 
 def test_unclosed_bracket_is_an_error():
