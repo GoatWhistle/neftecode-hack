@@ -22,7 +22,9 @@
       "place": "верх К-1",
       "kip_description": "Температура верха К1. Выход на FIRC0955",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура верха К-1 (выход на FIRC0955)",
+      "quantity": "температура, °C"
     },
     "P2": {
       "column": "К-1",
@@ -31,7 +33,9 @@
       "kip_description": "Давление бензиновых паров верха К1",
       "scheme_color": "green",
       "controlled_by_legend": true,
-      "legacy_scheme_name": "avt_column_pressure_mpa_abs"
+      "legacy_scheme_name": "avt_column_pressure_mpa_abs",
+      "official_description": "Давление бензиновых паров верха К-1",
+      "quantity": "давление, МПа"
     },
     "F3": {
       "column": "К-1",
@@ -39,7 +43,9 @@
       "place": "орошение К-1 из Е-1",
       "kip_description": "Расход бензина на орошение К1",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход бензина на орошение К-1",
+      "quantity": "расход, т/ч"
     },
     "P4": {
       "column": "К-1",
@@ -47,7 +53,9 @@
       "place": "низ К-1",
       "kip_description": "Давление низа К1 в Е6",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Давление низа К-1 в Е-6",
+      "quantity": "давление, МПа"
     },
     "F5": {
       "column": "К-1",
@@ -57,7 +65,9 @@
       "scheme_color": null,
       "controlled_by_legend": false,
       "legacy_scheme_name": "steam_t",
-      "note": "Медиана отрицательная: вероятно смещение нуля или отключённый прибор."
+      "note": "Медиана отрицательная: вероятно смещение нуля или отключённый прибор.",
+      "official_description": "Расход пара в К-1",
+      "quantity": "расход, т/ч"
     },
     "T6": {
       "column": "К-1",
@@ -66,7 +76,9 @@
       "kip_description": "Температура низ К1",
       "scheme_color": "green",
       "controlled_by_legend": true,
-      "legacy_scheme_name": "avt_furnace_outlet_temp_c"
+      "legacy_scheme_name": "avt_furnace_outlet_temp_c",
+      "official_description": "Температура низа К-1",
+      "quantity": "температура, °C"
     },
     "F7": {
       "column": "К-1",
@@ -74,7 +86,9 @@
       "place": "3-й ход обессоленной нефти после ЭЛОУ",
       "kip_description": "Расход обессоленной нефти (3-й ход) (Нефть обессоленная в Т-4/2)",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход обессоленной нефти (3-й ход) в Т-4/2",
+      "quantity": "расход, т/ч"
     },
     "F8": {
       "column": "К-1",
@@ -82,7 +96,9 @@
       "place": "1-й ход обессоленной нефти после ЭЛОУ",
       "kip_description": "Расход обессоленной нефти (1-й ход) (Нефть обессоленная в Т-6/1)",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход обессоленной нефти (1-й ход) в Т-6/1",
+      "quantity": "расход, т/ч"
     },
     "F9": {
       "column": "К-1",
@@ -90,7 +106,9 @@
       "place": "2-й ход обессоленной нефти после ЭЛОУ",
       "kip_description": "Расход обессоленной нефти (2-й ход) (Нефть обессоленная в Т-10/2)",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход обессоленной нефти (2-й ход) в Т-10/2",
+      "quantity": "расход, т/ч"
     },
     "D10": {
       "column": "К-1",
@@ -99,7 +117,9 @@
       "kip_description": "Плотность. Тр-д подачи обессолен. и обезвожен. Нефти",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "note": "В данных почти константа 307."
+      "note": "В данных почти константа 307.",
+      "official_description": "Плотность нефти на подаче",
+      "quantity": "плотность, кг/м3"
     },
     "T11": {
       "column": "К-2",
@@ -107,7 +127,9 @@
       "place": "3 ЦО, возврат в К-2",
       "kip_description": "3-е ЦО после Т-46",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "3-е ЦО после Т-46",
+      "quantity": "температура, °C"
     },
     "F12": {
       "column": "К-2",
@@ -115,7 +137,9 @@
       "place": "2 ЦО в К-2",
       "kip_description": "Расход 2 ЦО в К2",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход 2-го ЦО в К-2",
+      "quantity": "расход, т/ч"
     },
     "T13": {
       "column": "К-2",
@@ -123,7 +147,9 @@
       "place": "1 ЦО, возврат в К-2",
       "kip_description": "1-е ЦО К-2 после Т-30",
       "scheme_color": "yellow",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "1-е ЦО К-2 после Т-30",
+      "quantity": "температура, °C"
     },
     "F14": {
       "column": "К-2",
@@ -131,7 +157,9 @@
       "place": "1 ЦО в К-2",
       "kip_description": "Расход 1 ЦО в К2",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход 1-го ЦО в К-2",
+      "quantity": "расход, т/ч"
     },
     "T15": {
       "column": "К-2",
@@ -139,7 +167,9 @@
       "place": "вывод 3 ЦО из К-2",
       "kip_description": "3 -е ЦО К-2",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "3-е ЦО К-2",
+      "quantity": "температура, °C"
     },
     "F16": {
       "column": "К-2",
@@ -148,7 +178,9 @@
       "kip_description": "Расход бензина от Н4 в Е6",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "note": "Справочник называет аппараты Н4 и Е6, схема — Е-3."
+      "note": "Справочник называет аппараты Н4 и Е6, схема — Е-3.",
+      "official_description": "Расход бензина от Н-4 в Е-6",
+      "quantity": "расход, т/ч"
     },
     "T17": {
       "column": "К-2",
@@ -156,7 +188,9 @@
       "place": "вывод 2 ЦО из К-2",
       "kip_description": "2-е ЦО из К-2",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "2-е ЦО из К-2",
+      "quantity": "температура, °C"
     },
     "T18": {
       "column": "К-2",
@@ -164,7 +198,9 @@
       "place": "вывод 1 ЦО из К-2",
       "kip_description": "1-е ЦО из К-2",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "1-е ЦО из К-2",
+      "quantity": "температура, °C"
     },
     "F19": {
       "column": "К-2",
@@ -172,7 +208,9 @@
       "place": "острое орошение К-2",
       "kip_description": "Расход остр.орошения К2",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход острого орошения К-2",
+      "quantity": "расход, т/ч"
     },
     "T20": {
       "column": "К-2",
@@ -180,7 +218,9 @@
       "place": "верх К-2",
       "kip_description": "Температура верха К2. Выход на FIRC0953",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура верха К-2 (выход на FIRC0953)",
+      "quantity": "температура, °C"
     },
     "P21": {
       "column": "К-2",
@@ -188,7 +228,9 @@
       "place": "верх К-2",
       "kip_description": "Давление бензиновых паров верха К2",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Давление верха К-2 (измерительное)",
+      "quantity": "давление, МПа"
     },
     "P22": {
       "column": "К-2",
@@ -197,7 +239,9 @@
       "kip_description": "Давление верха К2",
       "scheme_color": "green",
       "controlled_by_legend": true,
-      "legacy_scheme_name": "avt_column_pressure_mpa_abs"
+      "legacy_scheme_name": "avt_column_pressure_mpa_abs",
+      "official_description": "Давление верха К-2 (регистрирующее)",
+      "quantity": "давление, МПа"
     },
     "P23": {
       "column": "К-2",
@@ -205,7 +249,9 @@
       "place": "верх К-2",
       "kip_description": "Давление верха К-2",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Давление верха К-2 (регулятор, ветка B)",
+      "quantity": "давление, МПа"
     },
     "T24": {
       "column": "К-2",
@@ -213,7 +259,9 @@
       "place": "переток К-2 → К-6",
       "kip_description": "Переток из К-2 в К-6",
       "scheme_color": "orange",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура перетока К-2 в К-6",
+      "quantity": "температура, °C"
     },
     "F25": {
       "column": "К-2",
@@ -221,7 +269,9 @@
       "place": "выход К-6, фр. 120–180 °C, бензин",
       "kip_description": "Расход бензина после Т26",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход бензина после Т-26",
+      "quantity": "расход, т/ч"
     },
     "F26": {
       "column": "К-2",
@@ -230,7 +280,9 @@
       "kip_description": "Расход пара в К6",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "note": "Медиана отрицательная."
+      "note": "Медиана отрицательная.",
+      "official_description": "Расход пара в К-6",
+      "quantity": "расход, т/ч"
     },
     "F27": {
       "column": "К-2",
@@ -238,7 +290,9 @@
       "place": "пар в К-7",
       "kip_description": "Расход пара в К7",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход пара в К-7",
+      "quantity": "расход, т/ч"
     },
     "F28": {
       "column": "К-2",
@@ -246,7 +300,9 @@
       "place": "пар в К-9",
       "kip_description": "Расход пара в К9",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход пара в К-9",
+      "quantity": "расход, т/ч"
     },
     "F29": {
       "column": "К-2",
@@ -254,7 +310,9 @@
       "place": "пар в низ К-2",
       "kip_description": "Расход пара в К2",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход пара в К-2",
+      "quantity": "расход, т/ч"
     },
     "F30": {
       "column": "К-2",
@@ -262,7 +320,9 @@
       "place": "нижний боковой отбор ДТ, Т.95%",
       "kip_description": "Расход фр.290-350°С с установки",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход фр. 290-350 с установки",
+      "quantity": "расход, т/ч"
     },
     "F31": {
       "column": "К-2",
@@ -271,7 +331,9 @@
       "kip_description": "Расход нефтепродукта в П3",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "note": "Подпись на К-10 была ошибкой: организаторы 15.09 (сообщения 575–576) прислали исправленную схему К-10, на К-2 отмечено верно."
+      "note": "Подпись на К-10 была ошибкой: организаторы 15.09 (сообщения 575–576) прислали исправленную схему К-10, на К-2 отмечено верно.",
+      "official_description": "Расход нефтепродукта в П-3",
+      "quantity": "расход, т/ч"
     },
     "F32": {
       "column": "К-2",
@@ -280,7 +342,9 @@
       "kip_description": "Расход фр.240-290°С с установки",
       "scheme_color": "blue",
       "controlled_by_legend": true,
-      "legacy_scheme_name": "avt_diesel_flow_tph"
+      "legacy_scheme_name": "avt_diesel_flow_tph",
+      "official_description": "Расход фр. 240-290 с установки",
+      "quantity": "расход, т/ч"
     },
     "T33": {
       "column": "К-2",
@@ -289,7 +353,9 @@
       "kip_description": "Температура низа К-2",
       "scheme_color": "green",
       "controlled_by_legend": true,
-      "note": "Показывающий прибор отмечен легендой управляемых."
+      "note": "Показывающий прибор отмечен легендой управляемых.",
+      "official_description": "Температура низа К-2",
+      "quantity": "температура, °C"
     },
     "F34": {
       "column": "К-2",
@@ -297,7 +363,9 @@
       "place": "выход К-7, фр. 150–250 °C, керосин",
       "kip_description": "Расход фр.150-250°С с установки",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход фр. 150-250 с установки",
+      "quantity": "расход, т/ч"
     },
     "F35": {
       "column": "К-10",
@@ -305,7 +373,9 @@
       "place": "ВЦО в К-10",
       "kip_description": "Расход ВЦО в К-10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход ВЦО в К-10",
+      "quantity": "расход, т/ч"
     },
     "F36": {
       "column": "К-10",
@@ -313,7 +383,9 @@
       "place": "второй ввод орошения в К-10",
       "kip_description": "Расход СЦО в К-10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход СЦО в К-10",
+      "quantity": "расход, т/ч"
     },
     "T37": {
       "column": "К-10",
@@ -321,7 +393,9 @@
       "place": "ВЦО в К-10",
       "kip_description": "Температура ВЦО в К-10",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Температура ВЦО в К-10",
+      "quantity": "температура, °C"
     },
     "T38": {
       "column": "К-10",
@@ -329,7 +403,9 @@
       "place": "доп. ВЦО",
       "kip_description": "Температура доп. ВЦО К10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура доп. ВЦО К-10",
+      "quantity": "температура, °C"
     },
     "T39": {
       "column": "К-10",
@@ -337,7 +413,9 @@
       "place": "К-10 над секцией насадки",
       "kip_description": "Температура в К10 (над секцией рег.насадки 1а)",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура в К-10 над секцией насадки 1а",
+      "quantity": "температура, °C"
     },
     "T40": {
       "column": "К-10",
@@ -345,7 +423,9 @@
       "place": "вывод ВЦО из К-10",
       "kip_description": "Температура ВЦО из К10",
       "scheme_color": "orange",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура ВЦО из К-10",
+      "quantity": "температура, °C"
     },
     "F41": {
       "column": "К-10",
@@ -354,7 +434,9 @@
       "kip_description": "Расход доп. ВЦО в К-10",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "note": "На схеме подписан «T41»; смысл по справочнику — расход."
+      "note": "На схеме подписан «T41»; смысл по справочнику — расход.",
+      "official_description": "Расход доп. ВЦО в К-10",
+      "quantity": "расход, т/ч"
     },
     "T42": {
       "column": "К-10",
@@ -362,7 +444,9 @@
       "place": "вывод к Н-25",
       "kip_description": "Температура фр.420-500°С из К10 в Е12",
       "scheme_color": "orange",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура фр. 420-500 из К-10 в Е-12",
+      "quantity": "температура, °C"
     },
     "L43": {
       "column": "К-10",
@@ -370,7 +454,9 @@
       "place": "уровень низа К-10",
       "kip_description": "Уровень в К10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Уровень в К-10",
+      "quantity": "уровень, %"
     },
     "P44": {
       "column": "К-10",
@@ -379,7 +465,9 @@
       "kip_description": "Вакуум низа К10",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "legacy_scheme_name": "ht_pressure_mpa"
+      "legacy_scheme_name": "ht_pressure_mpa",
+      "official_description": "Вакуум низа К-10",
+      "quantity": "давление, МПа"
     },
     "F45": {
       "column": "К-10",
@@ -388,7 +476,9 @@
       "kip_description": "Расход холодного гудрона в К10",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "legacy_scheme_name": "ht_feed_flow_m3h, avt_diesel_flow_tph"
+      "legacy_scheme_name": "ht_feed_flow_m3h, avt_diesel_flow_tph",
+      "official_description": "Расход холодного гудрона в К-10",
+      "quantity": "расход, т/ч"
     },
     "F46": {
       "column": "К-10",
@@ -396,7 +486,9 @@
       "place": "НЦО",
       "kip_description": "Расход НЦО К10 фракции 350-560",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход НЦО К-10 (фр. 350-560)",
+      "quantity": "расход, т/ч"
     },
     "T47": {
       "column": "К-10",
@@ -404,7 +496,9 @@
       "place": "НЦО после холодильника",
       "kip_description": "Температура фр.350-560 °C после Т-40",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура фр. 350-560 после Т-40",
+      "quantity": "температура, °C"
     },
     "T48": {
       "column": "К-10",
@@ -412,7 +506,9 @@
       "place": "низ К-10",
       "kip_description": "Описание: Температура низа К10",
       "scheme_color": "orange",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура низа К-10",
+      "quantity": "температура, °C"
     },
     "T49": {
       "column": "К-10",
@@ -421,7 +517,9 @@
       "kip_description": "Описание: Температура верха К10",
       "scheme_color": "green",
       "controlled_by_legend": true,
-      "legacy_scheme_name": "avt_furnace_outlet_temp_c"
+      "legacy_scheme_name": "avt_furnace_outlet_temp_c",
+      "official_description": "Температура верха К-10",
+      "quantity": "температура, °C"
     },
     "P50": {
       "column": "К-10",
@@ -430,7 +528,9 @@
       "kip_description": "Вакуум верха К10",
       "scheme_color": "yellow",
       "controlled_by_legend": false,
-      "legacy_scheme_name": "avt_column_pressure_mpa_abs"
+      "legacy_scheme_name": "avt_column_pressure_mpa_abs",
+      "official_description": "Вакуум верха К-10",
+      "quantity": "давление, МПа"
     },
     "P51": {
       "column": "К-10",
@@ -439,7 +539,9 @@
       "kip_description": "Вакуум верха К-10 (пересчёт на мм рт.ст. с кгс/см2 от AVT6:PIR0825.P)",
       "scheme_color": "yellow",
       "controlled_by_legend": false,
-      "legacy_scheme_name": "avt_column_pressure_mpa_abs"
+      "legacy_scheme_name": "avt_column_pressure_mpa_abs",
+      "official_description": "Вакуум верха К-10 (пересчёт в мм рт.ст.)",
+      "quantity": "давление, мм рт.ст."
     },
     "P52": {
       "column": "К-10",
@@ -447,7 +549,9 @@
       "place": "перепад давления по насадке",
       "kip_description": "Перепад давления над 4-й пак.насад. К10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Перепад давления над 4-й пак. насадки К-10",
+      "quantity": "перепад, МПа"
     },
     "F53": {
       "column": "К-10",
@@ -455,7 +559,9 @@
       "place": "НЦО от Н-25",
       "kip_description": "Расход НЦО  К10 (Регулятор)",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход НЦО К-10 (регулятор)",
+      "quantity": "расход, т/ч"
     },
     "F54": {
       "column": "К-10",
@@ -463,7 +569,9 @@
       "place": "ввод в низ К-10",
       "kip_description": "Расход от Н-34/1,2  К10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход от Н-34/1,2 в К-10",
+      "quantity": "расход, т/ч"
     },
     "T55": {
       "column": "К-10",
@@ -472,7 +580,9 @@
       "kip_description": "Температура на выходе из печи П3 (общ. Выход на FIRC2470)",
       "scheme_color": null,
       "controlled_by_legend": false,
-      "note": "Не выход атмосферных печей К-2."
+      "note": "Не выход атмосферных печей К-2.",
+      "official_description": "Температура на выходе из П-3 (на FIRC2470)",
+      "quantity": "температура, °C"
     },
     "F56": {
       "column": "К-10",
@@ -480,7 +590,9 @@
       "place": "фр. до 350 °C с установки",
       "kip_description": "Расход в трубопроводе фракции до 350 с установки",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход фр. до 350 с установки (реальный)",
+      "quantity": "расход, т/ч"
     },
     "F57": {
       "column": "К-10",
@@ -488,7 +600,9 @@
       "place": "фр. до 350 °C с установки",
       "kip_description": "Расход в трубопроводе фракции до 350 с установки",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход фр. до 350 с установки (виртуальный)",
+      "quantity": "расход, т/ч"
     },
     "T58": {
       "column": "К-10",
@@ -496,7 +610,9 @@
       "place": "фр. до 350 °C после Т-37",
       "kip_description": "Температура фракции до 350 С от Т-37",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура фр. до 350 от Т-37",
+      "quantity": "температура, °C"
     },
     "F59": {
       "column": "К-10",
@@ -506,7 +622,9 @@
       "scheme_color": "blue",
       "controlled_by_legend": true,
       "legacy_scheme_name": "avt_diesel_flow_tph",
-      "note": "Справочник называет фр. 420–500."
+      "note": "Справочник называет фр. 420–500.",
+      "official_description": "Расход фр. 420-500 с установки (объемный)",
+      "quantity": "расход, м3/ч"
     },
     "F60": {
       "column": "К-10",
@@ -515,7 +633,9 @@
       "kip_description": "Расход в трубопроводе фракции 350-560 с установки",
       "scheme_color": "blue",
       "controlled_by_legend": true,
-      "legacy_scheme_name": "avt_diesel_flow_tph"
+      "legacy_scheme_name": "avt_diesel_flow_tph",
+      "official_description": "Расход фр. 350-560 с установки",
+      "quantity": "расход, т/ч"
     },
     "T61": {
       "column": "К-10",
@@ -523,7 +643,9 @@
       "place": "НЦО в К-10",
       "kip_description": "Температура НЦО в К-10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура НЦО в К-10",
+      "quantity": "температура, °C"
     },
     "F62": {
       "column": "К-10",
@@ -531,7 +653,9 @@
       "place": "НЦО",
       "kip_description": "Расход НЦО К-10",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход НЦО К-10",
+      "quantity": "расход, т/ч"
     },
     "F63": {
       "column": "К-10",
@@ -539,7 +663,9 @@
       "place": "гудрон на УПБ",
       "kip_description": "Расход гудрона на битумную установку",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход гудрона на битумную установку",
+      "quantity": "расход, т/ч"
     },
     "F64": {
       "column": "К-2",
@@ -547,7 +673,9 @@
       "place": "3 ЦО в К-2",
       "kip_description": "Расход 3-го ЦО в К2",
       "scheme_color": "blue",
-      "controlled_by_legend": true
+      "controlled_by_legend": true,
+      "official_description": "Расход 3-го ЦО в К-2",
+      "quantity": "расход, т/ч"
     },
     "F65": {
       "column": "К-2",
@@ -557,7 +685,9 @@
       "scheme_color": "green",
       "controlled_by_legend": true,
       "legacy_scheme_name": "avt_furnace_outlet_temp_c",
-      "note": "Показывающий прибор отмечен легендой управляемых; медиана больше суммы F7–F9."
+      "note": "Показывающий прибор отмечен легендой управляемых; медиана больше суммы F7–F9.",
+      "official_description": "Производительность К-2 по отбензиненной нефти",
+      "quantity": "расход, т/ч"
     },
     "T66": {
       "column": "К-2",
@@ -565,7 +695,9 @@
       "place": "переток К-2 → К-9",
       "kip_description": "Переток в К-9",
       "scheme_color": "orange",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура перетока в К-9",
+      "quantity": "температура, °C"
     },
     "P67": {
       "column": "К-2",
@@ -573,7 +705,9 @@
       "place": "верх К-2 (подпись «PG7»)",
       "kip_description": "Давление верха К2.",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Давление верха К-2 (доп. точка)",
+      "quantity": "давление, МПа"
     },
     "F68": {
       "column": "К-10",
@@ -581,7 +715,9 @@
       "place": "гудрон с установки",
       "kip_description": "Расход гудрона с установки",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход гудрона с установки (реальный)",
+      "quantity": "расход, т/ч"
     },
     "F69": {
       "column": "К-10",
@@ -589,7 +725,9 @@
       "place": "гудрон с установки",
       "kip_description": "Расход гудрона с установки",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Расход гудрона с установки (виртуальный)",
+      "quantity": "расход, т/ч"
     },
     "W70": {
       "column": "К-2",
@@ -597,7 +735,9 @@
       "place": "подпись рядом с нижним отбором ДТ, прибор не нарисован",
       "kip_description": "Массовый расход фр.290-350°С с установки",
       "scheme_color": null,
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Массовый расход фр. 290-350 с установки",
+      "quantity": "масс.расход, т/ч"
     },
     "T71": {
       "column": "К-2",
@@ -605,7 +745,10 @@
       "place": "нижний боковой отбор К-2",
       "kip_description": "Фр.290-350°С из К-2",
       "scheme_color": "orange",
-      "controlled_by_legend": false
+      "controlled_by_legend": false,
+      "official_description": "Температура фр. 290-350 из К-2",
+      "quantity": "температура, °C"
     }
-  }
+  },
+  "official_dictionary": "Справочник тегов АВТ от организаторов, 16.09 (чат, сообщение 585): поля official_description и quantity. Смысл тегов совпадает с листом КИП, уточнены формулировки и физические величины."
 }

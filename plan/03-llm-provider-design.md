@@ -106,7 +106,8 @@ tools `{name, description, input_schema}`; ответ — блоки `text`/`too
 |---|---|---|
 | `AGENTIC_DECISION_ENABLED` | включён | С 16.09 агенты работают всегда; `0/false/no/off` — явное отключение |
 | `NEFTECODE_GATEWAY_DECISION_TIMEOUT_S` | `660` | Сколько gateway ждёт decision (агентное решение идёт минуты) |
-| `LLM_PROVIDER` | `zai` | `zai`, `openai`, `anthropic`, `scripted` |
+| `LLM_PROVIDER` | `zai` | `zai`, `local`, `openai`, `anthropic`, `scripted` |
+| `LOCAL_LLM_MODEL`, `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_API_KEY` | —, `http://127.0.0.1:8000/v1`, — | Локальная OpenAI-совместимая модель завода (Q&A 11.09); ключ не обязателен |
 | `ZAI_API_KEY` | — | Ключ Coding Plan; aliases `TOKEN`, `token` (так записан текущий `.env`) |
 | `ZAI_MODEL` | `glm-5.3-flash` | |
 | `ZAI_BASE_URL` | `https://api.z.ai/api/coding/paas/v4` | |
