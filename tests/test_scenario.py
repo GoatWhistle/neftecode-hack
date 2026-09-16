@@ -303,7 +303,9 @@ def test_every_shipped_tank_declares_density_and_the_product_a_range():
     for path in sorted(SCENARIOS.glob("*.json")):
         scenario = load_scenario(path)
         assert all(t.property_value("density_kgm3") is not None for t in scenario.tanks), path
-        assert scenario.product.limit_value("density_min_kgm3") == 820.0
+        # Experts, message 582: summer and hydrotreated diesel 820–845, winter 800–845.
+        expected_min = 800.0 if scenario.scenario_id == "winter_grade" else 820.0
+        assert scenario.product.limit_value("density_min_kgm3") == expected_min
         assert scenario.product.limit_value("density_max_kgm3") == 845.0
 
 

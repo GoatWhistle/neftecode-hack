@@ -10,7 +10,14 @@ from neftecode.application.ports.llm import LLMMessage, LLMResponse, ToolSpec
 
 from .scripted import PolicyLLM, call, context_of, respond, tool_results
 
+#: Fallback when the context carries no operating margin (Q&A 15.09: plants keep 1–2 ppm below 10).
 THIN_SULFUR_MARGIN = 1.0
+
+
+def _operating_margin(context: dict) -> float:
+    margin = (context.get("limits") or {}).get("sulfur_operating_margin_mgkg") or {}
+    value = margin.get("value") if isinstance(margin, dict) else None
+    return float(value) if isinstance(value, (int, float)) else THIN_SULFUR_MARGIN
 
 
 def _refs(results) -> list[str]:
@@ -28,10 +35,11 @@ def quality_policy(messages: Sequence[LLMMessage]) -> LLMResponse:
     margins = results[0]["result"].get("margins", {})
     margin = (margins.get("sulfur_mgkg") or {}).get("min_margin")
     refs = _refs(results)
+    thin = _operating_margin(context)
     if margin is None:
         return respond(call("submit_opinion", verdict="UNKNOWN", risk_level="high", confidence=0.3,
                             evidence_refs=refs, reasons=[{"code": "sulfur_unknown", "text": "Запас по сере неизвестен"}]))
-    if margin >= THIN_SULFUR_MARGIN:
+    if margin >= thin:
         return respond(call("submit_opinion", verdict="ACCEPT", risk_level="low", confidence=0.8, evidence_refs=refs,
                             candidate_verdicts={candidate: "ACCEPT"},
                             reasons=[{"code": "sulfur_margin_ok", "text": f"Запас по сере {margin} мг/кг",
@@ -42,7 +50,7 @@ def quality_policy(messages: Sequence[LLMMessage]) -> LLMResponse:
     return respond(call("submit_opinion", verdict="REVISE", risk_level="medium", confidence=0.6, evidence_refs=refs,
                         candidate_verdicts={candidate: "REVISE"},
                         reasons=[{"code": "thin_sulfur_margin", "text": f"Запас по сере {margin} мг/кг меньше "
-                                                                         f"{THIN_SULFUR_MARGIN}", "candidate_id": candidate}],
+                                                                         f"технологического {thin}", "candidate_id": candidate}],
                         proposed_constraints=[{"type": "min_quality_margin", "limit": "sulfur_mgkg", "value": wanted}]))
 
 

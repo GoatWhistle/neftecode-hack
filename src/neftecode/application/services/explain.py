@@ -84,6 +84,25 @@ class Statement:
                 "evidence": [e.to_dict() for e in self.evidence]}
 
 
+def operating_margin_warnings(decision: dict, scenario: Scenario) -> list[dict]:
+    """Warn when the released plan keeps less sulfur margin than the plant's operating practice (Q&A 15.09)."""
+    margin = (scenario.policy or {}).get("sulfur_operating_margin_mgkg")
+    checks = [c for c in ((decision.get("gate") or {}).get("checks") or [])
+              if c.get("constraint_id") == "quality.sulfur_mgkg" and c.get("observed") is not None
+              and c.get("limit") is not None]
+    if not isinstance(margin, (int, float)) or isinstance(margin, bool) or not checks:
+        return []
+    worst = max(checks, key=lambda c: c["observed"])
+    left = worst["limit"] - worst["observed"]
+    if left >= margin:
+        return []
+    return [{"kind": "sulfur_operating_margin",
+             "text": (f"Запас по сере {left:.2f} мг/кг на {worst['time_hours']:g} ч меньше технологического "
+                      f"{margin:g} мг/кг, который держат на установке (Q&A 15.09). Предел 10 мг/кг не нарушен, "
+                      f"но неопределённость прогноза может съесть такой запас."),
+             "observed_margin_mgkg": round(left, 3), "operating_margin_mgkg": margin}]
+
+
 def explain_decision(decision: dict, scenario: Scenario) -> dict:
     """Build the operator-facing explanation of a decision that produced a plan."""
     statements: list[Statement] = []
@@ -200,6 +219,7 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
             "additive_dose": 0.0,
         },
         "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
+        "warnings": operating_margin_warnings(decision, scenario),
         "checks_passed": sum(1 for c in checks if c["status"] == PASS),
         "checks_total": len(checks),
         "alternatives": [
