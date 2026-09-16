@@ -1,0 +1,1113 @@
+<title>Нефтекод: путь данных</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@400;500;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F3F5F2; --surface:#FFFFFF; --ink:#172127; --muted:#56646B; --rule:#D2D8D5;
+  --pipe:#1C6A87; --pipe-soft:#DCEAF0; --sulfur:#8F6C00; --sulfur-soft:#F4EBC9;
+  --ok:#2D7A4C; --ok-soft:#DCEEE2; --bad:#B0372E; --bad-soft:#F5DEDB; --warn:#9A5E00; --hatch:#E5E9E6;
+  --f-cond:"Fira Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Golos Text","Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11171A; --surface:#182126; --ink:#E2E8E5; --muted:#98A6AB; --rule:#2D393E;
+    --pipe:#62B3D1; --pipe-soft:#16323D; --sulfur:#E3BA45; --sulfur-soft:#342C12;
+    --ok:#62BD88; --ok-soft:#173226; --bad:#EB6E62; --bad-soft:#3A1D1A; --warn:#E3A24C; --hatch:#1B2429;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11171A; --surface:#182126; --ink:#E2E8E5; --muted:#98A6AB; --rule:#2D393E;
+  --pipe:#62B3D1; --pipe-soft:#16323D; --sulfur:#E3BA45; --sulfur-soft:#342C12;
+  --ok:#62BD88; --ok-soft:#173226; --bad:#EB6E62; --bad-soft:#3A1D1A; --warn:#E3A24C; --hatch:#1B2429;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;padding-inline:20px;padding-block:0 64px}
+a{color:var(--pipe)}
+a:focus-visible{outline:2px solid var(--pipe);outline-offset:2px}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:190px minmax(0,1fr);gap:48px}
+nav.toc{position:sticky;top:0;align-self:start;padding-top:40px;max-height:100vh;overflow:auto}
+nav.toc p{font-family:var(--f-cond);text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--muted);margin:0 0 10px}
+nav.toc ol{list-style:none;margin:0 0 20px;padding:0;display:grid;gap:2px}
+nav.toc a{display:flex;gap:8px;text-decoration:none;color:var(--ink);font-family:var(--f-cond);font-size:14.5px;padding:3px 6px;border-radius:3px}
+nav.toc a:hover{background:var(--hatch)}
+nav.toc a span{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);min-width:18px;padding-top:2px}
+main{min-width:0;padding-top:40px}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;gap:0} nav.toc{display:none}}
+
+/* header */
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:28px}
+.sheet{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0 0 18px}
+.sheet b{font-weight:500;color:var(--ink)}
+h1{font-family:var(--f-cond);font-weight:600;font-size:clamp(34px,5vw,54px);line-height:1.02;letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance}
+.lede{max-width:66ch;font-size:18px;margin:0;color:var(--ink)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;margin:26px 0 0;border-top:1px solid var(--rule)}
+.facts div{padding:12px 14px 4px 0;border-bottom:1px solid var(--rule)}
+.facts dt{font-family:var(--f-cond);text-transform:uppercase;letter-spacing:.07em;font-size:11.5px;color:var(--muted)}
+.facts dd{margin:2px 0 0;font-family:var(--f-mono);font-size:20px;font-variant-numeric:tabular-nums}
+.facts dd small{font-size:12px;color:var(--muted)}
+
+h2{font-family:var(--f-cond);font-weight:600;font-size:30px;line-height:1.1;margin:0;text-wrap:balance}
+h3{font-family:var(--f-cond);font-weight:500;font-size:19px;margin:0 0 6px}
+p{max-width:70ch}
+.eyebrow{font-family:var(--f-cond);text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--muted);margin:0 0 4px}
+
+/* figures */
+figure{margin:18px 0 0}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px}
+.scroll svg{display:block;width:100%;min-width:760px;height:auto}
+figcaption{font-size:14px;color:var(--muted);margin-top:8px;max-width:80ch}
+
+.dg text{font-family:var(--f-cond);font-size:14px;fill:var(--ink)}
+.dg .sub{fill:var(--muted);font-size:12.5px}
+.dg .mono{font-family:var(--f-mono);font-size:11.5px}
+.dg .lbl{fill:var(--muted);font-size:12px}
+.dg .band{fill:var(--muted);font-size:11.5px;letter-spacing:.08em}
+.dg .box{fill:var(--surface);stroke:var(--ink);stroke-width:1.3}
+.dg .soft{fill:var(--paper);stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4}
+.dg .pipe{fill:none;stroke:var(--pipe);stroke-width:1.8}
+.dg .ret{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:6 4}
+.dg .refuse{fill:none;stroke:var(--bad);stroke-width:1.5;stroke-dasharray:4 3}
+.dg .axis{stroke:var(--ink);stroke-width:1.2;fill:none}
+.dg .grid{stroke:var(--rule);stroke-width:1;fill:none}
+.dg .ah{fill:var(--pipe)} .dg .ahm{fill:var(--muted)} .dg .ahb{fill:var(--bad)}
+.dg .okbox{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.dg .badbox{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+.dg .oktx{fill:var(--ok)} .dg .badtx{fill:var(--bad)} .dg .sultx{fill:var(--sulfur)}
+.dg .hl{fill:none;stroke:var(--sulfur);stroke-width:3}
+.dg .band-fill{fill:var(--hatch)}
+.dg .pipefill{fill:var(--pipe-soft);stroke:var(--pipe);stroke-width:1.3}
+.dg .sulfill{fill:var(--sulfur)}
+.dg .inkfill{fill:var(--ink)}
+.dg .okfill{fill:var(--ok)}
+.dg .bubble{fill:var(--surface);stroke:var(--ink);stroke-width:1.2}
+.dg .bt{font-family:var(--f-mono);font-size:10px}
+.dg .llm{fill:var(--sulfur-soft);stroke:var(--sulfur);stroke-width:1.3;stroke-dasharray:6 4}
+.dg .llmtx{fill:var(--sulfur)}
+.pill.llm{color:var(--sulfur);background:var(--sulfur-soft)}
+.fix{color:var(--warn);font-weight:500}
+
+/* stages */
+.overview{margin-bottom:56px}
+.stage{padding-top:44px;margin-top:44px;border-top:1px solid var(--rule);scroll-margin-top:12px}
+.stage-head{display:flex;gap:16px;align-items:center;margin-bottom:16px}
+.inst{flex:none;width:58px;height:58px;border:1.5px solid var(--ink);border-radius:50%;display:grid;grid-template-rows:1fr 1fr;position:relative;background:var(--surface)}
+.inst::after{content:"";position:absolute;left:4px;right:4px;top:50%;border-top:1.5px solid var(--ink)}
+.inst b{font-family:var(--f-mono);font-weight:500;font-size:12px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px}
+.inst i{font-style:normal;font-family:var(--f-mono);font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:3px;color:var(--muted)}
+.intro{margin:0 0 4px}
+
+.io{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:4px;background:var(--surface);margin-top:16px}
+.io > div{padding:14px 16px}
+.io > div + div{border-left:1px solid var(--rule)}
+.io h4{font-family:var(--f-cond);text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--muted);font-weight:500;margin:0 0 8px}
+.io ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.5}
+.io li + li{margin-top:5px}
+@media (max-width:760px){.io{grid-template-columns:1fr}.io > div + div{border-left:0;border-top:1px solid var(--rule)}}
+
+.example{margin-top:16px;border:1px solid var(--sulfur);background:var(--sulfur-soft);border-radius:4px;padding:12px 16px}
+.example .eyebrow{color:var(--sulfur)}
+.example dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 22px;margin:6px 0 0}
+.example dl div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted var(--rule);padding-bottom:3px}
+.example dt{font-size:14px}
+.example dd{margin:0;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.example p{margin:6px 0 0;font-size:14.5px}
+
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+.tbl{overflow-x:auto;margin-top:16px;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
+th{font-family:var(--f-cond);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--muted);font-weight:500;text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule)}
+td{padding:9px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:11.5px;padding:1px 7px;border-radius:10px;border:1px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--ok);background:var(--ok-soft)}
+.pill.bad{color:var(--bad);background:var(--bad-soft)}
+.pill.warn{color:var(--warn)}
+.pill.pipe{color:var(--pipe);background:var(--pipe-soft)}
+
+.statuses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+.statuses > div{background:var(--surface);border:1px solid var(--rule);border-top:4px solid var(--c);border-radius:4px;padding:14px 16px}
+.statuses h3{color:var(--c);font-family:var(--f-mono);font-size:15px;font-weight:500}
+.statuses p{margin:0;font-size:14.5px}
+@media (max-width:760px){.statuses{grid-template-columns:1fr}}
+
+.note{margin-top:16px;border-left:3px solid var(--muted);padding:4px 0 4px 14px;font-size:14.5px;color:var(--muted);max-width:80ch}
+.chain-k{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-family:var(--f-mono);font-size:13px}
+.chain-k span{background:var(--surface);border:1px solid var(--rule);padding:3px 9px;border-radius:3px}
+.chain-k em{font-style:normal;color:var(--muted)}
+
+/* explicit steps */
+.steps{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;counter-reset:none}
+.steps li{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--pipe);border-radius:4px;padding:12px 14px}
+.steps li.pre{border-left-color:var(--muted)}
+.steps li.gate{border-left-color:var(--ok)}
+.steps li.llm{border-left-color:var(--sulfur);border-style:dashed;border-left-style:solid;background:var(--sulfur-soft)}
+.steps li.out{border-left-color:var(--ink)}
+.steps .n{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.steps h3{margin:2px 0 4px;font-size:18px}
+.steps p{margin:0;font-size:14px;line-height:1.45}
+.steps .where{display:block;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.steps .refuse{display:block;margin-top:6px;font-size:12.5px;color:var(--bad)}
+.audit-steps{margin:14px 0 0;padding-left:22px;font-size:14.5px;max-width:90ch}
+.audit-steps li + li{margin-top:6px}
+footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-size:14px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Этапы">
+  <p>Контур решения</p>
+  <ol>
+    <li><a href="#steps"><span>▶</span>Шаги по порядку</a></li>
+    <li><a href="#s1"><span>01</span>Источники</a></li>
+    <li><a href="#s2"><span>02</span>Срез на момент t</a></li>
+    <li><a href="#s3"><span>03</span>Доверие к данным</a></li>
+    <li><a href="#s4"><span>04</span>Прогноз серы</a></li>
+    <li><a href="#s5"><span>05</span>Привязка к резервуарам</a></li>
+    <li><a href="#s6"><span>06</span>Кандидаты-планы</a></li>
+    <li><a href="#s7"><span>07</span>Модель цепочки</a></li>
+    <li><a href="#s8"><span>08</span>Gate</a></li>
+    <li><a href="#s9"><span>09</span>Валидаторы и вето</a></li>
+    <li><a href="#s10"><span>10</span>Выбор и перепроверка</a></li>
+    <li><a href="#llm"><span>10а</span>LLM-агенты (флаг)</a></li>
+    <li><a href="#s11"><span>11</span>Решение</a></li>
+  </ol>
+  <p>Вокруг</p>
+  <ol>
+    <li><a href="#offline"><span>◇</span>Обучение offline</a></li>
+    <li><a href="#services"><span>◇</span>Процессы и HTTP</a></li>
+    <li><a href="#audit"><span>✓</span>Аудит страницы</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="masthead">
+  <p class="sheet"><span>Лист <b>1</b></span><span>Установки <b>АВТ → 24-2000 → смешение ДТ</b></span><span>Код <b>src/neftecode</b></span><span>Сверено с репо <b>2b55c33</b></span><span>Аудит <b>16.09.2026</b></span></p>
+  <h1>Нефтекод: путь данных от CSV до совета оператору</h1>
+  <p class="lede">Одна схема всей системы, затем каждый этап отдельно: что приходит на вход, что с данными делается, что уходит дальше. Сквозной пример — реальное решение на <b>5 января 2026, 08:00</b> из <code>artifacts/decision-20260105-080000.json</code> (пересчитано текущим кодом 16.09: <code>decision_id 086b5119b1dbe2f4</code> совпал). Контуров два: детерминированный работает всегда; слой LLM-агентов (этап 10а) подключается только флагом <code>AGENTIC_DECISION_ENABLED=1</code> и по умолчанию выключен.</p>
+  <dl class="facts">
+    <div><dt>Телеметрия</dt><dd>189 217 <small>строк · 10 мин</small></dd></div>
+    <div><dt>Задержка ЛИМС</dt><dd>4 ч <small>допущение</small></dd></div>
+    <div><dt>Горизонт плана</dt><dd>3 ч <small>сетка 30 мин</small></dd></div>
+    <div><dt>Предел серы</dt><dd>≤ 10 <small>мг/кг</small></dd></div>
+    <div><dt>Выпуск разрешён</dt><dd>false <small>всегда</small></dd></div>
+    <div><dt>LLM-агенты</dt><dd>выкл. <small>по умолчанию</small></dd></div>
+  </dl>
+</header>
+
+<section class="overview" id="steps" aria-labelledby="st-h">
+  <p class="eyebrow">Шаги решения по порядку</p>
+  <h2 id="st-h">Что происходит, когда модель обучена и приходит момент t</h2>
+  <p class="intro">Данные — выданные CSV и XLSX в <code>task/</code>, потока с завода нет. Берётся момент t, и используются только данные, доступные к t. Шаги ниже выполняются строго по порядку командой <code>neftecode advise --at t</code> или сервисом <code>/v1/live/advice</code>. Жёлтый шаг — единственное место, где работают LLM-агенты.</p>
+  <ol class="steps">
+    <li class="pre"><span class="n">Шаг 0 · заранее, один раз</span><h3>Обучение</h3><p><code>neftecode train</code> → <code>model.pkl</code>: прогноз серы <code>last_pak</code>, запасная <code>catboost_no_pak</code>, T95 <code>last_lab</code>, радиусы интервала.</p><a class="where" href="#offline">Подробно: «Обучение offline»</a></li>
+    <li><span class="n">Шаг 1</span><h3>Загрузка</h3><p>Телеметрия АВТ и 24-2000, ЛИМС, ПАК, сценарий JSON, <code>model.pkl</code>. Проверка, что t в допустимом для модели периоде.</p><a class="where" href="#s1">Этап 01</a></li>
+    <li><span class="n">Шаг 2</span><h3>Срез на момент t</h3><p>Последние значения и их возраст, зависание и конфликт ПАК, доля пропусков, признаки модели, история качества за 72 ч. Будущее не используется.</p><a class="where" href="#s2">Этап 02</a></li>
+    <li><span class="n">Шаг 3</span><h3>Доверие к данным</h3><p>ЛИМС ≤ 48 ч, ПАК ≤ 30 мин и не завис, пропуски ≤ 10 %. Выбор основного источника: ЛИМС, затем ПАК. Правила, без LLM.</p><span class="refuse">Нет годного источника → REFUSE, дальше ничего не запускается</span><a class="where" href="#s3">Этап 03</a></li>
+    <li><span class="n">Шаг 4</span><h3>Прогноз серы после ГО</h3><p>ПАК доверен → <code>last_pak</code>, иначе запасная модель. Точка и интервал 90 %; на 05.01 — 5.88 [3.66; 9.17].</p><span class="refuse">Прогноз недоступен → решения нет</span><a class="where" href="#s4">Этап 04</a></li>
+    <li><span class="n">Шаг 5</span><h3>Привязка к резервуарам</h3><p>Приток в main = верхняя граница прогноза; сера содержимого = среднее доверенного ПАК за 42 ч (иначе ЛИМС); при зависшем ПАК — не ниже последнего доверенного.</p><a class="where" href="#s5">Этап 05</a></li>
+    <li><span class="n">Шаг 6.1</span><h3>Кандидаты</h3><p>Сохранить режим, рецепт и выпуск, шаг одной уставки, присадка, переходные планы. Оценивается до 200 из бюджета 400.</p><a class="where" href="#s6">Этап 06</a></li>
+    <li><span class="n">Шаг 6.2</span><h3>Модель цепочки</h3><p>Каждый план: АВТ → ГО → резервуары → смесь на сетке 0–3 ч через 30 мин, цена и тяжесть режима.</p><a class="where" href="#s7">Этап 07</a></li>
+    <li class="gate"><span class="n">Шаг 6.3</span><h3>Gate</h3><p>Все обязательные условия в каждой точке: сера ≤ 10, T95, цетан, плотность, уставки, запасы, отбор. Неизвестное = запрет.</p><a class="where" href="#s8">Этап 08</a></li>
+    <li class="gate"><span class="n">Шаг 6.4</span><h3>Валидаторы и вето</h3><p>Отказы Gate превращаются в запреты следующего раунда, до 3 раундов. Это не LLM.</p><span class="refuse">Допустимых нет → REFUSE no_feasible_plan</span><a class="where" href="#s9">Этап 09</a></li>
+    <li class="gate"><span class="n">Шаг 6.5</span><h3>Выбор и проверки</h3><p><code>rank()</code> → упреждение 48 ч → повторный Gate → устойчивость к 8 отклонениям. Итог: детерминированное решение.</p><span class="refuse">Повторный Gate не пройден → REFUSE final_recheck_failed</span><a class="where" href="#s10">Этап 10</a></li>
+    <li class="llm"><span class="n">Шаг 7 · только при AGENTIC_DECISION_ENABLED=1</span><h3>LLM-агенты</h3><p>Оркестратор, агенты качества и надёжности смотрят готовых кандидатов через инструменты, могут наложить вето или сузить поиск. Выбор снова делает <code>rank()</code>, план снова проходит шаг 6.5 и независимый Gate. Сбой модели → решение шага 6 без изменений.</p><a class="where" href="#llm">Этап 10а</a></li>
+    <li class="out"><span class="n">Шаг 8</span><h3>Выход</h3><p>HOLD, RECOMMEND или REFUSE с причиной; объяснение со ссылками на проверки; <code>decision-&lt;время&gt;.json</code> и экран оператора. Выпуск топлива не разрешается никогда.</p><a class="where" href="#s11">Этап 11</a></li>
+  </ol>
+</section>
+
+<section class="overview" aria-labelledby="ov-h">
+  <p class="eyebrow">Общая схема</p>
+  <h2 id="ov-h">Два контура: данные превращаются в прогноз, прогноз — в проверенный план</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1120 620" role="img" aria-label="Общая схема: источники, срез на момент t, проверка доверия, прогноз серы, привязка к сценарию; затем оптимизатор, модель цепочки, gate, детерминированные валидаторы с петлёй вето, ранжирование, упреждение, финальная перепроверка и устойчивость; при включённом флаге слой LLM-агентов; итог hold, совет или отказ">
+      <defs>
+        <marker id="m0" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker>
+        <marker id="m0m" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahm"/></marker>
+        <marker id="m0b" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahb"/></marker>
+      </defs>
+
+      <text x="20" y="100" class="band">КОНТУР ДАННЫХ</text>
+      <!-- offline + scenario -->
+      <rect x="650" y="24" width="190" height="56" rx="3" class="soft"/>
+      <text x="745" y="47" text-anchor="middle">Обучение offline</text>
+      <text x="745" y="67" text-anchor="middle" class="sub">2023–2026 → model.pkl</text>
+      <path d="M745,80 V148" class="ret" marker-end="url(#m0m)"/>
+      <text x="753" y="120" class="lbl">загружается</text>
+
+      <rect x="880" y="24" width="210" height="56" rx="3" class="soft"/>
+      <text x="985" y="47" text-anchor="middle">Сценарий JSON</text>
+      <text x="985" y="67" text-anchor="middle" class="sub">резервуары, пределы, цены</text>
+      <path d="M985,80 V148" class="ret" marker-end="url(#m0m)"/>
+
+      <!-- row 1 -->
+      <rect x="20" y="112" width="180" height="156" rx="3" class="box"/>
+      <text x="36" y="136">Источники</text>
+      <text x="36" y="162" class="mono">avt_tags.csv</text>
+      <text x="36" y="185" class="mono">242000_tags.csv</text>
+      <text x="36" y="208" class="mono">ЛИМС.xlsx</text>
+      <text x="36" y="231" class="mono">ПАК.xlsx</text>
+      <text x="36" y="255" class="sub">реальные данные завода</text>
+      <path d="M200,190 H238" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="240" y="150" width="170" height="80" rx="3" class="box"/>
+      <text x="325" y="184" text-anchor="middle">Срез на момент t</text>
+      <text x="325" y="205" text-anchor="middle" class="sub">только уже доступное</text>
+      <path d="M410,190 H448" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="450" y="150" width="170" height="80" rx="3" class="box"/>
+      <text x="535" y="184" text-anchor="middle">Доверие к данным</text>
+      <text x="535" y="205" text-anchor="middle" class="sub">правила, без LLM</text>
+      <path d="M535,230 V244" class="refuse" marker-end="url(#m0b)"/>
+      <rect x="470" y="246" width="130" height="26" rx="13" class="badbox"/>
+      <text x="535" y="263" text-anchor="middle" class="badtx">ОТКАЗ до моделей</text>
+      <path d="M620,190 H658" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="660" y="150" width="170" height="80" rx="3" class="box"/>
+      <text x="745" y="184" text-anchor="middle">Прогноз серы после ГО</text>
+      <text x="745" y="205" text-anchor="middle" class="sub">точка + интервал 90 %</text>
+      <path d="M830,190 H868" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="870" y="150" width="230" height="80" rx="3" class="box"/>
+      <text x="985" y="184" text-anchor="middle">Привязка к резервуарам</text>
+      <text x="985" y="205" text-anchor="middle" class="sub">верхняя граница → приток</text>
+
+      <!-- connector -->
+      <path d="M985,230 V292 H95 V328" class="pipe" marker-end="url(#m0)"/>
+      <text x="780" y="286" text-anchor="middle" class="lbl">сценарий с реальной серой + состояние</text>
+
+      <text x="20" y="320" class="band">КОНТУР РЕШЕНИЯ</text>
+      <!-- row 2 -->
+      <rect x="20" y="330" width="150" height="80" rx="3" class="box"/>
+      <text x="95" y="364" text-anchor="middle">Оптимизатор</text>
+      <text x="95" y="385" text-anchor="middle" class="sub">hold + планы</text>
+      <path d="M170,370 H198" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="200" y="330" width="170" height="80" rx="3" class="box"/>
+      <text x="285" y="364" text-anchor="middle">Модель цепочки</text>
+      <text x="285" y="385" text-anchor="middle" class="sub">АВТ → ГО → смесь</text>
+      <path d="M370,370 H398" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="400" y="330" width="150" height="80" rx="3" class="box"/>
+      <text x="475" y="364" text-anchor="middle">Gate</text>
+      <text x="475" y="385" text-anchor="middle" class="sub">каждая точка 0–3 ч</text>
+      <path d="M550,370 H578" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="580" y="330" width="170" height="80" rx="3" class="box"/>
+      <text x="665" y="364" text-anchor="middle">Валидаторы</text>
+      <text x="665" y="385" text-anchor="middle" class="sub">по Gate, без LLM</text>
+      <path d="M750,370 H778" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="780" y="330" width="140" height="80" rx="3" class="box"/>
+      <text x="850" y="364" text-anchor="middle">Ранжирование</text>
+      <text x="850" y="385" text-anchor="middle" class="sub">выпуск → цена</text>
+      <path d="M920,370 H948" class="pipe" marker-end="url(#m0)"/>
+
+      <rect x="950" y="330" width="150" height="80" rx="3" class="box"/>
+      <text x="1025" y="358" text-anchor="middle">Упреждение 48 ч</text>
+      <text x="1025" y="378" text-anchor="middle" class="sub">повторный Gate</text>
+      <text x="1025" y="396" text-anchor="middle" class="sub">устойчивость</text>
+
+      <!-- veto loop -->
+      <path d="M665,410 V446 H95 V412" class="ret" marker-end="url(#m0m)"/>
+      <text x="380" y="438" text-anchor="middle" class="lbl">нет допустимых: вето сужает поиск, до 3 раундов</text>
+
+      <!-- optional LLM layer -->
+      <path d="M1025,410 V450" class="pipe" marker-end="url(#m0)"/>
+      <rect x="780" y="452" width="320" height="64" rx="3" class="llm"/>
+      <text x="940" y="476" text-anchor="middle" class="llmtx">Слой LLM-агентов · этап 10а</text>
+      <text x="940" y="496" text-anchor="middle" class="sub">только при AGENTIC_DECISION_ENABLED=1</text>
+      <text x="940" y="511" text-anchor="middle" class="sub">сужает выбор → снова Gate · сбой → без изменений</text>
+      <text x="770" y="480" text-anchor="end" class="lbl">флаг выкл.:</text>
+      <text x="770" y="496" text-anchor="end" class="lbl">решение проходит</text>
+      <text x="770" y="512" text-anchor="end" class="lbl">без изменений</text>
+
+      <!-- outputs -->
+      <path d="M1025,516 V540" class="pipe"/>
+      <path d="M695,540 H1020" class="pipe"/>
+      <path d="M695,540 V554" class="pipe" marker-end="url(#m0)"/>
+      <path d="M855,540 V554" class="pipe" marker-end="url(#m0)"/>
+      <path d="M1020,540 V554" class="pipe" marker-end="url(#m0)"/>
+      <text x="600" y="580" text-anchor="end" class="lbl">итог решения</text>
+      <rect x="620" y="556" width="150" height="36" rx="3" class="box"/>
+      <text x="695" y="579" text-anchor="middle" class="mono">hold</text>
+      <rect x="780" y="556" width="150" height="36" rx="3" class="box"/>
+      <text x="855" y="579" text-anchor="middle" class="mono">recommend_scenario</text>
+      <rect x="940" y="556" width="160" height="36" rx="3" class="badbox"/>
+      <text x="1020" y="579" text-anchor="middle" class="mono badtx">refuse</text>
+    </svg>
+    </div>
+    <figcaption>Сплошная синяя линия — поток данных. Серый пунктир — загрузка готовых артефактов и обратная связь валидаторов. Красный — ранний отказ: если ни один источник качества не прошёл проверку, модели не запускаются вообще (и LLM-агенты тоже). Жёлтый пунктир — необязательный слой LLM-агентов. Всё, что левее и выше него, детерминировано: одинаковые данные дают одинаковое решение.</figcaption>
+  </figure>
+</section>
+
+<!-- 1 -->
+<section class="stage" id="s1" aria-labelledby="h1s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>SRC</b><i>01</i></div>
+    <div><p class="eyebrow">Этап 1 · <code>infrastructure/data/data.py</code></p><h2 id="h1s">Источники: четыре файла с разными осями времени</h2></div></div>
+  <p class="intro">Файлы читаются независимо. Телеметрия идёт на сетке 10 минут, лаборатория — редкими пробами, анализатор — своим рядом. Склеиваются они не здесь, а на следующем этапе, по времени доступности.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Файл</th><th>Что внутри</th><th>Проверка при чтении</th><th>Во что превращается</th></tr></thead>
+    <tbody>
+      <tr><td class="num">avt_tags.csv</td><td>Телеметрия АВТ, 71 тег</td><td>Нет дубликатов времени, числа</td><td>колонки <code>avt.*</code></td></tr>
+      <tr><td class="num">242000_tags.csv</td><td>Телеметрия гидроочистки 24-2000, 26 тегов</td><td>То же; префикс против совпадения имён</td><td>колонки <code>ht.*</code></td></tr>
+      <tr><td class="num">ЛИМС*.xlsx</td><td>Лабораторная сера после ГО, <code>Mg.Sulfur</code>, мг/кг</td><td>Схема колонок CQ:CR, сера ≥ 0, нет противоречивых дублей</td><td>ряд <code>time, value</code></td></tr>
+      <tr><td class="num">Выгрузка ПАК*.xlsx</td><td>Поточный анализатор серы, ppm</td><td>Единица ppm, те же проверки</td><td>ряд <code>time, value</code></td></tr>
+      <tr><td class="num">config/scenarios/*.json</td><td>Резервуары, пределы T95/цетана/плотности, цены, коэффициенты отклика</td><td>Каждая величина с единицей и происхождением: <code>given</code> / <code>derived</code> / <code>scenario</code></td><td><code>Scenario</code></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Значение ровно 307 встречается в 64 из 71 тега АВТ и подозревается как заглушка опроса. Оно не удаляется: для температуры 307 может быть настоящим. Проверка доверия (<code>inspect_value</code>) только помечает его как подозрительное.</p>
+</section>
+
+<!-- 2 -->
+<section class="stage" id="s2" aria-labelledby="h2s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>T</b><i>02</i></div>
+    <div><p class="eyebrow">Этап 2 · <code>build_features</code>, <code>state_at</code></p><h2 id="h2s">Срез на момент t: только то, что оператор уже мог видеть</h2></div></div>
+  <p class="intro">Главное правило всей системы: у каждого измерения два времени — когда взяли пробу и когда результат стал доступен. Склейка идёт через <code>merge_asof(direction="backward")</code> по времени доступности, будущее не подтягивается никогда.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 232" role="img" aria-label="Шкала времени от 16:00 предыдущего дня до 10:00: проба ЛИМС в 18:00 доступна в 22:00, окно телеметрии 6 часов до решения, ПАК каждые 10 минут, будущее после 08:00 закрыто">
+      <defs><marker id="m1" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker></defs>
+      <rect x="790" y="30" width="135" height="160" class="band-fill"/>
+      <text x="857" y="52" text-anchor="middle" class="lbl">будущее</text>
+      <text x="857" y="68" text-anchor="middle" class="lbl">в решение не входит</text>
+      <path d="M880,86 V190" class="grid" stroke-dasharray="3 3"/>
+      <circle cx="880" cy="120" r="5" class="inkfill"/>
+      <text x="880" y="142" text-anchor="middle" class="sub">цель t+2 ч</text>
+
+      <!-- feature window -->
+      <path d="M520,52 V44 H790 V52" class="axis"/>
+      <text x="655" y="36" text-anchor="middle" class="lbl">окно телеметрии 6 ч: now · mean · delta</text>
+
+      <!-- PAK -->
+      <text x="70" y="84" class="sub">ПАК: показание каждые 10 мин</text>
+      <line x1="70" y1="100" x2="790" y2="100" stroke-width="9" stroke-dasharray="1.2 6.3" class="pipe"/>
+      <text x="782" y="84" text-anchor="end" class="mono sultx">08:00 · 5.88</text>
+      <path d="M745,114 V120 H790 V114" class="axis"/>
+      <text x="767" y="134" text-anchor="middle" class="lbl">1 ч: не завис</text>
+
+      <!-- LIMS -->
+      <circle cx="160" cy="160" r="6" class="sulfill"/>
+      <path d="M166,160 H334" class="pipe" marker-end="url(#m1)"/>
+      <text x="250" y="152" text-anchor="middle" class="lbl">задержка ЛИМС 4 ч</text>
+      <rect x="335" y="154" width="12" height="12" class="inkfill"/>
+      <path d="M347,160 H790" class="grid" stroke-dasharray="2 4" stroke-width="1.5"/>
+      <text x="565" y="152" text-anchor="middle" class="lbl">возраст 14 ч ≤ 48 ч — годен</text>
+      <text x="160" y="182" text-anchor="middle" class="mono">проба 18:00 · 6.80</text>
+      <text x="341" y="182" text-anchor="middle" class="mono">доступна 22:00</text>
+
+      <!-- t -->
+      <path d="M790,24 V196" stroke-width="2" class="axis"/>
+      <text x="790" y="18" text-anchor="middle">решение 08:00</text>
+
+      <!-- axis -->
+      <path d="M70,196 H925" class="axis"/>
+      <g class="mono">
+        <text x="70" y="214" text-anchor="middle" class="mono">16:00</text>
+        <text x="160" y="214" text-anchor="middle" class="mono">18:00</text>
+        <text x="250" y="214" text-anchor="middle" class="mono">20:00</text>
+        <text x="340" y="214" text-anchor="middle" class="mono">22:00</text>
+        <text x="430" y="214" text-anchor="middle" class="mono">00:00</text>
+        <text x="520" y="214" text-anchor="middle" class="mono">02:00</text>
+        <text x="610" y="214" text-anchor="middle" class="mono">04:00</text>
+        <text x="700" y="214" text-anchor="middle" class="mono">06:00</text>
+        <text x="790" y="214" text-anchor="middle" class="mono">08:00</text>
+        <text x="880" y="214" text-anchor="middle" class="mono">10:00</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Шкала в масштабе: 45 px на час. Проба ЛИМС 4 января в 18:00 становится видимой только в 22:00 — раньше её использовать нельзя. К 08:00 ей 14 часов, это меньше лимита 48 ч.</figcaption>
+  </figure>
+  <div class="io">
+    <div><h4>Вход</h4><ul><li>Сырые ряды этапа 1</li><li>Момент решения t</li><li><code>config/experiment.json</code>: окно 6 ч, задержка ЛИМС 4 ч, лимиты возраста</li></ul></div>
+    <div><h4>Что происходит</h4><ul><li>Телеметрия: значение сейчас, среднее и изменение за 6 ч, допуск ffill 20 мин</li><li>ЛИМС и ПАК: последнее доступное и его возраст</li><li>ПАК завис, если за 1 ч max − min ≤ 1e-6</li><li>Конфликт: |ПАК − ЛИМС| в момент пробы &gt; max(3, 0.5·ЛИМС)</li><li>История качества за 72 ч для оценки резервуара</li></ul></div>
+    <div><h4>Выход</h4><ul><li><code>state</code>: значения, возрасты, флаги <code>pak_frozen</code>, <code>pak_conflict</code>, <code>lab_usable</code></li><li>доля пропусков телеметрии</li><li>вектор признаков для модели</li></ul></div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="stage" id="s3" aria-labelledby="h3s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>DQ</b><i>03</i></div>
+    <div><p class="eyebrow">Этап 3 · <code>application/services/trust.py</code></p><h2 id="h3s">Доверие к данным: может ли этот срез вообще нести решение</h2></div></div>
+  <p class="intro">Класс называется <code>DataTrustAgent</code>, но это набор детерминированных правил, LLM здесь нет. Каждый источник получает вердикт <span class="pill ok">ok</span> <span class="pill bad">unusable</span> <span class="pill bad">missing</span> с перечнем причин. Статус <span class="pill warn">suspect</span> объявлен в коде, но текущие правила его не выставляют. Приоритет задан ТЗ и не зависит от точности модели: ЛИМС выше ПАК. Если пропусков телеметрии больше 10 %, основной источник не выбирается вовсе.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 250" role="img" aria-label="Дерево проверки: телеметрия с пропусками не более 10 процентов, затем ЛИМС пригоден — основной источник ЛИМС; иначе ПАК пригоден — основной ПАК; иначе отказ">
+      <defs>
+        <marker id="m2" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker>
+        <marker id="m2b" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahb"/></marker>
+      </defs>
+      <!-- example path highlight -->
+      <path d="M210,122 H260 M470,122 H500 V42 H530" class="hl"/>
+
+      <rect x="20" y="90" width="190" height="64" rx="3" class="box"/>
+      <text x="115" y="117" text-anchor="middle">Телеметрия</text>
+      <text x="115" y="138" text-anchor="middle" class="sub">пропусков ≤ 10 %?</text>
+
+      <path d="M210,122 H258" class="pipe" marker-end="url(#m2)"/>
+      <text x="235" y="113" text-anchor="middle" class="lbl">да</text>
+
+      <rect x="260" y="90" width="210" height="64" rx="3" class="box"/>
+      <text x="365" y="117" text-anchor="middle">ЛИМС пригоден?</text>
+      <text x="365" y="138" text-anchor="middle" class="sub">есть · ≤ 48 ч · сера ≥ 0</text>
+
+      <path d="M470,122 H500 V42 H528" class="pipe" marker-end="url(#m2)"/>
+      <text x="508" y="76" class="lbl">да</text>
+      <path d="M500,122 V142 H528" class="pipe" marker-end="url(#m2)"/>
+      <text x="508" y="160" class="lbl">нет</text>
+
+      <rect x="530" y="20" width="200" height="44" rx="3" class="okbox"/>
+      <text x="630" y="47" text-anchor="middle" class="oktx">основной источник: ЛИМС</text>
+
+      <rect x="530" y="110" width="230" height="64" rx="3" class="box"/>
+      <text x="645" y="137" text-anchor="middle">ПАК пригоден?</text>
+      <text x="645" y="158" text-anchor="middle" class="sub">≤ 30 мин · не завис · без конфликта</text>
+
+      <path d="M760,132 H808" class="pipe" marker-end="url(#m2)"/>
+      <text x="784" y="124" text-anchor="middle" class="lbl">да</text>
+      <rect x="810" y="110" width="170" height="44" rx="3" class="okbox"/>
+      <text x="895" y="137" text-anchor="middle" class="oktx">основной: ПАК</text>
+
+      <path d="M115,154 V212 H808" class="refuse" marker-end="url(#m2b)"/>
+      <path d="M645,174 V212" class="refuse"/>
+      <text x="124" y="186" class="lbl">нет</text>
+      <text x="654" y="196" class="lbl">нет</text>
+      <rect x="810" y="192" width="170" height="40" rx="3" class="badbox"/>
+      <text x="895" y="217" text-anchor="middle" class="badtx">refuse: что нужно</text>
+    </svg>
+    </div>
+    <figcaption>Жёлтым — путь примера 05.01. Отдельное правило: если ПАК непригоден, прогноз переключается на запасную модель без признаков ПАК, даже когда основной источник — ЛИМС.</figcaption>
+  </figure>
+  <div class="example">
+    <p class="eyebrow">Пример · 05.01.2026 08:00</p>
+    <dl>
+      <div><dt>ЛИМС</dt><dd><span class="pill ok">ok</span> 6.80 · 14 ч</dd></div>
+      <div><dt>ПАК</dt><dd><span class="pill ok">ok</span> 5.88 · 0 мин</dd></div>
+      <div><dt>Пропуски телеметрии</dt><dd>0 %</dd></div>
+      <div><dt>Основной источник</dt><dd>ЛИМС</dd></div>
+      <div><dt>Режим запасной модели</dt><dd>false</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="stage" id="s4" aria-labelledby="h4s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>AI</b><i>04</i></div>
+    <div><p class="eyebrow">Этап 4 · <code>model-service</code>, <code>forecast_at</code></p><h2 id="h4s">Прогноз серы после гидроочистки: точка и интервал</h2></div></div>
+  <p class="intro">Модель отвечает на вопрос «что будет при текущем ходе событий», а не «что будет, если сдвинуть уставку». Сложная модель заменяет простую, только если выигрывает не меньше 5 % и бутстреп-интервал разницы не накрывает ноль. Этого не случилось — основной остаётся последнее показание ПАК.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 156" role="img" aria-label="Шкала серы от 0 до 12 мг/кг: прогноз 5.88, интервал от 3.66 до 9.17, предел 10">
+      <path d="M40,100 H940" class="axis"/>
+      <g>
+        <path d="M40,100 V106 M190,100 V106 M340,100 V106 M490,100 V106 M640,100 V106 M790,100 V106 M940,100 V106" class="axis"/>
+        <text x="40" y="122" text-anchor="middle" class="mono">0</text>
+        <text x="190" y="122" text-anchor="middle" class="mono">2</text>
+        <text x="340" y="122" text-anchor="middle" class="mono">4</text>
+        <text x="490" y="122" text-anchor="middle" class="mono">6</text>
+        <text x="640" y="122" text-anchor="middle" class="mono">8</text>
+        <text x="790" y="122" text-anchor="middle" class="mono">10</text>
+        <text x="940" y="122" text-anchor="middle" class="mono">12 мг/кг</text>
+      </g>
+      <rect x="314.5" y="66" width="413.1" height="22" class="pipefill"/>
+      <circle cx="481.3" cy="77" r="6" class="inkfill"/>
+      <path d="M790,30 V106" stroke="currentColor" style="stroke:var(--bad)" stroke-width="2"/>
+      <text x="790" y="24" text-anchor="middle" class="badtx">предел 10</text>
+      <text x="314.5" y="58" text-anchor="middle" class="mono">3.66</text>
+      <text x="481.3" y="58" text-anchor="middle" class="mono">5.88 last_pak</text>
+      <text x="727.6" y="58" text-anchor="middle" class="mono sultx">9.17</text>
+      <text x="727.6" y="146" text-anchor="middle" class="sultx">верхняя граница → в приток резервуара</text>
+    </svg>
+    </div>
+    <figcaption>В масштабе. Интервал откалиброван на 2025H2 под покрытие 90 %. Дальше в расчёт идёт не точка 5.88, а осторожная верхняя граница 9.17.</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Кандидат</th><th>MAE, validation 2025H1 (174 общих пробы)</th><th>Роль</th></tr></thead>
+    <tbody>
+      <tr><td class="num">last_pak</td><td class="num">1.3241</td><td><span class="pill ok">выбран</span> простой, без обучения</td></tr>
+      <tr><td class="num">catboost_no_pak</td><td class="num">1.3205</td><td><span class="pill pipe">запасная</span> при непригодном ПАК; выигрыш 0.27 %, CI [−0.125; 0.142]</td></tr>
+      <tr><td class="num">last_lab, catboost, ridge</td><td class="num">хуже</td><td>в сравнении, не используются</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 5 -->
+<section class="stage" id="s5" aria-labelledby="h5s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>LI</b><i>05</i></div>
+    <div><p class="eyebrow">Этап 5 · <code>bind_forecast</code>, <code>estimate_tank_sulfur</code></p><h2 id="h5s">Привязка: прогноз потока становится свойством резервуара</h2></div></div>
+  <p class="intro">ЛИМС и ПАК меряют поток после ГО, а предел 10 мг/кг относится к товарной смеси. Поэтому прогноз не сравнивается с пределом напрямую: он питает приток в основной резервуар, где разбавляется уже накопленным продуктом.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 306" role="img" aria-label="Гидроочистка подаёт 95 т/ч с серой 9.17 в основной резервуар 4000 т с серой содержимого 5.19; резервуары main 0.9, reserve 0.1 и light 0 смешиваются в поток 100 т/ч">
+      <defs><marker id="m3" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker></defs>
+      <rect x="20" y="40" width="150" height="56" rx="3" class="box"/>
+      <text x="95" y="63" text-anchor="middle">Гидроочистка</text>
+      <text x="95" y="83" text-anchor="middle" class="sub">24-2000</text>
+      <path d="M170,68 H328" class="pipe" marker-end="url(#m3)"/>
+      <text x="250" y="58" text-anchor="middle" class="mono">95 т/ч</text>
+      <text x="250" y="88" text-anchor="middle" class="mono sultx">S 9.17</text>
+
+      <rect x="330" y="40" width="180" height="170" rx="16" class="box"/>
+      <text x="420" y="70" text-anchor="middle">main</text>
+      <text x="420" y="92" text-anchor="middle" class="mono">4000 т</text>
+      <text x="420" y="130" text-anchor="middle" class="sub">сера содержимого</text>
+      <text x="420" y="152" text-anchor="middle" class="mono sultx">5.19 мг/кг</text>
+      <text x="420" y="176" text-anchor="middle" class="sub">среднее ПАК за 42 ч</text>
+
+      <rect x="560" y="110" width="140" height="100" rx="14" class="box"/>
+      <text x="630" y="138" text-anchor="middle">reserve</text>
+      <text x="630" y="160" text-anchor="middle" class="mono">600 т</text>
+      <text x="630" y="182" text-anchor="middle" class="mono">S 2.0</text>
+
+      <rect x="730" y="110" width="140" height="100" rx="14" class="box"/>
+      <text x="800" y="138" text-anchor="middle">light</text>
+      <text x="800" y="160" text-anchor="middle" class="mono">900 т</text>
+      <text x="800" y="182" text-anchor="middle" class="mono">цетан неизв.</text>
+
+      <path d="M420,210 V252" class="pipe"/>
+      <path d="M630,210 V252" class="pipe"/>
+      <path d="M800,210 V252" class="ret"/>
+      <path d="M420,252 H904" class="pipe" marker-end="url(#m3)"/>
+      <text x="428" y="236" class="mono">0.9</text>
+      <text x="638" y="236" class="mono">0.1</text>
+      <text x="808" y="236" class="mono">0.0</text>
+      <circle cx="930" cy="252" r="24" class="bubble"/>
+      <text x="930" y="257" text-anchor="middle" class="sub">смесь</text>
+      <text x="930" y="296" text-anchor="middle" class="mono">100 т/ч</text>
+    </svg>
+    </div>
+    <figcaption>Реальные в этой картинке только две жёлтые цифры: сера притока (верх прогноза) и сера содержимого (история ПАК). Объёмы, резерв, лёгкая фракция и рецепт 0.9 / 0.1 заданы сценарием <code>baseline</code>.</figcaption>
+  </figure>
+  <div class="io">
+    <div><h4>Вход</h4><ul><li>Прогноз: точка, нижняя и верхняя граница, имя модели</li><li><code>state</code> с почасовой историей доверенного ПАК и пробами ЛИМС за 72 ч</li><li>Сценарий JSON</li></ul></div>
+    <div><h4>Что происходит</h4><ul><li>Сера притока main = верхняя граница прогноза</li><li>ПАК завис → приток не ниже последнего доверенного значения (до 48 ч) или более поздней пробы ЛИМС</li><li>Сера содержимого = среднее доверенного ПАК за окно 4000 т / 95 т/ч ≈ 42 ч, покрытие ≥ 50 %</li><li>Не хватает ПАК → среднее ≥ 2 проб ЛИМС, иначе ошибка и совета нет</li></ul></div>
+    <div><h4>Выход</h4><ul><li>Копия сценария, где сера main помечена <code>derived</code> с пояснением</li><li>Исходный сценарий не меняется</li><li>Прогноз построен на t + 2 ч, а в расчёте держится весь горизонт 3 ч и упреждение 48 ч — это допущение, а не прогноз</li></ul></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="stage" id="s6" aria-labelledby="h6s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>OPT</b><i>06</i></div>
+    <div><p class="eyebrow">Этап 6 · <code>domain/advisory/optimizer.py</code>, <code>plan_operation.py</code></p><h2 id="h6s">Кандидаты: конечный перебор трёх видов планов</h2></div></div>
+  <p class="intro">Порядок перебора фиксирован, поэтому результат воспроизводим. Сохранение режима всегда первый кандидат. За раз двигается только одна уставка: изменение всех сразу нельзя ни объяснить оператору, ни потом проверить.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 990 190" role="img" aria-label="Три вида планов на горизонте 3 часа: hold без изменений, постоянный план с одним шагом уставки, переходный план с долей резерва 0.3 до эффекта ГО через 2 часа и 0.2 после">
+      <!-- panel 1 -->
+      <text x="30" y="22">hold — текущий режим</text>
+      <path d="M30,140 H270" class="axis"/>
+      <path d="M30,100 H270" class="pipe" stroke-width="3"/>
+      <text x="150" y="90" text-anchor="middle" class="mono">резерв 0.1 · T ГО 348 °C</text>
+      <text x="30" y="160" text-anchor="middle" class="mono">0</text><text x="110" y="160" text-anchor="middle" class="mono">1</text><text x="190" y="160" text-anchor="middle" class="mono">2</text><text x="270" y="160" text-anchor="middle" class="mono">3 ч</text>
+      <text x="30" y="182" class="lbl">изменений 0</text>
+
+      <!-- panel 2 -->
+      <text x="360" y="22">постоянный: один шаг уставки</text>
+      <path d="M360,140 H600" class="axis"/>
+      <path d="M340,110 H360" class="ret"/>
+      <path d="M360,110 V70 H600" class="pipe" stroke-width="3"/>
+      <text x="480" y="60" text-anchor="middle" class="mono">T ГО 349 °C</text>
+      <text x="370" y="126" class="lbl">было 348</text>
+      <text x="360" y="160" text-anchor="middle" class="mono">0</text><text x="440" y="160" text-anchor="middle" class="mono">1</text><text x="520" y="160" text-anchor="middle" class="mono">2</text><text x="600" y="160" text-anchor="middle" class="mono">3 ч</text>
+      <text x="360" y="182" class="lbl">или рецепт шагом 0.05, выпуск −10 т/ч, присадка ≤ 3 %</text>
+
+      <!-- panel 3 -->
+      <text x="690" y="22">переходный: смесь, пока ГО не отработал</text>
+      <path d="M690,140 H930" class="axis"/>
+      <path d="M850,34 V140" class="grid" stroke-dasharray="3 3"/>
+      <path d="M690,60 H850 V84 H930" class="pipe" stroke-width="3"/>
+      <text x="770" y="52" text-anchor="middle" class="mono">резерв 0.3</text>
+      <text x="890" y="76" text-anchor="middle" class="mono">0.2</text>
+      <path d="M684,128 L690,116 L696,128 z" class="sulfill"/>
+      <text x="702" y="128" class="lbl sultx">T ГО +1 °C</text>
+      <text x="858" y="112" class="lbl">эффект ГО</text>
+      <text x="858" y="126" class="lbl">через 2 ч</text>
+      <text x="690" y="160" text-anchor="middle" class="mono">0</text><text x="770" y="160" text-anchor="middle" class="mono">1</text><text x="850" y="160" text-anchor="middle" class="mono">2</text><text x="930" y="160" text-anchor="middle" class="mono">3 ч</text>
+      <text x="690" y="182" class="lbl">временная помощь резервом 0.1–0.6, шаг назад 0.1</text>
+    </svg>
+    </div>
+    <figcaption>Время по горизонтали в масштабе, уровни условные. Переключение переходного плана стоит ровно на лаге гидроочистки из сценария (2 ч).</figcaption>
+  </figure>
+  <div class="io">
+    <div><h4>Вход</h4><ul><li>Сценарий с привязанной серой</li><li>Текущая операция: уставки, рецепт, выпуск</li><li>Бюджет проверки: 400 в live</li></ul></div>
+    <div><h4>Шаги уставок</h4><ul><li>Расход нефти ±20 т/ч, 600–820</li><li>Т выхода печи АВТ ±2 °C, 350–400</li><li>Т на входе реактора ГО ±1 °C, 330–375</li><li>Расход сырья ГО ±10 м³/ч, 180–300</li></ul></div>
+    <div><h4>Выход</h4><ul><li>Список <code>PlanCandidate</code> с шагами во времени</li><li>Выпуск только вниз, до 50 % текущего: наращивание — коммерческое решение, не советчика</li><li>Первый раунд — выборка ≤ бюджет/2, четверть на переходные планы</li></ul></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="stage" id="s7" aria-labelledby="h7s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>SIM</b><i>07</i></div>
+    <div><p class="eyebrow">Этап 7 · <code>domain/production/process.py</code>, <code>blending.py</code>, <code>inventory.py</code></p><h2 id="h7s">Модель последствий: план проходит всю цепочку на сетке 30 минут</h2></div></div>
+  <p class="intro">Для каждого плана и каждой точки 0, 0.5 … 3 ч считается: какие уставки уже подействовали с учётом лага стадии, что вышло из АВТ и ГО, как сдвинулись остатки и свойства резервуаров, какие свойства у смеси, сколько это стоит.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 214" role="img" aria-label="Цепочка: нефть с серой 1.35 процента, АВТ с лагом 0.5 часа даёт дизельную фракцию 1012 мг/кг, ГО с лагом 2 часа снижает до 8 мг/кг, затем резервуары и смесь четырёх свойств">
+      <defs><marker id="m4" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker></defs>
+      <!-- instrument bubbles -->
+      <path d="M270,46 V80 M350,46 V80 M520,46 V80 M600,46 V80" class="grid" stroke-dasharray="3 3"/>
+      <circle cx="270" cy="30" r="16" class="bubble"/><text x="270" y="34" text-anchor="middle" class="bt">FC</text>
+      <circle cx="350" cy="30" r="16" class="bubble"/><text x="350" y="34" text-anchor="middle" class="bt">TC</text>
+      <circle cx="520" cy="30" r="16" class="bubble"/><text x="520" y="34" text-anchor="middle" class="bt">TC</text>
+      <circle cx="600" cy="30" r="16" class="bubble"/><text x="600" y="34" text-anchor="middle" class="bt">FC</text>
+      <text x="382" y="34" class="lbl">уставки АВТ</text>
+      <text x="632" y="34" class="lbl">уставки ГО</text>
+
+      <rect x="20" y="80" width="150" height="80" rx="3" class="box"/>
+      <text x="95" y="110" text-anchor="middle">Нефть</text>
+      <text x="95" y="132" text-anchor="middle" class="mono">S 1.35 %</text>
+      <text x="95" y="150" text-anchor="middle" class="mono">740 т/ч</text>
+      <path d="M170,120 H208" class="pipe" marker-end="url(#m4)"/>
+
+      <rect x="210" y="80" width="200" height="80" rx="3" class="box"/>
+      <text x="310" y="104" text-anchor="middle">АВТ · лаг 0.5 ч</text>
+      <text x="310" y="126" text-anchor="middle" class="mono">1.35·10⁴·0.075</text>
+      <text x="310" y="146" text-anchor="middle" class="mono">= 1012 мг/кг</text>
+      <path d="M410,120 H458" class="pipe" marker-end="url(#m4)"/>
+
+      <rect x="460" y="80" width="200" height="80" rx="3" class="box"/>
+      <text x="560" y="104" text-anchor="middle">ГО · лаг 2 ч</text>
+      <text x="560" y="126" text-anchor="middle" class="mono">×0.0079·e^(−0.085ΔT)·(Q/256)^0.7</text>
+      <text x="560" y="146" text-anchor="middle" class="mono">= 8.0 мг/кг</text>
+      <path d="M660,120 H708" class="pipe" marker-end="url(#m4)"/>
+
+      <rect x="710" y="80" width="130" height="80" rx="3" class="box"/>
+      <text x="775" y="110" text-anchor="middle">Резервуары</text>
+      <text x="775" y="132" text-anchor="middle" class="sub">сначала отбор,</text>
+      <text x="775" y="150" text-anchor="middle" class="sub">потом приток</text>
+      <path d="M840,120 H878" class="pipe" marker-end="url(#m4)"/>
+
+      <rect x="880" y="80" width="110" height="80" rx="3" class="box"/>
+      <text x="935" y="110" text-anchor="middle">Смесь</text>
+      <text x="935" y="132" text-anchor="middle" class="mono">S · T95</text>
+      <text x="935" y="150" text-anchor="middle" class="mono">цетан · ρ</text>
+
+      <text x="310" y="188" text-anchor="middle" class="lbl">выход, S и T95 растут с T печи</text>
+      <text x="560" y="188" text-anchor="middle" class="lbl">+T глубже очистка, +расход мельче</text>
+      <text x="775" y="188" text-anchor="middle" class="lbl">баланс массы и свойств</text>
+      <text x="935" y="188" text-anchor="middle" class="lbl">+ цена, тяжесть</text>
+    </svg>
+    </div>
+    <figcaption>Числа — сценарий <code>baseline</code> в текущем режиме (ΔT = 0, Q = 256 м³/ч): 1.35 % серы в нефти даёт 8.0 мг/кг после ГО. Все коэффициенты заданы сценарием и из данных завода не подтверждены. Кружки — регуляторы с обратной связью: совет меняет их уставку, динамика контура не моделируется. В live-режиме сера main берётся из привязки (этап 5), а не из этой цепочки.</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Свойство смеси</th><th>Правило</th><th>Насколько обосновано</th></tr></thead>
+    <tbody>
+      <tr><td>Сера</td><td>Массовый баланс по долям</td><td><span class="pill ok">точное</span> в резервуаре реакции нет</td></tr>
+      <tr><td>Плотность</td><td>Аддитивность объёмов</td><td><span class="pill pipe">допущение</span> идеальное смешение</td></tr>
+      <tr><td>T95, цетан</td><td>Линейный сценарный индекс</td><td><span class="pill warn">сценарий</span> индексов смешения нет</td></tr>
+      <tr><td>Присадка</td><td>+1.2 цетана на 1 % дозы, до 3 %, цена ×100</td><td>Серу не снижает — загрузчик это запрещает</td></tr>
+      <tr><td>Неизвестное</td><td>Компонент без цетана делает цетан смеси неизвестным</td><td>Не среднее остальных</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 8 -->
+<section class="stage" id="s8" aria-labelledby="h8s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>SIS</b><i>08</i></div>
+    <div><p class="eyebrow">Этап 8 · <code>domain/advisory/gate.py</code></p><h2 id="h8s">Gate: единственное место, где план объявляют допустимым</h2></div></div>
+  <p class="intro">Каждое обязательное условие проверяется в каждой точке траектории. Плохо в 1 ч и хорошо к 3 ч — не проходит. <span class="pill bad">unknown</span> блокирует так же, как <span class="pill bad">fail</span>: непроверенное условие не считается выполненным.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 760 362" role="img" aria-label="Матрица проверок: 11 условий на 7 точках времени, у плана hold в примере все пройдены; ниже три проверки на весь план">
+      <text x="200" y="22" class="lbl">время, ч</text>
+      <g class="mono">
+        <text x="250" y="44" text-anchor="middle" class="mono">0</text><text x="310" y="44" text-anchor="middle" class="mono">0.5</text><text x="370" y="44" text-anchor="middle" class="mono">1</text><text x="430" y="44" text-anchor="middle" class="mono">1.5</text><text x="490" y="44" text-anchor="middle" class="mono">2</text><text x="550" y="44" text-anchor="middle" class="mono">2.5</text><text x="610" y="44" text-anchor="middle" class="mono">3</text>
+      </g>
+      <path d="M20,54 H640" class="grid"/>
+      <g>
+        <text x="20" y="75">сера ≤ 10 мг/кг</text>
+        <text x="20" y="97">T95 ≤ 360 °C</text>
+        <text x="20" y="119">цетан ≥ 51</text>
+        <text x="20" y="141">плотность ≥ 820</text>
+        <text x="20" y="163">плотность ≤ 845</text>
+        <text x="20" y="193">уставки в диапазоне</text>
+        <text x="20" y="215">доли ≥ 0, сумма = 1</text>
+        <text x="20" y="237">присадка ≤ 3 %</text>
+        <text x="20" y="259">остатки ≥ 0, доступны</text>
+        <text x="20" y="281">отбор ≤ предела насоса</text>
+        <text x="20" y="303">в области модели</text>
+      </g>
+      <text x="650" y="120" class="lbl">качество</text>
+      <text x="650" y="136" class="lbl">35 проверок</text>
+      <text x="650" y="244" class="lbl">надёжность</text>
+      <text x="650" y="260" class="lbl">71 проверка</text>
+      <path d="M20,176 H640" class="grid"/>
+      <!-- cells: 7 x 11 -->
+      <g class="okfill">
+        <rect x="243" y="64" width="14" height="14"/><rect x="303" y="64" width="14" height="14"/><rect x="363" y="64" width="14" height="14"/><rect x="423" y="64" width="14" height="14"/><rect x="483" y="64" width="14" height="14"/><rect x="543" y="64" width="14" height="14"/><rect x="603" y="64" width="14" height="14"/>
+        <rect x="243" y="86" width="14" height="14"/><rect x="303" y="86" width="14" height="14"/><rect x="363" y="86" width="14" height="14"/><rect x="423" y="86" width="14" height="14"/><rect x="483" y="86" width="14" height="14"/><rect x="543" y="86" width="14" height="14"/><rect x="603" y="86" width="14" height="14"/>
+        <rect x="243" y="108" width="14" height="14"/><rect x="303" y="108" width="14" height="14"/><rect x="363" y="108" width="14" height="14"/><rect x="423" y="108" width="14" height="14"/><rect x="483" y="108" width="14" height="14"/><rect x="543" y="108" width="14" height="14"/><rect x="603" y="108" width="14" height="14"/>
+        <rect x="243" y="130" width="14" height="14"/><rect x="303" y="130" width="14" height="14"/><rect x="363" y="130" width="14" height="14"/><rect x="423" y="130" width="14" height="14"/><rect x="483" y="130" width="14" height="14"/><rect x="543" y="130" width="14" height="14"/><rect x="603" y="130" width="14" height="14"/>
+        <rect x="243" y="152" width="14" height="14"/><rect x="303" y="152" width="14" height="14"/><rect x="363" y="152" width="14" height="14"/><rect x="423" y="152" width="14" height="14"/><rect x="483" y="152" width="14" height="14"/><rect x="543" y="152" width="14" height="14"/><rect x="603" y="152" width="14" height="14"/>
+        <rect x="243" y="182" width="14" height="14"/><rect x="303" y="182" width="14" height="14"/><rect x="363" y="182" width="14" height="14"/><rect x="423" y="182" width="14" height="14"/><rect x="483" y="182" width="14" height="14"/><rect x="543" y="182" width="14" height="14"/><rect x="603" y="182" width="14" height="14"/>
+        <rect x="243" y="204" width="14" height="14"/><rect x="303" y="204" width="14" height="14"/><rect x="363" y="204" width="14" height="14"/><rect x="423" y="204" width="14" height="14"/><rect x="483" y="204" width="14" height="14"/><rect x="543" y="204" width="14" height="14"/><rect x="603" y="204" width="14" height="14"/>
+        <rect x="243" y="226" width="14" height="14"/><rect x="303" y="226" width="14" height="14"/><rect x="363" y="226" width="14" height="14"/><rect x="423" y="226" width="14" height="14"/><rect x="483" y="226" width="14" height="14"/><rect x="543" y="226" width="14" height="14"/><rect x="603" y="226" width="14" height="14"/>
+        <rect x="243" y="248" width="14" height="14"/><rect x="303" y="248" width="14" height="14"/><rect x="363" y="248" width="14" height="14"/><rect x="423" y="248" width="14" height="14"/><rect x="483" y="248" width="14" height="14"/><rect x="543" y="248" width="14" height="14"/><rect x="603" y="248" width="14" height="14"/>
+        <rect x="243" y="270" width="14" height="14"/><rect x="303" y="270" width="14" height="14"/><rect x="363" y="270" width="14" height="14"/><rect x="423" y="270" width="14" height="14"/><rect x="483" y="270" width="14" height="14"/><rect x="543" y="270" width="14" height="14"/><rect x="603" y="270" width="14" height="14"/>
+        <rect x="243" y="292" width="14" height="14"/><rect x="303" y="292" width="14" height="14"/><rect x="363" y="292" width="14" height="14"/><rect x="423" y="292" width="14" height="14"/><rect x="483" y="292" width="14" height="14"/><rect x="543" y="292" width="14" height="14"/><rect x="603" y="292" width="14" height="14"/>
+      </g>
+      <path d="M20,318 H640" class="grid"/>
+      <text x="20" y="342">на весь план:</text>
+      <text x="120" y="342" class="sub">сетка 0–3 ч без дыр · шаг ≤ 1 ч · конечный запас ≥ 1 ч выпуска</text>
+    </svg>
+    </div>
+    <figcaption>Матрица плана hold в примере 05.01: все клетки зелёные, в итоге 35 проверок качества и 71 надёжности пройдены. Ближе всего к пределу: сера 5.11 при 10 на 3 ч, T95 351.4 при 360, цетан 51.65 при 51.</figcaption>
+  </figure>
+</section>
+
+<!-- 9 -->
+<section class="stage" id="s9" aria-labelledby="h9s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>AG</b><i>09</i></div>
+    <div><p class="eyebrow">Этап 9 · <code>application/use_cases/make_decision.py</code></p><h2 id="h9s">Валидаторы качества и надёжности: вето меняет следующий поиск</h2></div></div>
+  <p class="intro">В коде это классы <code>QualityAgent</code> и <code>ReliabilityAgent</code> в <code>make_decision.py</code>, но это не LLM-агенты, а детерминированные валидаторы. Валидатор качества читает только проверки Gate <code>quality.*</code>, валидатор надёжности — <code>outflow</code>, <code>control</code>, <code>inventory</code>, <code>additive</code>. Сами они ничего не вычисляют: если Gate пропустил план, их вердикт всегда <code>pass</code>. Их роль — превратить отказы Gate в семейства вето для следующего раунда. Сломанный или неполный ответ превращается в <code>unknown</code>, а не в тихий пропуск. LLM-агенты — отдельный слой, этап 10а.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 262" role="img" aria-label="Цикл: оптимизатор, расчёт и gate, агенты качества и надёжности, проверка есть ли допустимые; да — ранжирование, нет — семейства вето превращаются в запрет и новые кандидаты для следующего раунда">
+      <defs>
+        <marker id="m5" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker>
+        <marker id="m5m" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahm"/></marker>
+      </defs>
+      <rect x="20" y="90" width="170" height="60" rx="3" class="box"/>
+      <text x="105" y="115" text-anchor="middle">Оптимизатор</text>
+      <text x="105" y="136" text-anchor="middle" class="mono sultx">200 из 400</text>
+      <path d="M190,120 H238" class="pipe" marker-end="url(#m5)"/>
+
+      <rect x="240" y="90" width="170" height="60" rx="3" class="box"/>
+      <text x="325" y="115" text-anchor="middle">Цепочка + Gate</text>
+      <text x="325" y="136" text-anchor="middle" class="sub">каждый план</text>
+      <path d="M410,108 L458,62" class="pipe" marker-end="url(#m5)"/>
+      <path d="M410,132 L458,176" class="pipe" marker-end="url(#m5)"/>
+
+      <rect x="460" y="30" width="180" height="56" rx="3" class="box"/>
+      <text x="550" y="53" text-anchor="middle">Валидатор качества</text>
+      <text x="550" y="74" text-anchor="middle" class="mono sultx">вето 0</text>
+      <rect x="460" y="150" width="180" height="56" rx="3" class="box"/>
+      <text x="550" y="173" text-anchor="middle">Валидатор надёжности</text>
+      <text x="550" y="194" text-anchor="middle" class="mono sultx">вето 107</text>
+      <path d="M640,62 L688,108" class="pipe" marker-end="url(#m5)"/>
+      <path d="M640,176 L688,132" class="pipe" marker-end="url(#m5)"/>
+
+      <rect x="690" y="90" width="150" height="60" rx="3" class="box"/>
+      <text x="765" y="115" text-anchor="middle">Допустимые есть?</text>
+      <text x="765" y="136" text-anchor="middle" class="mono sultx">93</text>
+      <path d="M840,120 H868" class="pipe" marker-end="url(#m5)"/>
+      <text x="854" y="112" text-anchor="middle" class="lbl">да</text>
+      <rect x="870" y="90" width="115" height="60" rx="3" class="okbox"/>
+      <text x="927" y="125" text-anchor="middle" class="oktx">к выбору</text>
+
+      <path d="M765,150 V240 H105 V152" class="ret" marker-end="url(#m5m)"/>
+      <text x="775" y="186" class="lbl">нет</text>
+      <text x="435" y="232" text-anchor="middle" class="lbl">семейство вето → запрет в поиске + скорректированные кандидаты · раунд 2, 3</text>
+    </svg>
+    </div>
+    <figcaption>Жёлтые цифры — пример 05.01: в первом раунде проверено 200 планов, 93 допустимы, поэтому второй раунд не понадобился. Остальные 107 Gate отклонил за отбор выше предела и запасы (<code>outflow</code> + <code>inventory</code>); валидатор надёжности лишь повторил эти отказы. Выходов уставок за диапазон не было: счётчик <code>control</code> в <code>veto_families</code> (1468) — артефакт кода: отказы валидатора надёжности записываются в семейство <code>control</code>.</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Семейство вето</th><th>Запрет в следующем раунде</th><th>Как меняются кандидаты</th></tr></thead>
+    <tbody>
+      <tr><td class="num">quality</td><td>усилить качество смеси</td><td>рецепт → 100 % самого малосернистого доступного резервуара</td></tr>
+      <tr><td class="num">inventory, outflow</td><td>снизить отбор из резервуара</td><td>выпуск × 0.5; планы с отбором выше предела насоса отбрасываются до расчёта</td></tr>
+      <tr><td class="num">control</td><td>остаться в диапазоне уставок</td><td>уставки прижимаются к [min, max]</td></tr>
+      <tr><td class="num">additive</td><td>снизить дозу присадки</td><td>планы с присадкой исключаются</td></tr>
+      <tr><td class="num">model</td><td>остаться в области применимости</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Если новый запрет не сузил поиск, цикл останавливается: повтор того же набора был бы театром. Планы с одинаковым содержимым не считаются дважды, бюджет общий на все раунды.</p>
+</section>
+
+<!-- 10 -->
+<section class="stage" id="s10" aria-labelledby="h10s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>RNK</b><i>10</i></div>
+    <div><p class="eyebrow">Этап 10 · <code>rank</code>, <code>_look_ahead</code>, <code>RobustnessCheck</code></p><h2 id="h10s">Выбор, взгляд за горизонт и повторная проверка</h2></div></div>
+  <p class="intro">Недопустимый план не участвует в сравнении ни с какими весами. Среди допустимых порядок жёсткий:</p>
+  <div class="chain-k" aria-label="Ключ ранжирования">
+    <span>больше выпуск</span><em>→</em><span>меньше цена за тонну</span><em>→</em><span>меньше тяжесть режима</span><em>→</em><span>меньше изменений</span><em>→</em><span>id</span>
+  </div>
+  <div class="io">
+    <div><h4>Правило hold</h4><ul><li>При том же выпуске изменение должно экономить ≥ 5 % цены hold</li><li>Иначе режим сохраняется: не дёргать установку ради мелочи</li><li>В примере лучший допустимый кандидат <code>c0126</code> дешевле hold на 3.7 % (1.05 против 1.09) при том же выпуске 300 т — ниже порога 5 %, поэтому hold</li></ul></div>
+    <div><h4>Упреждение за горизонтом</h4><ul><li>Выбранный план продлевается на 48 ч: последний шаг держится, приток — свойства конца горизонта</li><li>Нарушение раньше 12 ч → ищется допустимый план, отодвигающий его (до 40 кандидатов)</li><li>Не нашёлся — план выдаётся с предупреждением; gate не ослабляется</li></ul></div>
+    <div><h4>Перепроверка и устойчивость</h4><ul><li>Выбранный план заново проходит тот же Gate и оба валидатора; не прошёл → <code>refuse final_recheck_failed</code></li><li>8 отклонений по одному: сера нефти ±10 %, отклик ГО −20 %, лаг +50 %, сера резерва +50 %, сера main +10 %, запас резерва −20 %, доля серы АВТ +10 %</li><li>Не держит хоть одно → «хрупкий»: план всё равно выдаётся, но с предупреждением, а не отказом</li></ul></div>
+  </div>
+  <div class="example">
+    <p class="eyebrow">Пример · 05.01.2026 08:00</p>
+    <dl>
+      <div><dt>Выбран</dt><dd>hold</dd></div>
+      <div><dt>За горизонтом 48 ч</dt><dd>нарушений нет</dd></div>
+      <div><dt>Перепроверка</dt><dd><span class="pill ok">pass</span> 35 + 71</dd></div>
+      <div><dt>Устойчивость</dt><dd>8 из 8</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- 10a -->
+<section class="stage" id="llm" aria-labelledby="hllm">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>LLM</b><i>10а</i></div>
+    <div><p class="eyebrow">Этап 10а · только при <code>AGENTIC_DECISION_ENABLED=1</code> · <code>application/agentic/</code></p><h2 id="hllm">LLM-агенты: второе мнение над готовым решением</h2></div></div>
+  <p class="intro">Этот слой запускается, когда этапы 1–10 уже дали решение. Он ничего не прогнозирует и не считает: три агента на языковой модели выбирают детерминированные инструменты, спорят о кандидатах и могут только <b>сузить</b> выбор. Итог снова проходит тот же код этапа 10 и ещё одну независимую проверку Gate. Любой сбой модели возвращает решение этапов 1–10 без изменений. По умолчанию флаг выключен, и этого этапа нет.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 340" role="img" aria-label="Слой LLM-агентов: готовое решение и оценённые планы попадают в сессию, оркестратор на LLM вызывает инструменты и агентов качества и надёжности, завершает действием finalize; код разрешает выбор среди допустимых, повторяет выпуск с Gate и устойчивостью, выполняет независимую проверку; сбой модели ведёт к решению без изменений">
+      <defs>
+        <marker id="m7" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker>
+        <marker id="m7b" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahb"/></marker>
+      </defs>
+      <text x="20" y="18" class="band">LLM РАССУЖДАЕТ И ВЫБИРАЕТ ИНСТРУМЕНТЫ</text>
+      <rect x="20" y="30" width="180" height="62" rx="3" class="box"/>
+      <text x="110" y="55" text-anchor="middle">Решение этапов 1–10</text>
+      <text x="110" y="76" text-anchor="middle" class="sub">200 планов с Gate</text>
+      <path d="M200,61 H228" class="pipe" marker-end="url(#m7)"/>
+
+      <rect x="230" y="30" width="170" height="62" rx="3" class="box"/>
+      <text x="315" y="55" text-anchor="middle">Сессия</text>
+      <text x="315" y="76" text-anchor="middle" class="sub">shortlist ≤ 5 кандидатов</text>
+      <path d="M400,61 H438" class="pipe" marker-end="url(#m7)"/>
+
+      <rect x="440" y="30" width="200" height="62" rx="3" class="llm"/>
+      <text x="540" y="55" text-anchor="middle" class="llmtx">OrchestratorAgent</text>
+      <text x="540" y="76" text-anchor="middle" class="sub">LLM · ≤ 5 шагов</text>
+      <path d="M640,52 H718" class="pipe" marker-end="url(#m7)"/>
+      <path d="M720,72 H642" class="pipe" marker-end="url(#m7)"/>
+      <text x="680" y="46" text-anchor="middle" class="lbl">вызов</text>
+      <text x="680" y="88" text-anchor="middle" class="lbl">JSON</text>
+
+      <rect x="720" y="30" width="260" height="62" rx="3" class="box"/>
+      <text x="850" y="55" text-anchor="middle">Инструменты</text>
+      <text x="850" y="76" text-anchor="middle" class="sub">детерминированные · allowlist · схема</text>
+
+      <path d="M500,92 V128" class="pipe" marker-end="url(#m7)"/>
+      <path d="M580,92 V128" class="pipe" marker-end="url(#m7)"/>
+      <rect x="400" y="130" width="160" height="56" rx="3" class="llm"/>
+      <text x="480" y="153" text-anchor="middle" class="llmtx">QualityAgent</text>
+      <text x="480" y="173" text-anchor="middle" class="sub">LLM · ≤ 3 вызова</text>
+      <rect x="570" y="130" width="170" height="56" rx="3" class="llm"/>
+      <text x="655" y="153" text-anchor="middle" class="llmtx">ReliabilityAgent</text>
+      <text x="655" y="173" text-anchor="middle" class="sub">LLM · ≤ 3 вызова</text>
+      <path d="M740,158 H800 V94" class="pipe" marker-end="url(#m7)"/>
+      <text x="808" y="130" class="lbl">свои инструменты</text>
+      <text x="570" y="206" text-anchor="middle" class="lbl">мнение: ACCEPT · REVISE · REJECT · UNKNOWN + ограничения + ссылки на данные</text>
+
+      <path d="M440,78 H420 V110 H110 V246" class="pipe" marker-end="url(#m7)"/>
+      <text x="270" y="126" text-anchor="middle" class="mono">finalize</text>
+
+      <text x="20" y="236" class="band">КОД РЕШАЕТ И ПРОВЕРЯЕТ</text>
+      <rect x="20" y="248" width="220" height="70" rx="3" class="box"/>
+      <text x="130" y="270" text-anchor="middle">Разрешение</text>
+      <text x="130" y="289" text-anchor="middle" class="sub">Gate ∩ ограничения − вето</text>
+      <text x="130" y="306" text-anchor="middle" class="sub">выбор делает rank()</text>
+      <path d="M240,283 H268" class="pipe" marker-end="url(#m7)"/>
+      <rect x="270" y="248" width="200" height="70" rx="3" class="box"/>
+      <text x="370" y="270" text-anchor="middle">release (этап 10)</text>
+      <text x="370" y="289" text-anchor="middle" class="sub">упреждение · Gate</text>
+      <text x="370" y="306" text-anchor="middle" class="sub">устойчивость</text>
+      <path d="M470,283 H498" class="pipe" marker-end="url(#m7)"/>
+      <rect x="500" y="248" width="170" height="70" rx="3" class="box"/>
+      <text x="585" y="270" text-anchor="middle">Независимая проверка</text>
+      <text x="585" y="289" text-anchor="middle" class="sub">свежий планировщик</text>
+      <text x="585" y="306" text-anchor="middle" class="sub">Gate FAIL → refuse</text>
+      <path d="M670,283 H718" class="pipe" marker-end="url(#m7)"/>
+      <rect x="720" y="248" width="260" height="70" rx="3" class="okbox"/>
+      <text x="850" y="276" text-anchor="middle" class="oktx">hold · recommend · refuse</text>
+      <text x="850" y="298" text-anchor="middle" class="sub">+ блок agentic: trace, мнения, бюджет</text>
+
+      <path d="M740,186 V226 H900 V246" class="refuse" marker-end="url(#m7b)"/>
+      <text x="895" y="241" text-anchor="end" class="badtx">сбой LLM → решение без изменений</text>
+    </svg>
+    </div>
+    <figcaption>Жёлтый пунктир — вызовы языковой модели. Всё остальное — детерминированный код. Бюджет одного решения: не больше 12 вызовов модели, 2 консультации у каждого специалиста, 1 новый поиск, 2 запуска проверки устойчивости, 600 с.</figcaption>
+  </figure>
+  <div class="io">
+    <div><h4>Инструменты агентов</h4><ul><li><b>Оркестратор:</b> <code>inspect_candidate</code>, <code>compare_candidates</code>, <code>ask_quality_agent</code>, <code>ask_reliability_agent</code>, <code>search_candidates</code>, <code>rank_allowed</code>, <code>finalize</code></li><li><b>Качество:</b> запасы до пределов, траектория свойства, прогноз и доверие к данным, резервуары, упреждение, устойчивость, эффект температуры ГО</li><li><b>Надёжность:</b> текущий режим, изменения уставок, близость к границам, загрузка отбора, запасы, итог Gate, устойчивость, упреждение</li></ul></div>
+    <div><h4>Что агент может</h4><ul><li>Выбирать следующий инструмент по результатам предыдущих</li><li>Наложить вето на кандидата (REJECT со ссылкой на полученные данные)</li><li>Сузить поиск закрытым списком: запас качества, число изменений, без присадки, загрузка отбора, только постоянные планы, время до нарушения, только устойчивые</li><li>Завершить: <code>select</code>, <code>keep_legacy</code>, <code>refuse</code></li></ul></div>
+    <div><h4>Что не может</h4><ul><li>Считать свойства и объявлять план допустимым</li><li>Менять пределы, диапазоны, сценарий — таких инструментов нет</li><li>Выбрать план вне допустимых — такой выбор отклоняется, остаётся решение этапов 1–10</li><li>Переупорядочить допустимые — порядок задаёт <code>rank()</code></li><li>Отказать без обоснованного REJECT специалиста</li></ul></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Сценарий (демо-политика, не LLM)</th><th>Решение этапов 1–10</th><th>После слоя</th><th>Путь агентов</th></tr></thead>
+    <tbody>
+      <tr><td class="num">baseline</td><td>hold</td><td>hold · <span class="pill ok">confirmed_legacy</span></td><td>качество: запасы → ACCEPT; надёжность: изменения → ACCEPT</td></tr>
+      <tr><td class="num">sour_crude</td><td>recommend c0025, 180 т, хрупкий</td><td>recommend c0030, 150 т · <span class="pill llm">selected</span></td><td>качество: запасы → прогноз, резервуары → REVISE (запас серы) → новый поиск → ранжирование → надёжность: изменения → устойчивость</td></tr>
+      <tr><td class="num">no_feasible</td><td>refuse</td><td>refuse · <span class="pill ok">confirmed_legacy</span></td><td>новый поиск → ранжирование (пусто) → keep_legacy</td></tr>
+    </tbody>
+  </table></div>
+  <div class="example">
+    <p class="eyebrow">Живые запуски · Z.AI Coding Plan · glm-5.3-flash · baseline · 16.09.2026</p>
+    <dl>
+      <div><dt>Запуск 1</dt><dd>ошибка провайдера <code>quota</code> · 1 вызов</dd></div>
+      <div><dt>Запуск 2, вызовов</dt><dd>7 · задержка 10–45 с</dd></div>
+      <div><dt>Токены</dt><dd>18 768 + 6 818</dd></div>
+      <div><dt>Итог обоих</dt><dd>hold · Gate PASS</dd></div>
+    </dl>
+    <p>Во втором запуске модель действительно работала как агент. Оркестратор сам решил спросить агента качества о hold и двух альтернативах. Агент качества вызвал сравнение, запасы, упреждение, резервуары и проверку устойчивости и вернул ACCEPT с числами из этих инструментов. Агент надёжности не успел закончить: исчерпан бюджет времени 180 с (после этого поднят до 600 с). Оба раза итоговым стало решение этапов 1–10. Полного живого прохода до <code>finalize</code> пока нет. Демонстрация в таблице выше — заранее написанная политика (<code>provider=scripted</code>), а не модель.</p>
+  </div>
+  <p class="note">Условия Z.AI Coding Plan ограничивают использование ключа поддерживаемыми инструментами для разработки; риск принят сознательно. На заводе нужна локальная OpenAI-совместимая модель: адаптер для неё есть, облака и интернета она не требует.</p>
+</section>
+
+<!-- 11 -->
+<section class="stage" id="s11" aria-labelledby="h11s">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>OUT</b><i>11</i></div>
+    <div><p class="eyebrow">Этап 11 · <code>_finish</code>, <code>explain</code></p><h2 id="h11s">Решение: три возможных исхода и полный журнал</h2></div></div>
+  <div class="statuses">
+    <div style="--c:var(--pipe)"><h3>hold</h3><p>Выбранный план не меняет ничего. Текущий режим проходит все проверки, либо польза изменения ниже 5 %.</p></div>
+    <div style="--c:var(--ok)"><h3>recommend_scenario</h3><p>Ближайшее действие и план по времени. Совет не считается исполненным, пока оператор не подтвердит.</p></div>
+    <div style="--c:var(--bad)"><h3>refuse</h3><p>Причина и чего не хватает: <code>data</code>, <code>no_feasible_plan</code> или <code>final_recheck_failed</code>. Только в агентном режиме — ещё <code>agent_rejected</code>.</p></div>
+  </div>
+  <div class="io">
+    <div><h4>В JSON решения</h4><ul><li><code>status</code>, <code>reason</code>, <code>immediate_action</code>, <code>selected_plan</code></li><li><code>gate</code> со всеми проверками, <code>alternatives</code>, <code>rejected</code></li><li><code>trace</code> агентов, <code>lookahead</code>, <code>robustness</code></li><li><code>decision_id</code> = sha256 содержимого</li><li>В агентном режиме — дополнительный ключ <code>agentic</code> (trace, мнения, бюджет); добавляется после <code>decision_id</code></li></ul></div>
+    <div><h4>Для оператора</h4><ul><li>Экран: что делать, запас до предела, план по времени, остатки, альтернативы, журнал</li><li>Объяснение: каждое утверждение со ссылкой на проверку gate или поле сценария</li></ul></div>
+    <div><h4>Всегда</h4><ul><li><code>commercial_release_allowed = false</code></li><li><code>scope</code>: сценарный результат</li><li>Пишется в <code>artifacts/decision-&lt;время&gt;.json</code></li></ul></div>
+  </div>
+  <div class="example">
+    <p class="eyebrow">Пример · 05.01.2026 08:00</p>
+    <dl>
+      <div><dt>status</dt><dd>hold</dd></div>
+      <div><dt>Уставки</dt><dd>740 · 372 · 348 · 256</dd></div>
+      <div><dt>Рецепт</dt><dd>main 0.9 · reserve 0.1</dd></div>
+      <div><dt>Выпуск за 3 ч</dt><dd>300 т</dd></div>
+      <div><dt>Цена</dt><dd>1.09 усл.ед./т</dd></div>
+      <div><dt>Тяжесть режима</dt><dd>0.0</dd></div>
+    </dl>
+    <p>«Текущий режим проходит все обязательные проверки; изменения не требуются».</p>
+  </div>
+</section>
+
+<!-- offline -->
+<section class="stage" id="offline" aria-labelledby="hoff">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>TRN</b><i>◇</i></div>
+    <div><p class="eyebrow">Вокруг контура · <code>neftecode train</code>, <code>infrastructure/ml/forecast.py</code></p><h2 id="hoff">Обучение offline: хронологические периоды без подглядывания</h2></div></div>
+  <p class="intro">Одна лабораторная проба — ровно одна строка. Редкие анализы не размножаются на 10-минутную сетку: иначе 1 458 измерений стали бы десятками тысяч зависимых строк. Для каждой пробы момент прогноза = время отбора − 2 ч, признаки — только доступное к этому моменту.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 150" role="img" aria-label="Периоды: обучение 2023–2024, 792 пробы; выбор модели 2025 первое полугодие, 193; калибровка интервала 2025 второе полугодие, 224; тест 2026 до августа, 249">
+      <rect x="40" y="40" width="504" height="44" class="pipefill"/>
+      <rect x="544" y="40" width="126" height="44" class="box"/>
+      <rect x="670" y="40" width="126" height="44" class="band-fill" style="stroke:var(--ink);stroke-width:1.3"/>
+      <rect x="796" y="40" width="151" height="44" class="box" style="stroke-dasharray:5 4"/>
+      <text x="292" y="67" text-anchor="middle">обучение · 792 пробы</text>
+      <text x="607" y="67" text-anchor="middle">выбор · 193</text>
+      <text x="733" y="67" text-anchor="middle">калибровка · 224</text>
+      <text x="871" y="67" text-anchor="middle">тест · 249</text>
+      <path d="M40,96 H947" class="axis"/>
+      <path d="M40,96 V102 M292,96 V102 M544,96 V102 M796,96 V102" class="axis"/>
+      <text x="40" y="118" text-anchor="middle" class="mono">2023</text>
+      <text x="292" y="118" text-anchor="middle" class="mono">2024</text>
+      <text x="544" y="118" text-anchor="middle" class="mono">2025</text>
+      <text x="796" y="118" text-anchor="middle" class="mono">2026</text>
+      <text x="947" y="118" text-anchor="middle" class="mono">08.2026</text>
+      <text x="40" y="142" class="lbl">граница по времени доступности цели: проба + 4 ч должна попасть внутрь периода</text>
+    </svg>
+    </div>
+    <figcaption>В масштабе по месяцам. Тест 2026 года уже просмотрен, поэтому последующие доработки нельзя называть проверенными на слепом тесте.</figcaption>
+  </figure>
+  <div class="io">
+    <div><h4>Вход</h4><ul><li>Те же четыре файла</li><li><code>config/experiment.json</code>: границы периодов, покрытие 0.9</li></ul></div>
+    <div><h4>Что происходит</h4><ul><li>Защита от утечки: признак-проба не позже целевой</li><li>last_lab, last_pak, ridge, catboost, catboost_no_pak</li><li>Выбор по MAE на validation + парный бутстреп</li><li>Радиус интервала — на calibration</li><li>Отдельно T95 и детектор риска превышения</li></ul></div>
+    <div><h4>Выход</h4><ul><li><code>model.pkl</code>: модели, выбранная и запасная, радиусы</li><li><code>manifest.json</code>: хеши исходников, кода, зависимостей</li><li><code>report.md</code>, <code>metrics.json</code>, <code>predictions.csv</code></li></ul></div>
+  </div>
+  <p class="note">Отдельно, вне <code>src</code>: исследуется модель отклика S(t+3 ч | ΔT) = baseline + β·ΔT по температуре на входе реактора (<code>RESPONSE_MODEL_FINAL.md</code>). Она ответила бы на вопрос «что если сдвинуть уставку» на реальных данных; в код решения пока не внесена.</p>
+</section>
+
+<!-- services -->
+<section class="stage" id="services" aria-labelledby="hsvc">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>HTTP</b><i>◇</i></div>
+    <div><p class="eyebrow">Вокруг контура · <code>src/neftecode/services/</code></p><h2 id="hsvc">Процессы: четыре сервиса, одно ядро</h2></div></div>
+  <p class="intro">CLI собирает всё в одном процессе. Флаг агентного режима читает только <code>decision</code>: <code>main()</code> передаёт фабрику из окружения. <code>neftecode-stack</code> запускает те же части отдельными процессами, которые общаются только JSON по HTTP и не импортируют друг друга. Без агентного флага всё локально, без интернета.</p>
+  <figure>
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 1000 236" role="img" aria-label="Браузер обращается к gateway на порту 8765; gateway берёт сценарии у data на 8766 и просит решение у decision на 8768 через /v1/decisions; decision для живого совета берёт сценарий и snapshot у data и прогноз у model на 8767; при включённом флаге decision обращается к внешнему LLM-провайдеру">
+      <defs><marker id="m6" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker></defs>
+      <rect x="20" y="96" width="130" height="56" rx="3" class="soft"/>
+      <text x="85" y="120" text-anchor="middle">Браузер</text>
+      <text x="85" y="140" text-anchor="middle" class="sub">экран оператора</text>
+      <path d="M150,124 H208" class="pipe" marker-end="url(#m6)"/>
+
+      <rect x="210" y="96" width="170" height="56" rx="3" class="box"/>
+      <text x="295" y="120" text-anchor="middle" class="mono">gateway :8765</text>
+      <text x="295" y="140" text-anchor="middle" class="sub">HTML, /api/*</text>
+      <path d="M380,124 H448" class="pipe" marker-end="url(#m6)"/>
+      <text x="414" y="88" text-anchor="middle" class="mono">/v1/decisions</text>
+
+      <rect x="450" y="96" width="190" height="56" rx="3" class="box"/>
+      <text x="545" y="120" text-anchor="middle" class="mono">decision :8768</text>
+      <text x="545" y="140" text-anchor="middle" class="sub">/v1/decisions · /v1/live/advice</text>
+
+      <path d="M295,96 V36 H718" class="pipe" marker-end="url(#m6)"/>
+      <text x="500" y="30" text-anchor="middle" class="mono">/v1/scenarios · /v1/scenarios/get</text>
+      <path d="M545,96 V62 H718" class="pipe" marker-end="url(#m6)"/>
+      <text x="632" y="84" text-anchor="middle" class="mono">scenarios/get · snapshots</text>
+      <path d="M545,152 V194 H718" class="pipe" marker-end="url(#m6)"/>
+      <text x="632" y="188" text-anchor="middle" class="mono">/v1/forecast</text>
+
+      <rect x="720" y="20" width="260" height="56" rx="3" class="box"/>
+      <text x="850" y="43" text-anchor="middle" class="mono">data :8766</text>
+      <text x="850" y="63" text-anchor="middle" class="sub">task/, сценарии, snapshot + trust</text>
+      <path d="M470,152 L412,184" class="ret"/>
+      <rect x="210" y="176" width="200" height="50" rx="3" class="llm"/>
+      <text x="310" y="197" text-anchor="middle" class="llmtx">LLM-провайдер (флаг)</text>
+      <text x="310" y="216" text-anchor="middle" class="sub">Z.AI · OpenAI-совм. · Anthropic</text>
+      <rect x="720" y="166" width="260" height="56" rx="3" class="box"/>
+      <text x="850" y="189" text-anchor="middle" class="mono">model :8767</text>
+      <text x="850" y="209" text-anchor="middle" class="sub">model.pkl, проверка хешей snapshot</text>
+    </svg>
+    </div>
+    <figcaption>Snapshot несёт <code>snapshot_id</code> = SHA-256 содержимого; model-service сверяет хеш, время и полный набор признаков, прежде чем считать прогноз. Evaluation (<code>benchmark</code>, <code>vak</code>, <code>episodes</code>) остаётся batch-командами вне стека. Gateway не запрашивает живой совет: он передаёт в <code>/v1/decisions</code> сценарий и синтетическое состояние со сбоем, выбранным на странице. Живой совет — <code>/v1/live/advice</code> у decision напрямую или <code>neftecode advise</code>. Сеть наружу нужна только агентному режиму с облачным провайдером; без флага всё работает offline.</figcaption>
+  </figure>
+</section>
+
+<!-- audit -->
+<section class="stage" id="audit" aria-labelledby="haud">
+  <div class="stage-head"><div class="inst" aria-hidden="true"><b>✓</b><i>ауд</i></div>
+    <div><p class="eyebrow">Аудит страницы · 16.09.2026 · коммит <code>2b55c33</code></p><h2 id="haud">Что сверено с кодом и данными, что исправлено</h2></div></div>
+  <p class="intro">Каждое число и правило на странице сверено с кодом, конфигурацией, <code>artifacts/metrics.json</code> и пересчётом решения на 05.01.2026 08:00 текущим кодом: <code>neftecode advise</code> выдал тот же <code>decision_id 086b5119b1dbe2f4</code>, что и сохранённый артефакт. Полный набор тестов — 1101 passed.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Было на странице</th><th>Как на самом деле</th><th>Источник</th></tr></thead>
+    <tbody>
+      <tr><td>Слоя LLM-агентов нет</td><td class="fix">Добавлен этап 10а и блок на общей схеме: слой необязательный, флаг выключен по умолчанию</td><td><code>application/agentic/</code>, <code>infrastructure/agentic/factory.py</code></td></tr>
+      <tr><td>«Агенты» качества и надёжности на этапе 9</td><td class="fix">Это детерминированные валидаторы по проверкам Gate, без LLM; при пройденном Gate их вердикт всегда pass</td><td><code>make_decision.py</code>, тест <code>test_the_legacy_review_vetoes_only_what_the_gate_already_rejects</code></td></tr>
+      <tr><td>107 планов отклонены «за выход уставок, отбор и запасы»</td><td class="fix">Все 107 отклонены Gate за отбор и запасы (<code>outflow</code> + <code>inventory</code>); выходов уставок нет; счётчик <code>control 1468</code> — артефакт записи вето</td><td>пересчёт сессии baseline; <code>_collect_vetoes</code></td></tr>
+      <tr><td>«Агент данных» с четырьмя статусами</td><td class="fix">Детерминированные правила; статус <code>suspect</code> объявлен, но не выставляется</td><td><code>application/services/trust.py</code></td></tr>
+      <tr><td>Hold: «пороговое правило дешевле на 3.7 %»</td><td class="fix">Дешевле на 3.7 % лучший допустимый кандидат <code>c0126</code> (1.05 против 1.09) при том же выпуске</td><td>пересчёт <code>rank</code> на baseline</td></tr>
+      <tr><td>Итоговые отказы: три вида</td><td class="fix">В агентном режиме добавляется <code>agent_rejected</code> и ключ <code>agentic</code> в JSON</td><td><code>application/agentic/decision.py</code></td></tr>
+      <tr><td>Gateway просит у decision живой совет</td><td class="fix">Gateway вызывает только <code>/v1/decisions</code> со сценарием и синтетическим состоянием; decision для живого совета ходит в data за <code>/v1/scenarios/get</code> и <code>/v1/snapshots</code></td><td><code>services/gateway_service.py</code>, <code>decision_service.py</code></td></tr>
+      <tr><td>Формула ГО без расхода</td><td class="fix">Добавлен множитель <code>(Q/256)^0.7</code>; на схеме он равен 1</td><td><code>domain/production/process.py</code>, <code>baseline.json</code></td></tr>
+      <tr><td>Прогноз питает приток на весь горизонт</td><td class="fix">Прогноз строится на t + 2 ч; удержание на 3 ч и 48 ч — допущение (указано на этапе 5)</td><td><code>config/experiment.json</code>, <code>bind_forecast</code></td></tr>
+    </tbody>
+  </table></div>
+  <p class="eyebrow" style="margin-top:18px">Как проводился аудит — шаги по порядку</p>
+  <ol class="audit-steps">
+    <li>Прочитал страницу целиком (11 этапов, обучение, сервисы) и выписал каждое число и правило.</li>
+    <li>Пересчитал пример текущим кодом: <code>neftecode advise --at 2026-01-05T08:00:00</code> в отдельную папку. Сравнил с <code>artifacts/decision-20260105-080000.json</code> — решение совпало полностью (<code>decision_id 086b5119b1dbe2f4</code>). Из пересчёта взял источники, прогноз, привязку, раунды, проверки Gate, упреждение и устойчивость.</li>
+    <li>Сверил правила среза и доверия с <code>infrastructure/data/data.py</code> и <code>application/services/trust.py</code>.</li>
+    <li>Сверил выбор модели и периоды с <code>artifacts/metrics.json</code>, теги — с заголовками CSV.</li>
+    <li>Сверил коэффициенты цепочки, резервуары, пределы и политику с <code>config/scenarios/baseline.json</code> и <code>domain/production/process.py</code>.</li>
+    <li>Пересчитал сессию baseline: причины отказа 107 планов по семействам проверок и ранжирование hold против лучшего кандидата.</li>
+    <li>Сверил маршруты сервисов с <code>services/gateway_service.py</code> и <code>decision_service.py</code>.</li>
+    <li>Добавил на страницу то, чего не было: слой LLM-агентов (этап 10а, блок на общей схеме, провайдер на схеме сервисов), новый вид отказа и ключ <code>agentic</code>, этот список шагов.</li>
+    <li>Исправил неточности (таблица выше), проверил разметку и посмотрел страницу в браузере.</li>
+  </ol>
+  <div class="tbl"><table>
+    <thead><tr><th>Подтверждено без изменений</th><th>Источник</th></tr></thead>
+    <tbody>
+      <tr><td>71 тег АВТ и 26 тегов 24-2000; ЛИМС — колонки CQ:CR; 307 — в 64 из 71 тега АВТ</td><td>заголовки CSV, <code>data.py</code>, <code>requirements-map.md</code></td></tr>
+      <tr><td>Срез: ffill 20 мин, окно 6 ч, зависание при размахе ≤ 1e-6 за 1 ч, конфликт &gt; max(3; 0.5·ЛИМС), история 72 ч</td><td><code>infrastructure/data/data.py</code></td></tr>
+      <tr><td>Пример 05.01: ЛИМС 6.80 (14 ч), ПАК 5.88 (0 мин), пропуски 0 %, основной ЛИМС, запасная модель не нужна</td><td>пересчёт <code>advise</code></td></tr>
+      <tr><td>Прогноз last_pak 5.88 [3.66; 9.17]; MAE 1.3241 и 1.3205 на 174 общих пробах; отрыв 0.27 %, CI [−0.125; 0.142]; периоды 792 / 193 / 224 / 249</td><td><code>artifacts/metrics.json</code>, пересчёт</td></tr>
+      <tr><td>Привязка: приток 9.17, сера содержимого 5.19; окно 42 ч, покрытие 50 %, ≥ 2 пробы ЛИМС, удержание до 48 ч</td><td>пересчёт, <code>advisor.py</code>, политика сценария</td></tr>
+      <tr><td>Кандидаты: шаги и диапазоны уставок, рецепт 0.05, выпуск −10 т/ч до 50 %, переходные 0.1–0.6, лаг ГО 2 ч, 200 из 400</td><td><code>optimizer.py</code>, <code>plan_operation.py</code>, <code>baseline.json</code></td></tr>
+      <tr><td>Gate: 35 проверок качества и 71 надёжности, всего 129; ближе всего к пределу сера 5.11 (3 ч), T95 351.4, цетан 51.65</td><td>пересчёт <code>advise</code></td></tr>
+      <tr><td>Упреждение 48 ч, запас реакции 12 ч, до 40 кандидатов; устойчивость 8 из 8; итог hold, 300 т, 1.09, тяжесть 0</td><td>пересчёт, <code>make_decision.py</code>, <code>robustness.py</code></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Что остаётся допущением, а не фактом завода: объёмы и свойства резервуаров, рецепт, коэффициенты откликов АВТ и ГО, пределы T95, цетанового числа и плотности, цены, запас реакции 12 ч. Модель отклика серы на температуру ГО по данным не встроена: смысл тегов T11 и F26 ждёт подтверждения организаторов. Польза LLM-агентов не измерена; проверено только то, что они не выпускают план без Gate и не ломают решение при сбое.</p>
+</section>
+
+<footer>
+  Составлено по коду и документам репозитория на коммите <code>23d5054</code>; проверено и дополнено на <code>2b55c33</code> (16.09.2026): <code>context/architecture.md</code>, <code>context/code-tour.md</code>, <code>context/services.md</code>, <code>plan/00–08</code>, <code>src/neftecode/**</code>, <code>artifacts/decision-20260105-080000.json</code>, <code>artifacts/metrics.json</code>, <code>artifacts/agent-demo.json</code>, <code>artifacts/agent-live-smoke.json</code>. Резервуары, цены, пределы T95/цетана и коэффициенты отклика — сценарные допущения, не данные завода.
+</footer>
+</main>
+</div>
