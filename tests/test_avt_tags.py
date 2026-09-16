@@ -94,9 +94,9 @@ def test_formula_groups_describe_the_expected_columns(tags):
     d15 = input_locations(parse_formula(*AVT_FORMULAS[0], "AVT6"), tags)
     assert d15["columns"] == ["К-2"]
     t50 = input_locations(parse_formula(*AVT_FORMULAS[4], "AVT6"), tags)
-    # F31 is signed on both columns; the map keeps the K-2 reading and says so in a note.
-    on_k2 = [tag for tag, place in t50["locations"].items() if place["column"] == "К-2"]
-    assert on_k2 == ["F31"] and "К-10" in tags["F31"]["note"]
+    # The official T50 of 2026-09-16 reads F31, T33 and T66 on K-2; F31 on K-10 was a scheme error (575).
+    on_k2 = sorted(tag for tag, place in t50["locations"].items() if place["column"] == "К-2")
+    assert on_k2 == ["F31", "T33", "T66"] and "575" in tags["F31"]["note"]
 
 
 def test_hydrotreating_formulas_get_no_invented_location(tags):
@@ -106,13 +106,13 @@ def test_hydrotreating_formulas_get_no_invented_location(tags):
 
 def test_report_carries_locations_only_when_a_map_is_given(tags):
     rows = [(AVT_FORMULAS[0][0], AVT_FORMULAS[0][1], "AVT6")]
-    signals = pd.DataFrame({"avt.F30": [1.0], "avt.F32": [1.0], "avt.T66": [1.0], "avt.T33": [1.0]},
+    signals = pd.DataFrame({"avt.F30": [1.0], "avt.F32": [1.0], "avt.T66": [1.0], "avt.T33": [1.0], "avt.F65": [1.0]},
                            index=pd.DatetimeIndex(["2025-01-01"]))
     without = check_all(rows, {}, signals)
     assert "input_locations" not in without["formulas"]["AVT6:240-350:D15"]
     with_map = check_all(rows, {}, signals, tag_map=tags)
     located = with_map["formulas"]["AVT6:240-350:D15"]["input_locations"]
-    assert located["locations"]["F30"]["controlled_by_legend"] is True
+    assert located["locations"]["F65"]["controlled_by_legend"] is True
 
 
 # --- T46: AVT formulas against AVT laboratory points, bound by process position ---
@@ -124,6 +124,7 @@ from neftecode.infrastructure.data.vak_workbooks import read_avt_points  # noqa:
 def _avt_case(noise=0.0):
     times = pd.date_range("2025-01-01", periods=60, freq="6h")
     frame = pd.DataFrame({"avt.F30": [100.0 + i for i in range(60)], "avt.F32": [80.0] * 60,
+                          "avt.F65": [790.0 + 3 * i for i in range(60)],
                           "avt.T66": [250.0] * 60, "avt.T33": [338.0] * 60}, index=times)
     formula = parse_formula(*AVT_FORMULAS[0], "AVT6")
     from neftecode.evaluation.vak import evaluate
