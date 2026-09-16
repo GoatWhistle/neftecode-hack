@@ -101,6 +101,10 @@ def _minimal_root(tmp_path):
     scenario_dir.joinpath("baseline.json").write_bytes(
         (ROOT / "config" / "scenarios" / "baseline.json").read_bytes()
     )
+    # Gateway грузит пороги доверия при старте: без experiment.json корень неполон.
+    tmp_path.joinpath("config", "experiment.json").write_bytes(
+        (ROOT / "config" / "experiment.json").read_bytes()
+    )
     artifacts = tmp_path / "artifacts"
     artifacts.mkdir()
     manifest = {"fingerprint": "stack-smoke"}

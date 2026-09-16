@@ -930,7 +930,10 @@ CLI-команд, HTTP-контрактов и JSON решений четырё�
   `ht_response_beta` (derived → C2), `ht_flow_response` (open), `f15_scale` (по итогу исследования).
 
 ### T83. Единый источник правил доверия (A)
-- **Статус:** в работе. `train` пишет C1; `load_trust_rules(root, out)` — experiment.json + оверлей C1 с `origin`; подключить в
+- **Статус:** готово. **Результат:** `train` пишет `artifacts/source_rules.json` (C1); `infrastructure/config/trust_rules.py::load_trust_rules`
+  накладывает его на `experiment.json` и возвращает `origin`; `run_demo_decision` требует `trust_cfg`; gateway шлёт `trust_config` в
+  `/v1/decisions`, data-service берёт пороги через `load_trust_rules`; `rule_origin` на экране и в `scenes.json`. Проверено: ЛИМС 500 ч
+  в демо ⇒ непригоден (было `ok`); золотые хэши не изменились; 1129 passed (+14). `train` пишет C1; `load_trust_rules(root, out)` — experiment.json + оверлей C1 с `origin`; подключить в
   `composition/decision.py`, `commands/screens.py`, gateway (`trust_config` в теле `/v1/decisions`), `decision_service.py`,
   `data_service.py`; `rule_origin` на экране; `package.sh`. Тесты: ЛИМС 500 ч в демо ⇒ непригоден; origin с/без C1.
   Хэши сценариев не меняются. **Коммит:** `feat: применять пороги доверия из данных во всех контурах`.

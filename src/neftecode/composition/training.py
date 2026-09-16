@@ -3,6 +3,7 @@ import pickle
 
 from neftecode.composition.demo import make_demo
 from neftecode.infrastructure.artifacts import fingerprint, write_json
+from neftecode.infrastructure.config.trust_rules import write_source_rules
 from neftecode.infrastructure.data.data import derive_source_rules, load_sources, make_dataset
 from neftecode.infrastructure.data.quality import read_quality_series, report as quality_report
 from neftecode.infrastructure.ml.forecast import run_experiment
@@ -70,5 +71,7 @@ def train(root, out, cfg):
     predictions.to_csv(out / "predictions.csv", index=False)
     write_json(out / "metrics.json", summary)
     write_json(out / "manifest.json", manifest)
+    # Те же пороги для демо и сервисов без model.pkl в памяти (артефакт C1).
+    write_source_rules(out, rules, cfg, manifest["fingerprint"])
     print(f"Выбран по validation: {summary['selected']}", flush=True)
     make_demo(root, out)

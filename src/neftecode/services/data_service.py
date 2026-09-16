@@ -11,6 +11,7 @@ import pandas as pd
 
 from neftecode.infrastructure.data.data import build_features, load_sources, recent_quality_history
 from neftecode.application.services.trust import DataTrustAgent
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from .common import Request, ServiceError, ServiceSettings, serve, clean, content_hash
 
 
@@ -20,6 +21,7 @@ class DataService:
         self.artifacts = Path(artifacts).resolve()
         self._sources_cache = None
         self._config_cache = None
+        self._trust_origin = None
         self._lock = Lock()
 
     @property
@@ -43,16 +45,20 @@ class DataService:
         return clean(value)
 
     def _config(self) -> dict:
+        """experiment.json с наложенными порогами из artifacts/source_rules.json, если он есть."""
         if self._config_cache is None:
-            path = self.root / "config" / "experiment.json"
             try:
-                value = json.loads(path.read_text(encoding="utf-8"))
+                value, origin = load_trust_rules(self.root, self.artifacts)
             except (OSError, json.JSONDecodeError) as exc:
                 raise ServiceError("Конфигурация эксперимента недоступна", 503, "config_unavailable", retryable=True) from exc
-            if not isinstance(value, dict):
-                raise ServiceError("Конфигурация эксперимента некорректна", 503, "invalid_config")
-            self._config_cache = value
+            except ValueError as exc:
+                raise ServiceError(f"Конфигурация порогов доверия некорректна: {exc}", 503, "invalid_config") from exc
+            self._config_cache, self._trust_origin = value, origin
         return self._config_cache
+
+    def trust_origin(self) -> str:
+        self._config()
+        return self._trust_origin
 
     def _sources(self):
         if self._sources_cache is None:
@@ -116,7 +122,7 @@ class DataService:
         schema = [{"name": str(name), "type": str(features[name].dtype)} for name in features.columns]
         result = {"schema_version": "v1", "at": when.isoformat(), "state": state,
                   "trust": clean(trust), "features": feature_map,
-                  "trust_config": clean(cfg),
+                  "trust_config": clean(cfg), "trust_origin": self.trust_origin(),
                   "source_period": source_period, "feature_schema": schema,
                   "feature_schema_hash": content_hash(schema)}
         result["snapshot_id"] = content_hash(result)

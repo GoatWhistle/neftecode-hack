@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Callable
 
 
-DemoRunner = Callable[[dict, dict, int], dict]
+#: (сценарий, состояние, бюджет, пороги доверия; trust_origin=…) -> результат.
+DemoRunner = Callable[..., dict]
 
 #: What the jury may change, and where it lands in the scenario document.
 CHANGES = {
@@ -106,16 +107,20 @@ class Demo:
 
     raw: dict
     runner: DemoRunner
+    #: Пороги доверия к источникам — те же, что у сервисов и live-советчика (T83).
+    trust_cfg: dict
     budget: int = 400
+    trust_origin: str | None = None
     changes: list = field(default_factory=list)
 
     @classmethod
-    def from_path(cls, path, runner: DemoRunner, budget: int = 400) -> "Demo":
-        return cls(json.loads(Path(path).read_text()), runner, budget)
+    def from_path(cls, path, runner: DemoRunner, trust_cfg: dict, budget: int = 400,
+                  trust_origin: str | None = None) -> "Demo":
+        return cls(json.loads(Path(path).read_text()), runner, trust_cfg, budget, trust_origin)
 
     def reset(self) -> "Demo":
         """Back to the original conditions. Nothing accumulated is kept."""
-        return Demo(self.raw, self.runner, self.budget)
+        return Demo(self.raw, self.runner, self.trust_cfg, self.budget, self.trust_origin)
 
     def run(self, changes=(), fault: str = "healthy") -> dict:
         """Apply the changes to a fresh copy, then run the same core on the result."""
@@ -125,7 +130,7 @@ class Demo:
             raw = apply_change(raw, change["change"], change.get("value"), change.get("target"))
             applied.append(change)
         state = apply_source_failure(healthy_state(), fault)
-        result = self.runner(raw, state, self.budget)
+        result = self.runner(raw, state, self.budget, self.trust_cfg, trust_origin=self.trust_origin)
         return {**result, "applied": applied, "fault": fault,
                 "injection": state.get("injection"),
                 "note": (("Недопустимое изменение отклонено загрузчиком сценария, а не "

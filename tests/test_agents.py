@@ -6,10 +6,12 @@ from pathlib import Path
 import pytest
 
 from neftecode.bootstrap import make_demo, risk_alarm, run_demo_decision
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import LiveError, bind_forecast
 
 
 BASELINE = Path("config/scenarios/baseline.json")
+TRUST_CFG, _ = load_trust_rules(Path("."), Path("artifacts"))
 
 
 @pytest.fixture
@@ -35,7 +37,7 @@ def decide(raw, state, value, lower, upper, stored=None):
                 tank["sulfur_from_chain"] = False
                 tank["properties"]["sulfur_mgkg"] = {"value": stored, "unit": "мг/кг", "source": "scenario"}
     bound = bind_forecast(raw, forecast)
-    return run_demo_decision(bound, state, 400)["decision"]
+    return run_demo_decision(bound, state, 400, TRUST_CFG)["decision"]
 
 
 def test_normal_state_does_not_produce_unnecessary_actions(raw, state):
@@ -71,7 +73,7 @@ def test_invalid_forecast_cannot_reach_the_decision(raw, forecast):
 def test_no_data_refuses_before_the_optimizer(raw, state):
     broken = dict(state, lab_value=None, lab_usable=False, pak_value=None,
                   pak_usable=False, telemetry_missing_fraction=1.0)
-    decision = run_demo_decision(raw, broken, 400)["decision"]
+    decision = run_demo_decision(raw, broken, 400, TRUST_CFG)["decision"]
     assert decision["status"] == "refuse"
     assert not any(item.get("agent") == "optimizer" for item in decision["trace"])
 

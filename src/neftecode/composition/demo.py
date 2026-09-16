@@ -8,6 +8,7 @@ import pandas as pd
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.composition.decision import run_demo_decision
 from neftecode.infrastructure.artifacts import clean, write_json
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import bind_forecast
 from neftecode.presentation.reports.experiment import make_report
 
@@ -47,6 +48,13 @@ def make_demo(root, out):
                "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
                "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0,
                "origin": "synthetic_acceptance_test"}
+    # Пороги доверия одни для синтетических кейсов и повтора истории: model.pkl, иначе C1/experiment.json.
+    trust_cfg, _ = load_trust_rules(root, out)
+    model_path = out / "model.pkl"
+    if model_path.exists():
+        with model_path.open("rb") as stream:
+            bundle = pickle.load(stream)
+        trust_cfg = bundle.get("config", {})
     normal = bind_forecast(baseline, {
         "model": "synthetic", "value": 6.0, "lower": 4.0, "upper": 8.0,
         "available": True, "reason": "Синтетическая проверка механики решения",
@@ -64,30 +72,26 @@ def make_demo(root, out):
         "available": True, "reason": "Синтетическая проверка механики решения",
     })
     demos = {
-        "normal_synthetic": run_demo_decision(normal, healthy, 400)["decision"],
-        "conflict_synthetic": run_demo_decision(conflict, healthy, 400)["decision"],
+        "normal_synthetic": run_demo_decision(normal, healthy, 400, trust_cfg)["decision"],
+        "conflict_synthetic": run_demo_decision(conflict, healthy, 400, trust_cfg)["decision"],
         "missing_synthetic": run_demo_decision(
             baseline,
             dict(healthy, lab_value=None, lab_usable=False, pak_value=None, pak_usable=False,
                  telemetry_missing_fraction=1),
-            400,
+            400, trust_cfg,
         )["decision"],
         "no_feasible_synthetic": run_demo_decision(
-            json.loads((scenario_dir / "no_feasible.json").read_text()), healthy, 400
+            json.loads((scenario_dir / "no_feasible.json").read_text()), healthy, 400, trust_cfg
         )["decision"],
     }
     replay_rows = []
     if (out / "predictions.csv").exists():
         frame = pd.read_csv(out / "predictions.csv")
         summary = json.loads((out / "metrics.json").read_text())
-        model_cfg = {}
+        model_cfg = trust_cfg
         selected = summary["selected"]
         fallback_model = "catboost_no_pak"
-        model_path = out / "model.pkl"
         if model_path.exists():
-            with model_path.open("rb") as stream:
-                bundle = pickle.load(stream)
-            model_cfg = bundle.get("config", {})
             selected = bundle.get("selected", selected)
             fallback_model = bundle.get("fallback", fallback_model)
         unavailable = 0
@@ -110,7 +114,7 @@ def make_demo(root, out):
                                     "risk_alarm": risk_alarm(active_risk)})
                 continue
             raw = bind_forecast(baseline, forecast) if trust.usable else baseline
-            decision = run_demo_decision(raw, state, 400, trust_cfg=model_cfg)["decision"]
+            decision = run_demo_decision(raw, state, 400, model_cfg)["decision"]
             key = "historical_" + decision["status"]
             if key not in demos:
                 demos[key] = decision

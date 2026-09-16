@@ -22,6 +22,7 @@ from neftecode.application.use_cases.make_decision import AgentError, MakeDecisi
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
 from neftecode.application.use_cases.replay_decisions import ExecutionState, ReplayDecisions, ReplayError, SIMULATED
 from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.evaluation.robustness import RobustnessCheck
 
@@ -332,5 +333,5 @@ def test_each_scenario_matches_its_recorded_expectation():
 
 def test_the_demo_and_the_advisor_agree_on_the_same_conditions():
     scenario, decision = decide(BASELINE)
-    demo = Demo.from_path(BASELINE, run_demo_decision, budget=BUDGET).run()
+    demo = Demo.from_path(BASELINE, run_demo_decision, load_trust_rules(Path("."), Path("artifacts"))[0], budget=BUDGET).run()
     assert demo["decision"]["status"] == decision["status"]

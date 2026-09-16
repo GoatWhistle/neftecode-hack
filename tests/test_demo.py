@@ -6,16 +6,18 @@ from pathlib import Path
 import pytest
 
 from neftecode.bootstrap import run_demo_decision
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.presentation.demo import (CHANGES, SOURCE_FAULTS, Demo, DemoError, apply_change,
                                          apply_source_failure, healthy_state, scenes)
 
 BASELINE = Path("config/scenarios/baseline.json")
 BUDGET = 300
+TRUST_CFG, TRUST_ORIGIN = load_trust_rules(Path("."), Path("artifacts"))
 
 
 @pytest.fixture(scope="module")
 def demo():
-    return Demo.from_path(BASELINE, run_demo_decision, budget=BUDGET)
+    return Demo.from_path(BASELINE, run_demo_decision, TRUST_CFG, budget=BUDGET, trust_origin=TRUST_ORIGIN)
 
 
 def raw():

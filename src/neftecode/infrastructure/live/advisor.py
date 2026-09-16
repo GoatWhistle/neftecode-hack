@@ -54,7 +54,8 @@ class LocalSnapshotProvider:
         when = validate_origin(at, self.bundle)
         state = state_at(self.signals, self.lab, self.online, self.bundle, when)
         trust = DataTrustAgent(self.bundle["config"]).assess(state)
-        return LiveSnapshot(when.isoformat(), state, trust.to_dict(), trust_cfg=self.bundle["config"])
+        return LiveSnapshot(when.isoformat(), state, trust.to_dict(), trust_cfg=self.bundle["config"],
+                            trust_origin="derived:model.pkl")
 
 
 class LocalForecastProvider:
