@@ -1,5 +1,6 @@
 """The flag decides the path; off means the deterministic system exactly as before."""
 import json
+from pathlib import Path
 
 import pytest
 
@@ -12,11 +13,14 @@ from neftecode.composition.decision import run_demo_decision
 from neftecode.infrastructure.agentic import factory as factory_module
 from neftecode.infrastructure.agentic.factory import build_decision_factory
 from neftecode.infrastructure.config.scenario import parse_scenario
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.presentation.web.ui import Screen
 from neftecode.services.common import clean
 from neftecode.services.decision_service import DecisionService
 
 from _agentic_support import legacy_decide, raw
+
+TRUST_CFG, _ = load_trust_rules(Path("."), Path("artifacts"))
 
 FAKE_KEY = "sk-test-SECRET-123"
 
@@ -49,7 +53,7 @@ def test_suite_pins_the_deterministic_mode():
 
 def test_flag_off_demo_decision_is_byte_identical_to_legacy():
     document = raw("sour_crude")
-    result = run_demo_decision(document, {}, 400, decision_factory=build_decision_factory({"AGENTIC_DECISION_ENABLED": "0"}))
+    result = run_demo_decision(document, {}, 400, TRUST_CFG, decision_factory=build_decision_factory({"AGENTIC_DECISION_ENABLED": "0"}))
     assert result["decision"] == legacy_decide("sour_crude")
     assert "agentic" not in result["decision"]
 
@@ -58,7 +62,7 @@ def test_flag_on_with_scripted_provider_runs_the_agent_layer(tmp_path):
     factory = build_decision_factory({"AGENTIC_DECISION_ENABLED": "1", "LLM_PROVIDER": "scripted"},
                                      dotenv_path=tmp_path / "missing.env")
     assert factory.enabled and factory.llm.provider == "scripted" and factory.configuration_error is None
-    result = run_demo_decision(raw("sour_crude"), {}, 400, decision_factory=factory)
+    result = run_demo_decision(raw("sour_crude"), {}, 400, TRUST_CFG, decision_factory=factory)
     decision = result["decision"]
     assert decision["agentic"]["outcome"] == "selected"
     assert result["screen"]["status_label"]

@@ -56,7 +56,8 @@ def command_plan(args):
         [sys.executable, "-m", "neftecode.services.decision_service", "--host", host,
          "--port", str(ports["decision"]), "--data-url", urls["data"],
          "--model-url", urls["model"]],
-        [sys.executable, "-m", "neftecode.services.gateway_service", "--host", host,
+        [sys.executable, "-m", "neftecode.services.gateway_service", "--root", root,
+         "--artifacts", artifacts, "--host", host,
          "--port", str(ports["gateway"]), "--data-url", urls["data"],
          "--decision-url", urls["decision"]],
     ], urls

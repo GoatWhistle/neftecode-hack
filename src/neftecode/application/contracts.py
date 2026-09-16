@@ -70,6 +70,8 @@ class LiveSnapshot:
     feature_schema: Sequence[Mapping[str, object]] = ()
     feature_schema_hash: str | None = None
     schema_version: str = "v1"
+    #: Откуда пороги доверия: derived:model.pkl, derived:artifacts/source_rules.json или fallback:config/experiment.json.
+    trust_origin: str | None = None
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "LiveSnapshot":
@@ -79,6 +81,9 @@ class LiveSnapshot:
         feature_schema = raw.get("feature_schema") or ()
         if not isinstance(feature_schema, Sequence) or isinstance(feature_schema, (str, bytes)):
             raise ValueError("feature_schema должен быть списком")
+        trust_origin = raw.get("trust_origin")
+        if trust_origin is not None and not isinstance(trust_origin, str):
+            raise ValueError("trust_origin должен быть строкой или null")
         return cls(
             at=at,
             state=_mapping(raw, "state"),
@@ -90,6 +95,7 @@ class LiveSnapshot:
             feature_schema=tuple(feature_schema),
             feature_schema_hash=raw.get("feature_schema_hash"),
             schema_version=str(raw.get("schema_version", "v1")),
+            trust_origin=trust_origin,
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -97,7 +103,7 @@ class LiveSnapshot:
                 "features": dict(self.features or {}), "snapshot_id": self.snapshot_id,
                 "trust_config": dict(self.trust_cfg or {}), "source_period": dict(self.source_period or {}),
                 "feature_schema": list(self.feature_schema), "feature_schema_hash": self.feature_schema_hash,
-                "schema_version": self.schema_version}
+                "schema_version": self.schema_version, "trust_origin": self.trust_origin}
 
 
 @dataclass(frozen=True)

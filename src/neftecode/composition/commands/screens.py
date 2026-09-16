@@ -9,6 +9,7 @@ from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.presentation.demo import Demo, scenes as demo_scenes
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 
@@ -37,7 +38,8 @@ def screen(args, parser, root, out):
 
 def scenes(args, parser, root, out):
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
-    demo = Demo.from_path(scenario_path, run_demo_decision, budget=400)
+    trust_cfg, trust_origin = load_trust_rules(root, out)
+    demo = Demo.from_path(scenario_path, run_demo_decision, trust_cfg, budget=400, trust_origin=trust_origin)
     folder = out / "scenes"
     folder.mkdir(parents=True, exist_ok=True)
     index = []
@@ -51,7 +53,7 @@ def scenes(args, parser, root, out):
                       "page": str(page.relative_to(out))})
         print(f"  {scene['name']:48s} {status}")
     write_json(out / "scenes.json", {
-        "scenario": str(scenario_path), "scenes": index,
+        "scenario": str(scenario_path), "scenes": index, "trust_origin": trust_origin,
         "note": "Каждая сцена получена пересчётом через тот же загрузчик и то же ядро. "
                 "Инъекции отказов помечены как модельные."})
     print(f"Журнал: {out / 'scenes.json'}")

@@ -3,22 +3,28 @@ from __future__ import annotations
 
 import argparse
 import os
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 import json
 
 from neftecode.presentation.demo import SOURCE_FAULTS, healthy_state, apply_source_failure
 from neftecode.presentation.web.server import PAGE, CONTROLS_STYLE, defaults_for, changes_from, DemoServerError
 from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, Screen
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
 
 
 class GatewayService:
     def __init__(self, data_url="http://127.0.0.1:8766", decision_url="http://127.0.0.1:8768", timeout_s=10.0,
-                 decision_timeout_s=660.0):
+                 decision_timeout_s=660.0, root: str | Path = ".", artifacts: str | Path | None = None):
         self.data_url, self.decision_url = data_url.rstrip("/"), decision_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
         #: A decision with language model agents takes minutes, not seconds (AGENT_TIMEOUT_SECONDS + margin).
         self.decision_timeout_s = decision_timeout_s
+        #: Пороги доверия к источникам грузятся один раз при старте и уходят в каждое решение (T83).
+        root = Path(root)
+        self.trust_cfg, self.trust_origin = load_trust_rules(
+            root, Path(artifacts) if artifacts is not None else root / "artifacts")
 
     def scenarios(self, request_id="gateway"):
         return self.client.request("GET", self.data_url + "/v1/scenarios",
@@ -36,10 +42,12 @@ class GatewayService:
         state = apply_source_failure(healthy_state(), fault)
         changes = changes_from(values, raw)
         env = self.client.request("POST", self.decision_url + "/v1/decisions",
-                                  {"scenario": _changed(raw, changes), "state": state, "budget": 400},
+                                  {"scenario": _changed(raw, changes), "state": state, "budget": 400,
+                                   "trust_config": self.trust_cfg, "trust_origin": self.trust_origin},
                                   timeout_s=self.decision_timeout_s, headers={"X-Request-ID": request_id})
         result = env.data
-        screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", [])).payload()
+        screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", []),
+                        rule_origin=result.get("trust_origin", self.trust_origin)).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
         return screen
 
@@ -93,6 +101,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Нефтекод gateway service")
     parser.add_argument("--host", default=None); parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--data-url", default=None); parser.add_argument("--decision-url", default=None)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--artifacts", type=Path, default=Path("artifacts"))
     args = parser.parse_args(argv); env = ServiceSettings.from_env("NEFTECODE_GATEWAY_", ServiceSettings(port=8765))
     settings = ServiceSettings(host=args.host or env.host, port=args.port or env.port,
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
@@ -100,7 +110,8 @@ def main(argv=None):
                                 max_response_bytes=env.max_response_bytes)
     service = GatewayService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                              args.decision_url or os.getenv("NEFTECODE_DECISION_URL", "http://127.0.0.1:8768"), settings.request_timeout_s,
-                             float(os.getenv("NEFTECODE_GATEWAY_DECISION_TIMEOUT_S", "660")))
+                             float(os.getenv("NEFTECODE_GATEWAY_DECISION_TIMEOUT_S", "660")),
+                             root=args.root, artifacts=args.artifacts)
     return serve(service.routes(), settings, service.ready, "gateway-service")
 
 

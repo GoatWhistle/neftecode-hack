@@ -136,7 +136,8 @@ function render() {
 
   body += card("Доверие к данным", `<table>${rows((data.sources || []).map(
     s => [s.name, s.usable ? "пригоден" : `<span class="unknown">${esc(s.reasons.join("; ") || s.status)}</span>`]))}</table>`
-    + (data.sources && data.sources.length ? "" : `<p class="note">Состояние источников не передавалось: решение получено на сценарных условиях.</p>`));
+    + (data.sources && data.sources.length ? "" : `<p class="note">Состояние источников не передавалось: решение получено на сценарных условиях.</p>`)
+    + (data.rule_origin ? `<p class="note">Пороги доверия: ${esc(data.rule_origin)}</p>` : ""));
 
   body += card("Технические подробности", `
     <details><summary>Журнал агентов</summary><pre>${esc(JSON.stringify(d.trace, null, 2))}</pre></details>
@@ -183,6 +184,8 @@ class Screen:
     explanation: dict
     inventories: dict | None = None
     sources: list | None = None
+    #: Откуда пороги доверия: derived:… (обучение) или fallback:… (config/experiment.json).
+    rule_origin: str | None = None
     title: str = "Советчик оператору цепочки АВТ → гидроочистка → смешение"
 
     def payload(self) -> dict:
@@ -197,6 +200,7 @@ class Screen:
             "explanation": self.explanation,
             "inventories": self.inventories or {},
             "sources": self.sources or [],
+            "rule_origin": self.rule_origin,
         }
 
 

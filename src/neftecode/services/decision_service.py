@@ -90,7 +90,8 @@ class DecisionService:
             raise ServiceError("Тело запроса должно быть JSON-объектом", 400, "invalid_body")
         return request.body
 
-    def _decision(self, raw: dict, state: dict | None, budget: int) -> dict:
+    def _decision(self, raw: dict, state: dict | None, budget: int, trust_cfg: dict | None = None,
+                  trust_origin: str | None = None) -> dict:
         try:
             scenario = parse_scenario(raw)
         except (ScenarioError, ValueError, TypeError) as exc:
@@ -100,11 +101,15 @@ class DecisionService:
         evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
         maker = (MakeDecision(scenario, robustness_evaluator=evaluator) if self.decision_factory is None
                  else self.decision_factory(scenario, evaluator))
-        decision = maker.decide(state=state or {}, budget=budget, raw_scenario=raw)
-        trust = DataTrustAgent({}).assess(state or {})
+        # Пороги доверия присылает клиент (gateway грузит их из C1/experiment.json); без них — пустой конфиг,
+        # что оставлено только для обратной совместимости старых клиентов.
+        trust_cfg = trust_cfg or {}
+        decision = maker.decide(state=state or {}, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
+        trust = DataTrustAgent(trust_cfg).assess(state or {})
         return {"decision": clean(decision), "explanation": clean(explain(decision, scenario)),
                 "inventories": {key: value.inventory_t for key, value in initial_state(scenario).items()},
-                "sources": [clean(source.to_dict()) for source in trust.sources.values()]}
+                "sources": [clean(source.to_dict()) for source in trust.sources.values()],
+                "trust_origin": trust_origin}
 
     def decide(self, request: Request):
         body = self._body(request)
@@ -113,7 +118,12 @@ class DecisionService:
             raise ServiceError("Нужно передать scenario", 400, "invalid_scenario")
         if state is not None and not isinstance(state, dict):
             raise ServiceError("state должен быть JSON-объектом", 400, "invalid_state")
-        return self._decision(raw, state, body.get("budget", 400))
+        trust_cfg, trust_origin = body.get("trust_config"), body.get("trust_origin")
+        if trust_cfg is not None and not isinstance(trust_cfg, dict):
+            raise ServiceError("trust_config должен быть JSON-объектом", 400, "invalid_trust_config")
+        if trust_origin is not None and not isinstance(trust_origin, str):
+            raise ServiceError("trust_origin должен быть строкой", 400, "invalid_trust_origin")
+        return self._decision(raw, state, body.get("budget", 400), trust_cfg, trust_origin)
 
     def live(self, request: Request):
         body = self._body(request)

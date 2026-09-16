@@ -37,7 +37,7 @@ def test_gateway_legacy_decide_matches_local_decision():
     )
     decision, decision_thread = start(decision_service, "decision-service")
     gateway_service = GatewayService(
-        f"http://127.0.0.1:{data.server_port}", f"http://127.0.0.1:{decision.server_port}", timeout_s=20,
+        f"http://127.0.0.1:{data.server_port}", f"http://127.0.0.1:{decision.server_port}", timeout_s=20, root=ROOT,
     )
     gateway, gateway_thread = start(gateway_service, "gateway-service", make_gateway_handler)
     try:
@@ -48,8 +48,15 @@ def test_gateway_legacy_decide_matches_local_decision():
                                    "lab_age_hours": 5.0, "lab_usable": True, "pak_value": 8.4,
                                    "pak_age_minutes": 10.0, "pak_usable": True, "pak_frozen": False,
                                    "pak_conflict": False, "telemetry_missing_fraction": 0.0,
-                                   "origin": "synthetic_scenario_state"}, 400)
+                                   "origin": "synthetic_scenario_state"}, 400, gateway_service.trust_cfg)
         assert payload["decision"]["decision_id"] == local["decision"]["decision_id"]
+        assert payload["rule_origin"] == gateway_service.trust_origin
+        # Пороги gateway доходят до decision service: устаревшая ЛИМС отвергается по возрасту, а не только по флагу.
+        status, stale = get(gateway, "/api/decide?scenario=baseline&fault=stale_lab")
+        assert status == 200
+        lims = next(source for source in stale["sources"] if source["name"] == "ЛИМС")
+        assert lims["usable"] is False
+        assert any("старше допустимых 48" in reason for reason in lims["reasons"])
         assert get(gateway, "/v1/capabilities")[0] == 200
     finally:
         for server, thread in ((gateway, gateway_thread), (decision, decision_thread), (data, data_thread)):
