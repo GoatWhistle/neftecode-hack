@@ -20,6 +20,8 @@ import math
 
 from neftecode.domain.shared.primitives import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
 from .plan_operation import PlanOperation, PlannerError
+from neftecode.domain.advisory.optimizer import rank
+from neftecode.domain.advisory.response_guard import moves_temperature, weak_response_raw
 from neftecode.domain.production.scenario import Scenario
 from neftecode.application.contracts import DataRejection, DecisionCommand, DecisionResult
 from neftecode.application.ports import RobustnessEvaluator
@@ -227,9 +229,7 @@ class MakeDecision:
                 "reliability_vetoed": sum(1 for r in reviews if r["reliability"]["verdict"] == "fail"),
                 "candidate_ids": [p.plan_id for p in search_plans[:20]],
             })
-            from neftecode.domain.advisory.optimizer import rank
-            last_result = rank(feasible or evaluations, hold_id="hold",
-                               min_useful_gain=float(self.scenario.policy.get("min_useful_gain", 0.0)))
+            last_result = rank(feasible or evaluations, hold_id="hold", min_useful_gain=self._min_useful_gain())
             if feasible:
                 selected = last_result
                 selected_plan_obj = by_id.get(selected.get("selected", {}).get("candidate_id"))
@@ -282,6 +282,31 @@ class MakeDecision:
                                  "examples": list(final.gate.rejection_reasons())[:5]},
                                 current_operation=current_operation)
 
+        # 3b. Weak edge of the data-driven response: a plan that moves the reactor-inlet temperature
+        #     must also pass the gate with the slope as weak as the study allows for the next half-year.
+        #     A plan that fails there is vetoed, not merely called fragile; the remaining feasible plans
+        #     are ranked again. Holds and plans without a temperature move are not affected.
+        guard = self._weak_response_guard(chosen, confirmed, raw_scenario, initial_tanks, current_operation, lookahead)
+        if guard is not None:
+            trace.append({"agent": "response_guard", "stage": "final", **guard})
+            if guard["outcome"] == "violated":
+                vetoed = chosen.plan_id
+                remaining = [e for e in feasible if e.candidate.candidate_id != vetoed]
+                remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed}
+                ranked = rank(remaining, hold_id="hold", min_useful_gain=self._min_useful_gain()) if remaining else None
+                if ranked is not None and ranked.get("selected") is not None:
+                    next_id = ranked["selected"]["candidate_id"]
+                    return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
+                                        confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
+                                        initial_tanks=initial_tanks, current_operation=current_operation)
+                return self._finish(REFUSE,
+                                    "Ход температуры не выдерживает слабый край отклика по данным, других "
+                                    "допустимых планов нет: решение не выдаётся",
+                                    trace, None, None,
+                                    {"kind": "weak_response_failed", "plan_id": vetoed,
+                                     "examples": list(guard.get("violations", ()))[:5]},
+                                    current_operation=current_operation)
+
         # 4. Robustness: a plan that only holds when every coefficient is exactly right is
         #    reported as fragile rather than released as reliable.
         robustness = None
@@ -318,6 +343,54 @@ class MakeDecision:
                            initial_tanks=command.initial_tanks,
                            current_operation=command.current_operation,
                            data_rejection=command.data_rejection)
+
+    def _min_useful_gain(self) -> float:
+        return float(self.scenario.policy.get("min_useful_gain", 0.0))
+
+    def _weak_response_guard(self, plan, confirmed, raw_scenario, initial_tanks, current_operation,
+                             lookahead: dict | None = None) -> dict | None:
+        """Gate verdict for `plan` with the data-driven slope at its weak edge (`weak_strong[0]`).
+
+        The gate runs over the case horizon and, when the look-ahead is on, over the same extended horizon:
+        a temperature move justified by pushing a violation past the reaction window must still do so at the
+        weak edge. None when there is nothing to check: no raw scenario, no parser, or the slope is not from data.
+        """
+        parser = getattr(self.robustness_evaluator, "scenario_parser", None)
+        if raw_scenario is None or parser is None:
+            return None
+        weak = weak_response_raw(raw_scenario)
+        if weak is None:
+            return None
+        model = raw_scenario["stages"]["hydrotreating"]["model"]
+        entry = {"plan": plan.plan_id, "beta": model["beta_mgkg_per_c"], "beta_weak": model["weak_strong"][0]}
+        pending = self.planner.confirmed_with_operation(confirmed, current_operation)
+        if not moves_temperature(plan, self.planner.base_controls(), pending):
+            return {**entry, "outcome": "not_applicable",
+                    "reason": "план не меняет температуру входа реактора: слабый край отклика на него не действует"}
+        try:
+            planner = PlanOperation(parser(weak))
+            evaluation = planner.evaluate(plan, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
+        except (PlannerError, ValueError) as exc:
+            return {**entry, "outcome": "violated",
+                    "violations": [f"Проверка при слабом крае отклика не выполнена: {exc}"]}
+        if not evaluation.feasible or not self._review_passes(self._review(evaluation)):
+            return {**entry, "outcome": "violated", "violations": list(evaluation.gate.rejection_reasons())[:5]}
+        if lookahead and lookahead.get("available"):
+            hours, window = lookahead["lookahead_hours"], lookahead["min_reaction_hours"]
+            nominal = (lookahead.get("selected") or {}).get("hours_to_violation")
+            try:
+                weak_look = planner.lookahead(plan, hours, confirmed, initial_tanks, current_operation)
+            except (PlannerError, ValueError) as exc:
+                return {**entry, "outcome": "violated",
+                        "violations": [f"Расчёт за горизонтом при слабом крае отклика не выполнен: {exc}"]}
+            weak_hours = weak_look["hours_to_violation"]
+            entry.update(lookahead_hours_to_violation=nominal, weak_lookahead_hours_to_violation=weak_hours)
+            if weak_hours is not None and weak_hours < window and (nominal is None or nominal >= window):
+                name = str(weak_look["constraint"]).split(".", 1)[-1]
+                return {**entry, "outcome": "violated",
+                        "violations": [f"при слабом крае отклика {name} = {weak_look['observed']:.2f} выйдет за предел "
+                                       f"{weak_look['limit']:g} через {weak_hours:g} ч, раньше запаса реакции {window:g} ч"]}
+        return {**entry, "outcome": "holds", "violations": []}
 
     # --- Deterministic building blocks reused by the agent layer ---
 
