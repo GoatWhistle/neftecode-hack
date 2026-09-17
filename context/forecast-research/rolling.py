@@ -77,6 +77,81 @@ def catboost(cfg: dict[str, Any]) -> CatBoostRegressor:
     )
 
 
+def pak_lab_pairs(lab: pd.DataFrame, online: pd.DataFrame, delay_hours: float) -> pd.DataFrame:
+    """Pair each lab sample with the last PAK reading available at sample time.
+
+    This is deliberately the same 30-minute backward tolerance as ``pak_at_lab``
+    in ``build_features``.  A pair becomes usable only when the lab result does.
+    """
+    pak = online.set_index("time").value
+    pak.index = pd.DatetimeIndex(pak.index).as_unit("ns")
+    sample_times = pd.DatetimeIndex(lab.time).as_unit("ns")
+    pak_values = pak.reindex(
+        sample_times,
+        method="ffill",
+        tolerance=np.timedelta64(30, "m"),
+    ).to_numpy()
+    pairs = pd.DataFrame(
+        {
+            "sample_time": sample_times,
+            "available_time": sample_times + np.timedelta64(round(delay_hours * 3600), "s"),
+            "bias": lab.value.to_numpy() - pak_values,
+        }
+    )
+    return pairs.loc[np.isfinite(pairs.bias)].sort_values("available_time").reset_index(drop=True)
+
+
+def causal_bias_correction(
+    decision_times,
+    pairs: pd.DataFrame,
+    window: int,
+    min_pairs: int = 5,
+) -> np.ndarray:
+    """Median of the last ``window`` pairs known at each decision time."""
+    if window < min_pairs or min_pairs < 1:
+        raise ValueError("Окно поправки должно быть не меньше минимального числа пар")
+    times = pd.DatetimeIndex(decision_times)
+    order = np.argsort(times.to_numpy())
+    known = pairs.sort_values("available_time").reset_index(drop=True)
+    available = known.available_time.to_numpy(dtype="datetime64[ns]")
+    values = known.bias.to_numpy(float)
+    result = np.zeros(len(times), dtype=float)
+    right = 0
+    for position in order:
+        current = times[position].to_datetime64()
+        while right < len(known) and available[right] <= current:
+            right += 1
+        result[position] = float(np.median(values[max(0, right - window):right])) if right >= min_pairs else 0.0
+    return result
+
+
+def sign_changes(values) -> int:
+    signs = np.sign(np.asarray(values, float))
+    signs = signs[signs != 0]
+    return int(np.sum(signs[1:] != signs[:-1])) if len(signs) > 1 else 0
+
+
+def check_bias_causality(
+    decision_times,
+    pairs: pd.DataFrame,
+    windows: tuple[int, ...] = (10, 20, 40),
+) -> dict[str, Any]:
+    """Check that adding lab results available later cannot change b(t)."""
+    times = pd.DatetimeIndex(decision_times)
+    positions = np.unique(np.linspace(0, len(times) - 1, min(9, len(times)), dtype=int))
+    checked = 0
+    for position in positions:
+        at = times[position]
+        past = pairs.loc[pairs.available_time <= at]
+        for window in windows:
+            with_future = causal_bias_correction([at], pairs, window)[0]
+            without_future = causal_bias_correction([at], past, window)[0]
+            if not np.isclose(with_future, without_future, rtol=0, atol=0):
+                raise AssertionError(f"Будущая проба изменила поправку в {at} для N={window}")
+            checked += 1
+    return {"passed": True, "checked_time_window_pairs": checked}
+
+
 def fixed_split_check(base_cfg: dict[str, Any]) -> dict[str, Any]:
     """Reproduce the existing 2025-H1 validation comparison exactly.
 
@@ -190,6 +265,7 @@ def rolling_fold(
     cfg = {**base_cfg, **rules}
     x, meta = make_dataset(signals, lab, online, cfg)
     y = meta.actual_sulfur.to_numpy()
+    pairs = pak_lab_pairs(lab, online, cfg["lab_delay_hours"])
 
     fit = (meta.target_available_time < calibration_start).to_numpy()
     calibration = (
@@ -215,6 +291,11 @@ def rolling_fold(
         method: predict_candidate(bundle, method, x)
         for method in ("last_pak", "catboost_no_pak")
     }
+    corrections = {}
+    for window in (10, 20, 40):
+        method = f"last_pak_bc_n{window}"
+        corrections[method] = causal_bias_correction(meta.decision_time, pairs, window)
+        predictions[method] = np.maximum(0, predictions["last_pak"] + corrections[method])
     method_results = {}
     for method, prediction in predictions.items():
         radius = calibrate(y[calibration], prediction[calibration], cfg["interval_coverage"])
@@ -227,6 +308,26 @@ def rolling_fold(
         raise ValueError(f"{name}: недостаточно общих прогнозов")
     for method, prediction in predictions.items():
         method_results[method]["common_mae"] = float(np.mean(np.abs(y[common] - prediction[common])))
+    base_valid = evaluation & np.isfinite(predictions["last_pak"])
+    for method, correction in corrections.items():
+        valid = base_valid & np.isfinite(predictions[method])
+        method_results[method].update(
+            mean_bias_before=float(np.mean(y[valid] - predictions["last_pak"][valid])),
+            mean_bias_after=float(np.mean(y[valid] - predictions[method][valid])),
+            correction_mean=float(np.mean(correction[valid])),
+            correction_median=float(np.median(correction[valid])),
+            correction_sign_changes=sign_changes(correction[valid]),
+        )
+
+    rows = meta.loc[evaluation, ["decision_time", "target_time", "target_available_time", "actual_sulfur"]].copy()
+    rows.insert(0, "fold", name)
+    for method, prediction in predictions.items():
+        lower, upper = interval(prediction, method_results[method]["radius"])
+        rows[method] = prediction[evaluation]
+        rows[f"{method}_lower"] = lower[evaluation]
+        rows[f"{method}_upper"] = upper[evaluation]
+        if method in corrections:
+            rows[f"{method}_correction"] = corrections[method][evaluation]
     return {
         "fold": name,
         "start": start.isoformat(),
@@ -235,7 +336,9 @@ def rolling_fold(
         "counts": counts | {"common": int(common.sum())},
         "feature_counts": {"all": len(columns), "no_pak": len(no_pak)},
         "source_rules": {key: value for key, value in rules.items() if key != "source_rules"},
+        "bias_causality": check_bias_causality(meta.loc[evaluation, "decision_time"], pairs),
         "methods": method_results,
+        "_rows": rows,
     }
 
 
@@ -255,9 +358,14 @@ def aggregate(folds: list[dict[str, Any]]) -> dict[str, Any]:
         "mean_upper_margin",
         "upper_bound_recall",
         "upper_bound_false_alarm_rate",
+        "mean_bias_before",
+        "mean_bias_after",
+        "correction_mean",
+        "correction_median",
     )
     result = {}
-    for method in ("last_pak", "catboost_no_pak"):
+    methods = tuple(folds[0]["methods"])
+    for method in methods:
         result[method] = {
             key: mean(fold["methods"][method].get(key) for fold in folds)
             for key in keys
@@ -271,7 +379,58 @@ def aggregate(folds: list[dict[str, Any]]) -> dict[str, Any]:
         result[method]["total_evaluation"] = sum(
             fold["methods"][method]["n"] for fold in folds
         )
+        if all("correction_sign_changes" in fold["methods"][method] for fold in folds):
+            result[method]["correction_sign_changes"] = sum(
+                fold["methods"][method]["correction_sign_changes"] for fold in folds
+            )
     return result
+
+
+def paired_bootstrap_by_fold(
+    rows: pd.DataFrame,
+    candidate: str,
+    draws: int = 2000,
+    seed: int = 42,
+) -> dict[str, float | int]:
+    """Paired row bootstrap within each fold; folds retain equal weight."""
+    rng = np.random.default_rng(seed)
+    differences = np.zeros(draws, dtype=float)
+    fold_differences = []
+    for fold_name, fold in rows.groupby("fold", sort=False):
+        valid = fold[["actual_sulfur", "last_pak", candidate]].notna().all(axis=1)
+        actual = fold.loc[valid, "actual_sulfur"].to_numpy(float)
+        baseline_error = np.abs(actual - fold.loc[valid, "last_pak"].to_numpy(float))
+        candidate_error = np.abs(actual - fold.loc[valid, candidate].to_numpy(float))
+        if len(actual) < 30:
+            raise ValueError(f"{fold_name}: меньше 30 парных строк для bootstrap")
+        indices = rng.integers(0, len(actual), size=(draws, len(actual)))
+        differences += (candidate_error[indices].mean(axis=1) - baseline_error[indices].mean(axis=1)) / len(FOLDS)
+        fold_differences.append(float(candidate_error.mean() - baseline_error.mean()))
+    low, high = np.percentile(differences, [2.5, 97.5])
+    return {
+        "draws": draws,
+        "seed": seed,
+        "difference_candidate_minus_baseline": float(np.mean(fold_differences)),
+        "ci_low": float(low),
+        "ci_high": float(high),
+        "share_candidate_better": float(np.mean(differences < 0)),
+    }
+
+
+def selection_gate(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
+    conditions = {
+        "mean_exceed_at_most_005": candidate["exceed_upper"] <= 0.05,
+        "worst_fold_no_worse": candidate["worst_fold_exceed_upper"] <= baseline["worst_fold_exceed_upper"],
+        "width_or_closer_coverage": (
+            candidate["mean_upper_margin"] <= baseline["mean_upper_margin"]
+            or (
+                abs(candidate["exceed_upper"] - 0.05) < abs(baseline["exceed_upper"] - 0.05)
+                and candidate["mean_upper_margin"] <= 1.10 * baseline["mean_upper_margin"]
+            )
+        ),
+        "mae_within_5_percent": candidate["common_mae"] <= 1.05 * baseline["common_mae"],
+    }
+    return {"conditions": conditions, "eligible": all(conditions.values())}
 
 
 def fmt(value: float | None, digits: int = 3) -> str:
@@ -326,6 +485,63 @@ def render_markdown(result: dict[str, Any]) -> str:
             "",
         ]
     )
+    f2 = result["f2"]
+    lines.extend(
+        [
+            "## T105. Поправка смещения ПАК–ЛИМС",
+            "",
+            "Основной вариант использует медиану 20 последних пар, доступных к моменту решения;",
+            "N=10 и N=40 — только чувствительность. Будущие ЛИМС не меняют прошлую поправку:",
+            f"пройдено {f2['causality_checks']} проверок времени/окна плюс отдельный синтетический тест.",
+            "",
+            "| Складка | bias до → после | median b | смены знака | MAE N20 | exceed N20 | 2-side cov | upper margin | exceed N10 / N40 |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for fold in result["folds"]:
+        main = fold["methods"]["last_pak_bc_n20"]
+        n10 = fold["methods"]["last_pak_bc_n10"]
+        n40 = fold["methods"]["last_pak_bc_n40"]
+        lines.append(
+            f"| {fold['fold']} | {fmt(main['mean_bias_before'])} → {fmt(main['mean_bias_after'])} "
+            f"| {fmt(main['correction_median'])} | {main['correction_sign_changes']} "
+            f"| {fmt(main['common_mae'])} | {fmt(main['exceed_upper'])} "
+            f"| {fmt(main['interval_coverage'])} | {fmt(main['mean_upper_margin'])} "
+            f"| {fmt(n10['exceed_upper'])} / {fmt(n40['exceed_upper'])} |"
+        )
+    aggregate_result = result["aggregate"]
+    main = aggregate_result["last_pak_bc_n20"]
+    n10 = aggregate_result["last_pak_bc_n10"]
+    n40 = aggregate_result["last_pak_bc_n40"]
+    bootstrap = f2["bootstrap"]["last_pak_bc_n20"]
+    gate = f2["selection_gate_n20"]
+    verdict = (
+        "N=20 проходит предварительный протокол F0. Финальный выбор возможен только после F3–F4."
+        if gate["eligible"]
+        else "N=20 не проходит предварительный протокол F0; отрицательный результат сохраняется."
+    )
+    lines.extend(
+        [
+            f"| **Среднее/сумма** | **{fmt(main['mean_bias_before'])} → {fmt(main['mean_bias_after'])}** "
+            f"| **{fmt(main['correction_median'])}** | **{main['correction_sign_changes']}** "
+            f"| **{fmt(main['common_mae'])}** | **{fmt(main['exceed_upper'])}** "
+            f"| **{fmt(main['interval_coverage'])}** | **{fmt(main['mean_upper_margin'])}** "
+            f"| **{fmt(n10['exceed_upper'])} / {fmt(n40['exceed_upper'])}** |",
+            "",
+            f"Парный bootstrap MAE (кандидат − база): {bootstrap['difference_candidate_minus_baseline']:.3f} мг/кг, "
+            f"95% CI [{bootstrap['ci_low']:.3f}; {bootstrap['ci_high']:.3f}], "
+            f"доля выборок в пользу кандидата {bootstrap['share_candidate_better']:.3f}.",
+            "",
+            "Условия F0 для N=20: "
+            + ", ".join(f"{name}={'да' if passed else 'нет'}" for name, passed in gate["conditions"].items())
+            + ".",
+            verdict,
+            "",
+            "Полные результаты находятся в `rolling-f2.json`, строки прогнозов — в",
+            "`rolling-predictions.csv`.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -335,16 +551,27 @@ def main() -> None:
         raise ValueError("Граница разработки изменилась; протокол требует отдельного пересмотра")
     check = fixed_split_check(base_cfg)
     folds = [rolling_fold(name, start, end, base_cfg) for name, start, end in FOLDS]
+    rows = pd.concat([fold.pop("_rows") for fold in folds], ignore_index=True)
+    aggregate_result = aggregate(folds)
+    f2_methods = ("last_pak_bc_n10", "last_pak_bc_n20", "last_pak_bc_n40")
+    f2 = {
+        "causality_checks": sum(fold["bias_causality"]["checked_time_window_pairs"] for fold in folds),
+        "bootstrap": {method: paired_bootstrap_by_fold(rows, method) for method in f2_methods},
+        "selection_gate_n20": selection_gate(aggregate_result["last_pak_bc_n20"], aggregate_result["last_pak"]),
+        "sensitivity_only": ["last_pak_bc_n10", "last_pak_bc_n40"],
+    }
     result = {
-        "schema": "neftecode.forecast_rolling.baseline.v1",
+        "schema": "neftecode.forecast_rolling.f2.v1",
         "development_end_exclusive": DEVELOPMENT_END.isoformat(),
         "fixed_split_check": check,
         "folds": folds,
-        "aggregate": aggregate(folds),
+        "aggregate": aggregate_result,
+        "f2": f2,
     }
-    with (OUT_DIR / "rolling-baseline.json").open("w") as stream:
+    with (OUT_DIR / "rolling-f2.json").open("w") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2, allow_nan=False)
         stream.write("\n")
+    rows.to_csv(OUT_DIR / "rolling-predictions.csv", index=False)
     (OUT_DIR / "results.md").write_text(render_markdown(result), encoding="utf-8")
     print(render_markdown(result))
 
