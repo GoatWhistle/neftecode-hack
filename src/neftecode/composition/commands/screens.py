@@ -43,7 +43,7 @@ def scenes(args, parser, root, out):
     trust_cfg, trust_origin = load_trust_rules(root, out)
     snapshots = load_snapshots(out)
     demo = Demo.from_path(scenario_path, run_demo_decision, trust_cfg, budget=400, trust_origin=trust_origin,
-                          snapshots=snapshots, response_model=load_response_model(root))
+                          snapshots=snapshots, response_model=load_response_model(root, out))
     folder = out / "scenes"
     folder.mkdir(parents=True, exist_ok=True)
     index = []

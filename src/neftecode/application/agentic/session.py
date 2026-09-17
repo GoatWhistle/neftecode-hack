@@ -346,7 +346,7 @@ class DecisionSession:
                      "first_violation": (r.get("first_violation") or {}).get("constraint_id")}
                     for r in report["results"] if r["outcome"] == "violated"][:5]
         result = {"available": True, "held": report["held"], "evaluated": report["perturbations_evaluated"],
-                  "fragile": report["fragile"], "violated": violated}
+                  "not_applicable": report.get("not_applicable", 0), "fragile": report["fragile"], "violated": violated}
         self._robustness[candidate_id] = result
         return result
 

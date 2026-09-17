@@ -217,3 +217,65 @@ def test_when_every_plan_is_fragile_the_result_says_so():
 
 def test_without_feasible_plans_nothing_is_chosen():
     assert choose_robust([], {})["selected"] is None
+
+
+# --- Возмущения отклика и задержки действуют только на планы с ходом уставок ГО (T96) ---
+
+def _hold_and_moves(path):
+    scenario = load_scenario(path)
+    plans, _ = PlanOperation(scenario).build_plans(BUDGET)
+    base = PlanOperation(scenario).base_controls()
+    hold = next(p for p in plans if p.plan_id == "hold")
+    warmer = next(p for p in plans if len(p.steps) == 1 and p.steps[0].additive_dose == 0
+                  and p.steps[0].controls["ht_reactor_inlet_temp_c"] > base["ht_reactor_inlet_temp_c"] + 0.5)
+    blend_only = next(p for p in plans if len(p.steps) == 1 and p.plan_id != "hold"
+                      and all(abs(p.steps[0].controls[k] - v) < 1e-9 for k, v in base.items()))
+    return scenario, hold, warmer, blend_only
+
+
+def test_response_and_lag_perturbations_do_not_count_for_a_hold():
+    scenario, hold, _, blend_only = _hold_and_moves(BASELINE)
+    for plan in (hold, blend_only):
+        check = checker(scenario, raw(BASELINE)).run(plan)
+        skipped = {r["perturbation"]: r for r in check["results"] if r["outcome"] == "not_applicable"}
+        assert set(skipped) == {"отклик ГО слабее на 20%", "запаздывание отклика +50%"}
+        assert all("не действует" in r["reason"] for r in skipped.values())
+        assert check["not_applicable"] == 2
+        assert check["perturbations_declared"] == len(DEFAULT_PERTURBATIONS)
+        assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS) - 2
+        assert check["held"] + check["violated"] == check["perturbations_evaluated"]
+        assert check["share_holding"] == pytest.approx(check["held"] / check["perturbations_evaluated"])
+    assert any("неприменимо" in limit for limit in check["limits"])
+
+
+def test_a_temperature_move_is_still_checked_against_response_and_lag():
+    scenario, _, warmer, _ = _hold_and_moves(BASELINE)
+    check = checker(scenario, raw(BASELINE)).run(warmer)
+    assert check["not_applicable"] == 0
+    assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS)
+
+
+def test_a_confirmed_temperature_move_makes_the_perturbations_applicable_to_a_hold():
+    scenario, hold, _, _ = _hold_and_moves(BASELINE)
+    base = PlanOperation(scenario).base_controls()["ht_reactor_inlet_temp_c"]
+    check = checker(scenario, raw(BASELINE)).run(hold, confirmed=((-1.0, {"ht_reactor_inlet_temp_c": base + 1.0}),))
+    assert check["not_applicable"] == 0
+
+
+def test_data_driven_edges_are_inapplicable_to_a_hold_on_a_bound_scenario():
+    from neftecode.infrastructure.live.advisor import bind_forecast, bind_measurements
+    document = raw(BASELINE)
+    response = {"schema_version": "v1", "tag": "ht.T6", "flow_tag": "ht.F9", "tau": "2026-01-01", "window_months": 12,
+                "beta_mgkg_per_c": -0.4332, "ci": [-0.4761, -0.397], "envelope_dt_c": 2.0, "n_rows": 1, "method": "тест",
+                "drift": [], "flow_beta": None, "model_fingerprint": "x", "t6_range_c": [342.9, 386.1],
+                "f9_range_tph": [150.3, 256.7], "weak_strong": [-0.217, -0.739]}
+    measured = {tag: {"value": value, "time": "2026-01-05T08:00:00", "age_min": 0.0, "max_age_min": 30.0}
+                for tag, value in (("ht.T6", 367.8), ("ht.F9", 206.1), ("ht.F26", 244.1))}
+    forecast = {"model": "last_pak", "value": 6.0, "lower": 4.0, "upper": 9.0, "available": True, "reason": "тест"}
+    bound = bind_forecast(bind_measurements(document, measured, {"density_kgm3": 836.1}, response, forecast), forecast)
+    scenario = parse_scenario(bound)
+    hold = next(p for p in PlanOperation(scenario).build_plans(BUDGET)[0] if p.plan_id == "hold")
+    check = checker(scenario, bound).run(hold)
+    assert check["perturbations_declared"] == len(DEFAULT_PERTURBATIONS) + 2
+    assert check["not_applicable"] == 4
+    assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS) - 2

@@ -200,11 +200,17 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
                 f"За горизонтом {look.get('lookahead_hours'):g} ч нарушений качества при сохранении плана не видно{tail}",
                 None, (Evidence("model", "plan_operation.lookahead", None, evidence_note),)))
 
-    lag = scenario.stages["hydrotreating"].response_lag_hours.value
+    lag_quantity = scenario.stages["hydrotreating"].response_lag_hours
+    lag = lag_quantity.value
+    share = (scenario.stages["hydrotreating"].model or {}).get("horizon_response_share")
+    text = f"Эффект коррекции гидроочистки ожидается через {lag:g} ч"
+    if _finite(share) and share < 1:
+        text += f"; в пределах горизонта засчитывается не больше {share:.0%} хода температуры"
     statements.append(Statement(
-        "delay", f"Эффект коррекции гидроочистки ожидается через {lag:g} ч", lag,
-        (Evidence("scenario", "stages.hydrotreating.response_lag_hours", lag,
-                  "объявленное запаздывание отклика"),)))
+        "delay", text, lag,
+        (Evidence("model" if lag_quantity.source == "derived" else "scenario",
+                  "stages.hydrotreating.response_lag_hours", lag,
+                  lag_quantity.note or "объявленное запаздывание отклика"),)))
 
     return {
         "status": decision.get("status"),
@@ -247,7 +253,7 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
     kind = refusal.get("kind")
     if kind == "data":
         kind = BAD_DATA
-    elif kind == "final_recheck_failed":
+    elif kind in ("final_recheck_failed", "weak_response_failed"):
         kind = NO_FEASIBLE_PLAN
     elif kind not in REFUSAL_KINDS:
         kind = NO_FEASIBLE_PLAN
@@ -273,6 +279,11 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
         next_steps.append({"need": "детерминированный вариант без агентов доступен при выключенном агентном режиме",
                            "kind": "agent_review"})
     else:
+        if refusal.get("kind") == "weak_response_failed":
+            next_steps.append({"need": (f"план {refusal.get('plan_id')} держит предел только при среднем отклике β; "
+                                        "при слабом крае диапазона следующего полугодия предел нарушается — ход "
+                                        "температуры не гарантирует качество"),
+                               "kind": "resource_or_scenario_condition"})
         for example in refusal.get("examples", [])[:5]:
             next_steps.append({"need": example, "kind": "resource_or_scenario_condition"})
         if not next_steps:

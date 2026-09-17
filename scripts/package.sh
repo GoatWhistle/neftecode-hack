@@ -34,7 +34,7 @@ git ls-files -z | tar --null -T - -cf - | tar -x -C "$STAGE"
 echo "Копирование результатов прогона"
 mkdir -p "$STAGE/artifacts"
 for item in report.md metrics.json risk_metrics.json benchmark.json vak_check.json \
-            episodes.json scenes.json manifest.json source_rules.json model.pkl screen.html scenes snapshots tank_level_check.json decision-20260105-080000.json \
+            episodes.json scenes.json manifest.json source_rules.json response_model.json model.pkl screen.html scenes snapshots tank_level_check.json decision-20260105-080000.json \
             screen-20260105-080000.html; do
   if [ -e "artifacts/$item" ]; then
     cp -R "artifacts/$item" "$STAGE/artifacts/"

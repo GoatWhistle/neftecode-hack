@@ -5,11 +5,16 @@ import pytest
 
 from neftecode.application.agentic.context import build_context
 from neftecode.application.use_cases.get_live_advice import decision_context
-from neftecode.infrastructure.live.advisor import bind_forecast, bind_measurements, load_response_model
+from neftecode.infrastructure.live.advisor import bind_forecast, bind_measurements
 
 from _agentic_support import raw, session_for
 
 FORECAST = {"model": "last_pak", "value": 6.0, "lower": 4.0, "upper": 9.0, "available": True, "reason": "тест"}
+#: Оценка τ = 2026-01-01 (окно 2025) — те же числа, что пишет `train` в artifacts/response_model.json.
+RESPONSE = {"schema_version": "v1", "tag": "ht.T6", "flow_tag": "ht.F9", "tau": "2026-01-01", "window_months": 12,
+            "beta_mgkg_per_c": -0.4332, "ci": [-0.4761, -0.397], "envelope_dt_c": 2.0, "n_rows": 48925, "method": "тест",
+            "drift": [], "flow_beta": None, "model_fingerprint": "x", "t6_range_c": [342.9, 386.1],
+            "f9_range_tph": [150.3, 256.7], "weak_strong": [-0.217, -0.739]}
 
 
 def reading(value):
@@ -18,7 +23,7 @@ def reading(value):
 
 def bound(t6=367.8):
     measured = {"ht.T6": reading(t6), "ht.F9": reading(206.1), "ht.F26": reading(244.1)}
-    document = bind_measurements(raw("baseline"), measured, {"density_kgm3": 836.1}, load_response_model("."), FORECAST)
+    document = bind_measurements(raw("baseline"), measured, {"density_kgm3": 836.1}, RESPONSE, FORECAST)
     return bind_forecast(document, FORECAST)
 
 

@@ -1,4 +1,4 @@
-"""C2: write config/response_model.json (contract with lane A) from the τ = 2026-01-01 fit on T6/F9."""
+"""C2 (historical): wrote the hand-typed config/response_model.json from the τ = 2026-01-01 fit on T6/F9. Since T112 the same estimate is produced by `train` (src/neftecode/infrastructure/response/estimate.py) into artifacts/response_model.json; config/ keeps only the declared policy."""
 from tcommon import *
 import response_model as rm
 
