@@ -28,14 +28,22 @@ STUB_VALUE = 307.0
 DEAD_COLUMN_STUB_SHARE = 0.9
 
 
-def mask_stubs(signals: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
-    """Replace polling stubs by missing values and drop columns that never carry a measurement."""
+def mask_stubs(signals: pd.DataFrame, until=None) -> tuple[pd.DataFrame, list[str]]:
+    """Replace polling stubs by missing values and drop columns that never carry a measurement.
+
+    With `until` the stub share is measured on the rows before it only (the training period), so the
+    choice of columns does not look at later data. Without it the whole frame is used (synthetic tests).
+    """
     masked = signals.mask(signals == STUB_VALUE)
-    dead = [c for c in masked.columns if (signals[c] == STUB_VALUE).mean() > DEAD_COLUMN_STUB_SHARE]
+    basis = signals if until is None else signals[signals.index < pd.Timestamp(until)]
+    if basis.empty:
+        raise ValueError("Нет строк телеметрии до границы отбора мёртвых колонок")
+    dead = [c for c in masked.columns if (basis[c] == STUB_VALUE).mean() > DEAD_COLUMN_STUB_SHARE]
     return masked.drop(columns=dead), dead
 
 
-def load_sources(task: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_sources(task: Path, dead_until=None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Read the four sources. `dead_until` — end of the training period (cfg["train_end"]) for `mask_stubs`."""
     telemetry = []
     for filename, prefix in [("avt_tags.csv", "avt"), ("242000_tags.csv", "ht")]:
         frame = pd.read_csv(task / "data" / filename)
@@ -47,7 +55,7 @@ def load_sources(task: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         telemetry.append(frame.add_prefix(prefix + "."))
     # Prefixes prevent collisions between equally named AVT and HT sensors.
     signals = pd.concat(telemetry, axis=1).sort_index().replace([np.inf, -np.inf], np.nan)
-    signals, _ = mask_stubs(signals)
+    signals, _ = mask_stubs(signals, dead_until)
 
     book = openpyxl.load_workbook(next(task.glob("ЛИМС*.xlsx")), read_only=True, data_only=True)
     rows = list(book.active.values)

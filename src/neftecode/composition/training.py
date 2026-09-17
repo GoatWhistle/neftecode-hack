@@ -12,7 +12,7 @@ from neftecode.infrastructure.ml.risk import run_risk_experiment
 def train(root, out, cfg):
     manifest = fingerprint(root, cfg)
     print("Чтение телеметрии и независимых временных рядов ЛИМС/ПАК…", flush=True)
-    signals, lab, online = load_sources(root / "task")
+    signals, lab, online = load_sources(root / "task", cfg["train_end"])
     # Source-trust thresholds come from the training period, not from hand-set numbers.
     rules = derive_source_rules(signals, lab, online, cfg["train_end"], cfg)
     cfg = {**cfg, **rules}

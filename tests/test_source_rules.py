@@ -71,3 +71,15 @@ def test_trust_uses_the_derived_telemetry_limit():
     assert DataTrustAgent({}).assess(state).usable
     refused = DataTrustAgent({"telemetry_max_missing_fraction": 0.05}).assess(state)
     assert not refused.usable and "5.0%" in " ".join(refused.reasons)
+
+
+def test_dead_columns_are_chosen_on_the_training_period_only():
+    times = pd.date_range("2024-01-01", periods=10, freq="h")
+    frame = pd.DataFrame({"later_dead": [1.0] * 5 + [STUB_VALUE] * 5,
+                          "early_dead": [STUB_VALUE] * 5 + [1.0] * 5}, index=times)
+    _, dead_all = mask_stubs(frame)
+    _, dead_train = mask_stubs(frame, until=times[5])
+    assert dead_all == []
+    assert dead_train == ["early_dead"]   # later stubs do not decide which columns exist
+    with pytest.raises(ValueError):
+        mask_stubs(frame, until=times[0])

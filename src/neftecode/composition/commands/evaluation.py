@@ -35,7 +35,7 @@ def tank_check(args, parser, root, out):
     import pickle
     with (out / "model.pkl").open("rb") as stream:
         cfg = pickle.load(stream)["config"]
-    _, lab, online = load_sources(root / "task")
+    _, lab, online = load_sources(root / "task", cfg["train_end"])
     report = tank_level_check(lab, online, cfg)
     write_json(out / "tank_level_check.json", report)
     for name, row in report["summary"].items():
@@ -44,7 +44,7 @@ def tank_check(args, parser, root, out):
 
 def episodes(args, parser, root, out):
     cfg = json.loads(args.config.read_text())
-    _, _, online = load_sources(root / "task")
+    _, _, online = load_sources(root / "task", cfg.get("train_end"))
     series = _as_series(online)
     episodes = classify_episodes(excursion_episodes(series, cfg["sulfur_limit"]),
                                  cfg["sustained_exceedance_hours"])
@@ -83,7 +83,8 @@ def episodes(args, parser, root, out):
     print(f"Журнал: {out / 'episodes.json'}")
 
 def vak(args, parser, root, out):
-    signals, _, _ = load_sources(root / "task")
+    cfg = json.loads(args.config.read_text())
+    signals, _, _ = load_sources(root / "task", cfg.get("train_end"))
     formula_rows, lab_series = load_vak_inputs(root / "task")
     avt_lab = read_avt_points(next((root / "task").glob("ЛИМС*.xlsx")))
     report = check_all(formula_rows, lab_series, signals,
