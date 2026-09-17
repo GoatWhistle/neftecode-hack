@@ -21,7 +21,7 @@ def handle(args, parser, root, out):
     with (out / "model.pkl").open("rb") as stream:
         bundle = pickle.load(stream)
     when = validate_origin(args.at, bundle)
-    signals, lab, online = load_sources(root / "task")
+    signals, lab, online = load_sources(root / "task", bundle["config"]["train_end"])
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
     raw_scenario = json.loads(Path(scenario_path).read_text())
     # Устойчивость проверяется на связанном сценарии (после прогноза и измерений), а не на исходном.
@@ -74,7 +74,7 @@ def snapshot(args, parser, root, out):
         moments = json.loads((root / "config/snapshot_moments.json").read_text(encoding="utf-8"))
     if args.at:
         moments.append({"at": args.at, "label": "", "why": ""})
-    signals, lab, online = load_sources(root / "task")
+    signals, lab, online = load_sources(root / "task", bundle["config"]["train_end"])
     rules_path = out / "source_rules.json"
     rules_fp = None
     if rules_path.exists():

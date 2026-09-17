@@ -66,8 +66,13 @@ class DataService:
             with self._lock:
                 if self._sources_cache is None:
                     task = self.root / "task"
+                    if not self.measurements_available():
+                        raise ServiceError("Измерения task недоступны", 503, "measurements_unavailable",
+                                           retryable=True)
+                    # Мёртвые колонки отбираются по обучающему периоду, как при обучении модели.
+                    until = self._config().get("train_end")
                     try:
-                        self._sources_cache = load_sources(task)
+                        self._sources_cache = load_sources(task, until)
                     except (OSError, StopIteration, ValueError) as exc:
                         raise ServiceError("Измерения task недоступны", 503, "measurements_unavailable",
                                            retryable=True) from exc
