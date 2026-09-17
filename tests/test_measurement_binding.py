@@ -92,19 +92,35 @@ def test_feed_flow_is_the_measured_mass_flow_converted_by_density_and_not_varied
 
 # --- модель отклика ---
 
-def test_the_response_slope_is_linearised_at_the_forecast_value():
-    bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast(value=6.0))
+def test_the_response_slope_is_linearised_at_the_inflow_sulfur_the_plan_scales():
+    bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast(value=6.0, upper=9.0))
     model = ht(bound)["model"]
     assert model["provenance"] == "derived"
-    assert model["conversion_per_degree"] == pytest.approx(0.4332 / 6.0)
+    assert model["conversion_per_degree"] == pytest.approx(0.4332 / 9.0)
+    assert model["linearization_sulfur_mgkg"] == pytest.approx(9.0)
     assert model["reference_temp_c"] == pytest.approx(367.8)
     assert model["beta_ci"] == [-0.4761, -0.397]
     bound_f = bind_forecast(bound, forecast(value=6.0, upper=9.0))
     plan = PlanOperation(parse_scenario(bound_f))
     idle = plan.inflow_properties(3.0, ())["main"]["sulfur_mgkg"]
-    warmer = plan.inflow_properties(3.0, ((0.0, {"ht_reactor_inlet_temp_c": 368.8}),))["main"]["sulfur_mgkg"]
+    warmer = plan.inflow_properties(3.0, ((0.0, {"ht_reactor_inlet_temp_c": 367.9}),))["main"]["sulfur_mgkg"]
     assert idle == pytest.approx(9.0)
-    assert warmer / idle == pytest.approx(np.exp(-0.4332 / 6.0), rel=1e-6)
+    # Наклон в плане при малом ΔT — ровно β из исследования, а не β·upper/value.
+    assert (warmer - idle) / 0.1 == pytest.approx(-0.4332, rel=1e-2)
+
+
+def test_the_response_is_relinearised_when_a_frozen_analyser_raises_the_inflow():
+    state = {"origin": "real_measurements_at_decision_time", "decision_time": "2026-01-05T08:00:00",
+             "pak_frozen": True, "pak_last_trusted_value": 13.0, "pak_last_trusted_time": "2026-01-05T07:00:00",
+             "lab_recent": [], "quality_history_hours": 72, "pak_expected_per_hour": 6.0,
+             "pak_trusted_hourly": [[f"2026-01-05T{h:02d}:00:00", 5.0, 6] for h in range(8)]}
+    bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast(value=6.0, upper=9.0))
+    bound["policy"]["tank_level_window_hours"] = 6.0
+    bound = bind_forecast(bound, forecast(value=6.0, upper=9.0), state=state)
+    model = ht(bound)["model"]
+    assert bound["tanks"][0]["inflow_sulfur_mgkg"]["value"] == pytest.approx(13.0)
+    assert model["conversion_per_degree"] == pytest.approx(0.4332 / 13.0)
+    assert "зависшего ПАК" in model["note"]
 
 
 def test_without_the_response_file_the_model_stays_scenario():
