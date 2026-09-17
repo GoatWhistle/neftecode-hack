@@ -254,7 +254,8 @@ def fixed_split_check(base_cfg: dict[str, Any]) -> dict[str, Any]:
     masks = split_periods(meta, cfg)
     train, validation = masks["train"], masks["validation"]
     y = meta.actual_sulfur.to_numpy()
-    columns = x.columns[x.loc[train].nunique() > 1].tolist()
+    columns = [column for column in x.columns[x.loc[train].nunique() > 1]
+               if column != "pak.lab_bias20"]
     no_pak = [column for column in columns if not column.startswith("pak.")]
 
     bundle: dict[str, Any] = {"models": {}, "columns": {}}
@@ -379,7 +380,8 @@ def rolling_fold(
     if any(value < 30 for value in counts.values()):
         raise ValueError(f"{name}: меньше 30 строк в части складки: {counts}")
 
-    columns = x.columns[x.loc[fit].nunique() > 1].tolist()
+    columns = [column for column in x.columns[x.loc[fit].nunique() > 1]
+               if column != "pak.lab_bias20"]
     no_pak = [column for column in columns if not column.startswith("pak.")]
     no_pak_model = catboost(cfg)
     no_pak_model.fit(x.loc[fit, no_pak], np.log1p(y[fit]))

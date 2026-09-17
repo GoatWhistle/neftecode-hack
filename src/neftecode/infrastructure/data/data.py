@@ -114,6 +114,80 @@ def backward_readings(times, readings: pd.DataFrame, delay_hours: float = 0) -> 
     return joined.sort_values("order").reset_index(drop=True)
 
 
+# Frozen by T108 from the pre-2026 rolling protocol. Runtime configuration may
+# repeat this record for provenance, but may not silently retune it.
+FROZEN_FORECAST_SELECTION = {
+    "method": "preregistered_rolling_v1",
+    "selected_before_2026": True,
+    "selected": "last_pak_bc",
+    "baseline": "last_pak",
+    "bias_window_pairs": 20,
+    "min_pairs": 5,
+    "development_end": "2026-01-01",
+    "evidence": "context/forecast-research/rolling-f4.json",
+    "evidence_sha256": "ef83c7a0d8f8513886c9934c98ce08e2606df34c6715bd7908c545f3b2c1f627",
+}
+
+
+def validate_forecast_selection(cfg: dict) -> dict | None:
+    """Accept only the candidate and parameters frozen before the 2026 run."""
+    selection = cfg.get("forecast_selection")
+    if selection is None:
+        return None
+    mismatches = [key for key, expected in FROZEN_FORECAST_SELECTION.items()
+                  if selection.get(key) != expected]
+    if mismatches:
+        raise ValueError("Production-выбор прогноза не совпадает с замороженным протоколом: "
+                         + ", ".join(mismatches))
+    return selection
+
+
+def causal_pak_lab_bias(times, lab: pd.DataFrame, online: pd.DataFrame,
+                        delay_hours: float, window: int = 20, min_pairs: int = 5) -> np.ndarray:
+    """Median LIMS-minus-PAK correction known at each decision time.
+
+    A laboratory sample is paired with the last PAK value no more than 30 minutes
+    before its sampling time.  The pair enters the rolling history only at
+    ``sample_time + delay_hours``; consequently later laboratory results cannot
+    rewrite an earlier forecast.  Until ``min_pairs`` finite pairs are known the
+    conservative correction is zero.
+    """
+    if not isinstance(window, int) or not isinstance(min_pairs, int) \
+            or min_pairs < 1 or window < min_pairs:
+        raise ValueError("Окно поправки должно быть целым и не меньше минимального числа пар")
+    if not np.isfinite(delay_hours) or delay_hours < 0:
+        raise ValueError("Задержка доступности анализа не может быть отрицательной или неизвестной")
+    decisions = pd.DataFrame({
+        "decision_time": pd.DatetimeIndex(pd.to_datetime(times)).as_unit("ns"),
+        "order": np.arange(len(times)),
+    })
+    if decisions.empty:
+        return np.array([], dtype=float)
+
+    pak = online.set_index("time").value.sort_index()
+    pak.index = pd.DatetimeIndex(pak.index).as_unit("ns")
+    sample_times = pd.DatetimeIndex(lab.time).as_unit("ns")
+    pak_at_sample = pak.reindex(
+        sample_times, method="ffill", tolerance=np.timedelta64(30, "m"),
+    ).to_numpy(float)
+    pairs = pd.DataFrame({
+        "available_time": sample_times + np.timedelta64(round(delay_hours * 3600), "s"),
+        "bias": lab.value.to_numpy(float) - pak_at_sample,
+    })
+    pairs = pairs.loc[np.isfinite(pairs.bias)].sort_values("available_time").reset_index(drop=True)
+    if pairs.empty:
+        return np.zeros(len(decisions), dtype=float)
+    pairs["correction"] = pairs.bias.rolling(window, min_periods=min_pairs).median()
+    joined = pd.merge_asof(
+        decisions.sort_values("decision_time"),
+        pairs[["available_time", "correction"]],
+        left_on="decision_time",
+        right_on="available_time",
+        direction="backward",
+    )
+    return joined.sort_values("order").correction.fillna(0.0).to_numpy(float)
+
+
 def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFrame,
                    decisions, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     bounds = check_time_assumptions(cfg)
@@ -155,6 +229,16 @@ def build_features(signals: pd.DataFrame, lab: pd.DataFrame, online: pd.DataFram
     x["pak.sulfur"] = latest_pak.value.where(pak_good)
     x["pak.age_minutes"] = age_pak
     x["pak.rejected"] = ~pak_good
+    forecast_selection = validate_forecast_selection(cfg)
+    if forecast_selection:
+        x["pak.lab_bias20"] = causal_pak_lab_bias(
+            times,
+            lab,
+            online,
+            bounds["lab_delay_hours"],
+            window=forecast_selection["bias_window_pairs"],
+            min_pairs=forecast_selection["min_pairs"],
+        )
     meta = pd.DataFrame({
         "decision_time": times,
         "lab_sample_time": latest_lab.sample_time,

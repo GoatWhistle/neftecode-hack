@@ -399,9 +399,11 @@ def forecast_at(signals, lab, online, bundle, when, fallback: bool = False) -> d
         return {"model": name, "value": None, "lower": None, "upper": None, "available": False,
                 "reason": "Выбранный прогноз недоступен на этот момент"}
     low, high = interval(value, bundle["radii"][name])
+    reason = "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"
+    if name == "last_pak_bc":
+        reason += "; ПАК скорректирован причинной медианой 20 последних доступных пар ЛИМС−ПАК"
     return {"model": name, "value": value, "lower": float(low), "upper": float(high),
-            "available": True,
-            "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"}
+            "available": True, "reason": reason}
 
 
 def _policy_number(raw: dict, key: str, low: float, high: float) -> float:
