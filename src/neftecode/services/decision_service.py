@@ -14,7 +14,10 @@ from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.agentic import build_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
+from neftecode.application.ports.live import ForecastBindingError
+from neftecode.application.use_cases.get_live_advice import binding_summary
 from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder, load_response_model
+from neftecode.infrastructure.live.snapshots import bind_snapshot
 from neftecode.evaluation.robustness import RobustnessCheck
 from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, serve, clean
 
@@ -94,25 +97,29 @@ class DecisionService:
         return request.body
 
     def _decision(self, raw: dict, state: dict | None, budget: int, trust_cfg: dict | None = None,
-                  trust_origin: str | None = None) -> dict:
+                  trust_origin: str | None = None, snapshot: dict | None = None) -> dict:
+        # Пороги доверия присылает клиент (gateway грузит их из C1/experiment.json); без них — пустой конфиг,
+        # что оставлено только для обратной совместимости старых клиентов.
+        trust_cfg = trust_cfg or {}
         try:
             scenario = parse_scenario(raw)
-        except (ScenarioError, ValueError, TypeError) as exc:
+            if snapshot is not None:
+                # Реальный срез (C3): тот же связыватель, что в advise — прогноз, уставки, приток, окно.
+                scenario, raw = bind_snapshot(raw, state or {}, snapshot, self.response_model, trust_cfg)
+        except (ScenarioError, ForecastBindingError, ValueError, TypeError) as exc:
             raise ServiceError(str(exc), 422, "scenario_rejected") from exc
         if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
             raise ServiceError("budget должен быть положительным целым", 422, "invalid_budget")
         evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
         maker = (MakeDecision(scenario, robustness_evaluator=evaluator) if self.decision_factory is None
                  else self.decision_factory(scenario, evaluator))
-        # Пороги доверия присылает клиент (gateway грузит их из C1/experiment.json); без них — пустой конфиг,
-        # что оставлено только для обратной совместимости старых клиентов.
-        trust_cfg = trust_cfg or {}
         decision = maker.decide(state=state or {}, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
         trust = DataTrustAgent(trust_cfg).assess(state or {})
         return {"decision": clean(decision), "explanation": clean(explain(decision, scenario)),
                 "inventories": {key: value.inventory_t for key, value in initial_state(scenario).items()},
                 "sources": [clean(source.to_dict()) for source in trust.sources.values()],
-                "trust_origin": trust_origin}
+                "trust_origin": trust_origin,
+                "binding": clean(binding_summary(raw)) if snapshot is not None else None}
 
     def decide(self, request: Request):
         body = self._body(request)
@@ -126,7 +133,10 @@ class DecisionService:
             raise ServiceError("trust_config должен быть JSON-объектом", 400, "invalid_trust_config")
         if trust_origin is not None and not isinstance(trust_origin, str):
             raise ServiceError("trust_origin должен быть строкой", 400, "invalid_trust_origin")
-        return self._decision(raw, state, body.get("budget", 400), trust_cfg, trust_origin)
+        snapshot = body.get("snapshot")
+        if snapshot is not None and (not isinstance(snapshot, dict) or not isinstance(snapshot.get("forecast"), dict)):
+            raise ServiceError("snapshot должен быть JSON-объектом среза с полем forecast", 400, "invalid_snapshot")
+        return self._decision(raw, state, body.get("budget", 400), trust_cfg, trust_origin, snapshot)
 
     def live(self, request: Request):
         body = self._body(request)

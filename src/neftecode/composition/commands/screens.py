@@ -10,6 +10,8 @@ from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
+from neftecode.infrastructure.live.advisor import load_response_model
+from neftecode.infrastructure.live.snapshots import load_snapshots
 from neftecode.presentation.demo import Demo, scenes as demo_scenes
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 
@@ -39,21 +41,25 @@ def screen(args, parser, root, out):
 def scenes(args, parser, root, out):
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
     trust_cfg, trust_origin = load_trust_rules(root, out)
-    demo = Demo.from_path(scenario_path, run_demo_decision, trust_cfg, budget=400, trust_origin=trust_origin)
+    snapshots = load_snapshots(out)
+    demo = Demo.from_path(scenario_path, run_demo_decision, trust_cfg, budget=400, trust_origin=trust_origin,
+                          snapshots=snapshots, response_model=load_response_model(root))
     folder = out / "scenes"
     folder.mkdir(parents=True, exist_ok=True)
     index = []
-    for number, scene in enumerate(demo_scenes(scenario_path), start=1):
-        result = demo.run(scene["changes"], scene["fault"])
+    for number, scene in enumerate(demo_scenes(scenario_path, snapshots), start=1):
+        result = demo.run(scene["changes"], scene["fault"], snapshot=scene.get("snapshot"))
         page = folder / f"{number:02d}-{scene['name'].replace(' ', '_')}.html"
         write_screen(page, result["screen"])
         status = "отклонено" if result["rejected"] else result["decision"]["status"]
         index.append({"scene": scene["name"], "expected": scene["expect"],
                       "status": status, "injected_fault": scene["fault"],
+                      "snapshot": result.get("snapshot"), "state_origin": result.get("state_origin"),
                       "page": str(page.relative_to(out))})
-        print(f"  {scene['name']:48s} {status}")
+        print(f"  {scene['name']:48s} {status:20s} {result.get('snapshot') or 'синтетика'}")
     write_json(out / "scenes.json", {
         "scenario": str(scenario_path), "scenes": index, "trust_origin": trust_origin,
-        "note": "Каждая сцена получена пересчётом через тот же загрузчик и то же ядро. "
-                "Инъекции отказов помечены как модельные."})
+        "snapshots": [item["at"] for item in snapshots],
+        "note": "Каждая сцена получена пересчётом через тот же загрузчик и то же ядро. Сцены со срезом идут на "
+                "реальных измерениях 2026 года; без срезов состояние синтетическое. Инъекции отказов помечены как модельные."})
     print(f"Журнал: {out / 'scenes.json'}")

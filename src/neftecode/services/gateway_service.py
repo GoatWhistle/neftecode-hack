@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 import json
+from html import escape
 
-from neftecode.presentation.demo import SOURCE_FAULTS, healthy_state, apply_source_failure
+from neftecode.presentation.demo import (SOURCE_FAULTS, healthy_state, apply_source_failure, snapshot_key,
+                                         snapshot_title, state_origin_label)
+from neftecode.infrastructure.live.snapshots import load_snapshots
 from neftecode.presentation.web.server import PAGE, CONTROLS_STYLE, defaults_for, changes_from, DemoServerError
 from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
@@ -23,8 +27,22 @@ class GatewayService:
         self.decision_timeout_s = decision_timeout_s
         #: Пороги доверия к источникам грузятся один раз при старте и уходят в каждое решение (T83).
         root = Path(root)
-        self.trust_cfg, self.trust_origin = load_trust_rules(
-            root, Path(artifacts) if artifacts is not None else root / "artifacts")
+        out = Path(artifacts) if artifacts is not None else root / "artifacts"
+        self.trust_cfg, self.trust_origin = load_trust_rules(root, out)
+        #: Замороженные реальные срезы (C3): без них демонстрация идёт на синтетическом состоянии.
+        self.snapshots = load_snapshots(out)
+
+    def snapshot_options(self):
+        options = [(snapshot_key(item), snapshot_title(item)) for item in reversed(self.snapshots)]
+        return options + [("synthetic", "синтетическое состояние сценария")]
+
+    def snapshot(self, name):
+        if name in (None, "", "synthetic"):
+            return None
+        for item in self.snapshots:
+            if snapshot_key(item) == name or item.get("label") == name:
+                return item
+        raise DemoServerError(f"Срез «{name}» не найден")
 
     def scenarios(self, request_id="gateway"):
         return self.client.request("GET", self.data_url + "/v1/scenarios",
@@ -39,16 +57,21 @@ class GatewayService:
         raw = self.raw(name, request_id); fault = (values.get("fault") or ["healthy"])[0]
         if fault not in SOURCE_FAULTS:
             raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
-        state = apply_source_failure(healthy_state(), fault)
+        chosen = self.snapshot((values.get("snapshot") or [self.snapshot_options()[0][0]])[0])
+        base = copy.deepcopy(chosen["state"]) if chosen is not None else healthy_state()
+        state = apply_source_failure(base, fault)
         changes = changes_from(values, raw)
         env = self.client.request("POST", self.decision_url + "/v1/decisions",
                                   {"scenario": _changed(raw, changes), "state": state, "budget": 400,
-                                   "trust_config": self.trust_cfg, "trust_origin": self.trust_origin},
+                                   "trust_config": self.trust_cfg, "trust_origin": self.trust_origin,
+                                   "snapshot": chosen},
                                   timeout_s=self.decision_timeout_s, headers={"X-Request-ID": request_id})
         result = env.data
         screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", []),
-                        rule_origin=result.get("trust_origin", self.trust_origin)).payload()
+                        rule_origin=result.get("trust_origin", self.trust_origin),
+                        state_origin=state_origin_label(state, chosen)).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
+        screen["snapshot"], screen["binding"] = (snapshot_key(chosen) if chosen is not None else None), result.get("binding")
         return screen
 
     def page(self, name=None, request_id="gateway"):
@@ -60,7 +83,8 @@ class GatewayService:
             payload = {**error_payload(str(exc)), "defaults": {}}
         options = "".join(f'<option value="{n}"{" selected" if n == chosen else ""}>{n}</option>' for n in names)
         faults = "".join(f'<option value="{f}">{f}</option>' for f in SOURCE_FAULTS)
-        return PAGE.replace("__STYLE__", STYLE).replace("__CONTROLS_STYLE__", CONTROLS_STYLE).replace("__RENDER_JS__", RENDER_JS).replace("__SCENARIOS__", options).replace("__FAULTS__", faults).replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False, default=str))
+        snapshots = "".join(f'<option value="{key}">{escape(title)}</option>' for key, title in self.snapshot_options())
+        return PAGE.replace("__STYLE__", STYLE).replace("__CONTROLS_STYLE__", CONTROLS_STYLE).replace("__RENDER_JS__", RENDER_JS).replace("__SCENARIOS__", options).replace("__FAULTS__", faults).replace("__SNAPSHOTS__", snapshots).replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False, default=str))
 
     def ready(self):
         for url in (self.data_url + "/readyz", self.decision_url + "/readyz"):
