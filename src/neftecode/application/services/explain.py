@@ -247,7 +247,7 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
     kind = refusal.get("kind")
     if kind == "data":
         kind = BAD_DATA
-    elif kind == "final_recheck_failed":
+    elif kind in ("final_recheck_failed", "weak_response_failed"):
         kind = NO_FEASIBLE_PLAN
     elif kind not in REFUSAL_KINDS:
         kind = NO_FEASIBLE_PLAN
@@ -273,6 +273,11 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
         next_steps.append({"need": "детерминированный вариант без агентов доступен при выключенном агентном режиме",
                            "kind": "agent_review"})
     else:
+        if refusal.get("kind") == "weak_response_failed":
+            next_steps.append({"need": (f"план {refusal.get('plan_id')} держит предел только при среднем отклике β; "
+                                        "при слабом крае диапазона следующего полугодия предел нарушается — ход "
+                                        "температуры не гарантирует качество"),
+                               "kind": "resource_or_scenario_condition"})
         for example in refusal.get("examples", [])[:5]:
             next_steps.append({"need": example, "kind": "resource_or_scenario_condition"})
         if not next_steps:
