@@ -6,7 +6,7 @@ from neftecode.evaluation.episodes import (
     _as_series, classify_episodes, excursion_episodes, lead_times, margin_series,
     sampling_step_hours, violation_profile,
 )
-from neftecode.evaluation.tank_level import tank_level_check
+from neftecode.infrastructure.live.tank_check import tank_level_check
 from neftecode.evaluation.vak import check_all
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.avt_tags import load_avt_tags

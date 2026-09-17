@@ -55,16 +55,18 @@ def test_sequential_steps_accumulate_the_draw():
 
 def test_inflow_is_added_during_the_step():
     result = draw_step(tanks(), {"reserve": 1.0}, 20.0, 2.0)
-    assert result.tanks["main"].inventory_t == pytest.approx(4000.0 + 95.0 * 2.0)
+    inflow = tanks()["main"].inflow_tph
+    assert result.tanks["main"].inventory_t == pytest.approx(4000.0 + inflow * 2.0)
 
 
 def test_well_mixed_inflow_preserves_mass_and_updates_properties_gradually():
     before = tanks()
     result = draw_step(before, {"main": 0.0}, 0.0, 1.0,
                        {"main": {"sulfur_mgkg": 20.0, "t95_c": 380.0, "cetane_number": 50.0}})
-    assert result.tanks["main"].inventory_t == pytest.approx(4000.0 + 95.0)
+    inflow = tanks()["main"].inflow_tph
+    assert result.tanks["main"].inventory_t == pytest.approx(4000.0 + inflow)
     assert result.tanks["main"].properties["t95_c"] == pytest.approx(
-        (4000.0 * 352.0 + 95.0 * 380.0) / 4095.0)
+        (4000.0 * 352.0 + inflow * 380.0) / (4000.0 + inflow))
     assert result.tanks["main"].properties["t95_c"] < 380.0
 
 
