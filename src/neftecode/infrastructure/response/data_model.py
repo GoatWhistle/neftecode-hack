@@ -19,7 +19,7 @@ def _pair(value) -> bool:
 class DataResponseEffect:
     """ΔS ≈ β·ΔT в конверте исследования; диапазоны — ДИ β и границы следующего полугодия."""
 
-    spec = "config/response_model.json (β на ht.T6, RESPONSE_MODEL_T6.md)"
+    spec = "artifacts/response_model.json (β на ht.T6 по данным при обучении, RESPONSE_MODEL_T6.md)"
 
     def effect(self, context: Mapping[str, object], delta_t_c: float) -> Mapping[str, object]:
         binding = (context or {}).get("binding") or {}

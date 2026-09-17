@@ -30,7 +30,7 @@ def handle(args, parser, root, out):
                           robustness_factory=lambda scenario, raw: RobustnessCheck(
                               scenario, raw, scenario_parser=parse_scenario),
                           decision_factory=default_decision_factory(),
-                          response_model=load_response_model(root),
+                          response_model=load_response_model(root, out),
                           coverage=interval_coverage(out, bundle))
     result = advisor.advise(args.at)
     stamp = when.strftime("%Y%m%d-%H%M%S")

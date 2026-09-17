@@ -30,6 +30,7 @@ from neftecode.application.ports.robustness import RobustnessEvaluator
 from neftecode.application.contracts import LiveForecast, LiveSnapshot, LiveAdviceCommand
 from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
+from neftecode.infrastructure.response.estimate import response_at
 from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.application.services.trust import DataTrustAgent
@@ -91,7 +92,8 @@ class LocalForecastScenarioBinder:
             raw = dict(raw_scenario)
             if state is not None and state.get("origin") == MEASURED_ORIGIN:
                 raw = bind_measurements(raw, state.get("measurements") or {},
-                                        {"density_kgm3": _main_density(raw)}, self.response, forecast.to_dict())
+                                        {"density_kgm3": _main_density(raw)}, self.response, forecast.to_dict(),
+                                        at=snapshot.at)
             raw = bind_forecast(raw, forecast.to_dict(), state=state)
             return parse_scenario(raw), raw
         except (ValueError, KeyError, TypeError) as exc:
@@ -103,7 +105,8 @@ MEASURED_ORIGIN = "real_measurements_at_decision_time"
 #: расход сырья и расход гидроочищенного ДТ в цех №8 (справочник 24-2000 от 16.09).
 MEASURED_TAGS = ("ht.T6", "ht.F9", "ht.F26")
 RESPONSE_SCHEMA_VERSION = "v1"
-RESPONSE_FILE = "config/response_model.json"
+#: C2: оценки β по данным, записанные `train` (объявленная политика — `config/response_model.json`).
+RESPONSE_FILE = "artifacts/response_model.json"
 #: Задержка отклика ГО по исследованию: β — средний накопленный отклик через 3–8 ч, раньше 3 ч эффект не засчитывается;
 #: доля β, засчитываемая в пределах горизонта кейса, объявляется в C2 (`horizon_response_share`), без поля — вся.
 DEFAULT_ONSET_HOURS = 3.0
@@ -134,9 +137,9 @@ def measurements_at(signals: pd.DataFrame, when, cfg: dict) -> dict:
     return out
 
 
-def load_response_model(root: Path) -> dict | None:
-    """C2 `config/response_model.json`: нет файла → None; битый или не по схеме → ValueError."""
-    path = Path(root) / RESPONSE_FILE
+def load_response_model(root: Path, out: Path | None = None) -> dict | None:
+    """C2 `artifacts/response_model.json` (записан `train`): нет файла → None; битый или не по схеме → ValueError."""
+    path = (Path(out) if out is not None else Path(root) / "artifacts") / "response_model.json"
     if not path.exists():
         return None
     try:
@@ -170,6 +173,14 @@ def validate_response_model(value, where: str = RESPONSE_FILE) -> dict:
     for key in ("t6_range_c", "f9_range_tph", "weak_strong"):
         if key in value and value[key] is not None and not _pair(value[key]):
             raise ValueError(f"Модель отклика {where}: {key} должен быть парой чисел")
+    estimates = value.get("estimates")
+    if estimates is not None:
+        if not isinstance(estimates, list) or not estimates:
+            raise ValueError(f"Модель отклика {where}: estimates должен быть непустым списком оценок по τ")
+        for estimate in estimates:
+            if not isinstance(estimate, dict) or not isinstance(estimate.get("tau"), str) \
+                    or not _finite_number(estimate.get("beta_mgkg_per_c")):
+                raise ValueError(f"Модель отклика {where}: каждая оценка должна нести tau и beta_mgkg_per_c")
     flow_beta = value.get("flow_beta")
     if flow_beta is not None and not _finite_number(flow_beta):
         raise ValueError(f"Модель отклика {where}: flow_beta должен быть числом или null")
@@ -215,9 +226,11 @@ def _control_missing_note(tag: str) -> str:
 
 
 def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict | None, forecast: dict,
-                      tank_id: str = "main") -> dict:
+                      tank_id: str = "main", at=None) -> dict:
     """Ставит измерения тегов и отклик по данным в копию сценария (только для реального состояния).
 
+    * `response` с `estimates` (артефакт `train`) — берётся последняя оценка с τ ≤ `at` (`response_at`): все её окна
+      заканчиваются в τ − 6 ч, то есть строго до момента решения; оценки до момента нет → отклик не применяется.
     * `controls.ht_reactor_inlet_temp_c.current` = T6 (`measured`), `min/max` = T6 ∓ envelope C2
       (`derived`); без измерения, без C2 или вне области отклика — `min = max = current`, уставка
       не предлагается.
@@ -239,6 +252,13 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
     controls, model = stage["controls"], stage.setdefault("model", {})
     t6, f9, f26 = (_reading(measured, tag) for tag in MEASURED_TAGS)
     notes, warnings = [], []
+    if response is not None and at is not None:
+        selected = response_at(response, at)
+        if selected is None:
+            notes.append(f"оценки отклика, сделанной до {pd.Timestamp(at).isoformat()}, нет: отклик по данным не применяется")
+        response = selected
+    elif response is not None and response.get("estimates"):
+        raise LiveError("Модель отклика с оценками по τ требует момента решения (at)")
 
     # --- температура входа Р-202 ---
     temp = controls["ht_reactor_inlet_temp_c"]
