@@ -1000,8 +1000,11 @@ CLI-команд, HTTP-контрактов и JSON решений четырё�
   note притока (T84/T88): 0.27 мг/кг при 95 т/ч, 0.58–0.65 при притоке из данных. `tank-check` → `artifacts/tank_level_check.json`; вклад прогноза за 3 ч как число.
   **Коммит:** `feat: сверять оценку серы резервуара с лабораторией`.
 
-### T90. Документы (B)
-- **Статус:** ожидает. parameters.json, experiment.json.assumptions, README, report.md, data-flow.html, state, backlog.
+### T90. Документы (B → оркестратор)
+- **Статус:** готово. README (таблица реально/сценарий, команды `snapshot`/`tank-check`, результаты с дрейфом ML на 2026, покрытие,
+  β, измеренные уставки, «Что не доказано»), `context/data-flow.html` (шаг 5, этап 5–6, пример, блок «ветка real-inputs»),
+  `context/state.md`, `context/README.md`, `context/interval-check-2026-09-17.md`; B ранее — `config/parameters.json`,
+  `organizer-clarifications.md`, `RESPONSE_MODEL_T6.md`. `defence.md` — обновлён раздел архитектуры и реальных данных. parameters.json, experiment.json.assumptions, README, report.md, data-flow.html, state, backlog.
   **Коммит:** `docs: описать измеренные и выведенные величины решения`.
 
 ### T91. Перебазирование золотых хэшей (A)

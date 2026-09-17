@@ -210,7 +210,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
     <li><span class="n">Шаг 2</span><h3>Срез на момент t</h3><p>Последние значения и их возраст, зависание и конфликт ПАК, доля пропусков, признаки модели, история качества за 72 ч. Будущее не используется.</p><a class="where" href="#s2">Этап 02</a></li>
     <li><span class="n">Шаг 3</span><h3>Доверие к данным</h3><p>Пороги выведены из истории: ЛИМС ≤ 48 ч, ПАК ≤ 30 мин и не завис (4 одинаковых показания), пропало ≤ 9 датчиков из 96. Выбор основного источника: ЛИМС, затем ПАК. Правила, без LLM.</p><span class="refuse">Нет годного источника → REFUSE, дальше ничего не запускается</span><a class="where" href="#s3">Этап 03</a></li>
     <li><span class="n">Шаг 4</span><h3>Прогноз серы после ГО</h3><p>ПАК доверен → <code>last_pak</code>, иначе запасная модель. Точка и интервал 90 %; на 05.01 — 5.88 [3.68; 9.13].</p><span class="refuse">Прогноз недоступен → решения нет</span><a class="where" href="#s4">Этап 04</a></li>
-    <li><span class="n">Шаг 5</span><h3>Привязка к резервуарам</h3><p>Приток в main = верхняя граница прогноза; сера содержимого = среднее доверенного ПАК за 42 ч (иначе ЛИМС); при зависшем ПАК — не ниже последнего доверенного.</p><a class="where" href="#s5">Этап 05</a></li>
+    <li><span class="n">Шаг 5</span><h3>Привязка измерений и прогноза</h3><p>Уставки ГО = измерения <code>ht.T6</code>, <code>ht.F9</code> на момент t; приток main = <code>ht.F26</code>·ρ; окно оценки резервуара = запас / приток (на 05.01 — 19.6 ч); сера содержимого = среднее доверенного ПАК за окно (иначе ЛИМС); приток по сере = верхняя граница прогноза; при зависшем ПАК — не ниже последнего доверенного. Отклик по температуре — β из данных, линеаризованный при текущем прогнозе.</p><a class="where" href="#s5">Этап 05</a></li>
     <li><span class="n">Шаг 6.1</span><h3>Кандидаты</h3><p>Сохранить режим, рецепт и выпуск, шаг одной уставки, присадка, переходные планы. Оценивается до 200 из бюджета 400.</p><a class="where" href="#s6">Этап 06</a></li>
     <li><span class="n">Шаг 6.2</span><h3>Модель цепочки</h3><p>Каждый план: АВТ → ГО → резервуары → смесь на сетке 0–3 ч через 30 мин, цена и тяжесть режима.</p><a class="where" href="#s7">Этап 07</a></li>
     <li class="gate"><span class="n">Шаг 6.3</span><h3>Gate</h3><p>Все обязательные условия в каждой точке: сера ≤ 10, T95, цетан, плотность, уставки, запасы, отбор. Неизвестное = запрет.</p><a class="where" href="#s8">Этап 08</a></li>
@@ -555,21 +555,21 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
   <p class="intro">ЛИМС и ПАК меряют поток после ГО, а предел 10 мг/кг относится к товарной смеси. Поэтому прогноз не сравнивается с пределом напрямую: он питает приток в основной резервуар, где разбавляется уже накопленным продуктом.</p>
   <figure>
     <div class="scroll">
-    <svg class="dg" viewBox="0 0 1000 306" role="img" aria-label="Гидроочистка подаёт 95 т/ч с серой 9.13 в основной резервуар 4000 т с серой содержимого 5.19; резервуары main 0.9, reserve 0.1 и light 0 смешиваются в поток 100 т/ч">
+    <svg class="dg" viewBox="0 0 1000 306" role="img" aria-label="Гидроочистка подаёт 204 т/ч (измерено F26) с серой 9.13 в основной резервуар 4000 т с серой содержимого 4.56; резервуары main 0.9, reserve 0.1 и light 0 смешиваются в поток 100 т/ч">
       <defs><marker id="m3" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker></defs>
       <rect x="20" y="40" width="150" height="56" rx="3" class="box"/>
       <text x="95" y="63" text-anchor="middle">Гидроочистка</text>
       <text x="95" y="83" text-anchor="middle" class="sub">24-2000</text>
       <path d="M170,68 H328" class="pipe" marker-end="url(#m3)"/>
-      <text x="250" y="58" text-anchor="middle" class="mono">95 т/ч</text>
+      <text x="250" y="58" text-anchor="middle" class="mono sultx">204 т/ч</text>
       <text x="250" y="88" text-anchor="middle" class="mono sultx">S 9.13</text>
 
       <rect x="330" y="40" width="180" height="170" rx="16" class="box"/>
       <text x="420" y="70" text-anchor="middle">main</text>
       <text x="420" y="92" text-anchor="middle" class="mono">4000 т</text>
       <text x="420" y="130" text-anchor="middle" class="sub">сера содержимого</text>
-      <text x="420" y="152" text-anchor="middle" class="mono sultx">5.19 мг/кг</text>
-      <text x="420" y="176" text-anchor="middle" class="sub">среднее ПАК за 42 ч</text>
+      <text x="420" y="152" text-anchor="middle" class="mono sultx">4.56 мг/кг</text>
+      <text x="420" y="176" text-anchor="middle" class="sub">среднее ПАК за 19.6 ч</text>
 
       <rect x="560" y="110" width="140" height="100" rx="14" class="box"/>
       <text x="630" y="138" text-anchor="middle">reserve</text>
@@ -593,12 +593,12 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <text x="930" y="296" text-anchor="middle" class="mono">100 т/ч</text>
     </svg>
     </div>
-    <figcaption>Реальные в этой картинке только две жёлтые цифры: сера притока (верх прогноза) и сера содержимого (история ПАК). Объёмы, резерв, лёгкая фракция и рецепт 0.9 / 0.1 заданы сценарием <code>baseline</code>.</figcaption>
+    <figcaption>Жёлтые цифры — из данных на момент решения: приток 204 т/ч (измеренный <code>ht.F26</code> 244 м³/ч × ρ 836.1), сера притока (верх прогноза), сера содержимого (среднее доверенного ПАК за окно 4000 / 204 ≈ 19.6 ч; при сценарных 95 т/ч окно было 42 ч и содержимое 5.19). Объём 4000 т, резерв, лёгкая фракция и рецепт 0.9 / 0.1 — параметры завода без основания в данных (<code>open</code> в <code>config/parameters.json</code>). Вклад прогноза в серу содержимого за 3 ч при таком притоке ≈ 0.65 мг/кг.</figcaption>
   </figure>
   <div class="io">
-    <div><h4>Вход</h4><ul><li>Прогноз: точка, нижняя и верхняя граница, имя модели</li><li><code>state</code> с почасовой историей доверенного ПАК и пробами ЛИМС за 72 ч</li><li>Сценарий JSON</li></ul></div>
-    <div><h4>Что происходит</h4><ul><li>Сера притока main = верхняя граница прогноза</li><li>ПАК завис → приток не ниже последнего доверенного значения (до 48 ч) или более поздней пробы ЛИМС</li><li>Сера содержимого = среднее доверенного ПАК за окно 4000 т / 95 т/ч ≈ 42 ч, покрытие ≥ 50 %</li><li>Не хватает ПАК → среднее ≥ 2 проб ЛИМС, иначе ошибка и совета нет</li></ul></div>
-    <div><h4>Выход</h4><ul><li>Копия сценария, где сера main помечена <code>derived</code> с пояснением</li><li>Исходный сценарий не меняется</li><li>Прогноз построен на t + 2 ч, а в расчёте держится весь горизонт 3 ч и упреждение 48 ч — это допущение, а не прогноз</li></ul></div>
+    <div><h4>Вход</h4><ul><li>Прогноз: точка, границы, имя модели, заявленное и фактическое покрытие интервала (0.9 / 0.867)</li><li><code>state</code> с почасовой историей доверенного ПАК, пробами ЛИМС за 72 ч и измерениями <code>ht.T6</code>, <code>ht.F9</code>, <code>ht.F26</code> не старше 30 мин</li><li>Сценарий JSON; <code>config/response_model.json</code> (β по данным)</li></ul></div>
+    <div><h4>Что происходит (<code>bind_measurements</code>, затем <code>bind_forecast</code>)</h4><ul><li>Температура входа Р-202 = <code>ht.T6</code> (<code>measured</code>), допустимый шаг ±2 °C — конверт исследования отклика; без измерения или вне области 342.9–386.1 °C — числовая уставка не предлагается</li><li>Расход сырья = <code>ht.F9</code>·1000/ρ (<code>derived</code>), не варьируется — отклик по расходу не оценён</li><li>Модель ГО: опорная точка — измерения, наклон k = −β/S₀ = 0.433/5.88 ≈ 0.074 на °C (<code>derived</code>); края weak/strong β идут в проверку устойчивости</li><li>Приток main = <code>ht.F26</code>·ρ/1000 = 204 т/ч; окно = 4000 / 204 = 19.6 ч (в [1; 72])</li><li>Сера притока = верхняя граница прогноза; ПАК завис → не ниже последнего доверенного (до 48 ч) или более поздней пробы ЛИМС</li><li>Сера содержимого = среднее доверенного ПАК за окно, покрытие ≥ 50 %; не хватает ПАК → среднее ≥ 2 проб ЛИМС, иначе совета нет</li></ul></div>
+    <div><h4>Выход</h4><ul><li>Копия сценария с метками <code>measured</code> / <code>derived</code> / <code>scenario</code> и пояснениями; исходный не меняется</li><li><code>binding</code> в JSON решения: откуда каждая величина</li><li>Устойчивость проверяется на связанном сценарии (раньше — на исходном: дефект исправлен 17.09)</li><li>Прогноз построен на t + 2 ч, а в расчёте держится весь горизонт 3 ч и упреждение 48 ч — это допущение, а не прогноз</li></ul></div>
   </div>
 </section>
 
@@ -614,7 +614,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <text x="30" y="22">hold — текущий режим</text>
       <path d="M30,140 H270" class="axis"/>
       <path d="M30,100 H270" class="pipe" stroke-width="3"/>
-      <text x="150" y="90" text-anchor="middle" class="mono">резерв 0.1 · T ГО 348 °C</text>
+      <text x="150" y="90" text-anchor="middle" class="mono">резерв 0.1 · T ГО 367.8 °C (ht.T6)</text>
       <text x="30" y="160" text-anchor="middle" class="mono">0</text><text x="110" y="160" text-anchor="middle" class="mono">1</text><text x="190" y="160" text-anchor="middle" class="mono">2</text><text x="270" y="160" text-anchor="middle" class="mono">3 ч</text>
       <text x="30" y="182" class="lbl">изменений 0</text>
 
@@ -623,8 +623,8 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <path d="M360,140 H600" class="axis"/>
       <path d="M340,110 H360" class="ret"/>
       <path d="M360,110 V70 H600" class="pipe" stroke-width="3"/>
-      <text x="480" y="60" text-anchor="middle" class="mono">T ГО 349 °C</text>
-      <text x="370" y="126" class="lbl">было 348</text>
+      <text x="480" y="60" text-anchor="middle" class="mono">T ГО 368.8 °C</text>
+      <text x="370" y="126" class="lbl">было 367.8 · шаг в конверте ±2</text>
       <text x="360" y="160" text-anchor="middle" class="mono">0</text><text x="440" y="160" text-anchor="middle" class="mono">1</text><text x="520" y="160" text-anchor="middle" class="mono">2</text><text x="600" y="160" text-anchor="middle" class="mono">3 ч</text>
       <text x="360" y="182" class="lbl">или рецепт шагом 0.05, выпуск −10 т/ч, присадка ≤ 3 %</text>
 
@@ -684,7 +684,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
 
       <rect x="460" y="80" width="200" height="80" rx="3" class="box"/>
       <text x="560" y="104" text-anchor="middle">ГО · лаг 2 ч</text>
-      <text x="560" y="126" text-anchor="middle" class="mono">×0.0079·e^(−0.085ΔT)·(Q/256)^0.7</text>
+      <text x="560" y="126" text-anchor="middle" class="mono">×0.0079·e^(−kΔT)·(Q/Q₀)^0.7</text>
       <text x="560" y="146" text-anchor="middle" class="mono">= 8.0 мг/кг</text>
       <path d="M660,120 H708" class="pipe" marker-end="url(#m4)"/>
 
@@ -705,7 +705,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <text x="935" y="188" text-anchor="middle" class="lbl">+ цена, тяжесть</text>
     </svg>
     </div>
-    <figcaption>Числа — сценарий <code>baseline</code> в текущем режиме (ΔT = 0, Q = 256 м³/ч): 1.35 % серы в нефти даёт 8.0 мг/кг после ГО. Все коэффициенты заданы сценарием и из данных завода не подтверждены. Кружки — регуляторы с обратной связью: совет меняет их уставку, динамика контура не моделируется. По официальному справочнику 16.09 температуру входа Р-202 измеряет <code>ht.T6</code>, расход сырья — <code>ht.F15</code> (массовый <code>ht.F9</code>); <code>ht.T11</code> — температура на выходе реактора, <code>ht.F26</code> — расход гидроочищенного ДТ. В live-режиме сера main берётся из привязки (этап 5), а не из этой цепочки.</figcaption>
+    <figcaption>Абсолютные числа — синтетический сценарий <code>baseline</code> (ΔT = 0): 1.35 % серы в нефти × 0.075 × 0.0079 = 8.0 мг/кг после ГО — коэффициенты подобраны под сценарное содержимое резервуара и в живом решении не участвуют: там модель ГО работает только как множитель acting/idle к прогнозу, опорная точка — измерения T6/F9 на момент, наклон k = −β/S₀ по данным (β = −0.433 мг/кг/°C, <code>config/response_model.json</code>), показатель 0.7 по расходу назначен (<code>open</code>). Модель АВТ целиком сценарная: тегов печей К-2 нет. Кружки — регуляторы с обратной связью: совет меняет их уставку, динамика контура не моделируется. По официальному справочнику 16.09 температуру входа Р-202 измеряет <code>ht.T6</code>, расход сырья — <code>ht.F15</code> (массовый <code>ht.F9</code>); <code>ht.T11</code> — температура на выходе реактора, <code>ht.F26</code> — расход гидроочищенного ДТ. В live-режиме сера main берётся из привязки (этап 5), а не из этой цепочки.</figcaption>
   </figure>
   <div class="tbl"><table>
     <thead><tr><th>Свойство смеси</th><th>Правило</th><th>Насколько обосновано</th></tr></thead>
@@ -852,7 +852,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <div><dt>Выбран</dt><dd>hold</dd></div>
       <div><dt>За горизонтом 48 ч</dt><dd>нарушений нет</dd></div>
       <div><dt>Перепроверка</dt><dd><span class="pill ok">pass</span> 35 + 71</dd></div>
-      <div><dt>Устойчивость</dt><dd>8 из 8</dd></div>
+      <div><dt>Устойчивость</dt><dd>10 из 10 (в т.ч. края β weak/strong)</dd></div>
     </dl>
   </div>
 </section>
@@ -977,7 +977,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
     <p class="eyebrow">Пример · 05.01.2026 08:00</p>
     <dl>
       <div><dt>status</dt><dd>hold</dd></div>
-      <div><dt>Уставки</dt><dd>740 · 372 · 348 · 256</dd></div>
+      <div><dt>Уставки</dt><dd>740 · 372 (сценарий) · 367.8 (ht.T6) · 246.5 (ht.F9/ρ)</dd></div>
       <div><dt>Рецепт</dt><dd>main 0.9 · reserve 0.1</dd></div>
       <div><dt>Выпуск за 3 ч</dt><dd>300 т</dd></div>
       <div><dt>Цена</dt><dd>1.09 усл.ед./т</dd></div>
@@ -1076,6 +1076,21 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
     <div><p class="eyebrow">Аудит страницы · 16–17.09.2026</p><h2 id="haud">Что сверено с кодом и данными, что исправлено</h2></div></div>
   <p class="intro">Каждое число и правило на странице сверено с кодом, конфигурацией, <code>artifacts/metrics.json</code> и пересчётом решения на 05.01.2026 08:00. 16.09 пересчёт совпал с сохранённым артефактом (<code>086b5119b1dbe2f4</code>). 17.09 разобраны материалы организаторов 15–16.09; из-за них изменились данные и модель, теперь <code>decision_id ac5b26ba63ab8d99</code>, статус тот же — hold. Полный набор тестов — 1115 passed.</p>
 
+  <p class="eyebrow" style="margin-top:18px">Ветка real-inputs · 17.09, вечер · что перестало быть воздухом</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Было</th><th>Стало</th><th>Где</th></tr></thead>
+    <tbody>
+      <tr><td>Демо (<code>serve</code>, <code>scenes</code>) считалось на константах ЛИМС 8.0 / ПАК 8.4, а слой доверия получал пустой конфиг и не проверял возраст (ЛИМС 500 ч проходил как <code>ok</code>)</td><td>Пороги из <code>artifacts/source_rules.json</code> во всех контурах с подписью происхождения; демо идёт на замороженных реальных срезах 2026 (<code>snapshot --all</code>) через тот же связыватель, что <code>advise</code>; на экране подписано, реальный это срез или синтетика</td><td>T83, T86</td></tr>
+      <tr><td>Уставки ГО в модели последствий — сценарные 348 °C / 256 м³/ч при реальных 367.8 / 246.5</td><td><code>ht.T6</code> и <code>ht.F9</code> на момент решения (<code>measured</code>/<code>derived</code>); без измерения или вне области — числовая уставка не предлагается</td><td>T84</td></tr>
+      <tr><td>Коэффициент отклика ГО 0.085/°C назначен; conversion 0.9921 подобран под 8.0</td><td>β = −0.433 мг/кг/°C по данным на T6 (CI90 [−0.476; −0.397], дрейф ×1.7, область применимости), k = −β/S₀; абсолютная модель — только для синтетических сцен и так подписана</td><td>T85, T84</td></tr>
+      <tr><td>Приток 95 т/ч и окно 42 ч без основания</td><td>Приток = <code>ht.F26</code>·ρ (204 т/ч на 05.01, медиана train 212.6), окно = запас / приток = 19.6 ч; объём 4000 т, резерв, лёгкая фракция и вместимость — <code>open</code>, вопросы к сессии 18.09</td><td>T87</td></tr>
+      <tr><td>Устойчивость в live проверялась на несвязанном сценарии</td><td>Строится на связанном; добавлены возмущения k по краям weak/strong β</td><td>T84</td></tr>
+      <tr><td>Интервал «90 %» без факта</td><td>В каждом решении: цель 0.9, факт на 2026 — 0.867; скользящая калибровка не помогает (проверено по полугодиям)</td><td>T88</td></tr>
+      <tr><td>Оценка серы резервуара не проверялась</td><td><code>tank-check</code>: с пробами ЛИМС не согласуется (r → 0 с ростом окна) — непроверяема; ПАК ниже ЛИМС на ≈0.4 в 2026</td><td>T89</td></tr>
+      <tr><td>«Реальные в картинке только две цифры»</td><td>Реальные: приток, обе серы, T6, F9; воздух: 4000 т, 600/2.0, 900, рецепт, модель АВТ, сцена «ухудшение сырья»</td><td>эта страница</td></tr>
+    </tbody>
+  </table></div>
+
   <p class="eyebrow" style="margin-top:18px">Что изменили материалы организаторов 15–16 сентября</p>
   <div class="tbl"><table>
     <thead><tr><th>Было на странице</th><th>Как стало</th><th>Основание</th></tr></thead>
@@ -1124,7 +1139,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <tr><td>Срез: ffill 20 мин, окно 6 ч, история 72 ч (правила зависания и конфликта заменены выведенными из данных)</td><td><code>infrastructure/data/data.py</code></td></tr>
       <tr><td>Пример 05.01: ЛИМС 6.80 (14 ч), ПАК 5.88 (0 мин), пропуски 0 %, основной ЛИМС, запасная модель не нужна</td><td>пересчёт <code>advise</code></td></tr>
       <tr><td>Прогноз last_pak 5.88 [3.68; 9.13]; MAE 1.3634 и 1.3663 на 180 общих пробах; отрыв −0.22 %, CI [−0.150; 0.148]; периоды 792 / 193 / 224 / 249</td><td><code>artifacts/metrics.json</code>, пересчёт</td></tr>
-      <tr><td>Привязка: приток 9.13, сера содержимого 5.19; окно 42 ч, покрытие 50 %, ≥ 2 пробы ЛИМС, удержание до 48 ч</td><td>пересчёт, <code>advisor.py</code>, политика сценария</td></tr>
+      <tr><td>Привязка: приток 9.13, сера содержимого 4.56; окно 4000 / 204 = 19.6 ч, покрытие 50 %, ≥ 2 пробы ЛИМС, удержание до 48 ч; уставки T6 367.8 / F9 206.1 измерены</td><td>пересчёт, <code>advisor.py</code>, политика сценария</td></tr>
       <tr><td>Кандидаты: шаги и диапазоны уставок, рецепт 0.05, выпуск −10 т/ч до 50 %, переходные 0.1–0.6, лаг ГО 2 ч, 200 из 400</td><td><code>optimizer.py</code>, <code>plan_operation.py</code>, <code>baseline.json</code></td></tr>
       <tr><td>Gate: 35 проверок качества и 71 надёжности, всего 129; ближе всего к пределу сера 5.11 (3 ч), T95 351.4, цетан 51.65</td><td>пересчёт <code>advise</code></td></tr>
       <tr><td>Упреждение 48 ч, запас реакции 12 ч, до 40 кандидатов; устойчивость 8 из 8; итог hold, 300 т, 1.09, тяжесть 0</td><td>пересчёт, <code>make_decision.py</code>, <code>robustness.py</code></td></tr>
