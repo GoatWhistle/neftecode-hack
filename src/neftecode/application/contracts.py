@@ -35,6 +35,9 @@ class LiveForecast:
     upper: float | None
     available: bool
     reason: str = ""
+    #: Заявленное покрытие интервала и фактическое на тесте 2026 (из metrics.json), если известны.
+    coverage_target: float | None = None
+    coverage_test: float | None = None
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "LiveForecast":
@@ -51,11 +54,18 @@ class LiveForecast:
             upper=_optional_float(raw.get("upper"), "upper"),
             available=raw.get("available") is True,
             reason=reason,
+            coverage_target=_optional_float(raw.get("coverage_target"), "coverage_target"),
+            coverage_test=_optional_float(raw.get("coverage_test", raw.get("coverage_test_2026")), "coverage_test"),
         )
 
     def to_dict(self) -> dict[str, object]:
-        return {"model": self.model, "value": self.value, "lower": self.lower,
-                "upper": self.upper, "available": self.available, "reason": self.reason}
+        out = {"model": self.model, "value": self.value, "lower": self.lower,
+               "upper": self.upper, "available": self.available, "reason": self.reason}
+        if self.coverage_target is not None:
+            out["coverage_target"] = self.coverage_target
+        if self.coverage_test is not None:
+            out["coverage_test"] = self.coverage_test
+        return out
 
 
 @dataclass(frozen=True)

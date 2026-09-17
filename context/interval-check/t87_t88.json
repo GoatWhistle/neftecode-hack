@@ -1,0 +1,122 @@
+{
+ "t87": {
+  "density_kgm3": {
+   "train_median": 836.3,
+   "all_median": 836.1,
+   "n": 1015,
+   "column": "D15"
+  },
+  "f26_m3h": {
+   "train": {
+    "median": 252.4,
+    "q10": 199.72,
+    "q90": 293.25,
+    "n": 102680
+   },
+   "2026": {
+    "median": 265.63,
+    "q10": 217.76,
+    "q90": 293.39,
+    "n": 28145
+   }
+  },
+  "inflow_tph": {
+   "train": {
+    "median": 211.09,
+    "q10": 167.03,
+    "q90": 245.24,
+    "n": 102680
+   },
+   "2026": {
+    "median": 222.09,
+    "q10": 182.07,
+    "q90": 245.3,
+    "n": 28145
+   }
+  },
+  "window_h_scenario_95": 42.11,
+  "dS_3h_scenario_95": 0.271,
+  "stock_growth_48h_scenario_95": -240.0,
+  "window_h_data_train": 18.95,
+  "dS_3h_data_train": 0.577,
+  "stock_growth_48h_data_train": 5332.0
+ },
+ "t88": {
+  "radius_current": 0.3863,
+  "calibration": "2025H2 (calibration_end 2026-01-01)",
+  "fixed": {
+   "2023H1": {
+    "n": 192,
+    "coverage": 0.974,
+    "width": 7.66
+   },
+   "2023H2": {
+    "n": 194,
+    "coverage": 0.907,
+    "width": 7.42
+   },
+   "2024H1": {
+    "n": 139,
+    "coverage": 0.871,
+    "width": 7.59
+   },
+   "2024H2": {
+    "n": 197,
+    "coverage": 0.909,
+    "width": 7.76
+   },
+   "2025H1": {
+    "n": 181,
+    "coverage": 0.939,
+    "width": 7.55
+   },
+   "2025H2": {
+    "n": 219,
+    "coverage": 0.904,
+    "width": 6.96
+   },
+   "2026": {
+    "n": 233,
+    "coverage": 0.867,
+    "width": 7.19
+   }
+  },
+  "rolling": {
+   "2024H1": {
+    "radius": 0.3746,
+    "calibrated_on": "2023H2",
+    "n": 139,
+    "coverage": 0.863,
+    "width": 7.34
+   },
+   "2024H2": {
+    "radius": 0.4271,
+    "calibrated_on": "2024H1",
+    "n": 197,
+    "coverage": 0.929,
+    "width": 8.63
+   },
+   "2025H1": {
+    "radius": 0.3682,
+    "calibrated_on": "2024H2",
+    "n": 181,
+    "coverage": 0.928,
+    "width": 7.18
+   },
+   "2025H2": {
+    "radius": 0.337,
+    "calibrated_on": "2025H1",
+    "n": 219,
+    "coverage": 0.836,
+    "width": 6.04
+   },
+   "2026": {
+    "radius": 0.3863,
+    "calibrated_on": "2025H2",
+    "n": 233,
+    "coverage": 0.867,
+    "width": 7.19
+   }
+  }
+ }
+}
