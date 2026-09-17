@@ -6,6 +6,7 @@ from neftecode.evaluation.episodes import (
     _as_series, classify_episodes, excursion_episodes, lead_times, margin_series,
     sampling_step_hours, violation_profile,
 )
+from neftecode.evaluation.tank_level import tank_level_check
 from neftecode.evaluation.vak import check_all
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.avt_tags import load_avt_tags
@@ -29,6 +30,17 @@ def benchmark(args, parser, root, out):
                       f"нарушений={result['violations']} выпуск={result['production_t']:.0f} т")
     print(f"Выигрышей: {len(report['wins'])}, проигрышей: {len(report['losses'])}")
     print(f"Журнал: {out / 'benchmark.json'}")
+
+def tank_check(args, parser, root, out):
+    import pickle
+    with (out / "model.pkl").open("rb") as stream:
+        cfg = pickle.load(stream)["config"]
+    _, lab, online = load_sources(root / "task")
+    report = tank_level_check(lab, online, cfg)
+    write_json(out / "tank_level_check.json", report)
+    for name, row in report["summary"].items():
+        print(f"  {name:10s} n={row['n']:4d} MAE={row['mae']}  bias={row['bias']}  r={row['corr']}")
+    print(f"Журнал: {out / 'tank_level_check.json'}")
 
 def episodes(args, parser, root, out):
     cfg = json.loads(args.config.read_text())
