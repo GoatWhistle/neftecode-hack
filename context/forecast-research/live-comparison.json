@@ -1,0 +1,59 @@
+{
+  "schema_version": "v1",
+  "comparison_method": "Old values were reconstructed with the same final bundle and trust decision, replacing only selected=last_pak; fallback and refusal paths are unchanged.",
+  "moments": [
+    {
+      "at": "2026-01-05T08:00:00",
+      "source": "ЛИМС",
+      "fallback": false,
+      "before": {"model": "last_pak", "value": 5.88374, "lower": 3.677917, "upper": 9.129696, "status": "hold"},
+      "after": {"model": "last_pak_bc", "value": 7.582309, "lower": 5.231989, "upper": 10.819024, "status": "hold"},
+      "explanation": "The causal median correction is +1.699 mg/kg. The inflow upper bound rose, but the worst sulfur check for the mixed stock is 5.079 mg/kg, so hold remains feasible."
+    },
+    {
+      "at": "2026-01-09T01:10:00",
+      "source": "ЛИМС",
+      "fallback": true,
+      "before": {"model": "catboost_no_pak", "value": 7.298334, "lower": 5.254873, "upper": 10.009391, "status": "hold"},
+      "after": {"model": "catboost_no_pak", "value": 7.298334, "lower": 5.254873, "upper": 10.009391, "status": "hold"},
+      "explanation": "Frozen PAK activates the unchanged no-PAK fallback; forecast and decision are unchanged."
+    },
+    {
+      "at": "2026-07-20T19:10:00",
+      "source": "ЛИМС",
+      "fallback": true,
+      "before": {"model": "catboost_no_pak", "value": 8.487606, "lower": 6.151287, "upper": 11.587197, "status": "hold"},
+      "after": {"model": "catboost_no_pak", "value": 8.487606, "lower": 6.151287, "upper": 11.587197, "status": "hold"},
+      "explanation": "Frozen PAK activates the unchanged no-PAK fallback; forecast and decision are unchanged."
+    },
+    {
+      "at": "2026-05-07T10:10:00",
+      "source": "ПАК",
+      "fallback": false,
+      "before": {"model": "last_pak", "value": 8.421582, "lower": 5.402534, "upper": 12.864231, "status": "hold"},
+      "after": {"model": "last_pak_bc", "value": 8.418294, "lower": 5.839034, "upper": 11.970291, "status": "hold"},
+      "explanation": "The point correction is nearly zero (-0.003 mg/kg), while the winner's calibrated radius is smaller; the upper bound falls by 0.894 mg/kg and hold remains feasible."
+    },
+    {
+      "at": "2026-05-04T18:00:00",
+      "source": "ЛИМС",
+      "fallback": true,
+      "before": {"model": "catboost_no_pak", "value": 7.982815, "lower": 5.770801, "upper": 10.917491, "status": "hold"},
+      "after": {"model": "catboost_no_pak", "value": 7.982815, "lower": 5.770801, "upper": 10.917491, "status": "hold"},
+      "explanation": "PAK-LIMS conflict activates the unchanged no-PAK fallback; forecast and decision are unchanged."
+    },
+    {
+      "at": "2026-04-16T10:10:00",
+      "source": null,
+      "fallback": true,
+      "before": {"model": null, "value": null, "lower": null, "upper": null, "status": "refuse"},
+      "after": {"model": null, "value": null, "lower": null, "upper": null, "status": "refuse"},
+      "explanation": "No trusted quality source exists, so the forecast remains unavailable and the decision remains refuse."
+    }
+  ],
+  "status_summary": {
+    "before": {"hold": 5, "refuse": 1},
+    "after": {"hold": 5, "refuse": 1},
+    "changed_statuses": 0
+  }
+}

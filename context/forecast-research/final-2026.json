@@ -8,7 +8,7 @@
     "selection_was_frozen": true,
     "result_changed_selection_or_parameters": false,
     "evaluation_model_fingerprint": "7b89a7436115b25f8bff08d23917aca034dd2d89aba9ce09f204c4c7ca0c946d",
-    "deployed_model_fingerprint_after_metadata_hardening": "8209adaab35014eb0d0856dabdc3d4af620c0e9948df8f4ecee49fa7dd10b20a"
+    "deployed_model_fingerprint_after_metadata_hardening": "ba9329aa771f9b8d9a60a82561710c1424e9f9356126f5d249b123a9df884091"
   },
   "period": "2026",
   "total_targets": 249,
