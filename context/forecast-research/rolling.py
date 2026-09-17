@@ -152,6 +152,19 @@ def check_bias_causality(
     return {"passed": True, "checked_time_window_pairs": checked}
 
 
+def combine_residual_prediction(last_pak, predicted_log_residual, fallback) -> np.ndarray:
+    """Apply a log-residual where PAK exists, otherwise retain no-PAK fallback."""
+    last_pak = np.asarray(last_pak, float)
+    predicted_log_residual = np.asarray(predicted_log_residual, float)
+    result = np.asarray(fallback, float).copy()
+    available = np.isfinite(last_pak)
+    result[available] = np.maximum(
+        0,
+        np.expm1(np.log1p(last_pak[available]) + predicted_log_residual[available]),
+    )
+    return result
+
+
 def fixed_split_check(base_cfg: dict[str, Any]) -> dict[str, Any]:
     """Reproduce the existing 2025-H1 validation comparison exactly.
 
@@ -291,6 +304,18 @@ def rolling_fold(
         method: predict_candidate(bundle, method, x)
         for method in ("last_pak", "catboost_no_pak")
     }
+    residual_fit = fit & np.isfinite(predictions["last_pak"])
+    if residual_fit.sum() < 30:
+        raise ValueError(f"{name}: недостаточно доступных ПАК для CatBoost остатка")
+    residual_target = np.log1p(y[residual_fit]) - np.log1p(predictions["last_pak"][residual_fit])
+    residual_model = catboost(cfg)
+    residual_model.fit(x.loc[residual_fit, columns], residual_target)
+    predicted_log_residual = residual_model.predict(x[columns])
+    predictions["catboost_residual"] = combine_residual_prediction(
+        predictions["last_pak"],
+        predicted_log_residual,
+        predictions["catboost_no_pak"],
+    )
     corrections = {}
     for window in (10, 20, 40):
         method = f"last_pak_bc_n{window}"
@@ -308,6 +333,10 @@ def rolling_fold(
         raise ValueError(f"{name}: недостаточно общих прогнозов")
     for method, prediction in predictions.items():
         method_results[method]["common_mae"] = float(np.mean(np.abs(y[common] - prediction[common])))
+    method_results["catboost_residual"].update(
+        fit_with_pak=int(residual_fit.sum()),
+        evaluation_fallback_rows=int(np.sum(evaluation & ~np.isfinite(predictions["last_pak"]))),
+    )
     base_valid = evaluation & np.isfinite(predictions["last_pak"])
     for method, correction in corrections.items():
         valid = base_valid & np.isfinite(predictions[method])
@@ -356,6 +385,8 @@ def aggregate(folds: list[dict[str, Any]]) -> dict[str, Any]:
         "interval_coverage",
         "mean_interval_width",
         "mean_upper_margin",
+        "recall",
+        "false_alarm_rate",
         "upper_bound_recall",
         "upper_bound_false_alarm_rate",
         "mean_bias_before",
@@ -542,6 +573,53 @@ def render_markdown(result: dict[str, Any]) -> str:
             "",
         ]
     )
+    f3 = result["f3"]
+    lines.extend(
+        [
+            "## T106. CatBoost log-остатка к last_pak",
+            "",
+            "Модель использует тот же набор признаков и те же гиперпараметры, что текущий CatBoost.",
+            "При недоступном ПАК точка берётся из `catboost_no_pak`; настройки по складкам не подбирались.",
+            "",
+            "| Складка | fit с ПАК | fallback eval | MAE | point recall | exceed upper | 2-side cov | upper margin |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for fold in result["folds"]:
+        method = fold["methods"]["catboost_residual"]
+        lines.append(
+            f"| {fold['fold']} | {method['fit_with_pak']} | {method['evaluation_fallback_rows']} "
+            f"| {fmt(method['common_mae'])} | {fmt(method['recall'])} "
+            f"| {fmt(method['exceed_upper'])} | {fmt(method['interval_coverage'])} "
+            f"| {fmt(method['mean_upper_margin'])} |"
+        )
+    residual = result["aggregate"]["catboost_residual"]
+    bootstrap = f3["bootstrap"]
+    gate = f3["selection_gate"]
+    verdict = (
+        "F3 проходит предварительный протокол F0. Финальный выбор возможен только после F4."
+        if gate["eligible"]
+        else "F3 не проходит предварительный протокол F0; отрицательный результат сохраняется."
+    )
+    lines.extend(
+        [
+            f"| **Среднее** | — | — | **{fmt(residual['common_mae'])}** | **{fmt(residual['recall'])}** "
+            f"| **{fmt(residual['exceed_upper'])}** | **{fmt(residual['interval_coverage'])}** "
+            f"| **{fmt(residual['mean_upper_margin'])}** |",
+            "",
+            f"Парный bootstrap MAE (кандидат − база): {bootstrap['difference_candidate_minus_baseline']:.3f} мг/кг, "
+            f"95% CI [{bootstrap['ci_low']:.3f}; {bootstrap['ci_high']:.3f}], "
+            f"доля выборок в пользу кандидата {bootstrap['share_candidate_better']:.3f}.",
+            "",
+            "Условия F0 для F3: "
+            + ", ".join(f"{name}={'да' if passed else 'нет'}" for name, passed in gate["conditions"].items())
+            + ".",
+            verdict,
+            "",
+            "Полные результаты T106 находятся в `rolling-f3.json`.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -560,15 +638,22 @@ def main() -> None:
         "selection_gate_n20": selection_gate(aggregate_result["last_pak_bc_n20"], aggregate_result["last_pak"]),
         "sensitivity_only": ["last_pak_bc_n10", "last_pak_bc_n40"],
     }
+    f3 = {
+        "bootstrap": paired_bootstrap_by_fold(rows, "catboost_residual"),
+        "selection_gate": selection_gate(aggregate_result["catboost_residual"], aggregate_result["last_pak"]),
+        "hyperparameters_tuned": False,
+        "fallback": "catboost_no_pak",
+    }
     result = {
-        "schema": "neftecode.forecast_rolling.f2.v1",
+        "schema": "neftecode.forecast_rolling.f3.v1",
         "development_end_exclusive": DEVELOPMENT_END.isoformat(),
         "fixed_split_check": check,
         "folds": folds,
         "aggregate": aggregate_result,
         "f2": f2,
+        "f3": f3,
     }
-    with (OUT_DIR / "rolling-f2.json").open("w") as stream:
+    with (OUT_DIR / "rolling-f3.json").open("w") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2, allow_nan=False)
         stream.write("\n")
     rows.to_csv(OUT_DIR / "rolling-predictions.csv", index=False)
