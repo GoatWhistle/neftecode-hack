@@ -1,0 +1,434 @@
+{
+  "schema": "neftecode.forecast_rolling.baseline.v1",
+  "development_end_exclusive": "2026-01-01T00:00:00",
+  "fixed_split_check": {
+    "period": "2025 H1",
+    "common_n": 180,
+    "actual_mae": {
+      "last_pak": 1.3633740067481994,
+      "catboost_no_pak": 1.3663192424994126
+    },
+    "artifact_mae": {
+      "last_pak": 1.3633740067481994,
+      "catboost_no_pak": 1.3663192424994126
+    },
+    "difference": {
+      "last_pak": 0.0,
+      "catboost_no_pak": 0.0
+    },
+    "tolerance": 1e-06,
+    "passed": true
+  },
+  "folds": [
+    {
+      "fold": "2023 H2",
+      "start": "2023-07-01T00:00:00",
+      "end": "2024-01-01T00:00:00",
+      "calibration_start": "2023-04-01T00:00:00",
+      "counts": {
+        "fit": 97,
+        "calibration": 106,
+        "evaluation": 203,
+        "common": 190
+      },
+      "feature_counts": {
+        "all": 293,
+        "no_pak": 290
+      },
+      "source_rules": {
+        "lab_max_age_hours": 48.0,
+        "pak_max_age_minutes": 30.0,
+        "pak_period_minutes": 10.0,
+        "pak_frozen_readings": 2,
+        "pak_conflict_mgkg": 4.323,
+        "telemetry_max_missing_fraction": 0.0
+      },
+      "methods": {
+        "last_pak": {
+          "n": 203,
+          "predicted": 190,
+          "availability": 0.9359605911330049,
+          "mae": 1.410254770831058,
+          "rmse": 1.9198162761697448,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 40,
+          "recall": 0.325,
+          "false_alarm_rate": 0.06,
+          "mae_near_limit": 1.3586978186731753,
+          "interval_coverage": 0.8315789473684211,
+          "mean_interval_width": 5.0828544771990956,
+          "upper_bound_recall": 0.925,
+          "upper_bound_false_alarm_rate": 0.6933333333333334,
+          "below_limit_fraction": 0.2578947368421053,
+          "missed_exceedances": 3,
+          "radius": 0.27009348358258833,
+          "exceed_upper": 0.14736842105263157,
+          "one_sided_coverage": 0.8526315789473684,
+          "mean_upper_margin": 2.882567362193098,
+          "common_mae": 1.410254770831058
+        },
+        "catboost_no_pak": {
+          "n": 203,
+          "predicted": 203,
+          "availability": 1.0,
+          "mae": 1.6069862902083314,
+          "rmse": 2.393317058994766,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 47,
+          "recall": 0.0,
+          "false_alarm_rate": 0.0,
+          "mae_near_limit": 1.4303202018720647,
+          "interval_coverage": 0.8472906403940886,
+          "mean_interval_width": 5.159721904061698,
+          "upper_bound_recall": 0.9574468085106383,
+          "upper_bound_false_alarm_rate": 0.9807692307692307,
+          "below_limit_fraction": 0.024630541871921183,
+          "missed_exceedances": 2,
+          "radius": 0.27258714120874084,
+          "exceed_upper": 0.10344827586206896,
+          "one_sided_coverage": 0.896551724137931,
+          "mean_upper_margin": 2.9293182554654456,
+          "common_mae": 1.4994238632030883
+        }
+      }
+    },
+    {
+      "fold": "2024 H1",
+      "start": "2024-01-01T00:00:00",
+      "end": "2024-07-01T00:00:00",
+      "calibration_start": "2023-07-01T00:00:00",
+      "counts": {
+        "fit": 203,
+        "calibration": 203,
+        "evaluation": 181,
+        "common": 138
+      },
+      "feature_counts": {
+        "all": 293,
+        "no_pak": 290
+      },
+      "source_rules": {
+        "lab_max_age_hours": 48.0,
+        "pak_max_age_minutes": 30.0,
+        "pak_period_minutes": 10.0,
+        "pak_frozen_readings": 3,
+        "pak_conflict_mgkg": 4.485,
+        "telemetry_max_missing_fraction": 0.0
+      },
+      "methods": {
+        "last_pak": {
+          "n": 181,
+          "predicted": 138,
+          "availability": 0.7624309392265194,
+          "mae": 1.6784592086746208,
+          "rmse": 2.354000202870846,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 13,
+          "recall": 0.5384615384615384,
+          "false_alarm_rate": 0.128,
+          "mae_near_limit": 1.468852748946538,
+          "interval_coverage": 0.8623188405797102,
+          "mean_interval_width": 7.151010151476787,
+          "upper_bound_recall": 0.9230769230769231,
+          "upper_bound_false_alarm_rate": 0.888,
+          "below_limit_fraction": 0.10869565217391304,
+          "missed_exceedances": 1,
+          "radius": 0.3644643047261127,
+          "exceed_upper": 0.043478260869565216,
+          "one_sided_coverage": 0.9565217391304348,
+          "mean_upper_margin": 4.221540125589734,
+          "common_mae": 1.6784592086746208
+        },
+        "catboost_no_pak": {
+          "n": 181,
+          "predicted": 181,
+          "availability": 1.0,
+          "mae": 14.198373777722043,
+          "rmse": 157.21667832315208,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 18,
+          "recall": 0.0,
+          "false_alarm_rate": 0.0,
+          "mae_near_limit": 1.3199086731903715,
+          "interval_coverage": 0.8011049723756906,
+          "mean_interval_width": 7.2867854720991,
+          "upper_bound_recall": 1.0,
+          "upper_bound_false_alarm_rate": 1.0,
+          "below_limit_fraction": 0.0,
+          "missed_exceedances": 0,
+          "radius": 0.3799395660531526,
+          "exceed_upper": 0.049723756906077346,
+          "one_sided_coverage": 0.9502762430939227,
+          "mean_upper_margin": 4.327319686430585,
+          "common_mae": 1.6583091929336473
+        }
+      }
+    },
+    {
+      "fold": "2024 H2",
+      "start": "2024-07-01T00:00:00",
+      "end": "2025-01-01T00:00:00",
+      "calibration_start": "2024-01-01T00:00:00",
+      "counts": {
+        "fit": 406,
+        "calibration": 182,
+        "evaluation": 204,
+        "common": 197
+      },
+      "feature_counts": {
+        "all": 293,
+        "no_pak": 290
+      },
+      "source_rules": {
+        "lab_max_age_hours": 48.0,
+        "pak_max_age_minutes": 30.0,
+        "pak_period_minutes": 10.0,
+        "pak_frozen_readings": 5,
+        "pak_conflict_mgkg": 5.233,
+        "telemetry_max_missing_fraction": 0.0938
+      },
+      "methods": {
+        "last_pak": {
+          "n": 204,
+          "predicted": 197,
+          "availability": 0.9656862745098039,
+          "mae": 1.6376752381397384,
+          "rmse": 2.1296803492302274,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 18,
+          "recall": 0.2222222222222222,
+          "false_alarm_rate": 0.16201117318435754,
+          "mae_near_limit": 1.5807812136988486,
+          "interval_coverage": 0.9390862944162437,
+          "mean_interval_width": 8.930426363809795,
+          "upper_bound_recall": 1.0,
+          "upper_bound_false_alarm_rate": 0.9553072625698324,
+          "below_limit_fraction": 0.04060913705583756,
+          "missed_exceedances": 0,
+          "radius": 0.44128222493255276,
+          "exceed_upper": 0.005076142131979695,
+          "one_sided_coverage": 0.9949238578680203,
+          "mean_upper_margin": 5.434740605209763,
+          "common_mae": 1.6376752381397384
+        },
+        "catboost_no_pak": {
+          "n": 204,
+          "predicted": 204,
+          "availability": 1.0,
+          "mae": 1.6403858614396134,
+          "rmse": 2.1364629962224235,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 20,
+          "recall": 0.0,
+          "false_alarm_rate": 0.0,
+          "mae_near_limit": 1.4178500989191205,
+          "interval_coverage": 0.9852941176470589,
+          "mean_interval_width": 14.260318975766156,
+          "upper_bound_recall": 1.0,
+          "upper_bound_false_alarm_rate": 1.0,
+          "below_limit_fraction": 0.0,
+          "missed_exceedances": 0,
+          "radius": 0.6806420522911345,
+          "exceed_upper": 0.004901960784313725,
+          "one_sided_coverage": 0.9950980392156863,
+          "mean_upper_margin": 9.4671688220926,
+          "common_mae": 1.5835571979075407
+        }
+      }
+    },
+    {
+      "fold": "2025 H1",
+      "start": "2025-01-01T00:00:00",
+      "end": "2025-07-01T00:00:00",
+      "calibration_start": "2024-07-01T00:00:00",
+      "counts": {
+        "fit": 588,
+        "calibration": 204,
+        "evaluation": 193,
+        "common": 181
+      },
+      "feature_counts": {
+        "all": 293,
+        "no_pak": 290
+      },
+      "source_rules": {
+        "lab_max_age_hours": 48.0,
+        "pak_max_age_minutes": 30.0,
+        "pak_period_minutes": 10.0,
+        "pak_frozen_readings": 4,
+        "pak_conflict_mgkg": 4.749,
+        "telemetry_max_missing_fraction": 0.0938
+      },
+      "methods": {
+        "last_pak": {
+          "n": 193,
+          "predicted": 181,
+          "availability": 0.9378238341968912,
+          "mae": 1.3610963992650997,
+          "rmse": 2.1220773502540125,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 30,
+          "recall": 0.13333333333333333,
+          "false_alarm_rate": 0.09933774834437085,
+          "mae_near_limit": 1.2650206948435583,
+          "interval_coverage": 0.9281767955801105,
+          "mean_interval_width": 7.184711995977568,
+          "upper_bound_recall": 0.9,
+          "upper_bound_false_alarm_rate": 0.9072847682119205,
+          "below_limit_fraction": 0.09392265193370165,
+          "missed_exceedances": 3,
+          "radius": 0.3682238207253401,
+          "exceed_upper": 0.022099447513812154,
+          "one_sided_coverage": 0.9779005524861878,
+          "mean_upper_margin": 4.246378328470011,
+          "common_mae": 1.3610963992650997
+        },
+        "catboost_no_pak": {
+          "n": 193,
+          "predicted": 193,
+          "availability": 1.0,
+          "mae": 1.3496284418131446,
+          "rmse": 1.985298760066788,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 32,
+          "recall": 0.0,
+          "false_alarm_rate": 0.006211180124223602,
+          "mae_near_limit": 1.1964719721979435,
+          "interval_coverage": 0.9378238341968912,
+          "mean_interval_width": 7.124066041697185,
+          "upper_bound_recall": 1.0,
+          "upper_bound_false_alarm_rate": 0.9254658385093167,
+          "below_limit_fraction": 0.06217616580310881,
+          "missed_exceedances": 0,
+          "radius": 0.3726005567660926,
+          "exceed_upper": 0.025906735751295335,
+          "one_sided_coverage": 0.9740932642487047,
+          "mean_upper_margin": 4.218068421066551,
+          "common_mae": 1.310605844352461
+        }
+      }
+    },
+    {
+      "fold": "2025 H2",
+      "start": "2025-07-01T00:00:00",
+      "end": "2026-01-01T00:00:00",
+      "calibration_start": "2025-01-01T00:00:00",
+      "counts": {
+        "fit": 792,
+        "calibration": 193,
+        "evaluation": 224,
+        "common": 219
+      },
+      "feature_counts": {
+        "all": 293,
+        "no_pak": 290
+      },
+      "source_rules": {
+        "lab_max_age_hours": 48.0,
+        "pak_max_age_minutes": 30.0,
+        "pak_period_minutes": 10.0,
+        "pak_frozen_readings": 3,
+        "pak_conflict_mgkg": 4.787,
+        "telemetry_max_missing_fraction": 0.0938
+      },
+      "methods": {
+        "last_pak": {
+          "n": 224,
+          "predicted": 219,
+          "availability": 0.9776785714285714,
+          "mae": 1.8226228070585695,
+          "rmse": 2.3909903567039383,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 41,
+          "recall": 0.024390243902439025,
+          "false_alarm_rate": 0.0449438202247191,
+          "mae_near_limit": 1.7645060041240443,
+          "interval_coverage": 0.8356164383561644,
+          "mean_interval_width": 6.038324115934702,
+          "upper_bound_recall": 0.8536585365853658,
+          "upper_bound_false_alarm_rate": 0.7921348314606742,
+          "below_limit_fraction": 0.1963470319634703,
+          "missed_exceedances": 6,
+          "radius": 0.33700716536357245,
+          "exceed_upper": 0.1141552511415525,
+          "one_sided_coverage": 0.8858447488584474,
+          "mean_upper_margin": 3.5231407864988946,
+          "common_mae": 1.8226228070585695
+        },
+        "catboost_no_pak": {
+          "n": 224,
+          "predicted": 224,
+          "availability": 1.0,
+          "mae": 1.9753139542674432,
+          "rmse": 8.246962007639734,
+          "limit": 10.0,
+          "direction": "max",
+          "near_margin": 5.0,
+          "actual_exceedances": 44,
+          "recall": 0.0,
+          "false_alarm_rate": 0.0,
+          "mae_near_limit": 1.1218947515838111,
+          "interval_coverage": 0.9241071428571429,
+          "mean_interval_width": 6.429539500917371,
+          "upper_bound_recall": 0.9772727272727273,
+          "upper_bound_false_alarm_rate": 0.9888888888888889,
+          "below_limit_fraction": 0.013392857142857142,
+          "missed_exceedances": 1,
+          "radius": 0.33227033497828673,
+          "exceed_upper": 0.03571428571428571,
+          "one_sided_coverage": 0.9642857142857143,
+          "mean_upper_margin": 3.743995958424626,
+          "common_mae": 1.1974919433844056
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "last_pak": {
+      "mae": 1.5820216847938173,
+      "common_mae": 1.5820216847938173,
+      "exceed_upper": 0.06643550454190823,
+      "one_sided_coverage": 0.9335644954580917,
+      "interval_coverage": 0.8793554632601299,
+      "mean_interval_width": 6.87746542087959,
+      "mean_upper_margin": 4.0616734415923,
+      "upper_bound_recall": 0.9203470919324579,
+      "upper_bound_false_alarm_rate": 0.8472120391151521,
+      "worst_fold_exceed_upper": 0.14736842105263157,
+      "total_predicted": 925,
+      "total_evaluation": 1005
+    },
+    "catboost_no_pak": {
+      "mae": 4.154137665090115,
+      "common_mae": 1.4498776083562286,
+      "exceed_upper": 0.04393900300360822,
+      "one_sided_coverage": 0.9560609969963918,
+      "interval_coverage": 0.8991241414941745,
+      "mean_interval_width": 8.052086378908303,
+      "mean_upper_margin": 4.9371742286959615,
+      "upper_bound_recall": 0.9869439071566731,
+      "upper_bound_false_alarm_rate": 0.9790247916334873,
+      "worst_fold_exceed_upper": 0.10344827586206896,
+      "total_predicted": 1005,
+      "total_evaluation": 1005
+    }
+  }
+}
