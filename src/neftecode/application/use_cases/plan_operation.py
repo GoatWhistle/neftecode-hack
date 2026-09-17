@@ -98,7 +98,7 @@ class PlanOperation:
             # A forecast of the hydrotreated stream enters the tank; the action model shifts it.
             ratio = self._response_ratio(time_hours, pending)
             sulfur = None if ratio is None else tank.inflow_sulfur.value * ratio
-        elif declared is not None and declared.source == "derived":
+        elif declared is not None and declared.source in ("derived", "measured"):
             level = self._main_sulfur()
             ratio = self._response_ratio(time_hours, pending)
             sulfur = None if level is None or ratio is None else level * ratio

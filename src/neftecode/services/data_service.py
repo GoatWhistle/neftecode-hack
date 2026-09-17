@@ -10,6 +10,7 @@ from typing import Any
 import pandas as pd
 
 from neftecode.infrastructure.data.data import build_features, load_sources, recent_quality_history
+from neftecode.infrastructure.live.advisor import measurements_at
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from .common import Request, ServiceError, ServiceSettings, serve, clean, content_hash
@@ -116,6 +117,7 @@ class DataService:
         state = self._state(meta)
         state["origin"] = "real_measurements_at_decision_time"
         state.update(recent_quality_history(lab, online, when, cfg))
+        state["measurements"] = measurements_at(signals, when, cfg)
         trust = DataTrustAgent(cfg).assess(state).to_dict()
         feature_map = clean(features.iloc[0].to_dict())
         source_period = {"min": signals.index.min().isoformat(), "max": signals.index.max().isoformat()}

@@ -93,7 +93,7 @@ def _parse_tank(raw: dict, index: int) -> Tank:
     from_chain = raw.get("sulfur_from_chain", False)
     if not isinstance(from_chain, bool):
         raise ScenarioError(f"{where}.sulfur_from_chain: ожидается true или false")
-    if from_chain and properties["sulfur_mgkg"].source == "derived":
+    if from_chain and properties["sulfur_mgkg"].source in ("derived", "measured"):
         raise ScenarioError(f"{where}: сера не может одновременно приходить из модели цепочки "
                             f"и из выведенного измерения")
     inflow_sulfur = optional_quantity(raw.get("inflow_sulfur_mgkg"), "sulfur_mgkg", f"{where}.inflow_sulfur_mgkg")

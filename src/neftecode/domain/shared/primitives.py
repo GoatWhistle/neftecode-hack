@@ -2,7 +2,8 @@
 import math
 from datetime import datetime
 
-SOURCES = ("given", "derived", "scenario", "open")
+#: measured — значение тега телеметрии на момент решения (привязка реальных измерений в live-пути).
+SOURCES = ("given", "derived", "measured", "scenario", "open")
 QUALITIES = ("sulfur_mgkg", "t95_c", "cetane_number", "density_kgm3")
 QUALITY_DIRECTION = {"sulfur_mgkg": "max", "t95_c": "max", "cetane_number": "min"}
 #: Product limits: limit id -> (property, direction). Density is two-sided, so one property can

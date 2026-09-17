@@ -15,12 +15,16 @@ below the limit is not evidence that the limit holds, and the earlier prototype'
 said as much.
 """
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable
 import copy
+import json
+import math
 
 import numpy as np
 import pandas as pd
 
-from neftecode.infrastructure.data.data import build_features, recent_quality_history
+from neftecode.infrastructure.data.data import build_features, frozen_rule, recent_quality_history
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.ports.robustness import RobustnessEvaluator
 from neftecode.application.contracts import LiveForecast, LiveSnapshot, LiveAdviceCommand
@@ -69,13 +73,264 @@ class LocalForecastProvider:
 
 
 class LocalForecastScenarioBinder:
+    """Связывает прогноз и, для реального состояния, измерения тегов со сценарием.
+
+    Порядок фиксирован: сначала `bind_measurements` (уставки, модель отклика, приток и окно
+    резервуара), потом `bind_forecast` — оценка серы резервуара читает уже пересчитанное окно.
+    `response` — содержимое C2 (`load_response_model`) или None, если отклик по данным не загружен.
+    """
+
+    def __init__(self, response: dict | None = None):
+        self.response = response
+
     def bind(self, raw_scenario, forecast, snapshot=None):
         try:
             state = dict(snapshot.state) if snapshot is not None else None
-            raw = bind_forecast(dict(raw_scenario), forecast.to_dict(), state=state)
+            raw = dict(raw_scenario)
+            if state is not None and state.get("origin") == MEASURED_ORIGIN:
+                raw = bind_measurements(raw, state.get("measurements") or {},
+                                        {"density_kgm3": _main_density(raw)}, self.response, forecast.to_dict())
+            raw = bind_forecast(raw, forecast.to_dict(), state=state)
             return parse_scenario(raw), raw
         except (ValueError, KeyError, TypeError) as exc:
             raise ForecastBindingError(str(exc)) from exc
+
+
+MEASURED_ORIGIN = "real_measurements_at_decision_time"
+#: Теги, чьи значения на момент решения попадают в сценарий: температура входа Р-202, массовый
+#: расход сырья и расход гидроочищенного ДТ в цех №8 (справочник 24-2000 от 16.09).
+MEASURED_TAGS = ("ht.T6", "ht.F9", "ht.F26")
+RESPONSE_SCHEMA_VERSION = "v1"
+RESPONSE_FILE = "config/response_model.json"
+
+
+def measurements_at(signals: pd.DataFrame, when, cfg: dict) -> dict:
+    """Последнее не-NaN значение каждого тега не старше pak_age_periods × период опроса; иначе None."""
+    when = pd.Timestamp(when)
+    _, period = frozen_rule(cfg or {})
+    periods = ((cfg or {}).get("source_rule_method") or {}).get("pak_age_periods", 3)
+    max_age = float(periods) * period
+    out = {}
+    for tag in MEASURED_TAGS:
+        out[tag] = None
+        if tag not in signals.columns:
+            continue
+        series = signals[tag].loc[:when].dropna()
+        if series.empty:
+            continue
+        at = series.index[-1]
+        age = (when - at).total_seconds() / 60
+        if age > max_age:
+            continue
+        out[tag] = {"value": float(series.iloc[-1]), "time": pd.Timestamp(at).isoformat(),
+                    "age_min": round(age, 2), "max_age_min": max_age}
+    return out
+
+
+def load_response_model(root: Path) -> dict | None:
+    """C2 `config/response_model.json`: нет файла → None; битый или не по схеме → ValueError."""
+    path = Path(root) / RESPONSE_FILE
+    if not path.exists():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Модель отклика {path} не читается: {exc}") from exc
+    return validate_response_model(value, str(path))
+
+
+def _finite_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _pair(value) -> bool:
+    return isinstance(value, (list, tuple)) and len(value) == 2 and all(_finite_number(v) for v in value)
+
+
+def validate_response_model(value, where: str = RESPONSE_FILE) -> dict:
+    if not isinstance(value, dict) or value.get("schema_version") != RESPONSE_SCHEMA_VERSION:
+        raise ValueError(f"Модель отклика {where}: ожидается schema_version={RESPONSE_SCHEMA_VERSION!r}")
+    if value.get("tag") != "ht.T6":
+        raise ValueError(f"Модель отклика {where}: ожидается tag ht.T6, получено {value.get('tag')!r}")
+    beta = value.get("beta_mgkg_per_c")
+    if not _finite_number(beta) or beta >= 0:
+        raise ValueError(f"Модель отклика {where}: beta_mgkg_per_c должна быть отрицательным числом")
+    if not _pair(value.get("ci")) or not value["ci"][0] <= beta <= value["ci"][1]:
+        raise ValueError(f"Модель отклика {where}: ci должен быть парой чисел, накрывающей beta")
+    envelope = value.get("envelope_dt_c")
+    if not _finite_number(envelope) or envelope <= 0:
+        raise ValueError(f"Модель отклика {where}: envelope_dt_c должен быть положительным числом")
+    for key in ("t6_range_c", "f9_range_tph", "weak_strong"):
+        if key in value and value[key] is not None and not _pair(value[key]):
+            raise ValueError(f"Модель отклика {where}: {key} должен быть парой чисел")
+    flow_beta = value.get("flow_beta")
+    if flow_beta is not None and not _finite_number(flow_beta):
+        raise ValueError(f"Модель отклика {where}: flow_beta должен быть числом или null")
+    return value
+
+
+def _main_density(raw: dict, tank_id: str = "main") -> float:
+    for tank in raw["tanks"]:
+        if tank["tank_id"] == tank_id:
+            density = (tank.get("properties") or {}).get("density_kgm3")
+            if not isinstance(density, dict) or not _finite_number(density.get("value")) or density["value"] <= 0:
+                raise LiveError(f"Резервуар {tank_id}: плотность не задана, расходы не пересчитываются")
+            return float(density["value"])
+    raise LiveError(f"Резервуар {tank_id} не описан в сценарии")
+
+
+def _reading(measured: dict, tag: str) -> dict | None:
+    item = measured.get(tag)
+    if not isinstance(item, dict) or not _finite_number(item.get("value")):
+        return None
+    return item
+
+
+def _in_range(value: float, bounds) -> bool:
+    return not _pair(bounds) or bounds[0] <= value <= bounds[1]
+
+
+def _control_missing_note(tag: str) -> str:
+    return (f"Тег {tag}: измерение на момент решения отсутствует или устарело; уставка сценарная, "
+            f"числовая уставка не предлагается")
+
+
+def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict | None, forecast: dict,
+                      tank_id: str = "main") -> dict:
+    """Ставит измерения тегов и отклик по данным в копию сценария (только для реального состояния).
+
+    * `controls.ht_reactor_inlet_temp_c.current` = T6 (`measured`), `min/max` = T6 ∓ envelope C2
+      (`derived`); без измерения, без C2 или вне области отклика — `min = max = current`, уставка
+      не предлагается.
+    * `controls.ht_feed_flow_m3h.current` = F9·1000/ρ (т/ч → м³/ч, `derived`); отклик по расходу
+      в C2 не оценён, поэтому `min = max = current`.
+    * `model`: reference = измерения, `conversion_per_degree = −β/S₀` (линеаризация
+      exp(−kΔT) ≈ 1 + βΔT/S₀ при |ΔT| ≤ envelope), provenance `derived`; без C2 модель не меняется.
+    * `tanks[main].inflow` = F26·ρ/1000 (м³/ч → т/ч); `policy.tank_level_window_hours` =
+      inventory / inflow в [1, 72] — поэтому измерения ставятся ДО `bind_forecast`.
+    """
+    out = copy.deepcopy(raw)
+    density = derived["density_kgm3"]
+    if not _finite_number(density) or density <= 0:
+        raise LiveError("Плотность для пересчёта расходов должна быть положительным числом")
+    stage = out["stages"]["hydrotreating"]
+    controls, model = stage["controls"], stage.setdefault("model", {})
+    t6, f9, f26 = (_reading(measured, tag) for tag in MEASURED_TAGS)
+    notes = []
+
+    # --- температура входа Р-202 ---
+    temp = controls["ht_reactor_inlet_temp_c"]
+    envelope = response["envelope_dt_c"] if response else None
+    in_region = (response is not None and t6 is not None
+                 and _in_range(t6["value"], response.get("t6_range_c"))
+                 and (f9 is None or _in_range(f9["value"], response.get("f9_range_tph"))))
+    if t6 is None:
+        current = float(temp["current"]["value"])
+        temp["current"] = {"value": current, "unit": "°C", "source": "scenario",
+                           "note": _control_missing_note("ht.T6")}
+        temp["min"], temp["max"] = (_bound(current, "°C", "scenario", "измерение отсутствует, числовая уставка не предлагается")
+                                    for _ in range(2))
+        notes.append("ht.T6: измерение отсутствует")
+    else:
+        current = round(float(t6["value"]), 4)
+        temp["current"] = {"value": current, "unit": "°C", "source": "measured",
+                           "note": (f"Тег ht.T6, {t6['time']}, возраст {t6['age_min']:.0f} мин: последнее "
+                                    f"не-NaN значение не старше {t6.get('max_age_min', 0):g} мин")}
+        if response is None:
+            temp["min"], temp["max"] = (_bound(current, "°C", "scenario", "отклик по данным не загружен; числовая уставка не предлагается")
+                                        for _ in range(2))
+            notes.append("отклик по данным не загружен")
+        elif not in_region:
+            temp["min"], temp["max"] = (_bound(current, "°C", "scenario", "установка вне области, где оценён отклик; числовая уставка не предлагается")
+                                        for _ in range(2))
+            notes.append(f"ht.T6={current:g} или ht.F9 вне области отклика {response.get('t6_range_c')} / {response.get('f9_range_tph')}")
+        else:
+            temp["min"] = _bound(current - envelope, "°C", "derived", f"конверт исследования отклика: T6 − {envelope:g} °C")
+            temp["max"] = _bound(current + envelope, "°C", "derived", f"конверт исследования отклика: T6 + {envelope:g} °C")
+
+    # --- расход сырья: F9 т/ч → м³/ч через плотность ---
+    flow = controls["ht_feed_flow_m3h"]
+    if f9 is None:
+        flow_current = float(flow["current"]["value"])
+        flow["current"] = {"value": flow_current, "unit": "м3/ч", "source": "scenario",
+                           "note": _control_missing_note("ht.F9")}
+        flow_note = "измерение отсутствует, числовая уставка не предлагается"
+        notes.append("ht.F9: измерение отсутствует")
+    else:
+        flow_current = round(float(f9["value"]) * 1000.0 / density, 4)
+        flow["current"] = {"value": flow_current, "unit": "м3/ч", "source": "derived",
+                           "note": (f"Тег ht.F9 (массовый расход сырья) {f9['value']:.1f} т/ч, {f9['time']}, "
+                                    f"возраст {f9['age_min']:.0f} мин; м³/ч = F9·1000/ρ при ρ = {density:g} кг/м³ "
+                                    f"(медиана ЛИМС ГО точка 2). Плотность сокращается в (F/F_ref)^0.7, поэтому "
+                                    f"допущение ρ_сырья ≈ ρ_продукта на результат не влияет.")}
+        flow_note = "отклик по расходу в исследовании не оценён; числовая уставка не предлагается"
+    flow["min"], flow["max"] = (_bound(flow_current, "м3/ч", "scenario", flow_note) for _ in range(2))
+    flow.setdefault("actuation", {})
+    flow["actuation"] = {**flow["actuation"], "measured_tag": "ht.F9",
+                         "note": ((flow["actuation"].get("note") or "") +
+                                  " Для привязки измерений используется ht.F9 (массовый расход, т/ч), "
+                                  "а не F15 с неподтверждённым масштабом.").strip()}
+
+    # --- модель отклика ---
+    s0 = forecast.get("value")
+    if response is not None and in_region and _finite_number(s0) and s0 > 0:
+        beta = float(response["beta_mgkg_per_c"])
+        model.update({
+            "reference_temp_c": current,
+            "reference_space_velocity_m3h": flow_current,
+            "conversion_per_degree": -beta / float(s0),
+            "provenance": "derived",
+            "beta_mgkg_per_c": beta,
+            "beta_ci": list(response["ci"]),
+            "weak_strong": list(response["weak_strong"]) if _pair(response.get("weak_strong")) else None,
+            "linearization_sulfur_mgkg": float(s0),
+            "envelope_dt_c": float(envelope),
+            "response_source": RESPONSE_FILE,
+            "source": "derived",
+            "note": (f"Отклик по данным ({RESPONSE_FILE}, τ={response.get('tau')}, {response.get('n_rows')} строк): "
+                     f"β = {beta:g} мг/кг на °C, ДИ {list(response['ci'])}. k = −β/S₀ при S₀ = {float(s0):.3f} мг/кг "
+                     f"(прогноз): линеаризация exp(−kΔT) ≈ 1 + βΔT/S₀ при |ΔT| ≤ {envelope:g} °C. "
+                     f"Опорные точки — измерения T6 и F9 на момент решения."),
+        })
+    else:
+        model["provenance"] = "scenario"
+        model["note"] = ((model.get("note") or "") + " Отклик по данным не загружен или неприменим: "
+                         "коэффициенты сценарные." ).strip()
+        if response is None:
+            notes.append("отклик по данным не загружен")
+
+    # --- приток резервуара и окно обновления ---
+    for tank in out["tanks"]:
+        if tank["tank_id"] != tank_id:
+            continue
+        if f26 is not None:
+            inflow = round(float(f26["value"]) * density / 1000.0, 4)
+            tank["inflow"] = {"value": inflow, "unit": "т/ч", "source": "derived",
+                              "note": (f"Тег ht.F26 (расход гидроочищенного ДТ в цех №8) {f26['value']:.1f} м³/ч, "
+                                       f"{f26['time']}, возраст {f26['age_min']:.0f} мин; т/ч = F26·ρ/1000 при "
+                                       f"ρ = {density:g} кг/м³.")}
+        else:
+            notes.append("ht.F26: измерение отсутствует, приток сценарный")
+        inflow_value = float(tank["inflow"]["value"])
+        inventory = float(tank["inventory"]["value"])
+        if inflow_value <= 0:
+            raise LiveError("Приток резервуара должен быть положительным для расчёта окна обновления")
+        window = min(72.0, max(1.0, inventory / inflow_value))
+        policy = out.setdefault("policy", {})
+        policy["tank_level_window_hours"] = round(window, 4)
+        policy["tank_level_window_note"] = (f"Окно обновления = запас / приток = {inventory:g} т / {inflow_value:g} т/ч "
+                                            f"= {inventory / inflow_value:.2f} ч, ограничено [1, 72] ч.")
+        break
+    else:
+        raise LiveError(f"Резервуар {tank_id} не описан в сценарии")
+    out["measurement_binding"] = {"tags": {tag: measured.get(tag) for tag in MEASURED_TAGS},
+                                  "density_kgm3": density, "response_loaded": response is not None,
+                                  "notes": notes}
+    return out
+
+
+def _bound(value: float, unit: str, source: str, note: str) -> dict:
+    return {"value": round(float(value), 4), "unit": unit, "source": source, "note": note}
 
 
 def state_at(signals, lab, online, bundle, when) -> dict:
@@ -91,8 +346,9 @@ def state_at(signals, lab, online, bundle, when) -> dict:
             state[key] = value.item()
         else:
             state[key] = value
-    state["origin"] = "real_measurements_at_decision_time"
+    state["origin"] = MEASURED_ORIGIN
     state.update(recent_quality_history(lab, online, when, bundle["config"]))
+    state["measurements"] = measurements_at(signals, when, bundle["config"])
     return state
 
 
@@ -206,8 +462,6 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict 
                 inflow = hold["value"]
                 note += (f" Анализатор завис: приток не ниже последнего доверенного значения "
                          f"{hold['value']:.3f} мг/кг ({'ЛИМС' if hold['source'] == 'lims' else 'ПАК'}, {hold['at']}).")
-            tank["inflow_sulfur_mgkg"] = {"value": round(inflow, 4), "unit": "мг/кг", "source": "derived",
-                                          "note": note}
             if measured:
                 level = estimate_tank_sulfur(out, state)
                 tank["properties"]["sulfur_mgkg"] = {
@@ -215,6 +469,14 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict 
                     "note": (f"Сера содержимого резервуара: среднее {level['n']} доверенных показаний "
                              f"{'ПАК' if level['source'] == 'pak' else 'ЛИМС'} за {level['window_hours']:g} ч "
                              f"окна обновления; допущение полного перемешивания.")}
+                # Вклад притока за горизонт кейса при полном перемешивании: ΔS = (S_in − S_tank)·(1 − exp(−q·3/M)).
+                q, mass = float(tank["inflow"]["value"]), float(tank["inventory"]["value"])
+                if q > 0 and mass > 0:
+                    shift = (inflow - level["value"]) * (1 - math.exp(-q * 3.0 / mass))
+                    note += (f" Вклад прогноза за 3 ч: {shift:+.3f} мг/кг к сере резервуара "
+                             f"(приток {q:g} т/ч, запас {mass:g} т).")
+            tank["inflow_sulfur_mgkg"] = {"value": round(inflow, 4), "unit": "мг/кг", "source": "derived",
+                                          "note": note}
             return out
     raise LiveError(f"Резервуар {tank_id} не описан в сценарии")
 
@@ -231,14 +493,21 @@ class LiveAdviceAdapter:
     budget: int = 400
     robustness_evaluator: RobustnessEvaluator | None = None
     decision_factory: object | None = None
+    #: Строит проверку устойчивости на СВЯЗАННОМ сценарии (после привязки прогноза и измерений).
+    robustness_factory: Callable | None = None
+    #: Содержимое C2 (`load_response_model`) или None — тогда модель отклика остаётся сценарной.
+    response_model: dict | None = None
 
     def __post_init__(self):
+        factory = self.robustness_factory
+        if factory is None and self.robustness_evaluator is not None:
+            factory = lambda scenario, raw: self.robustness_evaluator
         self._use_case = GetLiveAdvice(
             scenarios=LocalScenarioProvider(self.raw_scenario),
             snapshots=LocalSnapshotProvider(self.signals, self.lab, self.online, self.bundle),
             forecasts=LocalForecastProvider(self.signals, self.lab, self.online, self.bundle),
-            binder=LocalForecastScenarioBinder(),
-            robustness_factory=(lambda scenario, raw: self.robustness_evaluator),
+            binder=LocalForecastScenarioBinder(self.response_model),
+            robustness_factory=factory,
             decision_factory=self.decision_factory,
         )
 

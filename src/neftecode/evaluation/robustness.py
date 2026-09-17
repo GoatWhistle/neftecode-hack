@@ -38,6 +38,27 @@ DEFAULT_PERTURBATIONS = (
 FRAGILE_BELOW = 1.0
 
 
+def response_perturbations(raw: dict) -> tuple:
+    """Возмущения k по границам отклика из данных, когда модель ГО связана с C2.
+
+    Границы — `weak_strong` (диапазон следующего полугодия по исследованию), при их отсутствии — `beta_ci`.
+    k = −β/S₀, поэтому множитель к текущему k равен bound/β; знаки должны совпадать с β.
+    """
+    model = (((raw.get("stages") or {}).get("hydrotreating") or {}).get("model") or {})
+    beta = model.get("beta_mgkg_per_c")
+    bounds = model.get("weak_strong") or model.get("beta_ci")
+    if model.get("provenance") != "derived" or not _finite(beta) or beta == 0 \
+            or not isinstance(bounds, (list, tuple)) or len(bounds) != 2:
+        return ()
+    out = []
+    for label, bound in zip(("слабый", "сильный"), bounds):
+        if not _finite(bound) or bound / beta <= 0:
+            continue
+        out.append({"name": f"отклик ГО по данным: {label} край диапазона β={bound:g}",
+                    "path": "hydrotreating.conversion_per_degree", "factor": bound / beta})
+    return tuple(out)
+
+
 class RobustnessError(ValueError):
     """Raised when a perturbation cannot be applied to the scenario as declared."""
 
@@ -99,7 +120,9 @@ class RobustnessCheck:
         if self.scenario_parser is None:
             raise RobustnessError("Для проверки устойчивости не передан парсер сценария")
         results = []
-        for spec in self.perturbations:
+        # Возмущения отклика по данным зависят от связанного сценария, поэтому берутся из raw при каждом прогоне.
+        specs = tuple(self.perturbations) + response_perturbations(self.raw)
+        for spec in specs:
             try:
                 altered = self.scenario_parser(perturb(self.raw, spec))
             except (RobustnessError, ValueError) as exc:
@@ -140,7 +163,7 @@ class RobustnessCheck:
         fragile = share is not None and share < FRAGILE_BELOW
         return {
             "plan_id": getattr(plan, "plan_id", None),
-            "perturbations_declared": len(self.perturbations),
+            "perturbations_declared": len(specs),
             "perturbations_evaluated": len(evaluated),
             "held": len(held),
             "violated": len(evaluated) - len(held),

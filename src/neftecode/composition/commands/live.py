@@ -9,7 +9,7 @@ from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.data.data import load_sources
-from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, bind_forecast
+from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, bind_forecast, load_response_model
 from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 
@@ -22,12 +22,13 @@ def handle(args, parser, root, out):
     signals, lab, online = load_sources(root / "task")
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
     raw_scenario = json.loads(Path(scenario_path).read_text())
+    # Устойчивость проверяется на связанном сценарии (после прогноза и измерений), а не на исходном.
     advisor = LiveAdviceAdapter(signals, lab, online, bundle,
                           raw_scenario,
-                          robustness_evaluator=RobustnessCheck(
-                              parse_scenario(raw_scenario), raw_scenario,
-                              scenario_parser=parse_scenario),
-                          decision_factory=default_decision_factory())
+                          robustness_factory=lambda scenario, raw: RobustnessCheck(
+                              scenario, raw, scenario_parser=parse_scenario),
+                          decision_factory=default_decision_factory(),
+                          response_model=load_response_model(root))
     result = advisor.advise(args.at)
     stamp = when.strftime("%Y%m%d-%H%M%S")
     path = out / f"decision-{stamp}.json"

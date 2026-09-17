@@ -209,7 +209,8 @@ class HydrotreatingModel:
                    model["severity_exponent"], stage.response_lag_hours.value,
                    stage.control_range("ht_reactor_inlet_temp_c"),
                    stage.control_range("ht_feed_flow_m3h"),
-                   model.get("t95_shift_per_degree", 0.0))
+                   model.get("t95_shift_per_degree", 0.0),
+                   str(model.get("provenance", "scenario")))
 
     def effective_controls(self, time_hours: float, current: dict[str, float],
                            pending: tuple[tuple[float, dict[str, float]], ...] = ()) -> dict[str, float]:
@@ -266,9 +267,13 @@ class HydrotreatingModel:
                 "severity_exponent": self.severity_exponent,
                 "response_lag_hours": self.response_lag_hours,
                 "temp_range_c": list(self.temp_range_c), "flow_range_m3h": list(self.flow_range_m3h),
-                "note": "Коэффициенты заданы сценарием. Направления соответствуют обычному поведению "
-                        "гидроочистки; величины не подтверждены данными завода. Это модель "
-                        "последствий действия, а не прогноз по истории."}
+                "note": ("Наклон отклика по температуре выведен из данных завода (линеаризация в конверте "
+                         "исследования); опорная точка — измерение на момент решения. Это модель "
+                         "последствий действия, а не прогноз по истории."
+                         if self.provenance == "derived" else
+                         "Коэффициенты заданы сценарием. Направления соответствуют обычному поведению "
+                         "гидроочистки; величины не подтверждены данными завода. Это модель "
+                         "последствий действия, а не прогноз по истории.")}
 
 
 @dataclass
