@@ -10,6 +10,7 @@ implemented separately in T108 so it cannot accidentally influence this report.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,8 @@ FOLDS = (
     ("2025 H1", pd.Timestamp("2025-01-01"), pd.Timestamp("2025-07-01")),
     ("2025 H2", pd.Timestamp("2025-07-01"), pd.Timestamp("2026-01-01")),
 )
+ACI_POINT_CANDIDATES = ("last_pak_bc_n20", "catboost_residual")
+ACI_SELECTED_POINT = "last_pak_bc_n20"
 
 
 def read_config() -> dict[str, Any]:
@@ -165,6 +168,78 @@ def combine_residual_prediction(last_pak, predicted_log_residual, fallback) -> n
     return result
 
 
+def conformal_upper_quantile(residuals, alpha: float) -> float:
+    values = np.sort(np.asarray(residuals, float))
+    values = values[np.isfinite(values)]
+    if not len(values):
+        raise ValueError("Для адаптивной границы нет остатков")
+    rank = min(math.ceil((len(values) + 1) * (1 - alpha)), len(values))
+    return float(values[rank - 1])
+
+
+def adaptive_upper_bounds(
+    meta: pd.DataFrame,
+    y: np.ndarray,
+    point: np.ndarray,
+    calibration: np.ndarray,
+    evaluation: np.ndarray,
+    gamma: float,
+    window: int = 100,
+    target_alpha: float = 0.05,
+) -> dict[str, np.ndarray]:
+    """Prequential ACI: update only after the issued forecast's target is known."""
+    if not 0 < gamma < 1 or window < 30 or not 0 < target_alpha < 1:
+        raise ValueError("Некорректные параметры ACI")
+    y = np.asarray(y, float)
+    point = np.asarray(point, float)
+    calibration_rows = np.flatnonzero(calibration & np.isfinite(point))
+    if len(calibration_rows) < 30:
+        raise ValueError("Для начального окна ACI нужно не меньше 30 остатков")
+    calibration_rows = calibration_rows[
+        np.argsort(meta.target_available_time.to_numpy()[calibration_rows])
+    ]
+    residual_window = list(
+        (np.log1p(y[calibration_rows]) - np.log1p(point[calibration_rows]))[-window:]
+    )
+
+    upper = np.full(len(meta), np.nan)
+    alpha_at_issue = np.full(len(meta), np.nan)
+    q_at_issue = np.full(len(meta), np.nan)
+    error_at_issue = np.full(len(meta), np.nan)
+    alpha = target_alpha
+    pending: list[tuple[pd.Timestamp, int, float]] = []
+    evaluation_rows = np.flatnonzero(evaluation)
+    evaluation_rows = evaluation_rows[np.argsort(meta.decision_time.to_numpy()[evaluation_rows])]
+
+    for row in evaluation_rows:
+        decision_time = pd.Timestamp(meta.decision_time.iloc[row])
+        ready = sorted((item for item in pending if item[0] <= decision_time), key=lambda item: item[0])
+        pending = [item for item in pending if item[0] > decision_time]
+        for _, previous_row, issued_upper in ready:
+            error = float(y[previous_row] > issued_upper)
+            error_at_issue[previous_row] = error
+            alpha = float(np.clip(alpha + gamma * (target_alpha - error), 0.001, 0.999))
+            residual = float(np.log1p(y[previous_row]) - np.log1p(point[previous_row]))
+            residual_window.append(residual)
+            residual_window = residual_window[-window:]
+
+        if not np.isfinite(point[row]):
+            continue
+        q = conformal_upper_quantile(residual_window, alpha)
+        issued_upper = float(np.expm1(np.log1p(point[row]) + q))
+        upper[row] = issued_upper
+        alpha_at_issue[row] = alpha
+        q_at_issue[row] = q
+        pending.append((pd.Timestamp(meta.target_available_time.iloc[row]), row, issued_upper))
+
+    return {
+        "upper": upper,
+        "alpha": alpha_at_issue,
+        "q": q_at_issue,
+        "error": error_at_issue,
+    }
+
+
 def fixed_split_check(base_cfg: dict[str, Any]) -> dict[str, Any]:
     """Reproduce the existing 2025-H1 validation comparison exactly.
 
@@ -240,6 +315,19 @@ def evaluate(
     cfg: dict[str, Any],
 ) -> dict[str, Any]:
     lower, upper = interval(prediction, radius)
+    result = evaluate_bounds(y, prediction, evaluation, lower, upper, cfg)
+    result["radius"] = float(radius)
+    return result
+
+
+def evaluate_bounds(
+    y: np.ndarray,
+    prediction: np.ndarray,
+    evaluation: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    cfg: dict[str, Any],
+) -> dict[str, Any]:
     selected = evaluation & np.isfinite(prediction) & np.isfinite(lower) & np.isfinite(upper)
     if not selected.any():
         raise ValueError("У метода нет доступных прогнозов в складке")
@@ -253,7 +341,6 @@ def evaluate(
         near_margin=cfg.get("sulfur_near_margin", 5.0),
     )
     result.update(
-        radius=float(radius),
         exceed_upper=float(np.mean(y[selected] > upper[selected])),
         one_sided_coverage=float(np.mean(y[selected] <= upper[selected])),
         mean_upper_margin=float(np.mean(upper[selected] - prediction[selected])),
@@ -322,9 +409,51 @@ def rolling_fold(
         corrections[method] = causal_bias_correction(meta.decision_time, pairs, window)
         predictions[method] = np.maximum(0, predictions["last_pak"] + corrections[method])
     method_results = {}
-    for method, prediction in predictions.items():
+    bounds = {}
+    for method, prediction in tuple(predictions.items()):
         radius = calibrate(y[calibration], prediction[calibration], cfg["interval_coverage"])
         method_results[method] = evaluate(y, prediction, evaluation, radius, cfg)
+        bounds[method] = interval(prediction, radius)
+
+    aci_states = {}
+    for point_method in ("last_pak", ACI_SELECTED_POINT):
+        point = predictions[point_method]
+        fixed_lower, _ = bounds[point_method]
+        for gamma, gamma_name in ((0.005, "g0005"), (0.01, "g001"), (0.02, "g002")):
+            method = f"aci_{point_method}_{gamma_name}_m100"
+            state = adaptive_upper_bounds(meta, y, point, calibration, evaluation, gamma=gamma, window=100)
+            predictions[method] = point.copy()
+            bounds[method] = (fixed_lower.copy(), state["upper"])
+            method_results[method] = evaluate_bounds(
+                y,
+                predictions[method],
+                evaluation,
+                bounds[method][0],
+                bounds[method][1],
+                cfg,
+            )
+            issued = evaluation & np.isfinite(state["upper"])
+            realized_error = np.full(len(meta), np.nan)
+            realized_error[issued] = (y[issued] > state["upper"][issued]).astype(float)
+            rolling30 = pd.Series(realized_error[issued]).rolling(30, min_periods=30).mean().to_numpy()
+            finite_alpha = state["alpha"][issued]
+            finite_q = state["q"][issued]
+            method_results[method].update(
+                point_method=point_method,
+                gamma=gamma,
+                window=100,
+                alpha_mean=float(np.mean(finite_alpha)),
+                alpha_min=float(np.min(finite_alpha)),
+                alpha_max=float(np.max(finite_alpha)),
+                q_mean=float(np.mean(finite_q)),
+                state_updates=int(np.isfinite(state["error"]).sum()),
+                rolling30_max=float(np.nanmax(rolling30)) if np.isfinite(rolling30).any() else None,
+                rolling30_last=float(rolling30[np.isfinite(rolling30)][-1]) if np.isfinite(rolling30).any() else None,
+            )
+            state["realized_error"] = realized_error
+            state["rolling30"] = np.full(len(meta), np.nan)
+            state["rolling30"][np.flatnonzero(issued)] = rolling30
+            aci_states[method] = state
 
     common = evaluation.copy()
     for prediction in predictions.values():
@@ -351,12 +480,18 @@ def rolling_fold(
     rows = meta.loc[evaluation, ["decision_time", "target_time", "target_available_time", "actual_sulfur"]].copy()
     rows.insert(0, "fold", name)
     for method, prediction in predictions.items():
-        lower, upper = interval(prediction, method_results[method]["radius"])
+        lower, upper = bounds[method]
         rows[method] = prediction[evaluation]
         rows[f"{method}_lower"] = lower[evaluation]
         rows[f"{method}_upper"] = upper[evaluation]
         if method in corrections:
             rows[f"{method}_correction"] = corrections[method][evaluation]
+        if method in aci_states:
+            state = aci_states[method]
+            rows[f"{method}_alpha"] = state["alpha"][evaluation]
+            rows[f"{method}_q"] = state["q"][evaluation]
+            rows[f"{method}_error"] = state["realized_error"][evaluation]
+            rows[f"{method}_exceed30"] = state["rolling30"][evaluation]
     return {
         "fold": name,
         "start": start.isoformat(),
@@ -462,6 +597,19 @@ def selection_gate(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[
         "mae_within_5_percent": candidate["common_mae"] <= 1.05 * baseline["common_mae"],
     }
     return {"conditions": conditions, "eligible": all(conditions.values())}
+
+
+def choose_aci_point(aggregate_result: dict[str, Any]) -> str:
+    order = {name: position for position, name in enumerate(ACI_POINT_CANDIDATES)}
+    return min(
+        ACI_POINT_CANDIDATES,
+        key=lambda name: (
+            abs(aggregate_result[name]["exceed_upper"] - 0.05),
+            aggregate_result[name]["mean_upper_margin"],
+            aggregate_result[name]["common_mae"],
+            order[name],
+        ),
+    )
 
 
 def fmt(value: float | None, digits: int = 3) -> str:
@@ -620,6 +768,70 @@ def render_markdown(result: dict[str, Any]) -> str:
             "",
         ]
     )
+    f4 = result["f4"]
+    base_aci_name = "aci_last_pak_g001_m100"
+    corrected_aci_name = "aci_last_pak_bc_n20_g001_m100"
+    lines.extend(
+        [
+            "## T107. Адаптивная односторонняя граница",
+            "",
+            f"Лучшая точка для ACI по правилу протокола — `{f4['selected_point']}`. Основные варианты:",
+            "gamma=0.01, M=100; gamma=0.005/0.02 остаются чувствительностью. Нижняя граница",
+            "сохранена от соответствующего фиксированного симметричного интервала.",
+            "",
+            "| Складка | base exceed fixed → ACI | base margin fixed → ACI | F2 exceed fixed → ACI | F2 margin fixed → ACI | F2 rolling30 max / last |",
+            "|---|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for fold in result["folds"]:
+        base = fold["methods"]["last_pak"]
+        base_aci = fold["methods"][base_aci_name]
+        corrected = fold["methods"]["last_pak_bc_n20"]
+        corrected_aci = fold["methods"][corrected_aci_name]
+        lines.append(
+            f"| {fold['fold']} | {fmt(base['exceed_upper'])} → {fmt(base_aci['exceed_upper'])} "
+            f"| {fmt(base['mean_upper_margin'])} → {fmt(base_aci['mean_upper_margin'])} "
+            f"| {fmt(corrected['exceed_upper'])} → {fmt(corrected_aci['exceed_upper'])} "
+            f"| {fmt(corrected['mean_upper_margin'])} → {fmt(corrected_aci['mean_upper_margin'])} "
+            f"| {fmt(corrected_aci['rolling30_max'])} / {fmt(corrected_aci['rolling30_last'])} |"
+        )
+    aggregate_result = result["aggregate"]
+    base = aggregate_result["last_pak"]
+    base_aci = aggregate_result[base_aci_name]
+    corrected = aggregate_result["last_pak_bc_n20"]
+    corrected_aci = aggregate_result[corrected_aci_name]
+    lines.extend(
+        [
+            f"| **Среднее** | **{fmt(base['exceed_upper'])} → {fmt(base_aci['exceed_upper'])}** "
+            f"| **{fmt(base['mean_upper_margin'])} → {fmt(base_aci['mean_upper_margin'])}** "
+            f"| **{fmt(corrected['exceed_upper'])} → {fmt(corrected_aci['exceed_upper'])}** "
+            f"| **{fmt(corrected['mean_upper_margin'])} → {fmt(corrected_aci['mean_upper_margin'])}** | — |",
+            "",
+            "Чувствительность среднего `exceed_upper` (gamma 0.005 / 0.01 / 0.02):",
+            f"base {fmt(aggregate_result['aci_last_pak_g0005_m100']['exceed_upper'])} / "
+            f"{fmt(base_aci['exceed_upper'])} / {fmt(aggregate_result['aci_last_pak_g002_m100']['exceed_upper'])};",
+            f"F2 {fmt(aggregate_result['aci_last_pak_bc_n20_g0005_m100']['exceed_upper'])} / "
+            f"{fmt(corrected_aci['exceed_upper'])} / "
+            f"{fmt(aggregate_result['aci_last_pak_bc_n20_g002_m100']['exceed_upper'])}.",
+            "",
+        ]
+    )
+    for method in (base_aci_name, corrected_aci_name):
+        gate = f4["selection_gates"][method]
+        lines.append(
+            f"Условия F0 для `{method}`: "
+            + ", ".join(f"{name}={'да' if passed else 'нет'}" for name, passed in gate["conditions"].items())
+            + f"; итог={'проходит' if gate['eligible'] else 'не проходит'}."
+        )
+    lines.extend(
+        [
+            "",
+            "Скользящая доля превышений по окну 30 проб, alpha и q для каждой выданной границы",
+            "сохранены в `rolling-predictions.csv`; полные агрегаты — в `rolling-f4.json`.",
+            "Окончательный победитель определяется в T108 без изменения правила F0.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -631,6 +843,11 @@ def main() -> None:
     folds = [rolling_fold(name, start, end, base_cfg) for name, start, end in FOLDS]
     rows = pd.concat([fold.pop("_rows") for fold in folds], ignore_index=True)
     aggregate_result = aggregate(folds)
+    selected_point = choose_aci_point(aggregate_result)
+    if selected_point != ACI_SELECTED_POINT:
+        raise AssertionError(
+            f"Точка ACI изменилась после расчёта: ожидалась {ACI_SELECTED_POINT}, получена {selected_point}"
+        )
     f2_methods = ("last_pak_bc_n10", "last_pak_bc_n20", "last_pak_bc_n40")
     f2 = {
         "causality_checks": sum(fold["bias_causality"]["checked_time_window_pairs"] for fold in folds),
@@ -644,16 +861,40 @@ def main() -> None:
         "hyperparameters_tuned": False,
         "fallback": "catboost_no_pak",
     }
+    f4_primary = ("aci_last_pak_g001_m100", "aci_last_pak_bc_n20_g001_m100")
+    f4 = {
+        "selected_point": selected_point,
+        "point_ranking": {
+            name: {
+                "distance_to_005": abs(aggregate_result[name]["exceed_upper"] - 0.05),
+                "mean_upper_margin": aggregate_result[name]["mean_upper_margin"],
+                "common_mae": aggregate_result[name]["common_mae"],
+            }
+            for name in ACI_POINT_CANDIDATES
+        },
+        "selection_gates": {
+            method: selection_gate(aggregate_result[method], aggregate_result["last_pak"])
+            for method in f4_primary
+        },
+        "primary": list(f4_primary),
+        "sensitivity_only": [
+            "aci_last_pak_g0005_m100",
+            "aci_last_pak_g002_m100",
+            "aci_last_pak_bc_n20_g0005_m100",
+            "aci_last_pak_bc_n20_g002_m100",
+        ],
+    }
     result = {
-        "schema": "neftecode.forecast_rolling.f3.v1",
+        "schema": "neftecode.forecast_rolling.f4.v1",
         "development_end_exclusive": DEVELOPMENT_END.isoformat(),
         "fixed_split_check": check,
         "folds": folds,
         "aggregate": aggregate_result,
         "f2": f2,
         "f3": f3,
+        "f4": f4,
     }
-    with (OUT_DIR / "rolling-f3.json").open("w") as stream:
+    with (OUT_DIR / "rolling-f4.json").open("w") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2, allow_nan=False)
         stream.write("\n")
     rows.to_csv(OUT_DIR / "rolling-predictions.csv", index=False)
