@@ -4,7 +4,7 @@ from pathlib import Path
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.services.explain import explain
 from neftecode.application.services.trust import DataTrustAgent
-from neftecode.application.use_cases.get_live_advice import binding_summary
+from neftecode.application.use_cases.get_live_advice import binding_summary, decision_context
 from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.infrastructure.agentic import default_decision_factory
@@ -35,9 +35,11 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
         return {"ok": False, "rejected": True, "reason": str(exc),
                 "screen": error_payload(str(exc))}
     factory = decision_factory or default_decision_factory()
-    decision = factory(
-        scenario, RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
-    ).decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
+    evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
+    # Реальный срез: агенты видят тот же живой контекст, что в advise (прогноз, измерения, отклик).
+    maker = (factory(scenario, evaluator) if snapshot is None else
+             factory(scenario, evaluator, decision_context(snapshot.get("at"), snapshot.get("forecast"), raw)))
+    decision = maker.decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
     trust = DataTrustAgent(trust_cfg).assess(state)
     screen = Screen(
         decision,

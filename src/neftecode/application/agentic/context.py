@@ -34,6 +34,7 @@ def build_context(session: DecisionSession, role: str, candidate_ids=None, focus
                    "step_minutes": session.scenario.horizon.step_minutes},
         "limits": session.limits(),
         "data_trust": session.data_trust(),
+        "measurements": session.measurements(),
         "forecast": session.forecast(),
         "legacy": session.legacy_summary(),
         "search": session.search_summary(),
@@ -45,7 +46,7 @@ def build_context(session: DecisionSession, role: str, candidate_ids=None, focus
         sections["budget"] = session.budget.to_dict()
     if focus:
         sections["focus"] = str(focus)[:200]
-    optional = ["operation", "forecast", "data_trust", "search", "budget"]
+    optional = ["operation", "measurements", "forecast", "data_trust", "search", "budget"]
     text = _dump(sections)
     while len(text) > limit and (len(sections["candidates"]) > 1 or any(k in sections for k in optional)):
         if len(sections["candidates"]) > 1:
