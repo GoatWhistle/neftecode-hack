@@ -274,26 +274,25 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
                                   "а не F15 с неподтверждённым масштабом.").strip()}
 
     # --- модель отклика ---
-    s0 = forecast.get("value")
+    # Отношение отклика умножает серу притока, а приток — верхняя граница прогноза (bind_forecast),
+    # поэтому линеаризуем в ней же; иначе наклон в плане был бы β·upper/value вместо β.
+    s0 = forecast.get("upper")
     if response is not None and in_region and _finite_number(s0) and s0 > 0:
         beta = float(response["beta_mgkg_per_c"])
         model.update({
             "reference_temp_c": current,
             "reference_space_velocity_m3h": flow_current,
-            "conversion_per_degree": -beta / float(s0),
             "provenance": "derived",
             "beta_mgkg_per_c": beta,
             "beta_ci": list(response["ci"]),
             "weak_strong": list(response["weak_strong"]) if _pair(response.get("weak_strong")) else None,
-            "linearization_sulfur_mgkg": float(s0),
             "envelope_dt_c": float(envelope),
             "response_source": RESPONSE_FILE,
+            "response_tau": response.get("tau"),
+            "response_rows": response.get("n_rows"),
             "source": "derived",
-            "note": (f"Отклик по данным ({RESPONSE_FILE}, τ={response.get('tau')}, {response.get('n_rows')} строк): "
-                     f"β = {beta:g} мг/кг на °C, ДИ {list(response['ci'])}. k = −β/S₀ при S₀ = {float(s0):.3f} мг/кг "
-                     f"(прогноз): линеаризация exp(−kΔT) ≈ 1 + βΔT/S₀ при |ΔT| ≤ {envelope:g} °C. "
-                     f"Опорные точки — измерения T6 и F9 на момент решения."),
         })
+        linearize_response(model, float(s0), "верхняя граница прогноза")
     else:
         model["provenance"] = "scenario"
         model["note"] = ((model.get("note") or "") + " Отклик по данным не загружен или неприменим: "
@@ -329,6 +328,21 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
                                   "density_kgm3": density, "response_loaded": response is not None,
                                   "notes": notes}
     return out
+
+
+def linearize_response(model: dict, s0: float, basis: str) -> None:
+    """k = −β/S₀ в точке S₀ — той сере притока, к которой план применяет отношение exp(−kΔT).
+
+    Тогда наклон в плане при ΔT → 0 равен β независимо от уровня S₀.
+    """
+    beta, envelope = float(model["beta_mgkg_per_c"]), float(model["envelope_dt_c"])
+    model["conversion_per_degree"] = -beta / s0
+    model["linearization_sulfur_mgkg"] = s0
+    model["note"] = (f"Отклик по данным ({model.get('response_source')}, τ={model.get('response_tau')}, "
+                     f"{model.get('response_rows')} строк): β = {beta:g} мг/кг на °C, ДИ {model.get('beta_ci')}. "
+                     f"k = −β/S₀ при S₀ = {s0:.3f} мг/кг ({basis}; к ней план применяет отклик): "
+                     f"линеаризация exp(−kΔT) ≈ 1 + βΔT/S₀ при |ΔT| ≤ {envelope:g} °C. "
+                     f"Опорные точки — измерения T6 и F9 на момент решения.")
 
 
 def _bound(value: float, unit: str, source: str, note: str) -> dict:
@@ -483,6 +497,10 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict 
                 inflow = hold["value"]
                 note += (f" Анализатор завис: приток не ниже последнего доверенного значения "
                          f"{hold['value']:.3f} мг/кг ({'ЛИМС' if hold['source'] == 'lims' else 'ПАК'}, {hold['at']}).")
+            model = ((out.get("stages") or {}).get("hydrotreating") or {}).get("model") or {}
+            if model.get("provenance") == "derived" and _finite_number(model.get("beta_mgkg_per_c")) \
+                    and model.get("linearization_sulfur_mgkg") != inflow:
+                linearize_response(model, inflow, "сера притока после удержания зависшего ПАК")
             if measured:
                 level = estimate_tank_sulfur(out, state)
                 tank["properties"]["sulfur_mgkg"] = {
