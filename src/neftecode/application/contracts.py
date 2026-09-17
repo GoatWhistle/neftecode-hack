@@ -121,6 +121,8 @@ class LiveAdviceResult:
     error_kind: str | None = None
     inventories: Mapping[str, float] = field(default_factory=dict)
     bound_inflow_sulfur_mgkg: float | None = None
+    #: Что и откуда попало в связанный сценарий: уставки, отклик, приток, окно резервуара.
+    binding: Mapping[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
         result = {"at": self.at, "scenario_id": self.scenario_id, "state": dict(self.state),
@@ -131,6 +133,8 @@ class LiveAdviceResult:
             result["bound_sulfur_mgkg"] = self.bound_sulfur_mgkg
         if self.bound_inflow_sulfur_mgkg is not None:
             result["bound_inflow_sulfur_mgkg"] = self.bound_inflow_sulfur_mgkg
+        if self.binding is not None:
+            result["binding"] = dict(self.binding)
         if self.error is not None:
             result["error"] = self.error
         return result

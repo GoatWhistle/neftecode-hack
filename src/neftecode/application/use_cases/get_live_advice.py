@@ -72,10 +72,11 @@ class GetLiveAdvice:
                                 decision, explain(decision, bound_scenario), inventories=inventories,
                                 bound_sulfur_mgkg=self._bound_sulfur(bound_scenario),
                                 bound_inflow_sulfur_mgkg=self._bound_inflow(bound_scenario),
+                                binding=binding_summary(bound_raw),
                                 note=("Реальны: телеметрия, анализы, прогноз серы притока, оценка серы резервуара "
-                                      "по истории и проверка источников. "
-                                      "Резервуары, цены, отклики и пределы T95/цетана заданы сценарием. "
-                                      "Решение не разрешает выпуск товарного топлива."))
+                                      "по истории, проверка источников; уставки ГО и приток резервуара — измерения "
+                                      "на момент решения, если они есть (см. binding). Запасы резервуаров, цены и "
+                                      "пределы T95/цетана заданы сценарием. Решение не разрешает выпуск товарного топлива."))
 
     def _decision(self, scenario, raw, snapshot: LiveSnapshot, budget: int, rejection: DataRejection | None = None,
                   forecast: LiveForecast | None = None):
@@ -103,3 +104,30 @@ class GetLiveAdvice:
             return scenario.tank("main").property_value("sulfur_mgkg")
         except (KeyError, ValueError):
             return None
+
+
+def binding_summary(raw: Mapping[str, object]) -> dict | None:
+    """Сводка привязки по связанному сценарию: откуда уставки ГО, отклик, приток и окно резервуара."""
+    stage = ((raw.get("stages") or {}).get("hydrotreating") or {})
+    controls, model = stage.get("controls") or {}, stage.get("model") or {}
+    main = next((t for t in raw.get("tanks") or [] if t.get("tank_id") == "main"), None)
+    if main is None or not controls:
+        return None
+
+    def quantity(item):
+        return None if not isinstance(item, dict) else {"value": item.get("value"), "source": item.get("source")}
+
+    out = {
+        "measurement_binding": raw.get("measurement_binding"),
+        "controls": {name: {"current": quantity(spec.get("current")), "min": quantity(spec.get("min")),
+                            "max": quantity(spec.get("max"))}
+                     for name, spec in controls.items()},
+        "response_model": {key: model.get(key) for key in
+                           ("provenance", "beta_mgkg_per_c", "beta_ci", "weak_strong", "conversion_per_degree",
+                            "reference_temp_c", "reference_space_velocity_m3h", "linearization_sulfur_mgkg")},
+        "tank_inflow": quantity(main.get("inflow")),
+        "tank_level_window_hours": (raw.get("policy") or {}).get("tank_level_window_hours"),
+        "tank_sulfur_note": ((main.get("properties") or {}).get("sulfur_mgkg") or {}).get("note"),
+        "inflow_sulfur_note": (main.get("inflow_sulfur_mgkg") or {}).get("note"),
+    }
+    return out

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from pathlib import Path
 from typing import Any, Mapping
 
 from neftecode.application.services.explain import explain
@@ -13,7 +14,7 @@ from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.agentic import build_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
-from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder
+from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder, load_response_model
 from neftecode.evaluation.robustness import RobustnessCheck
 from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, serve, clean
 
@@ -78,11 +79,13 @@ class HTTPForecastProvider:
 
 class DecisionService:
     def __init__(self, data_url: str = "http://127.0.0.1:8766", model_url: str = "http://127.0.0.1:8767",
-                 timeout_s: float = 10.0, decision_factory=None):
+                 timeout_s: float = 10.0, decision_factory=None, response_model: dict | None = None):
         self.data_url, self.model_url = data_url.rstrip("/"), model_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
         #: None keeps the deterministic MakeDecision; main() passes the flag-controlled factory.
         self.decision_factory = decision_factory
+        #: Содержимое config/response_model.json (C2) или None — тогда отклик ГО остаётся сценарным.
+        self.response_model = response_model
 
     @staticmethod
     def _body(request: Request) -> dict[str, Any]:
@@ -136,7 +139,7 @@ class DecisionService:
             scenarios=HTTPScenarioProvider(self.client, self.data_url, headers),
             snapshots=HTTPSnapshotProvider(self.client, self.data_url, headers),
             forecasts=HTTPForecastProvider(self.client, self.model_url, headers),
-            binder=LocalForecastScenarioBinder(),
+            binder=LocalForecastScenarioBinder(self.response_model),
             robustness_factory=lambda scenario, raw: RobustnessCheck(scenario, raw, scenario_parser=parse_scenario),
             decision_factory=self.decision_factory,
         )
@@ -171,7 +174,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Нефтекод decision service")
     parser.add_argument("--host", default=None); parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--data-url", default=None); parser.add_argument("--model-url", default=None)
+    parser.add_argument("--root", type=Path, default=None, help="Корень проекта с config/response_model.json")
     args = parser.parse_args(argv)
+    root = Path(args.root or os.getenv("NEFTECODE_ROOT", "."))
     env = ServiceSettings.from_env("NEFTECODE_DECISION_", ServiceSettings(port=8768))
     settings = ServiceSettings(host=args.host or env.host, port=args.port or env.port,
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
@@ -179,7 +184,8 @@ def main(argv=None):
                                 max_response_bytes=env.max_response_bytes)
     service = DecisionService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                               args.model_url or os.getenv("NEFTECODE_MODEL_URL", "http://127.0.0.1:8767"),
-                              settings.request_timeout_s, decision_factory=build_decision_factory())
+                              settings.request_timeout_s, decision_factory=build_decision_factory(),
+                              response_model=load_response_model(root))
     return serve(service.routes(), settings, service.ready, "decision-service")
 
 

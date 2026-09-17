@@ -59,7 +59,7 @@ class Quantity:
     @property
     def measured(self) -> bool:
         """True only for values traceable to the issued data, never for our own assumptions."""
-        return self.source in ("given", "derived")
+        return self.source in ("given", "derived", "measured")
 
 
 def quantity(raw, kind: str, where: str, *, allow_negative: bool = False) -> Quantity:

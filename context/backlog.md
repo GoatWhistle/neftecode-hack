@@ -939,7 +939,14 @@ CLI-команд, HTTP-контрактов и JSON решений четырё�
   Хэши сценариев не меняются. **Коммит:** `feat: применять пороги доверия из данных во всех контурах`.
 
 ### T84. Метка measured и привязка измерений в live (A)
-- **Статус:** ожидает. `SOURCES += measured`; `bind_measurements` в `advisor.py`: T6 → уставка температуры (measured, конверт ±envelope),
+- **Статус:** готово (начато дорожкой A, завершено оркестратором после лимита сессии Opus). **Результат:** `SOURCES += measured`;
+  `bind_measurements` в `advisor.py` (до `bind_forecast`): T6 → уставка температуры `measured` с конвертом ±2 °C (`derived`),
+  F9·1000/ρ → расход `derived` без варьирования, `conversion_per_degree = −β/S₀` из `config/response_model.json` (`derived`,
+  weak/strong → возмущения робастности), приток main = F26·ρ/1000, окно = запас/приток [1; 72]; вне области T6/F9 или без
+  измерения — `min = max = current`, числовая уставка не предлагается. `RobustnessCheck` строится на связанном сценарии
+  (`robustness_factory` в `LiveAdviceAdapter`, `commands/live.py`, decision-service с `--root`). В ответ live добавлен `binding`.
+  Проверено: 2026-01-05 08:00 — T6 367.8, F 246.5 м³/ч, приток 204.1 т/ч, окно 19.6 ч, сера резервуара 4.5624 (сверено
+  независимо), робастность 10/10; 2026-01-09 01:10 — T6 297 вне области, приток 13.25 сохранён. 1146 passed, хэши не изменились. `SOURCES += measured`; `bind_measurements` в `advisor.py`: T6 → уставка температуры (measured, конверт ±envelope),
   F9/ρ → расход (derived), `reference_temp_c`/`reference_space_velocity_m3h`/`conversion_per_degree = −β/S₀` (derived, CI в робастность),
   приток main = F26·ρ (derived), окно = inventory/inflow; при NaN — сценарное значение, `min = max`, без числового совета.
   Починить `RobustnessCheck` на связанном сценарии. **Коммит:** `feat: привязывать измеренные уставки и отклик к живому решению`.
