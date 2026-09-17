@@ -19,7 +19,7 @@ def _pair(value) -> bool:
 class DataResponseEffect:
     """ΔS ≈ β·ΔT в конверте исследования; диапазоны — ДИ β и границы следующего полугодия."""
 
-    spec = "config/response_model.json (β на ht.T6, RESPONSE_MODEL_T6.md)"
+    spec = "artifacts/response_model.json (β на ht.T6 по данным при обучении, RESPONSE_MODEL_T6.md)"
 
     def effect(self, context: Mapping[str, object], delta_t_c: float) -> Mapping[str, object]:
         binding = (context or {}).get("binding") or {}
@@ -45,10 +45,20 @@ class DataResponseEffect:
                "sulfur_change_mgkg": round(beta * delta_t_c, 4),
                "basis": "ΔS ≈ β·ΔT для серы потока после ГО; β — средний накопленный отклик через 3–8 ч после "
                         "устойчивого шага T6 (ARX по данным 2025 года)",
-               "note": "В сценарии ГО эффект начинается через объявленную задержку 2 ч, в исследовании плато — 3–8 ч; "
-                       "за горизонт 3 ч эффект может быть меньше полного."}
+               "note": _lag_note(binding, model)}
         if _pair(model.get("beta_ci")):
             out["sulfur_change_ci_mgkg"] = sorted(round(b * delta_t_c, 4) for b in model["beta_ci"])
         if _pair(model.get("weak_strong")):
             out["sulfur_change_next_half_year_mgkg"] = sorted(round(b * delta_t_c, 4) for b in model["weak_strong"])
         return out
+
+
+def _lag_note(binding: Mapping[str, object], model: Mapping[str, object]) -> str:
+    lag = (binding.get("response_lag_hours") or {}).get("value")
+    share = model.get("horizon_response_share")
+    if _finite(lag) and _finite(share):
+        return (f"Задержка отклика ГО в связанном сценарии {lag:g} ч (β — плато 3–8 ч исследования); в пределах горизонта "
+                f"{model.get('horizon_response_until_hours', 3):g} ч засчитывается не больше {share:.0%} хода, полный "
+                f"эффект — за горизонтом.")
+    return ("В сценарии ГО эффект начинается через объявленную задержку, в исследовании плато — 3–8 ч; "
+            "за горизонт 3 ч эффект может быть меньше полного.")

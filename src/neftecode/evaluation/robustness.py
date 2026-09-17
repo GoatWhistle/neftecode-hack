@@ -20,6 +20,7 @@ import copy
 import math
 
 from neftecode.application.use_cases.plan_operation import PlanOperation
+from neftecode.domain.advisory.response_guard import moves_hydrotreating, moves_temperature
 from neftecode.domain.production.scenario import Scenario
 
 #: Deviations applied one at a time. Each is a named, reproducible edit of the scenario.
@@ -57,6 +58,21 @@ def response_perturbations(raw: dict) -> tuple:
         out.append({"name": f"отклик ГО по данным: {label} край диапазона β={bound:g}",
                     "path": "hydrotreating.conversion_per_degree", "factor": bound / beta})
     return tuple(out)
+
+
+def inapplicable_reason(spec: dict, plan, base_controls: dict, pending) -> str | None:
+    """Why a response or lag perturbation cannot act on this plan, or None when it can.
+
+    A perturbed slope only matters to a plan that moves the reactor-inlet temperature; a perturbed lag only to a
+    plan that moves a hydrotreating setpoint. For a hold or a blend-only plan such a perturbation changes nothing,
+    and counting it as "held" would dress the plan up as robust against a deviation it never met.
+    """
+    path = spec.get("path", "")
+    if path == "hydrotreating.conversion_per_degree" and not moves_temperature(plan, base_controls, pending):
+        return "план не меняет температуру входа реактора: возмущение отклика на него не действует"
+    if path == "hydrotreating.response_lag_hours" and not moves_hydrotreating(plan, base_controls, pending):
+        return "план не меняет уставки гидроочистки: возмущение задержки на него не действует"
+    return None
 
 
 class RobustnessError(ValueError):
@@ -122,7 +138,15 @@ class RobustnessCheck:
         results = []
         # Возмущения отклика по данным зависят от связанного сценария, поэтому берутся из raw при каждом прогоне.
         specs = tuple(self.perturbations) + response_perturbations(self.raw)
+        base_planner = PlanOperation(self.scenario)
+        base_controls = base_planner.base_controls()
+        pending = base_planner.confirmed_with_operation(confirmed, current_operation)
         for spec in specs:
+            reason = inapplicable_reason(spec, plan, base_controls, pending)
+            if reason is not None:
+                results.append({"perturbation": spec["name"], "path": spec["path"], "factor": spec["factor"],
+                                "outcome": "not_applicable", "reason": reason})
+                continue
             try:
                 altered = self.scenario_parser(perturb(self.raw, spec))
             except (RobustnessError, ValueError) as exc:
@@ -159,6 +183,7 @@ class RobustnessCheck:
                 "cost_per_tonne": evaluation.cost_per_tonne})
         evaluated = [r for r in results if r["outcome"] in ("holds", "violated")]
         held = [r for r in evaluated if r["outcome"] == "holds"]
+        not_applicable = [r for r in results if r["outcome"] == "not_applicable"]
         share = len(held) / len(evaluated) if evaluated else None
         fragile = share is not None and share < FRAGILE_BELOW
         return {
@@ -167,6 +192,7 @@ class RobustnessCheck:
             "perturbations_evaluated": len(evaluated),
             "held": len(held),
             "violated": len(evaluated) - len(held),
+            "not_applicable": len(not_applicable),
             "share_holding": share,
             "fragile": fragile,
             "results": results,
@@ -176,6 +202,8 @@ class RobustnessCheck:
             "limits": [
                 "Возмущения выбраны нами и перечислены поимённо; доля выдержанных — не вероятность "
                 "успеха и не доверительный интервал.",
+                "Возмущения отклика и задержки, не действующие на план без хода уставок ГО, помечены «неприменимо» "
+                "и в долю выдержанных не входят.",
                 "Проверка идёт на той же модели отклика, которой пользуется оптимизатор, поэтому "
                 "структурно иная установка ею не проверена.",
                 "Длительный исторический эпизод сам по себе новым режимом не признаётся: "

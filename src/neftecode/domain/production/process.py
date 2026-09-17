@@ -192,6 +192,10 @@ class HydrotreatingModel:
     flow_range_m3h: tuple[float, float]
     t95_shift_per_degree: float = 0.0
     provenance: str = "scenario"
+    #: Share of a reactor-inlet temperature move credited while `time_hours <= horizon_response_until_hours`
+    #: (the case horizon when the lag comes from the response study); past it the full move acts.
+    horizon_response_share: float = 1.0
+    horizon_response_until_hours: float = 0.0
 
     @classmethod
     def from_stage(cls, stage: Stage) -> "HydrotreatingModel":
@@ -204,13 +208,19 @@ class HydrotreatingModel:
         if not 0 < model["conversion_at_reference"] < 1:
             raise ProcessError("stages.hydrotreating.model.conversion_at_reference: доля удаления серы "
                                "должна лежать строго между 0 и 1")
+        share = model.get("horizon_response_share", 1.0)
+        until = model.get("horizon_response_until_hours", 0.0)
+        if not _finite(share) or not 0 < share <= 1 or not _finite(until) or until < 0:
+            raise ProcessError("stages.hydrotreating.model.horizon_response_share: доля хода в пределах горизонта "
+                               "должна лежать в (0, 1], horizon_response_until_hours — быть неотрицательным")
         return cls(model["reference_temp_c"], model["conversion_at_reference"],
                    model["conversion_per_degree"], model["reference_space_velocity_m3h"],
                    model["severity_exponent"], stage.response_lag_hours.value,
                    stage.control_range("ht_reactor_inlet_temp_c"),
                    stage.control_range("ht_feed_flow_m3h"),
                    model.get("t95_shift_per_degree", 0.0),
-                   str(model.get("provenance", "scenario")))
+                   str(model.get("provenance", "scenario")),
+                   float(share), float(until))
 
     def effective_controls(self, time_hours: float, current: dict[str, float],
                            pending: tuple[tuple[float, dict[str, float]], ...] = ()) -> dict[str, float]:
@@ -227,6 +237,12 @@ class HydrotreatingModel:
                      if at + self.response_lag_hours <= time_hours + 1e-9]
         for _, controls in sorted(in_effect, key=lambda item: item[0]):
             acting.update(controls)
+        # Within the case horizon only a declared share of a temperature move is credited: the study's β is the
+        # 3–8 h plateau, and the regulator delivers only part of the commanded step by then.
+        partial = self.horizon_response_share < 1 and time_hours <= self.horizon_response_until_hours + 1e-9
+        if partial and "ht_reactor_inlet_temp_c" in acting and "ht_reactor_inlet_temp_c" in current:
+            start = current["ht_reactor_inlet_temp_c"]
+            acting["ht_reactor_inlet_temp_c"] = start + self.horizon_response_share * (acting["ht_reactor_inlet_temp_c"] - start)
         return acting
 
     def run(self, feed: StreamState, controls: dict[str, float]) -> StreamState:
@@ -266,6 +282,8 @@ class HydrotreatingModel:
                 "reference_space_velocity_m3h": self.reference_space_velocity_m3h,
                 "severity_exponent": self.severity_exponent,
                 "response_lag_hours": self.response_lag_hours,
+                "horizon_response_share": self.horizon_response_share,
+                "horizon_response_until_hours": self.horizon_response_until_hours,
                 "temp_range_c": list(self.temp_range_c), "flow_range_m3h": list(self.flow_range_m3h),
                 "note": ("Наклон отклика по температуре выведен из данных завода (линеаризация в конверте "
                          "исследования); опорная точка — измерение на момент решения. Это модель "

@@ -134,7 +134,8 @@ def binding_summary(raw: Mapping[str, object]) -> dict | None:
         "response_model": {key: model.get(key) for key in
                            ("provenance", "beta_mgkg_per_c", "beta_ci", "weak_strong", "conversion_per_degree",
                             "reference_temp_c", "reference_space_velocity_m3h", "linearization_sulfur_mgkg",
-                            "envelope_dt_c")},
+                            "envelope_dt_c", "horizon_response_share", "horizon_response_until_hours")},
+        "response_lag_hours": quantity(stage.get("response_lag_hours")),
         "tank_inflow": quantity(main.get("inflow")),
         "tank_level_window_hours": (raw.get("policy") or {}).get("tank_level_window_hours"),
         "tank_sulfur_note": ((main.get("properties") or {}).get("sulfur_mgkg") or {}).get("note"),

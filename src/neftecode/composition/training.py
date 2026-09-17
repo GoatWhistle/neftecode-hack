@@ -1,4 +1,5 @@
 """Composition of data preparation, model experiments and persisted artifacts."""
+import json
 import pickle
 
 from neftecode.composition.demo import make_demo
@@ -8,6 +9,7 @@ from neftecode.infrastructure.data.data import derive_source_rules, load_sources
 from neftecode.infrastructure.data.quality import read_quality_series, report as quality_report
 from neftecode.infrastructure.ml.forecast import run_experiment
 from neftecode.infrastructure.ml.risk import run_risk_experiment
+from neftecode.infrastructure.response.estimate import estimate_response
 
 def train(root, out, cfg):
     manifest = fingerprint(root, cfg)
@@ -66,6 +68,17 @@ def train(root, out, cfg):
     summary["extra_targets"] = extra
     summary["source_rules"] = {k: v for k, v in rules.items()}
     bundle["manifest"] = manifest
+    # Отклик серы на T6 (C2): тот же ARX, что в исследовании, на сетке τ; живое решение берёт оценку до момента.
+    print("Оценка отклика серы на температуру входа реактора по данным до train_end и по скользящим окнам…", flush=True)
+    declared = json.loads((root / "config/response_model.json").read_text(encoding="utf-8"))
+    response = estimate_response(signals, online, cfg["train_end"], declared, manifest["fingerprint"])
+    write_json(out / "response_model.json", response)
+    summary["response_model"] = {"primary_tau": response["tau"], "beta_mgkg_per_c": response["beta_mgkg_per_c"],
+                                 "ci": response["ci"], "weak_strong": response["weak_strong"],
+                                 "estimates": [{k: e[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong")}
+                                               for e in response["estimates"]]}
+    for e in response["estimates"]:
+        print(f"  τ={e['tau']}: β={e['beta_mgkg_per_c']} ДИ {e['ci']} weak/strong {e['weak_strong']} строк {e['n_rows']}", flush=True)
     with (out / "model.pkl").open("wb") as stream:
         pickle.dump(bundle, stream)
     predictions.to_csv(out / "predictions.csv", index=False)
