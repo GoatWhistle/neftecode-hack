@@ -9,7 +9,8 @@ from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.data.data import load_sources
-from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, bind_forecast, load_response_model
+from neftecode.infrastructure.live.advisor import (LiveAdviceAdapter, bind_forecast, interval_coverage,
+                                                   load_response_model)
 from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.infrastructure.live.snapshots import build_snapshot, write_snapshot
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
@@ -29,7 +30,8 @@ def handle(args, parser, root, out):
                           robustness_factory=lambda scenario, raw: RobustnessCheck(
                               scenario, raw, scenario_parser=parse_scenario),
                           decision_factory=default_decision_factory(),
-                          response_model=load_response_model(root))
+                          response_model=load_response_model(root),
+                          coverage=interval_coverage(out, bundle))
     result = advisor.advise(args.at)
     stamp = when.strftime("%Y%m%d-%H%M%S")
     path = out / f"decision-{stamp}.json"
@@ -61,19 +63,6 @@ def handle(args, parser, root, out):
     print(f"Журнал: {path}\nЭкран: {out / f'screen-{stamp}.html'}")
 
 
-def _coverage(out: Path, model: str) -> dict:
-    """Целевое и фактическое покрытие интервала выбранной модели на тесте, если metrics.json есть."""
-    path = out / "metrics.json"
-    if not path.exists():
-        return {}
-    metrics = json.loads(path.read_text(encoding="utf-8"))
-    test = ((metrics.get("models") or {}).get(model) or {}).get("test") or {}
-    out_ = {}
-    if isinstance(test.get("interval_coverage"), (int, float)):
-        out_["coverage_test_2026"] = test["interval_coverage"]
-    return out_
-
-
 def snapshot(args, parser, root, out):
     """Заморозить реальные срезы для демонстрации без task/."""
     if not args.at and not args.all:
@@ -90,11 +79,10 @@ def snapshot(args, parser, root, out):
     rules_fp = None
     if rules_path.exists():
         rules_fp = json.loads(rules_path.read_text(encoding="utf-8")).get("model_fingerprint")
-    coverage = {"coverage_target": bundle["config"].get("interval_coverage")}
+    coverage = interval_coverage(out, bundle)
     for moment in moments:
         snap = build_snapshot(signals, lab, online, bundle, moment["at"], moment.get("label", ""),
                               moment.get("why", ""), tuple(moment.get("synthetic_missing") or ()),
-                              coverage={**coverage, **_coverage(out, bundle["selected"])},
-                              source_rules_fingerprint=rules_fp)
+                              coverage=coverage, source_rules_fingerprint=rules_fp)
         path = write_snapshot(out, snap)
         print(f"  {snap['at']}  {snap['label'] or '-':40s} {snap['trust']['primary'] or 'нет источника':6s} {path.name}")

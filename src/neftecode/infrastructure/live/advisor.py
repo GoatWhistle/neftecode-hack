@@ -63,13 +63,15 @@ class LocalSnapshotProvider:
 
 
 class LocalForecastProvider:
-    def __init__(self, signals, lab, online, bundle):
+    def __init__(self, signals, lab, online, bundle, coverage: dict | None = None):
         self.signals, self.lab, self.online, self.bundle = signals, lab, online, bundle
+        #: {"coverage_target": …, "coverage_test": …} из metrics.json — честность интервала в каждом решении.
+        self.coverage = coverage or {}
 
     def forecast(self, snapshot):
         raw = forecast_at(self.signals, self.lab, self.online, self.bundle,
                           pd.Timestamp(snapshot.at), fallback=snapshot.trust.get("fallback", False))
-        return LiveForecast.from_dict(raw)
+        return LiveForecast.from_dict({**raw, **self.coverage})
 
 
 class LocalForecastScenarioBinder:
@@ -333,6 +335,21 @@ def _bound(value: float, unit: str, source: str, note: str) -> dict:
     return {"value": round(float(value), 4), "unit": unit, "source": source, "note": note}
 
 
+def interval_coverage(out: Path, bundle: dict) -> dict:
+    """Заявленное покрытие интервала и фактическое на тесте 2026 для выбранной модели (metrics.json)."""
+    result = {}
+    target = (bundle.get("config") or {}).get("interval_coverage")
+    if _finite_number(target):
+        result["coverage_target"] = float(target)
+    path = Path(out) / "metrics.json"
+    if path.exists():
+        metrics = json.loads(path.read_text(encoding="utf-8"))
+        test = ((metrics.get("models") or {}).get(bundle.get("selected")) or {}).get("test") or {}
+        if _finite_number(test.get("interval_coverage")):
+            result["coverage_test"] = float(test["interval_coverage"])
+    return result
+
+
 def state_at(signals, lab, online, bundle, when) -> dict:
     """The data-trust state built from what was actually available at `when`."""
     _, metadata = build_features(signals, lab, online, [when], bundle["config"])
@@ -456,6 +473,10 @@ def bind_forecast(raw: dict, forecast: dict, tank_id: str = "main", state: dict 
             inflow = float(forecast["upper"])
             note = (f"Сера притока с гидроочистки: верхняя граница прогноза модели {forecast['model']} "
                     f"на момент решения; точечная оценка {forecast['value']:.3f} мг/кг.")
+            target, actual = forecast.get("coverage_target"), forecast.get("coverage_test")
+            if _finite_number(target) and _finite_number(actual):
+                note += (f" Интервал откалиброван на покрытие {target:.0%}; фактическое покрытие на тесте 2026 — "
+                         f"{actual:.1%}: верхняя граница не гарантирует предел при смене режима.")
             measured = state is not None and state.get("origin") == "real_measurements_at_decision_time"
             hold = frozen_analyser_hold(out, state) if measured else None
             if hold is not None and hold["value"] > inflow:
@@ -497,6 +518,8 @@ class LiveAdviceAdapter:
     robustness_factory: Callable | None = None
     #: Содержимое C2 (`load_response_model`) или None — тогда модель отклика остаётся сценарной.
     response_model: dict | None = None
+    #: Покрытие интервала (цель и факт на тесте) — см. `interval_coverage(out, bundle)`.
+    coverage: dict | None = None
 
     def __post_init__(self):
         factory = self.robustness_factory
@@ -505,7 +528,7 @@ class LiveAdviceAdapter:
         self._use_case = GetLiveAdvice(
             scenarios=LocalScenarioProvider(self.raw_scenario),
             snapshots=LocalSnapshotProvider(self.signals, self.lab, self.online, self.bundle),
-            forecasts=LocalForecastProvider(self.signals, self.lab, self.online, self.bundle),
+            forecasts=LocalForecastProvider(self.signals, self.lab, self.online, self.bundle, self.coverage),
             binder=LocalForecastScenarioBinder(self.response_model),
             robustness_factory=factory,
             decision_factory=self.decision_factory,

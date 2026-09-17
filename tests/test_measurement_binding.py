@@ -213,3 +213,23 @@ def test_binding_summary_reports_sources_of_every_bound_quantity():
 def test_binding_requires_a_positive_density():
     with pytest.raises(LiveError):
         bind_measurements(raw(), measured(), {"density_kgm3": 0.0}, response(), forecast())
+
+
+# --- честность интервала ---
+
+def test_interval_coverage_reads_target_and_test_from_the_artifacts(tmp_path):
+    from neftecode.infrastructure.live.advisor import interval_coverage
+    bundle = {"config": {"interval_coverage": 0.9}, "selected": "last_pak"}
+    assert interval_coverage(tmp_path, bundle) == {"coverage_target": 0.9}
+    (tmp_path / "metrics.json").write_text(json.dumps({"models": {"last_pak": {"test": {"interval_coverage": 0.867}}}}))
+    assert interval_coverage(tmp_path, bundle) == {"coverage_target": 0.9, "coverage_test": 0.867}
+
+
+def test_the_inflow_note_states_the_actual_coverage_when_known():
+    fc = {**forecast(upper=9.0), "coverage_target": 0.9, "coverage_test": 0.867}
+    bound = bind_forecast(raw(), fc)
+    note = next(t for t in bound["tanks"] if t["tank_id"] == "main")["inflow_sulfur_mgkg"]["note"]
+    assert "покрытие 90%" in note and "86.7%" in note
+    from neftecode.application.contracts import LiveForecast
+    live = LiveForecast.from_dict({**fc, "coverage_test_2026": 0.867})
+    assert live.to_dict()["coverage_test"] == 0.867

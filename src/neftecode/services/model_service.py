@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
+from neftecode.infrastructure.live.advisor import interval_coverage
 from neftecode.infrastructure.live.origin import validate_origin
 from .common import Request, ServiceError, ServiceSettings, clean, serve, content_hash
 
@@ -98,6 +99,7 @@ class ModelService:
                     "available": False, "reason": "Выбранный прогноз недоступен на этот момент"}
         low, high = interval(value, bundle["radii"][name])
         return {"at": when.isoformat(), "model": name, "value": value, "lower": float(low), "upper": float(high),
+                **interval_coverage(self.artifacts, bundle),
                 "available": True, "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"}
 
     @staticmethod
