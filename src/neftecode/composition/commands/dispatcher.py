@@ -11,6 +11,7 @@ HANDLERS = {
     "scenes": screens.scenes,
     "benchmark": evaluation.benchmark,
     "episodes": evaluation.episodes,
+    "tank-check": evaluation.tank_check,
     "vak": evaluation.vak,
     "advise": live.handle,
     "snapshot": live.snapshot,

@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 
-COMMANDS = ("train", "demo", "advise", "snapshot", "vak", "episodes", "benchmark", "screen", "scenes", "serve",
+COMMANDS = ("train", "demo", "advise", "snapshot", "vak", "episodes", "tank-check", "benchmark", "screen", "scenes", "serve",
             "agent-demo")
 
 
