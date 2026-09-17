@@ -15,7 +15,7 @@ from neftecode.domain.production.inventory import initial_state
 from neftecode.infrastructure.agentic import build_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.application.ports.live import ForecastBindingError
-from neftecode.application.use_cases.get_live_advice import binding_summary
+from neftecode.application.use_cases.get_live_advice import binding_summary, decision_context
 from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder, load_response_model
 from neftecode.infrastructure.live.snapshots import bind_snapshot
 from neftecode.evaluation.robustness import RobustnessCheck
@@ -112,7 +112,9 @@ class DecisionService:
             raise ServiceError("budget должен быть положительным целым", 422, "invalid_budget")
         evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
         maker = (MakeDecision(scenario, robustness_evaluator=evaluator) if self.decision_factory is None
-                 else self.decision_factory(scenario, evaluator))
+                 else self.decision_factory(scenario, evaluator) if snapshot is None
+                 else self.decision_factory(scenario, evaluator,
+                                            decision_context(snapshot.get("at"), snapshot.get("forecast"), raw)))
         decision = maker.decide(state=state or {}, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
         trust = DataTrustAgent(trust_cfg).assess(state or {})
         return {"decision": clean(decision), "explanation": clean(explain(decision, scenario)),

@@ -87,7 +87,8 @@ class GetLiveAdvice:
         if self.decision_factory is None:
             maker = MakeDecision(scenario, robustness_evaluator=evaluator)
         else:
-            context = {"at": snapshot.at, "forecast": forecast.to_dict() if forecast is not None else None}
+            context = decision_context(snapshot.at, forecast.to_dict() if forecast is not None else None,
+                                       raw if rejection is None else None)
             maker = self.decision_factory(scenario, evaluator, context)
         return maker.decide(
             state=dict(snapshot.state), trust_cfg=dict(snapshot.trust_cfg or {}), budget=budget, raw_scenario=dict(raw), data_rejection=rejection)
@@ -108,6 +109,12 @@ class GetLiveAdvice:
             return None
 
 
+def decision_context(at, forecast: Mapping[str, object] | None, bound_raw: Mapping[str, object] | None) -> dict:
+    """Живой контекст для агентов: момент, прогноз и сводка привязки (измерения, отклик, предупреждения)."""
+    return {"at": at, "forecast": dict(forecast) if forecast is not None else None,
+            "binding": binding_summary(bound_raw) if bound_raw is not None else None}
+
+
 def binding_summary(raw: Mapping[str, object]) -> dict | None:
     """Сводка привязки по связанному сценарию: откуда уставки ГО, отклик, приток и окно резервуара."""
     stage = ((raw.get("stages") or {}).get("hydrotreating") or {})
@@ -126,7 +133,8 @@ def binding_summary(raw: Mapping[str, object]) -> dict | None:
                      for name, spec in controls.items()},
         "response_model": {key: model.get(key) for key in
                            ("provenance", "beta_mgkg_per_c", "beta_ci", "weak_strong", "conversion_per_degree",
-                            "reference_temp_c", "reference_space_velocity_m3h", "linearization_sulfur_mgkg")},
+                            "reference_temp_c", "reference_space_velocity_m3h", "linearization_sulfur_mgkg",
+                            "envelope_dt_c")},
         "tank_inflow": quantity(main.get("inflow")),
         "tank_level_window_hours": (raw.get("policy") or {}).get("tank_level_window_hours"),
         "tank_sulfur_note": ((main.get("properties") or {}).get("sulfur_mgkg") or {}).get("note"),

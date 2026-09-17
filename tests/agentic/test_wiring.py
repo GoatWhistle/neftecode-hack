@@ -144,6 +144,7 @@ def test_live_use_case_passes_forecast_context_to_the_factory():
         LiveAdviceCommand(at="2026-01-05T08:00:00", scenario_id="baseline"))
     assert result.decision["status"] == "hold"
     assert seen["forecast"]["upper"] == 9.0 and seen["at"] == "2026-01-05T08:00:00"
+    assert seen["binding"]["tank_inflow"]["value"] == 212.6   # сводка связанного сценария доходит до агентов
 
 
 def test_agent_rejected_refusal_is_explained_and_rendered():

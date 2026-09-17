@@ -403,6 +403,25 @@ class DecisionSession:
             out["live_forecast"]["reason"] = str(live.get("reason") or "")[:160]
         return out
 
+    def measurements(self) -> dict:
+        """Живая привязка момента: измеренные теги, происхождение уставок и отклика, окно резервуара, предупреждения."""
+        binding = (self.live_context or {}).get("binding")
+        if not isinstance(binding, dict):
+            return {"live": False, "note": "Сценарный запуск: измерений на момент решения нет"}
+        tags = ((binding.get("measurement_binding") or {}).get("tags") or {})
+        model = binding.get("response_model") or {}
+        return {"live": True, "at": (self.live_context or {}).get("at"),
+                "tags": {tag: (None if not isinstance(v, dict) else
+                               {"value": _round(v.get("value")), "age_min": v.get("age_min")})
+                         for tag, v in tags.items()},
+                "controls": binding.get("controls"),
+                "response_model": {k: model.get(k) for k in ("provenance", "beta_mgkg_per_c", "beta_ci",
+                                                             "weak_strong", "reference_temp_c", "envelope_dt_c")},
+                "tank_inflow": binding.get("tank_inflow"),
+                "tank_level_window_hours": binding.get("tank_level_window_hours"),
+                "notes": list((binding.get("measurement_binding") or {}).get("notes") or [])[:4],
+                "warnings": [str(w)[:300] for w in (binding.get("measurement_binding") or {}).get("warnings") or []][:3]}
+
     def limits(self) -> dict:
         out = {limit_id: ({"value": q.value, "unit": q.unit, "source": q.source} if q is not None else None)
                for limit_id, q in self.scenario.product.limits.items()}
