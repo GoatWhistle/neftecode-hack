@@ -87,7 +87,7 @@ class DecisionService:
         self.client = ServiceHTTPClient(timeout_s)
         #: None keeps the deterministic MakeDecision; main() passes the flag-controlled factory.
         self.decision_factory = decision_factory
-        #: Содержимое config/response_model.json (C2) или None — тогда отклик ГО остаётся сценарным.
+        #: Содержимое artifacts/response_model.json (C2) или None — тогда отклик ГО остаётся сценарным.
         self.response_model = response_model
 
     @staticmethod
@@ -186,7 +186,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Нефтекод decision service")
     parser.add_argument("--host", default=None); parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--data-url", default=None); parser.add_argument("--model-url", default=None)
-    parser.add_argument("--root", type=Path, default=None, help="Корень проекта с config/response_model.json")
+    parser.add_argument("--root", type=Path, default=None, help="Корень проекта с artifacts/response_model.json")
     args = parser.parse_args(argv)
     root = Path(args.root or os.getenv("NEFTECODE_ROOT", "."))
     env = ServiceSettings.from_env("NEFTECODE_DECISION_", ServiceSettings(port=8768))

@@ -117,7 +117,7 @@ class Demo:
     changes: list = field(default_factory=list)
     #: Замороженные реальные срезы (C3); пусто — демонстрация идёт на синтетическом состоянии.
     snapshots: list = field(default_factory=list)
-    #: Содержимое config/response_model.json (C2) для связывания срезов.
+    #: Содержимое artifacts/response_model.json (C2, оценки по τ) для связывания срезов.
     response_model: dict | None = None
 
     @classmethod

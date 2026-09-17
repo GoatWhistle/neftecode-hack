@@ -13,6 +13,7 @@ from neftecode.evaluation.robustness import RobustnessCheck, response_perturbati
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.live.advisor import (LiveError, bind_forecast, bind_measurements,
                                                    load_response_model, measurements_at)
+from neftecode.infrastructure.response.estimate import response_at
 
 BASELINE = Path("config/scenarios/baseline.json")
 DENSITY = {"density_kgm3": 836.1}
@@ -142,18 +143,55 @@ def test_without_the_response_file_the_model_stays_scenario():
 
 
 def test_a_broken_response_file_is_an_error_not_a_silent_fallback(tmp_path):
-    (tmp_path / "config").mkdir()
-    (tmp_path / "config" / "response_model.json").write_text('{"schema_version": "v1", "tag": "ht.T11"}')
+    (tmp_path / "artifacts").mkdir()
+    (tmp_path / "artifacts" / "response_model.json").write_text('{"schema_version": "v1", "tag": "ht.T11"}')
     with pytest.raises(ValueError, match="ht.T6"):
         load_response_model(tmp_path)
+    with pytest.raises(ValueError, match="ht.T6"):
+        load_response_model(tmp_path / "nowhere", out=tmp_path / "artifacts")
     assert load_response_model(tmp_path / "nowhere") is None
 
 
-def test_the_committed_response_file_is_valid_and_carries_the_studied_region():
+def test_the_declared_policy_file_carries_no_hand_written_estimate():
+    declared = json.loads(Path("config/response_model.json").read_text(encoding="utf-8"))
+    assert declared["tag"] == "ht.T6" and declared["envelope_dt_c"] == 2.0
+    assert declared["response_onset_hours"] == 3.0 and declared["horizon_response_share"] == 0.66
+    assert "beta_mgkg_per_c" not in declared and "weak_strong" not in declared, "β теперь оценивает train"
+
+
+def test_the_trained_response_artifact_reproduces_the_study_at_tau_2026():
+    artifact = Path("artifacts/response_model.json")
+    if not artifact.exists():
+        pytest.skip("artifacts/response_model.json появляется после train")
     model = load_response_model(Path("."))
-    assert model["beta_mgkg_per_c"] < 0
-    assert model["t6_range_c"][0] < 367.8 < model["t6_range_c"][1]
-    assert model["ci"][0] <= model["beta_mgkg_per_c"] <= model["ci"][1]
+    assert model["primary"] == "train_end" and pd.Timestamp(model["tau"]) == pd.Timestamp("2025-01-01")
+    assert model["beta_mgkg_per_c"] < 0 and model["ci"][0] <= model["beta_mgkg_per_c"] <= model["ci"][1]
+    at_2026 = response_at(model, "2026-01-05T08:00:00")
+    assert pd.Timestamp(at_2026["tau"]) == pd.Timestamp("2026-01-01")
+    assert at_2026["beta_mgkg_per_c"] == pytest.approx(-0.4332, abs=5e-4)
+    assert at_2026["ci"] == pytest.approx([-0.4761, -0.397], abs=5e-4)
+    assert at_2026["weak_strong"] == pytest.approx([-0.217, -0.739], abs=2e-3)
+    assert at_2026["t6_range_c"] == pytest.approx([342.9, 386.1], abs=0.15)
+    assert at_2026["f9_range_tph"] == pytest.approx([150.3, 256.7], abs=0.15)
+    assert model["horizon_response_share"] == 0.66 and model["response_onset_hours"] == 3.0
+
+
+def test_the_live_binding_takes_the_estimate_made_strictly_before_the_moment():
+    early = {**response(), "tau": "2025-07-01", "beta_mgkg_per_c": -0.481, "ci": [-0.508, -0.45],
+             "weak_strong": [-0.24, -0.82], "n_rows": 1}
+    late = {**response(), "tau": "2026-01-01", "n_rows": 2}
+    rolling = {**response(), "estimates": [{k: e[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong",
+                                                             "t6_range_c", "f9_range_tph")} for e in (early, late)]}
+    jan = ht(bind_measurements(raw(), measured(), DENSITY, rolling, forecast(), at="2026-01-05T08:00:00"))["model"]
+    assert (jan["beta_mgkg_per_c"], jan["response_tau"], jan["response_rows"]) == (-0.4332, "2026-01-01", 2)
+    dec = ht(bind_measurements(raw(), measured(), DENSITY, rolling, forecast(), at="2025-12-31T23:00:00"))["model"]
+    assert (dec["beta_mgkg_per_c"], dec["response_tau"]) == (-0.481, "2025-07-01")
+    before = bind_measurements(raw(), measured(), DENSITY, rolling, forecast(), at="2025-03-01T00:00:00")
+    assert ht(before)["model"]["provenance"] == "scenario"
+    assert any("сделанной до 2025-03-01" in note for note in before["measurement_binding"]["notes"])
+    with pytest.raises(LiveError, match="момента решения"):
+        bind_measurements(raw(), measured(), DENSITY, rolling, forecast())
+    assert response_at(response(), "2020-01-01") == response(), "файл без estimates — как прежде"
 
 
 # --- приток и окно резервуара ---

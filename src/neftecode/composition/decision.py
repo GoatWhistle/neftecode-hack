@@ -63,7 +63,7 @@ def make_demo_service(root: Path, budget: int = 400, out: Path | None = None) ->
     out = Path(out) if out is not None else root / "artifacts"
     trust_cfg, trust_origin = load_trust_rules(root, out)
     snapshots = load_snapshots(out)
-    response_model = load_response_model(root)
+    response_model = load_response_model(root, out)
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
                                                                      snapshots, response_model),
                        budget, snapshots=snapshots)
