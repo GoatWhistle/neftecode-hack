@@ -60,6 +60,7 @@ def render_agent_trace(decision: dict) -> list[str]:
         lines.append(f"Gate выбранного плана: {'PASS' if decision['gate']['feasible'] else 'FAIL'}")
     robustness = decision.get("robustness")
     if robustness:
+        skipped = robustness.get("not_applicable") or 0
         lines.append(f"устойчивость: выдержано {robustness['held']} из {robustness['perturbations_evaluated']}"
-                     f"{' — хрупкий' if robustness['fragile'] else ''}")
+                     f"{f', неприменимо {skipped}' if skipped else ''}{' — хрупкий' if robustness['fragile'] else ''}")
     return lines
