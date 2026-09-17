@@ -2,13 +2,14 @@
 import math
 
 import numpy as np
+import pandas as pd
 from catboost import CatBoostRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from neftecode.infrastructure.data.data import split_periods
+from neftecode.infrastructure.data.data import split_periods, validate_forecast_selection
 
 
 _UNSET = object()
@@ -150,6 +151,8 @@ def predict_candidate(bundle, name, x):
         return x[column].to_numpy()
     if name == "last_pak":
         return x["pak.sulfur"].to_numpy()
+    if name == "last_pak_bc":
+        return np.maximum(0, x["pak.sulfur"].to_numpy() + x["pak.lab_bias20"].to_numpy())
     model = bundle["models"][name]
     columns = bundle["columns"][name]
     return np.maximum(0, np.expm1(model.predict(x[columns])))
@@ -170,15 +173,22 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
         raise ValueError("Предел должен быть конечным или None")
     if near_margin is not None and (not np.isfinite(near_margin) or near_margin < 0):
         raise ValueError("Окрестность предела должна быть конечной и неотрицательной")
-    columns = x.columns[x.loc[train].nunique() > 1].tolist()
+    # The rolling bias is a separately pre-registered point method.  Do not
+    # silently give this new feature to the legacy fitted candidates.
+    columns = [c for c in x.columns[x.loc[train].nunique() > 1] if c != "pak.lab_bias20"]
     no_pak = [c for c in columns if not c.startswith("pak.")]
     bundle = {"models": {}, "columns": {}, "radii": {}, "config": cfg}
     # The online analyser measures sulfur only: it is not a baseline for any other property.
     own_target = "lab.target" in x.columns
-    candidates = ["last_lab", *([] if own_target else ["last_pak"]), "ridge", "catboost", "catboost_no_pak"]
+    production_selection = None if own_target else validate_forecast_selection(cfg)
+    sulfur_baselines = ["last_pak"]
+    if production_selection:
+        sulfur_baselines.append("last_pak_bc")
+    candidates = ["last_lab", *([] if own_target else sulfur_baselines),
+                  "ridge", "catboost", "catboost_no_pak"]
     predictions = {}
     for name in candidates:
-        if name not in ("last_lab", "last_pak"):
+        if name not in ("last_lab", "last_pak", "last_pak_bc"):
             cols = no_pak if name.endswith("no_pak") else columns
             if name == "ridge":
                 model = make_pipeline(SimpleImputer(strategy="median", add_indicator=True),
@@ -201,8 +211,15 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
     scores = {name: float(e.mean()) for name, e in errors.items()}
     choice = select_model(scores, errors, cfg.get("min_relative_gain", MIN_RELATIVE_GAIN), cfg["seed"])
     selected = choice["selected"]
+    if production_selection:
+        selected = production_selection.get("selected")
+        if selected not in candidates:
+            raise ValueError(f"Замороженный production-прогноз {selected!r} отсутствует среди кандидатов")
+        if pd.Timestamp(production_selection.get("development_end")) > pd.Timestamp(cfg["calibration_end"]):
+            raise ValueError("Production-прогноз выбран с использованием данных после границы разработки")
     bundle["selected"] = selected
     bundle["selection_decision"] = choice
+    bundle["production_selection"] = production_selection
     # Fallback is evaluated separately; never claim it retains the main model's accuracy.
     bundle["fallback"] = "catboost_no_pak"
     bundle["candidates"] = candidates
@@ -238,9 +255,12 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
     summary = {
         "selected": selected, "target": target, "limit": limit,
         "direction": direction, "near_margin": near_margin,
-        "selection": "MAE на общем наборе validation с минимальным полезным отрывом и парным "
-                     "бутстрепом разности; тест не участвует",
+        "selection": ("Заранее зарегистрированный rolling-выбор до 2026; test не участвует"
+                      if production_selection else
+                      "MAE на общем наборе validation с минимальным полезным отрывом и парным "
+                      "бутстрепом разности; тест не участвует"),
         "selection_decision": choice,
+        "production_selection": production_selection,
         "validation_common_n": int(common.sum()),
         "test_common_n": int(common_test.sum()),
         "periods": {name: {"n": int(m.sum()), "first_decision": str(meta.loc[m, "decision_time"].min()),

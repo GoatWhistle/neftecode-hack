@@ -60,7 +60,9 @@ def run_risk_experiment(x, meta, cfg):
     labels = meta.actual_sulfur.to_numpy() > cfg["sulfur_limit"]
     if not (labels[train].any() and (~labels[train]).any()):
         raise ValueError("Для обучения нужны оба класса")
-    columns = x.columns[x.loc[train].nunique() > 1].tolist()
+    # ``pak.lab_bias20`` belongs only to the pre-registered point forecast.
+    # Keep the already selected risk experiment unchanged.
+    columns = [c for c in x.columns[x.loc[train].nunique() > 1] if c != "pak.lab_bias20"]
     candidates = ["pak_threshold", "lab_threshold", "logistic", "risk_catboost", "risk_catboost_no_pak"]
     bundle = {"models": {}, "columns": {}, "thresholds": {}, "config": cfg}
     scores = {}

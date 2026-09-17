@@ -212,6 +212,21 @@ def test_the_forecast_interval_brackets_its_point_estimate():
     assert result["lower"] <= result["value"] <= result["upper"]
 
 
+def test_future_lab_result_cannot_change_bias_corrected_live_forecast_or_bounds():
+    signals, lab, online, bundle = synthetic()
+    at = pd.Timestamp("2026-01-04 00:00").as_unit("ns")
+    bundle["config"]["forecast_selection"] = json.loads(
+        Path("config/experiment.json").read_text()
+    )["forecast_selection"]
+    bundle.update(selected="last_pak_bc", fallback="last_pak_bc", radii={"last_pak_bc": 0.2})
+    before = forecast_at(signals, lab.loc[lab.time <= at], online, bundle, at)
+    future = pd.DataFrame({"time": [pd.Timestamp(at.to_datetime64() + np.timedelta64(1, "h"))], "value": [999.0]})
+    after = forecast_at(signals, pd.concat([lab, future], ignore_index=True), online, bundle, at)
+    assert before == after
+    assert before["model"] == "last_pak_bc"
+    assert "20 последних доступных пар" in before["reason"]
+
+
 # --- The level must not fall back to a placeholder ---
 
 def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant():

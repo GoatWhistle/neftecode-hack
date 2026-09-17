@@ -9,6 +9,17 @@
   "validation_end": "2025-07-01",
   "calibration_end": "2026-01-01",
   "interval_coverage": 0.9,
+  "forecast_selection": {
+    "method": "preregistered_rolling_v1",
+    "selected_before_2026": true,
+    "selected": "last_pak_bc",
+    "baseline": "last_pak",
+    "bias_window_pairs": 20,
+    "min_pairs": 5,
+    "development_end": "2026-01-01",
+    "evidence": "context/forecast-research/rolling-f4.json",
+    "evidence_sha256": "ef83c7a0d8f8513886c9934c98ce08e2606df34c6715bd7908c545f3b2c1f627"
+  },
   "sulfur_limit": 10.0,
   "risk_false_alarm_budget": 0.2,
   "batch_window_hours": 8,

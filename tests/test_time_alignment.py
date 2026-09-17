@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from neftecode.infrastructure.data.data import (CASE_MAX_HORIZON_HOURS, CASE_MAX_LAB_DELAY_HOURS, backward_readings,
-                            build_features, check_time_assumptions, make_dataset, series_frame,
+                            build_features, causal_pak_lab_bias, check_time_assumptions, make_dataset, series_frame,
                             split_periods)
 
 CFG = {"horizon_hours": 2, "lab_delay_hours": 4, "history_window_hours": 6,
@@ -90,6 +90,31 @@ def test_availability_times_are_kept_for_both_sources():
     row = meta.iloc[0]
     assert row.lab_available_time >= row.lab_sample_time
     assert row.lab_available_time <= row.decision_time
+
+
+def test_pak_lab_bias_uses_only_pairs_available_by_the_decision():
+    sample_times = pd.date_range("2026-01-01", periods=8, freq="h")
+    online = pd.DataFrame({"time": sample_times, "value": np.full(8, 10.0)})
+    lab = pd.DataFrame({"time": sample_times, "value": 10.0 + np.arange(1, 9, dtype=float)})
+    at = pd.Timestamp("2026-01-01 08:30").as_unit("ns")  # five pairs are released after the declared 4 h delay
+    with_future = causal_pak_lab_bias([at], lab, online, 4, window=5)[0]
+    without_future = causal_pak_lab_bias([at], lab.iloc[:5], online, 4, window=5)[0]
+    too_early = causal_pak_lab_bias([pd.Timestamp("2026-01-01 07:30")], lab, online, 4, window=5)[0]
+    assert with_future == without_future == 3.0
+    assert too_early == 0.0, "до пяти доступных пар поправка обязана быть нулевой"
+
+
+def test_build_features_exposes_the_frozen_causal_bias_window():
+    signals, lab, online = synthetic(hours=96)
+    cfg = {**CFG, "forecast_selection": json.loads(
+        Path("config/experiment.json").read_text()
+    )["forecast_selection"]}
+    at = pd.Timestamp("2026-01-04 00:00").as_unit("ns")
+    before = build_features(signals, lab.loc[lab.time <= at], online, [at], cfg)[0]
+    later = pd.DataFrame({"time": [pd.Timestamp(at.to_datetime64() + np.timedelta64(1, "h"))], "value": [999.0]})
+    after = build_features(signals, pd.concat([lab, later], ignore_index=True), online, [at], cfg)[0]
+    assert "pak.lab_bias20" in before.columns
+    assert before["pak.lab_bias20"].iloc[0] == after["pak.lab_bias20"].iloc[0]
 
 
 def test_pak_and_lab_keep_independent_time_axes():

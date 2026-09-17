@@ -20,7 +20,7 @@ def train(root, out, cfg):
           + ", ".join(f"{k}={rules[k]}" for k in rules if k != "source_rules"), flush=True)
     x, meta = make_dataset(signals, lab, online, cfg)
     print(f"{len(signals)} строк телеметрии, {len(meta)} независимых целевых анализов, {len(x.columns)} признаков", flush=True)
-    print("Сравнение пяти методов на последовательных периодах…", flush=True)
+    print("Сравнение шести методов; production-выбор заморожен по rolling до 2026…", flush=True)
     bundle, summary, predictions = run_experiment(x, meta, cfg)
     print("Отдельная проверка обнаружения превышений и ложных тревог…", flush=True)
     risk_bundle, risk_summary, risk_predictions = run_risk_experiment(x, meta, cfg)
@@ -73,5 +73,5 @@ def train(root, out, cfg):
     write_json(out / "manifest.json", manifest)
     # Те же пороги для демо и сервисов без model.pkl в памяти (артефакт C1).
     write_source_rules(out, rules, cfg, manifest["fingerprint"])
-    print(f"Выбран по validation: {summary['selected']}", flush=True)
+    print(f"Основной прогноз: {summary['selected']}", flush=True)
     make_demo(root, out)

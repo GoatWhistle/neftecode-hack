@@ -6,7 +6,7 @@ def selection_section(summary):
     lines = []
     choice = summary.get("selection_decision", {})
     if choice:
-        lines += ["## Почему выбран именно этот прогноз", "",
+        lines += ["## Аудит прежнего validation-правила", "",
                   f"Базовый простой прогноз — **{choice['baseline']}**, ошибка {choice['baseline_mae']:.4f}."]
         if choice.get("challenger"):
             lines += [f"Лучший обучаемый претендент — **{choice['challenger']}**, ошибка "
@@ -18,6 +18,13 @@ def selection_section(summary):
                   f"{choice['min_relative_gain']:.0%} и доверительном интервале разности, не накрывающем ноль. "
                   "Сравнение парное, на одних и тех же анализах: иначе доступность прогноза выдавала бы "
                   "себя за точность.", ""]
+    production = summary.get("production_selection")
+    if production:
+        lines += ["## Production-выбор до финального теста", "",
+                  f"Основной прогноз — **{production['selected']}**. Он выбран по заранее "
+                  f"зарегистрированной скользящей проверке, завершённой до "
+                  f"{production['development_end']}; фиксированный validation-выбор выше сохранён как аудит, "
+                  "но не переопределяет rolling-решение.", ""]
     availability = summary.get("quality_availability")
     if availability:
         lines += ["## Что система может оценить", "",
@@ -49,7 +56,10 @@ def make_report(out, demos):
     lines = ["# Первый рабочий проход", "", "Прогноз на реальных данных. Оптимизация смешения — явно модельный сценарий.", ""]
     if (out / "metrics.json").exists():
         summary = json.loads((out / "metrics.json").read_text())
-        lines += [f"Выбор только по validation: **{summary['selected']}**. Тест — 2026 год.", "",
+        selection_text = (f"Production-выбор по rolling до 2026: **{summary['selected']}**."
+                          if summary.get("production_selection") else
+                          f"Выбор только по validation: **{summary['selected']}**.")
+        lines += [selection_text + " Тест — 2026 год.", "",
                   "| Метод | Анализов с прогнозом | MAE, мг/кг | MAE на общих анализах | Найдено превышений точечным прогнозом | Покрытие диапазона |",
                   "|---|---:|---:|---:|---:|---:|"]
         for name, result in summary["models"].items():

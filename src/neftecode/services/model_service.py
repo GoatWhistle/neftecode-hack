@@ -81,11 +81,12 @@ class ModelService:
             raise ServiceError(str(exc), 422, "forecast_rejected") from exc
         fallback = bool(body.get("fallback", False))
         name = bundle.get("fallback") if fallback else bundle.get("selected")
-        if not isinstance(name, str) or (name not in ("last_lab", "last_pak")
+        if not isinstance(name, str) or (name not in ("last_lab", "last_pak", "last_pak_bc")
                                          and name not in bundle["models"]):
             raise ServiceError("Выбранная модель отсутствует", 503, "model_unavailable", retryable=True)
         columns = (["lab.target" if "lab.target" in features else "lab.sulfur"]
                    if name == "last_lab" else ["pak.sulfur"] if name == "last_pak"
+                   else ["pak.sulfur", "pak.lab_bias20"] if name == "last_pak_bc"
                    else bundle.get("columns", {}).get(name))
         if not isinstance(columns, (list, tuple)) or name not in bundle.get("radii", {}):
             raise ServiceError("У модели отсутствует список признаков", 503, "invalid_model")
@@ -98,9 +99,12 @@ class ModelService:
             return {"at": when.isoformat(), "model": name, "value": None, "lower": None, "upper": None,
                     "available": False, "reason": "Выбранный прогноз недоступен на этот момент"}
         low, high = interval(value, bundle["radii"][name])
+        reason = "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"
+        if name == "last_pak_bc":
+            reason += "; ПАК скорректирован причинной медианой 20 последних доступных пар ЛИМС−ПАК"
         return {"at": when.isoformat(), "model": name, "value": value, "lower": float(low), "upper": float(high),
                 **interval_coverage(self.artifacts, bundle),
-                "available": True, "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"}
+                "available": True, "reason": reason}
 
     @staticmethod
     def _validate_snapshot(snapshot: dict, bundle: dict):
@@ -133,7 +137,13 @@ class ModelService:
         names = (bundle.get("selected"), bundle.get("fallback"))
         needed = set()
         for name in names:
-            columns = bundle.get("columns", {}).get(name, ()); needed.update(columns if isinstance(columns, (list, tuple)) else ())
+            direct = {
+                "last_lab": ("lab.sulfur",),
+                "last_pak": ("pak.sulfur",),
+                "last_pak_bc": ("pak.sulfur", "pak.lab_bias20"),
+            }
+            columns = direct.get(name, bundle.get("columns", {}).get(name, ()))
+            needed.update(columns if isinstance(columns, (list, tuple)) else ())
         if not needed.issubset(snapshot["features"]):
             raise ServiceError("В snapshot отсутствуют признаки модели", 422, "invalid_features")
 

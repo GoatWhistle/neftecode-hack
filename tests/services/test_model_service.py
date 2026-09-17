@@ -3,7 +3,9 @@ import pickle
 import threading
 from http.client import HTTPConnection
 
-from neftecode.services.common import ServiceHTTPServer, make_handler, content_hash
+import pytest
+
+from neftecode.services.common import ServiceError, ServiceHTTPServer, make_handler, content_hash
 from neftecode.services.model_service import ModelService
 
 
@@ -61,7 +63,7 @@ def test_selected_simple_baseline_is_a_real_available_model(tmp_path):
         assert status == 200 and payload["data"]["selected"] == "last_pak"
         snapshot = {"schema_version": "v1", "at": "2026-01-05T08:00:00",
                     "state": {"decision_time": "2026-01-05T08:00:00"},
-                    "trust": {"usable": True}, "features": {"pak.sulfur": 7.5},
+                    "trust": {"usable": True}, "features": {"pak.sulfur": 7.5, "lab.sulfur": 7.0},
                     "source_period": {"min": "2026-01-01T00:00:00", "max": "2026-01-10T00:00:00"},
                     "feature_schema": [], "feature_schema_hash": content_hash([])}
         snapshot["snapshot_id"] = content_hash(snapshot)
@@ -72,3 +74,18 @@ def test_selected_simple_baseline_is_a_real_available_model(tmp_path):
         assert forecast["lower"] < 7.5 < forecast["upper"]
     finally:
         server.shutdown(); server.server_close(); thread.join(timeout=2)
+
+
+def test_bias_corrected_candidate_requires_both_snapshot_features():
+    snapshot = {
+        "schema_version": "v1", "at": "2026-01-05T08:00:00",
+        "state": {"decision_time": "2026-01-05T08:00:00"},
+        "trust": {"usable": True}, "features": {"pak.sulfur": 7.5},
+        "source_period": {"min": "2026-01-01T00:00:00", "max": "2026-01-10T00:00:00"},
+        "feature_schema": [], "feature_schema_hash": content_hash([]),
+    }
+    snapshot["snapshot_id"] = content_hash(snapshot)
+    bundle = {"selected": "last_pak_bc", "fallback": "last_pak", "columns": {}}
+    with pytest.raises(ServiceError, match="отсутствуют признаки модели") as caught:
+        ModelService._validate_snapshot(snapshot, bundle)
+    assert caught.value.code == "invalid_features"
