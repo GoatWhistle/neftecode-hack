@@ -71,7 +71,10 @@ class LocalForecastProvider:
     def forecast(self, snapshot):
         raw = forecast_at(self.signals, self.lab, self.online, self.bundle,
                           pd.Timestamp(snapshot.at), fallback=snapshot.trust.get("fallback", False))
-        return LiveForecast.from_dict({**raw, **self.coverage})
+        coverage = self.coverage
+        if coverage and "coverage_target" not in coverage:
+            coverage = coverage.get(raw.get("model"), {})
+        return LiveForecast.from_dict({**raw, **(coverage or {})})
 
 
 class LocalForecastScenarioBinder:
@@ -356,8 +359,8 @@ def _bound(value: float, unit: str, source: str, note: str) -> dict:
     return {"value": round(float(value), 4), "unit": unit, "source": source, "note": note}
 
 
-def interval_coverage(out: Path, bundle: dict) -> dict:
-    """Заявленное покрытие интервала и фактическое на тесте 2026 для выбранной модели (metrics.json)."""
+def interval_coverage(out: Path, bundle: dict, model: str | None = None) -> dict:
+    """Заявленное и фактическое покрытие на 2026 для реально применённой модели."""
     result = {}
     target = (bundle.get("config") or {}).get("interval_coverage")
     if _finite_number(target):
@@ -365,7 +368,8 @@ def interval_coverage(out: Path, bundle: dict) -> dict:
     path = Path(out) / "metrics.json"
     if path.exists():
         metrics = json.loads(path.read_text(encoding="utf-8"))
-        test = ((metrics.get("models") or {}).get(bundle.get("selected")) or {}).get("test") or {}
+        name = model or bundle.get("selected")
+        test = ((metrics.get("models") or {}).get(name) or {}).get("test") or {}
         if _finite_number(test.get("interval_coverage")):
             result["coverage_test"] = float(test["interval_coverage"])
     return result

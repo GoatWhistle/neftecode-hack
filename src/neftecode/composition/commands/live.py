@@ -31,7 +31,8 @@ def handle(args, parser, root, out):
                               scenario, raw, scenario_parser=parse_scenario),
                           decision_factory=default_decision_factory(),
                           response_model=load_response_model(root),
-                          coverage=interval_coverage(out, bundle))
+                          coverage={name: interval_coverage(out, bundle, name)
+                                    for name in bundle.get("radii", {})})
     result = advisor.advise(args.at)
     stamp = when.strftime("%Y%m%d-%H%M%S")
     path = out / f"decision-{stamp}.json"
@@ -81,7 +82,8 @@ def snapshot(args, parser, root, out):
     rules_fp = None
     if rules_path.exists():
         rules_fp = json.loads(rules_path.read_text(encoding="utf-8")).get("model_fingerprint")
-    coverage = interval_coverage(out, bundle)
+    coverage = {name: interval_coverage(out, bundle, name)
+                for name in bundle.get("radii", {})}
     for moment in moments:
         snap = build_snapshot(signals, lab, online, bundle, moment["at"], moment.get("label", ""),
                               moment.get("why", ""), tuple(moment.get("synthetic_missing") or ()),

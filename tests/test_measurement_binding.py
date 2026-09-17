@@ -246,6 +246,13 @@ def test_interval_coverage_reads_target_and_test_from_the_artifacts(tmp_path):
     assert interval_coverage(tmp_path, bundle) == {"coverage_target": 0.9}
     (tmp_path / "metrics.json").write_text(json.dumps({"models": {"last_pak": {"test": {"interval_coverage": 0.867}}}}))
     assert interval_coverage(tmp_path, bundle) == {"coverage_target": 0.9, "coverage_test": 0.867}
+    (tmp_path / "metrics.json").write_text(json.dumps({"models": {
+        "last_pak": {"test": {"interval_coverage": 0.867}},
+        "catboost_no_pak": {"test": {"interval_coverage": 0.819}},
+    }}))
+    assert interval_coverage(tmp_path, bundle, "catboost_no_pak") == {
+        "coverage_target": 0.9, "coverage_test": 0.819,
+    }
 
 
 def test_the_inflow_note_states_the_actual_coverage_when_known():

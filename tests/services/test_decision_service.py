@@ -56,11 +56,12 @@ def test_real_data_model_decision_live_contract():
         assert status == 200
         result = payload["data"]
         assert result["scenario_id"] == "baseline"
-        assert result["forecast"]["value"] == 5.883740425109863
-        assert result["forecast"]["upper"] == 9.129696080403916
+        assert result["forecast"]["model"] == "last_pak_bc"
+        assert result["forecast"]["value"] == 7.582309246063232
+        assert result["forecast"]["upper"] == 10.819024410387263
         # Верхняя граница прогноза идёт в приток; сера содержимого — среднее доверенных ПАК за окно
         # запас / измеренный приток (4000 т / F26·ρ ≈ 19.6 ч), а не за сценарные 42 ч.
-        assert result["bound_inflow_sulfur_mgkg"] == 9.1297
+        assert result["bound_inflow_sulfur_mgkg"] == 10.819
         assert result["bound_sulfur_mgkg"] == 4.5624
         assert result["binding"]["controls"]["ht_reactor_inlet_temp_c"]["current"]["source"] == "measured"
         assert result["binding"]["response_model"]["provenance"] == "derived"

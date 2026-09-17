@@ -45,7 +45,10 @@ def build_snapshot(signals, lab, online, bundle: dict, at, label: str = "", why:
     trust = DataTrustAgent(bundle["config"]).assess(state).to_dict()
     forecast = forecast_at(signals, lab, online, bundle, when, fallback=trust.get("fallback", False))
     if coverage:
-        forecast = {**forecast, **coverage}
+        applied = coverage
+        if "coverage_target" not in coverage:
+            applied = coverage.get(forecast.get("model"), {})
+        forecast = {**forecast, **applied}
     return {"schema_version": SCHEMA_VERSION, "at": when.isoformat(), "label": label, "why": why,
             "state": state, "trust": trust, "forecast": forecast,
             "measured": dict(state.get("measurements") or {}),
