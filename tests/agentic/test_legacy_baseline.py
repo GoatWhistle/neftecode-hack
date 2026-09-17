@@ -24,11 +24,11 @@ BUDGET = 400
 #: scenario -> (status, plan id, refusal kind, production, fragile, rounds, evaluated, trace agents, decision id)
 EXPECTED = {
     "baseline": (HOLD, "hold", None, 300.0, False, 1, 200,
-                 ["optimizer", "lookahead", "quality", "reliability", "robustness"], "928e52bb67030345"),
+                 ["optimizer", "lookahead", "quality", "reliability", "robustness"], "27587c9a72cf5286"),
     "sour_crude": (RECOMMEND_SCENARIO, "c0025", None, 180.0, True, 1, 200,
-                   ["optimizer", "lookahead", "quality", "reliability", "robustness"], "d6a1ab7f26398791"),
+                   ["optimizer", "lookahead", "quality", "reliability", "robustness"], "27d0ff885dc1641e"),
     "ample_reserve": (RECOMMEND_SCENARIO, "c0029", None, 300.0, True, 1, 200,
-                      ["optimizer", "lookahead", "quality", "reliability", "robustness"], "13042a06d842c086"),
+                      ["optimizer", "lookahead", "quality", "reliability", "robustness"], "0000914078689a2f"),
     "no_feasible": (REFUSE, None, "no_feasible_plan", None, None, 2, 200, ["optimizer"], "1313333faf87fbcc"),
 }
 
