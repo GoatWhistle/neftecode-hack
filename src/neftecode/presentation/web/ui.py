@@ -120,7 +120,8 @@ function render() {
     if (d.robustness) {
       const r = d.robustness;
       body += card("Устойчивость к ошибкам модели",
-        `<p>${r.held} из ${r.perturbations_evaluated} заданных отклонений выдержано.` +
+        `<p>${r.held} из ${r.perturbations_evaluated} заданных отклонений выдержано` +
+        (r.not_applicable ? `, ${r.not_applicable} к плану неприменимы (нет хода уставок ГО)` : "") + `.` +
         (r.fragile ? ` <span class="warn">План надёжным не считается.</span>` : "") + `</p>
         <ul>${(r.results || []).filter(x => x.outcome === "violated")
           .map(x => `<li>${esc(x.perturbation)}: ${esc((x.first_violation||{}).reason || "нарушение")}</li>`).join("")}</ul>

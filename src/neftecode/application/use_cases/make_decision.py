@@ -315,6 +315,7 @@ class MakeDecision:
                 self.scenario, raw_scenario, chosen, confirmed, initial_tanks, current_operation)
             trace.append({"agent": "robustness", "held": robustness["held"],
                           "evaluated": robustness["perturbations_evaluated"],
+                          "not_applicable": robustness.get("not_applicable", 0),
                           "fragile": robustness["fragile"]})
 
         status = HOLD if chosen.changes == 0 else RECOMMEND_SCENARIO

@@ -16,10 +16,10 @@ from neftecode.evaluation.robustness import RobustnessCheck
 ROOT = Path(".")
 SCENARIOS = ROOT / "config/scenarios"
 EXPECTED = {
-    "ample_reserve": ("recommend_scenario", 300.0, "5edafb4bbab6dd2c2942e868831648cbf202ac7f9be88ea3d61b25bc1082ae78"),
-    "baseline": ("hold", 300.0, "ed2674a59d612215a21e61cdf9ea76f466dbdc61b61cba6b79a3de84198c2a0f"),
+    "ample_reserve": ("recommend_scenario", 300.0, "f5a71969d3f67304a256a4770967586fb940d79a6bb2bfda2a14203234135422"),
+    "baseline": ("hold", 300.0, "9cc51dd0e257db6732df374c24b0f4de32b0c511567ecd9d8ed4c1b3ae704025"),
     "no_feasible": ("refuse", None, "776a837ed0ac98f39595f9c66b205a67efeb0900b5ad783ca927a3465022ad9a"),
-    "sour_crude": ("recommend_scenario", 180.0, "9af98e84a5d5a76e3365a59644efc7035daa502c3c0935a1cdc6b54d2daa201d"),
+    "sour_crude": ("recommend_scenario", 180.0, "1b2f7dfdc912192588092c210ffac656a051614f3cbe4df7a2be90c630608b1a"),
 }
 DECISION_KEYS = {
     "alternatives", "commercial_release_allowed", "cost_per_tonne", "current_operation", "lookahead",
