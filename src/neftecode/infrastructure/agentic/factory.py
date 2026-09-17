@@ -19,7 +19,7 @@ from neftecode.infrastructure.llm.config import (agent_limits_from_env, agentic_
                                                  load_environment)
 from neftecode.infrastructure.llm.demo_policy import demo_llm
 from neftecode.infrastructure.llm.factory import make_llm_client
-from neftecode.infrastructure.response.unavailable import UnavailableResponseEffect
+from neftecode.infrastructure.response.data_model import DataResponseEffect
 
 
 @dataclass
@@ -35,7 +35,7 @@ class DecisionFactory:
             return MakeDecision(scenario, robustness_evaluator=robustness_evaluator)
         return AgenticMakeDecision(scenario, self.llm, settings=self.settings,
                                    robustness_evaluator=robustness_evaluator,
-                                   response_effect=UnavailableResponseEffect(), live_context=live_context,
+                                   response_effect=DataResponseEffect(), live_context=live_context,
                                    configuration_error=self.configuration_error)
 
     def describe(self) -> dict:
