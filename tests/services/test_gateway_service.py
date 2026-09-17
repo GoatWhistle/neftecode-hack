@@ -41,7 +41,7 @@ def test_gateway_legacy_decide_matches_local_decision():
     )
     gateway, gateway_thread = start(gateway_service, "gateway-service", make_gateway_handler)
     try:
-        status, payload = get(gateway, "/api/decide?scenario=baseline")
+        status, payload = get(gateway, "/api/decide?scenario=baseline&snapshot=synthetic")
         assert status == 200
         local = run_demo_decision(json.loads((ROOT / "config/scenarios/baseline.json").read_text()),
                                   {"decision_time": "2026-01-05T08:00:00", "lab_value": 8.0,
@@ -51,6 +51,14 @@ def test_gateway_legacy_decide_matches_local_decision():
                                    "origin": "synthetic_scenario_state"}, 400, gateway_service.trust_cfg)
         assert payload["decision"]["decision_id"] == local["decision"]["decision_id"]
         assert payload["rule_origin"] == gateway_service.trust_origin
+        assert payload["state_origin"].startswith("синтетическое состояние")
+        if gateway_service.snapshots:
+            # Со срезами по умолчанию идёт свежайший реальный момент через тот же связыватель, что и advise.
+            status, real = get(gateway, "/api/decide?scenario=baseline")
+            assert status == 200
+            assert real["state_origin"].startswith("реальный срез")
+            assert real["binding"]["tank_inflow"]["source"] == "derived"
+            assert real["decision"]["decision_id"] != payload["decision"]["decision_id"]
         # Пороги gateway доходят до decision service: устаревшая ЛИМС отвергается по возрасту, а не только по флагу.
         status, stale = get(gateway, "/api/decide?scenario=baseline&fault=stale_lab")
         assert status == 200

@@ -81,8 +81,10 @@ def test_a_non_numeric_field_is_refused_by_name(service):
 # --- A change reaches the calculation ---
 
 def test_worse_crude_changes_the_decision(service):
-    calm = service.decide(query(scenario="baseline"))
-    worse = service.decide(query(scenario="baseline", crude_sulfur_wt_pct=3.2))
+    # Сера сырья действует только через абсолютную модель цепочки — то есть на синтетическом состоянии;
+    # на реальном срезе приток берётся из прогноза и сера сырья сокращается в отношении откликов.
+    calm = service.decide(query(scenario="baseline", snapshot="synthetic"))
+    worse = service.decide(query(scenario="baseline", crude_sulfur_wt_pct=3.2, snapshot="synthetic"))
     assert calm["decision"]["decision_id"] != worse["decision"]["decision_id"]
     # A large stock can keep quality within the limit despite worse incoming crude.
     assert calm["decision"]["gate"]["checks"] != worse["decision"]["gate"]["checks"]
@@ -91,7 +93,7 @@ def test_worse_crude_changes_the_decision(service):
 
 def test_the_computed_blend_sulfur_follows_the_crude(service):
     def worst(crude):
-        result = service.decide(query(scenario="baseline", crude_sulfur_wt_pct=crude))
+        result = service.decide(query(scenario="baseline", crude_sulfur_wt_pct=crude, snapshot="synthetic"))
         checks = [c for c in result["decision"]["gate"]["checks"]
                   if c["constraint_id"] == "quality.sulfur_mgkg" and c["observed"] is not None]
         return max(c["observed"] for c in checks)

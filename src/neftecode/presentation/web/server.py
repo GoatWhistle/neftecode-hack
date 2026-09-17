@@ -8,14 +8,15 @@ The controls edit the scenario document, which then goes through the same loader
 validation and the same agent loop as every other entry point. There is no branch here that
 returns a prepared answer, and an inadmissible change comes back as the loader's own error.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from html import escape
 from pathlib import Path
 from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
-from neftecode.presentation.demo import SOURCE_FAULTS, Demo, DemoError
+from neftecode.presentation.demo import SOURCE_FAULTS, Demo, DemoError, snapshot_key, snapshot_title
 from .ui import RENDER_JS, STYLE, error_payload
 
 #: Where the scenario files live, relative to the project root.
@@ -85,6 +86,9 @@ __CONTROLS_STYLE__
   <label for="available">Резервуар доступен</label>
   <select id="available"><option value="1">да</option><option value="0">нет</option></select>
 
+  <label for="snapshot">Состояние данных</label>
+  <select id="snapshot">__SNAPSHOTS__</select>
+
   <label for="fault">Исправность источников</label>
   <select id="fault">__FAULTS__</select>
 
@@ -150,6 +154,7 @@ async function recompute() {
     tank_inventory: $("stock").value,
     tank_available: $("available").value,
     fault: $("fault").value,
+    snapshot: $("snapshot").value,
   });
   try {
     const response = await fetch("/api/decide?" + params.toString());
@@ -246,6 +251,15 @@ class DemoService:
     root: Path
     demo_factory: Callable[[dict, int], Demo]
     budget: int = 400
+    #: Замороженные реальные срезы (C3): первый в списке страницы — свежайший; без них — синтетика.
+    snapshots: list = field(default_factory=list)
+
+    def snapshot_options(self) -> list[tuple[str, str]]:
+        options = [(snapshot_key(item), snapshot_title(item)) for item in reversed(self.snapshots)]
+        return options + [("synthetic", "синтетическое состояние сценария")]
+
+    def default_snapshot(self) -> str:
+        return self.snapshot_options()[0][0]
 
     def scenarios(self) -> list[str]:
         return sorted(p.stem for p in (self.root / SCENARIO_DIR).glob("*.json"))
@@ -261,11 +275,14 @@ class DemoService:
         fault = (values.get("fault") or ["healthy"])[0]
         if fault not in SOURCE_FAULTS:
             raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
-        result = self.demo_factory(raw, self.budget).run(changes_from(values, raw), fault)
+        snapshot = (values.get("snapshot") or [self.default_snapshot()])[0]
+        result = self.demo_factory(raw, self.budget).run(changes_from(values, raw), fault, snapshot=snapshot)
         payload = dict(result["screen"])
         payload["defaults"] = defaults_for(raw)
         payload["applied"] = result.get("applied", [])
         payload["injection"] = result.get("injection")
+        payload["snapshot"] = result.get("snapshot")
+        payload["binding"] = result.get("binding")
         return payload
 
     def page(self, name: str | None = None) -> str:
@@ -279,11 +296,13 @@ class DemoService:
         options = "".join(f'<option value="{n}"{" selected" if n == chosen else ""}>{n}</option>'
                           for n in names)
         faults = "".join(f'<option value="{f}">{f}</option>' for f in SOURCE_FAULTS)
+        snapshots = "".join(f'<option value="{key}">{escape(title)}</option>'
+                            for key, title in self.snapshot_options())
         # Placeholder substitution for the same reason as in ui.py: the page is mostly CSS and
         # JavaScript, and doubling every brace for str.format would be a trap.
         replacements = {
             "__STYLE__": STYLE, "__CONTROLS_STYLE__": CONTROLS_STYLE, "__RENDER_JS__": RENDER_JS,
-            "__SCENARIOS__": options, "__FAULTS__": faults,
+            "__SCENARIOS__": options, "__FAULTS__": faults, "__SNAPSHOTS__": snapshots,
             "__PAYLOAD__": json.dumps(payload, ensure_ascii=False, default=str),
         }
         page = PAGE

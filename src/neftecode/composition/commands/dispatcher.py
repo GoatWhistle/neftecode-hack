@@ -13,6 +13,7 @@ HANDLERS = {
     "episodes": evaluation.episodes,
     "vak": evaluation.vak,
     "advise": live.handle,
+    "snapshot": live.snapshot,
     "agent-demo": agentic.agent_demo,
 }
 

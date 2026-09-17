@@ -96,7 +96,10 @@ def apply_source_failure(state: dict, fault: str) -> dict:
                         f"Доступно: {', '.join(sorted(SOURCE_FAULTS))}")
     out = {**state, **SOURCE_FAULTS[fault]}
     if fault != "healthy":
-        out["origin"] = "injected_source_failure"
+        # Реальный срез остаётся реальным (иначе связыватель не подставит измерения), инъекция помечается отдельно.
+        if out.get("origin") != "real_measurements_at_decision_time":
+            out["origin"] = "injected_source_failure"
+        out["injected_fault"] = fault
         out["injection"] = f"Модельная инъекция отказа: {fault}. Это не наблюдение из данных."
     return out
 
@@ -112,26 +115,48 @@ class Demo:
     budget: int = 400
     trust_origin: str | None = None
     changes: list = field(default_factory=list)
+    #: Замороженные реальные срезы (C3); пусто — демонстрация идёт на синтетическом состоянии.
+    snapshots: list = field(default_factory=list)
+    #: Содержимое config/response_model.json (C2) для связывания срезов.
+    response_model: dict | None = None
 
     @classmethod
     def from_path(cls, path, runner: DemoRunner, trust_cfg: dict, budget: int = 400,
-                  trust_origin: str | None = None) -> "Demo":
-        return cls(json.loads(Path(path).read_text()), runner, trust_cfg, budget, trust_origin)
+                  trust_origin: str | None = None, snapshots: list | None = None,
+                  response_model: dict | None = None) -> "Demo":
+        return cls(json.loads(Path(path).read_text()), runner, trust_cfg, budget, trust_origin,
+                   snapshots=list(snapshots or []), response_model=response_model)
 
     def reset(self) -> "Demo":
         """Back to the original conditions. Nothing accumulated is kept."""
-        return Demo(self.raw, self.runner, self.trust_cfg, self.budget, self.trust_origin)
+        return Demo(self.raw, self.runner, self.trust_cfg, self.budget, self.trust_origin,
+                    snapshots=self.snapshots, response_model=self.response_model)
 
-    def run(self, changes=(), fault: str = "healthy") -> dict:
+    def snapshot(self, name: str | None):
+        """Срез по имени файла (ГГГГММДД-ЧЧММСС[-synthetic]) или по подписи; None/`synthetic` — без среза."""
+        if name in (None, "", "synthetic"):
+            return None
+        for item in self.snapshots:
+            if snapshot_key(item) == name or item.get("label") == name:
+                return item
+        raise DemoError(f"Срез «{name}» не найден. Доступно: "
+                        + ", ".join(snapshot_key(item) for item in self.snapshots) + ", synthetic")
+
+    def run(self, changes=(), fault: str = "healthy", snapshot: str | None = None) -> dict:
         """Apply the changes to a fresh copy, then run the same core on the result."""
         raw = copy.deepcopy(self.raw)
         applied = []
         for change in changes:
             raw = apply_change(raw, change["change"], change.get("value"), change.get("target"))
             applied.append(change)
-        state = apply_source_failure(healthy_state(), fault)
-        result = self.runner(raw, state, self.budget, self.trust_cfg, trust_origin=self.trust_origin)
+        chosen = self.snapshot(snapshot)
+        base = copy.deepcopy(chosen["state"]) if chosen is not None else healthy_state()
+        state = apply_source_failure(base, fault)
+        result = self.runner(raw, state, self.budget, self.trust_cfg, trust_origin=self.trust_origin,
+                             snapshot=chosen, response_model=self.response_model)
         return {**result, "applied": applied, "fault": fault,
+                "snapshot": snapshot_key(chosen) if chosen is not None else None,
+                "state_origin": state.get("origin"),
                 "injection": state.get("injection"),
                 "note": (("Недопустимое изменение отклонено загрузчиком сценария, а не "
                           "исправлено молча.") if result["rejected"] else
@@ -139,19 +164,58 @@ class Demo:
                           "заранее заготовленных ответов здесь нет."))}
 
 
-def scenes(path) -> list[dict]:
-    """The demonstration scenes, expressed as changes rather than as canned answers."""
+def snapshot_title(snapshot: dict) -> str:
+    """Подпись среза для экрана и списка: метка и момент (ДД.ММ.ГГГГ ЧЧ:ММ)."""
+    at = snapshot["at"]
+    day, clock = at[:10].split("-"), at[11:16]
+    label = snapshot.get("label") or "реальный срез"
+    return f"{label} · {day[2]}.{day[1]}.{day[0]} {clock}"
+
+
+def state_origin_label(state: dict, snapshot: dict | None) -> str:
+    """Подпись состояния на экране: реальный срез (с оговорками) или синтетическое состояние."""
+    if snapshot is None:
+        return "синтетическое состояние сценария (реальных измерений нет)"
+    label = f"реальный срез: {snapshot_title(snapshot)}"
+    if snapshot.get("synthetic_edits"):
+        label += " — часть измерений затёрта искусственно"
+    if state.get("injection"):
+        label += " — поверх наложена модельная инъекция отказа"
+    return label
+
+
+def snapshot_key(snapshot: dict) -> str:
+    stamp = snapshot["at"].replace("-", "").replace(":", "").replace("T", "-")
+    return stamp + ("-synthetic" if snapshot.get("synthetic_edits") else "")
+
+
+def scenes(path, snapshots: list | None = None) -> list[dict]:
+    """The demonstration scenes, expressed as changes rather than as canned answers.
+
+    Со срезами сцены отказов идут на реальных моментах (`snapshot` — подпись среза из
+    config/snapshot_moments.json), а инъекция не нужна. «Ухудшение сырья» остаётся синтетической:
+    в живом пути сера сырья сокращается в отношении откликов, сцена имеет смысл только с
+    абсолютной моделью цепочки.
+    """
+    labels = {item.get("label") for item in snapshots or []}
+
+    def real(label, fault):
+        return (label, "healthy") if label in labels else (None, fault)
+
+    normal, normal_fault = real("норма", "healthy")
+    frozen, frozen_fault = real("зависший ПАК при работающей установке", "frozen_pak")
+    refuse, refuse_fault = real("отказ по данным", "both_broken")
     return [
-        {"name": "Нормальный режим", "changes": [], "fault": "healthy",
+        {"name": "Нормальный режим", "changes": [], "fault": normal_fault, "snapshot": normal,
          "expect": "решение без лишних изменений"},
-        {"name": "Ухудшение сырья", "fault": "healthy",
+        {"name": "Ухудшение сырья", "fault": "healthy", "snapshot": None,
          "changes": [{"change": "crude_sulfur_wt_pct", "value": 1.95}],
-         "expect": "пересчёт качества притока; большой запас может сохранить допустимость текущего режима"},
-        {"name": "Зависший поточный анализатор", "fault": "frozen_pak", "changes": [],
-         "expect": "источник теряет доверие, роль переходит к лаборатории"},
-        {"name": "Устаревшая лаборатория и сломанный анализатор", "fault": "both_broken",
-         "changes": [], "expect": "отказ по данным"},
-        {"name": "Резервуар выведен из работы", "fault": "healthy",
+         "expect": "синтетическая сцена: пересчёт качества притока по модели цепочки; большой запас может сохранить допустимость текущего режима"},
+        {"name": "Зависший поточный анализатор", "fault": frozen_fault, "changes": [], "snapshot": frozen,
+         "expect": "источник теряет доверие, роль переходит к лаборатории; приток не ниже последнего доверенного показания"},
+        {"name": "Устаревшая лаборатория и сломанный анализатор", "fault": refuse_fault,
+         "changes": [], "snapshot": refuse, "expect": "отказ по данным"},
+        {"name": "Резервуар выведен из работы", "fault": normal_fault, "snapshot": normal,
          "changes": [{"change": "tank_available", "value": False, "target": "reserve"}],
          "expect": "пересчёт без резерва либо отказ"},
     ]
