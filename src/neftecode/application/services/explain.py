@@ -200,11 +200,17 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
                 f"За горизонтом {look.get('lookahead_hours'):g} ч нарушений качества при сохранении плана не видно{tail}",
                 None, (Evidence("model", "plan_operation.lookahead", None, evidence_note),)))
 
-    lag = scenario.stages["hydrotreating"].response_lag_hours.value
+    lag_quantity = scenario.stages["hydrotreating"].response_lag_hours
+    lag = lag_quantity.value
+    share = (scenario.stages["hydrotreating"].model or {}).get("horizon_response_share")
+    text = f"Эффект коррекции гидроочистки ожидается через {lag:g} ч"
+    if _finite(share) and share < 1:
+        text += f"; в пределах горизонта засчитывается не больше {share:.0%} хода температуры"
     statements.append(Statement(
-        "delay", f"Эффект коррекции гидроочистки ожидается через {lag:g} ч", lag,
-        (Evidence("scenario", "stages.hydrotreating.response_lag_hours", lag,
-                  "объявленное запаздывание отклика"),)))
+        "delay", text, lag,
+        (Evidence("model" if lag_quantity.source == "derived" else "scenario",
+                  "stages.hydrotreating.response_lag_hours", lag,
+                  lag_quantity.note or "объявленное запаздывание отклика"),)))
 
     return {
         "status": decision.get("status"),
