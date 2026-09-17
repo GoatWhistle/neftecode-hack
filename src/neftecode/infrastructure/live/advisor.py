@@ -104,6 +104,11 @@ MEASURED_ORIGIN = "real_measurements_at_decision_time"
 MEASURED_TAGS = ("ht.T6", "ht.F9", "ht.F26")
 RESPONSE_SCHEMA_VERSION = "v1"
 RESPONSE_FILE = "config/response_model.json"
+#: Задержка отклика ГО по исследованию: β — средний накопленный отклик через 3–8 ч, раньше 3 ч эффект не засчитывается;
+#: доля β, засчитываемая в пределах горизонта кейса, объявляется в C2 (`horizon_response_share`), без поля — вся.
+DEFAULT_ONSET_HOURS = 3.0
+DEFAULT_HORIZON_SHARE = 1.0
+CASE_MAX_LAG_HOURS = 3.0
 
 
 def measurements_at(signals: pd.DataFrame, when, cfg: dict) -> dict:
@@ -168,7 +173,19 @@ def validate_response_model(value, where: str = RESPONSE_FILE) -> dict:
     flow_beta = value.get("flow_beta")
     if flow_beta is not None and not _finite_number(flow_beta):
         raise ValueError(f"Модель отклика {where}: flow_beta должен быть числом или null")
+    onset = value.get("response_onset_hours", DEFAULT_ONSET_HOURS)
+    if not _finite_number(onset) or not 0 <= onset <= CASE_MAX_LAG_HOURS:
+        raise ValueError(f"Модель отклика {where}: response_onset_hours должен лежать в [0, {CASE_MAX_LAG_HOURS:g}] ч")
+    share = value.get("horizon_response_share", DEFAULT_HORIZON_SHARE)
+    if not _finite_number(share) or not 0 < share <= 1:
+        raise ValueError(f"Модель отклика {where}: horizon_response_share должна лежать в (0, 1]")
     return value
+
+
+def response_lag(response: dict) -> tuple[float, float]:
+    """(onset hours, share of β credited within the case horizon) declared with the response model."""
+    return (float(response.get("response_onset_hours", DEFAULT_ONSET_HOURS)),
+            float(response.get("horizon_response_share", DEFAULT_HORIZON_SHARE)))
 
 
 def _main_density(raw: dict, tank_id: str = "main") -> float:
@@ -208,6 +225,9 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
       в C2 не оценён, поэтому `min = max = current`.
     * `model`: reference = измерения, `conversion_per_degree = −β/S₀` (линеаризация
       exp(−kΔT) ≈ 1 + βΔT/S₀ при |ΔT| ≤ envelope), provenance `derived`; без C2 модель не меняется.
+    * `response_lag_hours` = `response_onset_hours` C2 (`derived`, 3 ч: β — отклик через 3–8 ч), а в пределах
+      горизонта кейса засчитывается не больше `horizon_response_share` хода (`model.horizon_response_share`,
+      `model.horizon_response_until_hours`); без C2 или вне области задержка остаётся сценарной.
     * `tanks[main].inflow` = F26·ρ/1000 (м³/ч → т/ч); `policy.tank_level_window_hours` =
       inventory / inflow в [1, 72] — поэтому измерения ставятся ДО `bind_forecast`.
     """
@@ -300,6 +320,16 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
             "source": "derived",
         })
         linearize_response(model, float(s0), "верхняя граница прогноза")
+        onset, share = response_lag(response)
+        horizon = float((out.get("horizon") or {}).get("hours") or 0.0)
+        stage["response_lag_hours"] = {
+            "value": onset, "unit": "ч", "source": "derived",
+            "note": (f"Исследование отклика ({RESPONSE_FILE}): β — средний накопленный отклик через 3–8 ч на устойчивый "
+                     f"шаг T6, поэтому эффект не засчитывается раньше {onset:g} ч; в пределах горизонта {horizon:g} ч "
+                     f"засчитывается не больше {share:.0%} хода (регулятор доводит 0.62–0.66 заданного шага к 3 ч). "
+                     f"Сценарное значение {float(stage['response_lag_hours']['value']):g} ч заменено.")}
+        model["horizon_response_share"] = share
+        model["horizon_response_until_hours"] = horizon
     else:
         model["provenance"] = "scenario"
         model["note"] = ((model.get("note") or "") + " Отклик по данным не загружен или неприменим: "

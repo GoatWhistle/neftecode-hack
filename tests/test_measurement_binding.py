@@ -1,5 +1,6 @@
 """Измерения тегов и отклик по данным попадают в живое решение; без них — сценарий, без числовой уставки."""
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -256,3 +257,64 @@ def test_the_inflow_note_states_the_actual_coverage_when_known():
     from neftecode.application.contracts import LiveForecast
     live = LiveForecast.from_dict({**fc, "coverage_test_2026": 0.867})
     assert live.to_dict()["coverage_test"] == 0.867
+
+
+# --- задержка отклика из исследования (T94) ---
+
+def test_the_bound_lag_is_the_research_onset_and_the_scenario_files_keep_their_own():
+    bound = bind_measurements(raw(), measured(), DENSITY, response(response_onset_hours=3.0, horizon_response_share=0.66),
+                              forecast())
+    lag = ht(bound)["response_lag_hours"]
+    assert (lag["value"], lag["source"]) == (3.0, "derived")
+    assert "3–8 ч" in lag["note"] and "2 ч заменено" in lag["note"]
+    assert ht(bound)["model"]["horizon_response_share"] == pytest.approx(0.66)
+    assert ht(bound)["model"]["horizon_response_until_hours"] == pytest.approx(3.0)
+    assert ht(raw())["response_lag_hours"]["value"] == 2.0, "сценарный файл не меняется"
+    assert ht(bind_measurements(raw(), measured(), DENSITY, None, forecast()))["response_lag_hours"]["value"] == 2.0
+    outside = bind_measurements(raw(), measured(t6=296.8), DENSITY, response(), forecast())
+    assert ht(outside)["response_lag_hours"]["source"] == "scenario"
+
+
+def test_without_the_declared_fields_the_onset_is_three_hours_and_the_full_move_counts():
+    bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast())
+    assert ht(bound)["response_lag_hours"]["value"] == 3.0
+    assert ht(bound)["model"]["horizon_response_share"] == 1.0
+
+
+@pytest.mark.parametrize("field, value", [("response_onset_hours", 4.0), ("response_onset_hours", -1),
+                                          ("horizon_response_share", 0.0), ("horizon_response_share", 1.5)])
+def test_declared_lag_fields_are_validated(field, value):
+    from neftecode.infrastructure.live.advisor import validate_response_model
+    with pytest.raises(ValueError, match=field):
+        validate_response_model(response(**{field: value}))
+
+
+def test_no_effect_before_the_onset_and_only_the_declared_share_within_the_horizon():
+    bound = bind_forecast(bind_measurements(raw(), measured(), DENSITY,
+                                            response(response_onset_hours=3.0, horizon_response_share=0.66),
+                                            forecast(value=6.0, upper=9.0)), forecast(value=6.0, upper=9.0))
+    plan = PlanOperation(parse_scenario(bound))
+    move = ((0.0, {"ht_reactor_inlet_temp_c": 368.8}),)
+    idle = {t: plan.inflow_properties(t, ())["main"]["sulfur_mgkg"] for t in (2.5, 3.0, 3.5)}
+    warm = {t: plan.inflow_properties(t, move)["main"]["sulfur_mgkg"] for t in (2.5, 3.0, 3.5)}
+    assert warm[2.5] == pytest.approx(idle[2.5]), "до 3 ч эффекта нет"
+    k = 0.4332 / 9.0
+    assert warm[3.0] == pytest.approx(9.0 * math.exp(-k * 0.66)), "на 3 ч — 66 % хода"
+    assert warm[3.5] == pytest.approx(9.0 * math.exp(-k * 1.0)), "за горизонтом — весь ход"
+    chain = plan.chain.hydrotreating
+    assert chain.to_dict()["horizon_response_share"] == pytest.approx(0.66)
+    assert chain.effective_controls(3.0, {"ht_reactor_inlet_temp_c": 367.8}, move)["ht_reactor_inlet_temp_c"] \
+        == pytest.approx(367.8 + 0.66)
+
+
+def test_the_explanation_names_the_derived_delay_and_the_share():
+    from neftecode.application.services.explain import explain
+    from neftecode.application.use_cases.make_decision import MakeDecision
+    bound = bind_forecast(bind_measurements(raw(), measured(), DENSITY,
+                                            response(response_onset_hours=3.0, horizon_response_share=0.66),
+                                            forecast()), forecast())
+    scenario = parse_scenario(bound)
+    decision = MakeDecision(scenario).decide(budget=100, raw_scenario=bound)
+    delay = next(s for s in explain(decision, scenario)["statements"] if s["topic"] == "delay")
+    assert delay["value"] == 3.0 and "66%" in delay["text"]
+    assert delay["evidence"][0]["kind"] == "model"
