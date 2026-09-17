@@ -48,3 +48,15 @@ def test_bias_correction_is_zero_until_five_pairs_are_available():
     )
 
     assert values.tolist() == [0.0, 3.0]
+
+
+def test_residual_prediction_uses_no_pak_fallback_only_when_needed():
+    last_pak = np.array([4.0, np.nan, 9.0])
+    residual = np.array([0.0, 100.0, np.log(1.1)])
+    fallback = np.array([40.0, 6.5, 90.0])
+
+    prediction = rolling.combine_residual_prediction(last_pak, residual, fallback)
+
+    assert np.isclose(prediction[0], 4.0)
+    assert prediction[1] == 6.5
+    assert np.isclose(prediction[2], np.expm1(np.log1p(9.0) + np.log(1.1)))
