@@ -17,11 +17,14 @@ import math
 #: Verdicts a single source can receive.
 OK, SUSPECT, UNUSABLE, MISSING = "ok", "suspect", "unusable", "missing"
 
+#: Identical consecutive analyser readings that mean a frozen instrument when no rule was derived from data.
+LEGACY_FROZEN_READINGS = 6
+
 #: Priority given by the brief, section 2. It does not change with predictive accuracy.
 SOURCE_PRIORITY = ("ЛИМС", "ПАК")
 
-#: Repeated exactly in 64 of 71 AVT tags and in 15 of 26 tags of 24-2000; suspected export
-#: placeholder, never confirmed. See context/requirements-map.md, section 6.
+#: Repeated exactly in 64 of 71 AVT tags and in 15 of 26 tags of 24-2000; a polling stub, confirmed by the
+#: experts as an outlier (chat message 582). See context/requirements-map.md, section 6.
 PLACEHOLDER_VALUE = 307.0
 
 
@@ -140,7 +143,8 @@ def _pak_verdict(state: dict, cfg: dict) -> SourceVerdict:
     if value is None or not _finite(value):
         return SourceVerdict("ПАК", MISSING, None, age, limit, ("Нет показаний поточного анализатора",))
     if state.get("pak_frozen"):
-        reasons.append("Показание не меняется в течение часа: подозрение на зависание прибора")
+        readings = int(cfg.get("pak_frozen_readings", LEGACY_FROZEN_READINGS))
+        reasons.append(f"{readings} показаний подряд не меняются: подозрение на зависание прибора")
     if state.get("pak_conflict"):
         reasons.append("Показание расходится с лабораторным результатом той же пробы")
     if age is not None and limit is not None and age > limit:

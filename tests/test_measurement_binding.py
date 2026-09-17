@@ -81,6 +81,13 @@ def test_outside_the_studied_region_the_measurement_is_kept_but_no_numeric_advic
     assert ht(bound)["model"]["conversion_per_degree"] == pytest.approx(0.085)
 
 
+def test_outside_the_studied_region_the_advice_carries_an_explicit_warning():
+    bound = bind_measurements(raw(), measured(t6=296.8, f9=156.0), DENSITY, response(), forecast())
+    warnings = bound["measurement_binding"]["warnings"]
+    assert len(warnings) == 1 and "ht.T6 = 296.8" in warnings[0] and "ht.F9" not in warnings[0]
+    assert bind_measurements(raw(), measured(), DENSITY, response(), forecast())["measurement_binding"]["warnings"] == []
+
+
 def test_feed_flow_is_the_measured_mass_flow_converted_by_density_and_not_varied():
     bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast())
     flow = ht(bound)["controls"]["ht_feed_flow_m3h"]

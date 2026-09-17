@@ -56,6 +56,8 @@ def handle(args, parser, root, out):
            f"верхняя граница {forecast['upper']:.2f}") if forecast["available"]
           else forecast.get("reason", "Прогноз недоступен"))
     print(f"Источники: {result['trust']['primary'] or 'нет пригодного'}")
+    for warning in ((result.get("binding") or {}).get("measurement_binding") or {}).get("warnings") or ():
+        print(f"Внимание: {warning}")
     if result["decision"] is None:
         print(f"Решение не выдано: {result.get('error')}")
     else:

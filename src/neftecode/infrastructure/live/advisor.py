@@ -218,7 +218,7 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
     stage = out["stages"]["hydrotreating"]
     controls, model = stage["controls"], stage.setdefault("model", {})
     t6, f9, f26 = (_reading(measured, tag) for tag in MEASURED_TAGS)
-    notes = []
+    notes, warnings = [], []
 
     # --- температура входа Р-202 ---
     temp = controls["ht_reactor_inlet_temp_c"]
@@ -246,6 +246,13 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
             temp["min"], temp["max"] = (_bound(current, "°C", "scenario", "установка вне области, где оценён отклик; числовая уставка не предлагается")
                                         for _ in range(2))
             notes.append(f"ht.T6={current:g} или ht.F9 вне области отклика {response.get('t6_range_c')} / {response.get('f9_range_tph')}")
+            outside = [f"{tag} = {item['value']:g} {unit} вне {list(bounds)}"
+                       for tag, item, unit, bounds in (("ht.T6", t6, "°C", response.get("t6_range_c")),
+                                                       ("ht.F9", f9, "т/ч", response.get("f9_range_tph")))
+                       if item is not None and not _in_range(item["value"], bounds)]
+            warnings.append("Установка вне режима, в котором оценён отклик по данным (" + "; ".join(outside) +
+                            "): возможен пуск, останов или нештатный режим. Совет по температуре не даётся; "
+                            "проверки выполнены с текущими уставками.")
         else:
             temp["min"] = _bound(current - envelope, "°C", "derived", f"конверт исследования отклика: T6 − {envelope:g} °C")
             temp["max"] = _bound(current + envelope, "°C", "derived", f"конверт исследования отклика: T6 + {envelope:g} °C")
@@ -326,7 +333,7 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
         raise LiveError(f"Резервуар {tank_id} не описан в сценарии")
     out["measurement_binding"] = {"tags": {tag: measured.get(tag) for tag in MEASURED_TAGS},
                                   "density_kgm3": density, "response_loaded": response is not None,
-                                  "notes": notes}
+                                  "notes": notes, "warnings": warnings}
     return out
 
 
@@ -409,8 +416,8 @@ def estimate_tank_sulfur(raw: dict, state: dict) -> dict:
     """Sulfur of what is already stored in the main tank, from what flowed in before the decision.
 
     The tank is treated as well mixed over its refresh window (inventory over inflow): the mean of
-    trusted analyser readings in that window. Readings inside a flat run of at least an hour are not
-    trusted. With too few trusted readings the laboratory mean in the window is used (at least two
+    trusted analyser readings in that window. Readings inside a flat run of at least `pak_frozen_readings`
+    identical values are not trusted. With too few trusted readings the laboratory mean in the window is used (at least two
     results); otherwise the level is unknown and no advice may be produced.
     """
     window = _policy_number(raw, "tank_level_window_hours", 1.0, 72.0)

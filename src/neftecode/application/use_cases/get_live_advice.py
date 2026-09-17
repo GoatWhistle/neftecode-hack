@@ -68,12 +68,14 @@ class GetLiveAdvice:
                 note="Реальный прогноз не удалось связать со сценарием; решение не выдаётся.",
             )
         decision = self._decision(bound_scenario, bound_raw, snapshot, command.budget, forecast=forecast)
+        warnings = list((bound_raw.get("measurement_binding") or {}).get("warnings") or ())
         return LiveAdviceResult(snapshot.at, command.scenario_id, snapshot.state, trust, forecast,
                                 decision, explain(decision, bound_scenario), inventories=inventories,
                                 bound_sulfur_mgkg=self._bound_sulfur(bound_scenario),
                                 bound_inflow_sulfur_mgkg=self._bound_inflow(bound_scenario),
                                 binding=binding_summary(bound_raw),
-                                note=("Реальны: телеметрия, анализы, прогноз серы притока, оценка серы резервуара "
+                                note=("".join(f"Внимание: {w} " for w in warnings) +
+                                      "Реальны: телеметрия, анализы, прогноз серы притока, оценка серы резервуара "
                                       "по истории, проверка источников; уставки ГО и приток резервуара — измерения "
                                       "на момент решения, если они есть (см. binding). Запасы резервуаров, цены и "
                                       "пределы T95/цетана заданы сценарием. Решение не разрешает выпуск товарного топлива."))
