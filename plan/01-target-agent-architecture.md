@@ -100,7 +100,7 @@ sequenceDiagram
     O-->>A: finalize(select | keep_legacy | refuse)
     A->>A: deterministic resolution (allowed = feasible ∩ constraints ∖ vetoes; rank)
     A->>G: release(chosen) → final recheck + look-ahead + robustness
-    A->>G: guard: независимая переоценка свежим PlanOperation
+    A->>G: guard: повторная переоценка свежим PlanOperation
     A-->>C: decision (20 legacy-ключей) + agentic{trace, usage, outcome}
     Note over A: любой LLMError / timeout / budget / invalid → legacy decision + agentic.outcome=fallback
 ```
@@ -115,7 +115,7 @@ sequenceDiagram
 4. `finalize.refuse`: разрешён, только если хотя бы одно мнение специалиста `REJECT`/`UNKNOWN` с `risk_level=high`;
    иначе legacy. Результат — `REFUSE`, `refusal.kind="agent_rejected"` (строго консервативнее).
 5. Выбранный план идёт через `release(...)` с `feasible=allowed` (look-ahead может переключиться только внутри allowed).
-6. Guard: для HOLD/RECOMMEND — независимый `PlanOperation(scenario).evaluate(plan)`; `gate.feasible` ложно → REFUSE
+6. Guard: для HOLD/RECOMMEND — повторный `PlanOperation(scenario).evaluate(plan)`; `gate.feasible` ложно → REFUSE
    `final_recheck_failed`.
 7. Legacy REFUSE `no_feasible_plan`: агенту доступен один `search_candidates` по неисследованным планам; всё новое
    проходит Gate. Если feasible нет — REFUSE как в legacy.

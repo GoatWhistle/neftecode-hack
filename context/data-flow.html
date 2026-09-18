@@ -216,7 +216,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
     <li class="gate"><span class="n">Шаг 6.3</span><h3>Gate</h3><p>Все обязательные условия в каждой точке: сера ≤ 10, T95, цетан, плотность, уставки, запасы, отбор. Неизвестное = запрет.</p><a class="where" href="#s8">Этап 08</a></li>
     <li class="gate"><span class="n">Шаг 6.4</span><h3>Валидаторы и вето</h3><p>Отказы Gate превращаются в запреты следующего раунда, до 3 раундов. Это не LLM.</p><span class="refuse">Допустимых нет → REFUSE no_feasible_plan</span><a class="where" href="#s9">Этап 09</a></li>
     <li class="gate"><span class="n">Шаг 6.5</span><h3>Выбор и проверки</h3><p><code>rank()</code> → упреждение 48 ч → повторный Gate → устойчивость к 8 отклонениям. Итог: детерминированное решение.</p><span class="refuse">Повторный Gate не пройден → REFUSE final_recheck_failed</span><a class="where" href="#s10">Этап 10</a></li>
-    <li class="llm"><span class="n">Шаг 7 · всегда, после шага 6</span><h3>LLM-агенты</h3><p>При каждом решении оркестратор, агенты качества и надёжности смотрят готовых кандидатов через инструменты, могут наложить вето или сузить поиск. Выбор снова делает <code>rank()</code>, план снова проходит шаг 6.5 и независимый Gate. Сбой модели → решение шага 6 без изменений.</p><a class="where" href="#llm">Этап 10а</a></li>
+    <li class="llm"><span class="n">Шаг 7 · всегда, после шага 6</span><h3>LLM-агенты</h3><p>При каждом решении оркестратор, агенты качества и надёжности смотрят готовых кандидатов через инструменты, могут наложить вето или сузить поиск. Выбор снова делает <code>rank()</code>, план снова проходит шаг 6.5 и повторный Gate. Сбой модели → решение шага 6 без изменений.</p><a class="where" href="#llm">Этап 10а</a></li>
     <li class="out"><span class="n">Шаг 8</span><h3>Выход</h3><p>HOLD, RECOMMEND или REFUSE с причиной; объяснение со ссылками на проверки; <code>decision-&lt;время&gt;.json</code> и экран оператора. Выпуск топлива не разрешается никогда.</p><a class="where" href="#s11">Этап 11</a></li>
   </ol>
 </section>
@@ -862,10 +862,10 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
 <section class="stage" id="llm" aria-labelledby="hllm">
   <div class="stage-head"><div class="inst" aria-hidden="true"><b>LLM</b><i>10а</i></div>
     <div><p class="eyebrow">Этап 10а · всегда включён · <code>application/agentic/</code></p><h2 id="hllm">LLM-агенты: второе мнение над готовым решением</h2></div></div>
-  <p class="intro">Этот слой запускается, когда этапы 1–10 уже дали решение. Он ничего не прогнозирует и не считает: три агента на языковой модели выбирают детерминированные инструменты, спорят о кандидатах и могут только <b>сузить</b> выбор. Итог снова проходит тот же код этапа 10 и ещё одну независимую проверку Gate. Любой сбой модели возвращает решение этапов 1–10 без изменений. Слой включён всегда; выключается только явно (<code>AGENTIC_DECISION_ENABLED=0</code>) — так работает набор тестов и закрытая среда без модели. Провайдер по умолчанию — Z.AI Coding Plan, модель <code>glm-5.3-flash</code>; ключ берётся из окружения или <code>.env</code>. Нет ключа или провайдер недоступен — решение этапов 1–10 с пометкой <code>fallback</code>.</p>
+  <p class="intro">Этот слой запускается, когда этапы 1–10 уже дали решение. Он ничего не прогнозирует и не считает: три агента на языковой модели выбирают детерминированные инструменты, спорят о кандидатах и могут только <b>сузить</b> выбор. Итог снова проходит тот же код этапа 10 и ещё одну повторную проверку Gate. Любой сбой модели возвращает решение этапов 1–10 без изменений. Слой включён всегда; выключается только явно (<code>AGENTIC_DECISION_ENABLED=0</code>) — так работает набор тестов и закрытая среда без модели. Провайдер по умолчанию — Z.AI Coding Plan, модель <code>glm-5.3-flash</code>; ключ берётся из окружения или <code>.env</code>. Нет ключа или провайдер недоступен — решение этапов 1–10 с пометкой <code>fallback</code>.</p>
   <figure>
     <div class="scroll">
-    <svg class="dg" viewBox="0 0 1000 340" role="img" aria-label="Слой LLM-агентов: готовое решение и оценённые планы попадают в сессию, оркестратор на LLM вызывает инструменты и агентов качества и надёжности, завершает действием finalize; код разрешает выбор среди допустимых, повторяет выпуск с Gate и устойчивостью, выполняет независимую проверку; сбой модели ведёт к решению без изменений">
+    <svg class="dg" viewBox="0 0 1000 340" role="img" aria-label="Слой LLM-агентов: готовое решение и оценённые планы попадают в сессию, оркестратор на LLM вызывает инструменты и агентов качества и надёжности, завершает действием finalize; код разрешает выбор среди допустимых, повторяет выпуск с Gate и устойчивостью, выполняет повторную проверку; сбой модели ведёт к решению без изменений">
       <defs>
         <marker id="m7" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ah"/></marker>
         <marker id="m7b" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" class="ahb"/></marker>
@@ -920,7 +920,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-siz
       <text x="370" y="306" text-anchor="middle" class="sub">устойчивость</text>
       <path d="M470,283 H498" class="pipe" marker-end="url(#m7)"/>
       <rect x="500" y="248" width="170" height="70" rx="3" class="box"/>
-      <text x="585" y="270" text-anchor="middle">Независимая проверка</text>
+      <text x="585" y="270" text-anchor="middle">Повторная проверка</text>
       <text x="585" y="289" text-anchor="middle" class="sub">свежий планировщик</text>
       <text x="585" y="306" text-anchor="middle" class="sub">Gate FAIL → refuse</text>
       <path d="M670,283 H718" class="pipe" marker-end="url(#m7)"/>

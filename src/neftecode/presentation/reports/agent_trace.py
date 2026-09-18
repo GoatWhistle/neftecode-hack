@@ -28,7 +28,7 @@ def _step(event: dict) -> str | None:
         detail = f" [{ids}]" if ids else ""
         return f"{'code':12s} ◆ {event.get('decision')}{detail}" + (f" ({codes})" if codes else "")
     if kind == "guard":
-        return f"{'code':12s} ✔ независимая проверка Gate: {event.get('decision')}{' [' + ids + ']' if ids else ''}"
+        return f"{'code':12s} ✔ повторная проверка Gate: {event.get('decision')}{' [' + ids + ']' if ids else ''}"
     if kind == "fallback":
         return f"{agent:12s} ✖ {event.get('decision')}"
     return None
