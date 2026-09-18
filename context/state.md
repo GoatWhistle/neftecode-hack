@@ -29,6 +29,8 @@
 - R12 готово: `drift` по частям основной оценки. `train` + `snapshot --all` + `scenes` выполнены:
   τ = 2026-01-01 → β = −0.4227 [−0.4768; −0.389], weak/strong [−0.211; −0.721], n_rows 49 105, F9 [149.8; 256.7],
   feed floor 133.457; прогноз серы без изменений. Полный прогон: 1208 passed (после правки baseline-теста на R17).
+- R13 готово: README, `RESPONSE_MODEL_T6.md`, `RESPONSE_MODEL_FINAL.md`, D19 приведены к β = −0.4227; ссылка README
+  на `context/experiments/…jsonl` (R20).
 
 ## Итог задач 18.09
 
