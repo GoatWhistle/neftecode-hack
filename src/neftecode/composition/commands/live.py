@@ -38,7 +38,7 @@ def handle(args, parser, root, out):
     if result.get("decision") is None:
         screen_payload = error_payload(result.get("error", "Решение не получено"))
     else:
-        bound = result.get("binding") is not None
+        bound = bool(result["trust"].get("usable") and result["forecast"].get("available"))
         screen_payload = Screen(
             result["decision"], result["explanation"],
             inventories=result.get("inventories") or {},
@@ -50,6 +50,7 @@ def handle(args, parser, root, out):
                           "сценарные уставки не используются"),
             decision_time=(result.get("state") or {}).get("decision_time") or result.get("at"),
             forecast=result.get("forecast"),
+            forecast_used=bound,
         ).payload()
     write_screen(out / f"screen-{stamp}.html", screen_payload)
     forecast = result["forecast"]
