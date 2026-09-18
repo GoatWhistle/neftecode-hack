@@ -236,7 +236,7 @@ def test_scenario_quantities_are_never_reported_as_measured():
         assert not tank.inventory.measured, f"{tank.tank_id}: остаток выдан за измерение"
         assert not tank.cost_per_t.measured
     assert scenario.product.limits["sulfur_mgkg"].measured, "предел ТЗ должен иметь статус given"
-    assert not scenario.product.limits["t95_c"].measured, "предел T95 не задан ТЗ и не может быть given"
+    assert scenario.product.limits["t95_c"].measured, "предел T95 выдан организаторами 18.09 и имеет статус given"
 
 
 def test_describe_reports_gaps_rather_than_hiding_them():
