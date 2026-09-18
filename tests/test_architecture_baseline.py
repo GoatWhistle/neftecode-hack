@@ -52,7 +52,7 @@ def test_four_scenario_outputs_are_frozen():
 def test_http_payload_keeps_the_decision_json_shape():
     payload = make_demo_service(ROOT, 400).decide({"scenario": ["baseline"]})
     assert set(payload["decision"]) == DECISION_KEYS
-    assert payload["decision"]["status"] == "recommend_scenario"
+    assert payload["decision"]["status"] == "hold"  # первый экран — норма 05.01.2026 (R17, 18.09)
 
 
 def test_pause_resume_remains_bit_for_bit_reproducible():
