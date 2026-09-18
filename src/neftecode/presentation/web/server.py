@@ -9,6 +9,7 @@ validation and the same agent loop as every other entry point. There is no branc
 returns a prepared answer, and an inadmissible change comes back as the loader's own error.
 """
 from dataclasses import dataclass, field
+import errno
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from html import escape
@@ -500,7 +501,14 @@ def make_handler(service: DemoService):
 
 def serve(service: DemoService, port: int = 8765):
     """Run the demonstration server on localhost until interrupted."""
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service))
+    try:
+        httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service))
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+        # Одна строка вместо трейсбека: порт 8765 делят `serve` и шлюз neftecode-stack.
+        raise DemoServerError(f"Порт {port} занят: на нём уже слушает другой процесс (по умолчанию тот же порт "
+                              f"у шлюза neftecode-stack). Укажите другой: neftecode serve --port {port + 1}") from exc
     print(f"Демонстрация: http://127.0.0.1:{port}/", flush=True)
     print(f"Сценарии: {', '.join(service.scenarios())}; срез по умолчанию: {service.default_snapshot()}", flush=True)
     print("Первое решение считается в фоне; страница открывается сразу и покажет его, когда оно готово.", flush=True)
