@@ -237,6 +237,12 @@
 - Проверено прогоном: в `advise` прогноз содержит `coverage_target`, но не `coverage_test`,
   поэтому новая карточка доверия теряет строку о покрытии на отложенной проверке,
   которая есть на сценах.
+- **Статус: закрыто, не подтверждено.** Два прогона 18.09 после переобучения: `advise --at 2026-01-05T08:00:00`
+  (`last_pak_bc`) и `--at 2026-07-20T19:10:00` (fallback `catboost_no_pak`) — в `forecast` обоих решений и на
+  экранах есть `coverage_target 0.9` и `coverage_test` (0.871 / 0.819). Путь один: `interval_coverage(out, bundle,
+  name)` по всем моделям из `bundle["radii"]` → `LocalForecastProvider.forecast` выбирает по имени модели.
+  `coverage_test` пропадает только если в `metrics.json` каталога `--out` нет `models[<model>].test.interval_coverage`
+  — тогда карточка честно печатает «неизвестно». Код не менялся.
 
 ### R15. Мелкая чистка
 

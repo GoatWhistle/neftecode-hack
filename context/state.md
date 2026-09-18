@@ -31,6 +31,7 @@
   feed floor 133.457; прогноз серы без изменений. Полный прогон: 1208 passed (после правки baseline-теста на R17).
 - R13 готово: README, `RESPONSE_MODEL_T6.md`, `RESPONSE_MODEL_FINAL.md`, D19 приведены к β = −0.4227; ссылка README
   на `context/experiments/…jsonl` (R20).
+- R14 закрыто без изменений: `coverage_test` в `advise` воспроизводится на основной и fallback-модели.
 
 ## Итог задач 18.09
 
