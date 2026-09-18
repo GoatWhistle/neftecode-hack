@@ -234,9 +234,23 @@ uv run python scripts/agent_live_smoke.py                  # сухой прог
 
 Агенты работают при каждом решении (`serve`, `scenes`, `screen`, `advise`, decision-service); benchmark и
 replay остаются детерминированными. Решение с живой моделью занимает минуты (10–45 с на вызов модели), поэтому
-gateway ждёт decision до 660 с. Нет ключа или провайдер недоступен — выдаётся детерминированное решение с
-пометкой `fallback`. Набор тестов фиксирует `AGENTIC_DECISION_ENABLED=0` (`tests/conftest.py`), чтобы сравнивать
-решения с эталонными и не обращаться к модели.
+gateway и страница ждут decision до `AGENT_TIMEOUT_SECONDS + 60` с (660 с при умолчаниях). Нет ключа или
+провайдер недоступен — выдаётся детерминированное решение с пометкой `fallback`; экран показывает это в карточке
+«Агентный слой» вместе с причиной. Набор тестов фиксирует `AGENTIC_DECISION_ENABLED=0` (`tests/conftest.py`),
+чтобы сравнивать решения с эталонными и не обращаться к модели.
+
+**Набор переменных для защиты** — `config/demo.env.example`. Умолчания (`LLM_REQUEST_TIMEOUT_SECONDS=120`,
+`LLM_MAX_RETRIES=1`) рассчитаны на медленного, но живого провайдера; в сети, которая молча глотает пакеты
+(поведение заводского firewall), они дают 241 с на один вызов — замер 18.09. Для показа:
+
+```sh
+export LLM_REQUEST_TIMEOUT_SECONDS=30 LLM_MAX_RETRIES=0 AGENT_TIMEOUT_SECONDS=180
+uv run neftecode serve                        # провайдер недоступен → детерминированный ответ за ~30 с, на экране fallback
+LLM_PROVIDER=local uv run neftecode serve     # закрытая сеть: локальная OpenAI-совместимая модель
+LLM_PROVIDER=scripted uv run neftecode serve  # без модели вообще: детерминированная политика агентов
+```
+
+Полный отказ DNS обнаруживается за ~1 с и в настройке не нуждается.
 
 Настройки — переменные окружения (`LLM_PROVIDER`, `ZAI_API_KEY`/`TOKEN`, `ZAI_MODEL`, `ZAI_BASE_URL`,
 `OPENAI_*`, `ANTHROPIC_*`, бюджеты `AGENT_*`); ключи только в окружении или `.env`, который не коммитится.
