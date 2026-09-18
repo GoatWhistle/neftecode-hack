@@ -150,7 +150,7 @@ def test_rate_limit_1302_is_retried_once_then_raised(http):
     body = {"error": {"code": "1302", "message": "High concurrency"}}
     fake = http((429, body), (429, body))
     with pytest.raises(LLMError) as caught:
-        zai(sleeps).chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=1)
+        zai(sleeps).chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=10)
     assert (caught.value.kind, caught.value.retryable, caught.value.code) == ("rate_limit", True, "1302")
     assert len(fake.requests) == 2 and sleeps == [1.0]
 
@@ -167,7 +167,7 @@ def test_quota_and_plan_codes_are_not_retried(http, code):
 def test_server_error_retries_then_succeeds(http):
     sleeps = []
     fake = http((500, b"Internal Server Error"), completion({"content": "готово"}))
-    response = zai(sleeps).chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=1)
+    response = zai(sleeps).chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=10)
     assert response.content == "готово" and len(fake.requests) == 2 and sleeps == [1.0]
 
 
@@ -175,18 +175,18 @@ def test_backoff_grows_with_more_retries(http):
     sleeps = []
     fake = http((503, b""), (502, b""), (504, b""))
     with pytest.raises(LLMError):
-        zai(sleeps, max_retries=2).chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=1)
+        zai(sleeps, max_retries=2).chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=10)
     assert sleeps == [1.0, 2.0] and len(fake.requests) == 3
 
 
 def test_timeout_and_network_errors_are_retryable(http):
     fake = http(TimeoutError("timed out"), urllib.error.URLError(TimeoutError()))
     with pytest.raises(LLMError) as caught:
-        zai().chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=1)
+        zai().chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=10)
     assert (caught.value.kind, caught.value.retryable) == ("timeout", True) and len(fake.requests) == 2
     http(urllib.error.URLError("Name or service not known"), urllib.error.URLError("refused"))
     with pytest.raises(LLMError) as caught:
-        zai().chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=1)
+        zai().chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=10)
     assert (caught.value.kind, caught.value.retryable) == ("network", True)
 
 
@@ -280,7 +280,7 @@ def test_anthropic_overloaded_is_retried(http):
     fake = http((529, {"type": "error", "error": {"type": "overloaded_error", "message": "Overloaded"}}),
                 {"content": [{"type": "text", "text": "ok"}], "stop_reason": "end_turn", "usage": {}})
     client = AnthropicClient("https://api.anthropic.com", "claude-x", Secret(FAKE), sleep=lambda s: None)
-    response = client.chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=1)
+    response = client.chat([LLMMessage("user", "hi")], max_tokens=10, timeout_s=10)
     assert response.finish_reason == "stop" and len(fake.requests) == 2
     assert "tool_choice" not in fake.requests[0]["body"]
 

@@ -4,6 +4,7 @@ Values come from the process environment, optionally overlaid on a `.env` file. 
 `Secret` and never appear in reprs, descriptions or error messages.
 """
 import math
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
@@ -188,6 +189,19 @@ def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
     if provider == "scripted":
         return LLMSettings(provider, "scripted", "", Secret(), **common)
     return LLMSettings(provider, "", "", Secret(), **common)
+
+
+def decision_wait_seconds(root: Path, environ: Mapping[str, str] | None = None, margin_s: float = 60.0) -> float:
+    """How long a caller waits for one decision: the agent budget (`AGENT_TIMEOUT_SECONDS`) plus a margin.
+
+    The retry inside a model call is bounded by the same budget (see `call_with_retries`), so this is a
+    true upper bound; the gateway and the demo page share it instead of a separate constant.
+    """
+    env = load_environment(os.environ if environ is None else environ, Path(root) / ".env")
+    try:
+        return float(agent_limits_from_env(env)["timeout_s"]) + margin_s
+    except ValueError:
+        return AGENT_LIMITS["timeout_s"][1] + margin_s
 
 
 def agent_limits_from_env(env: Mapping[str, str]) -> dict[str, int | float]:

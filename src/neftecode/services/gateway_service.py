@@ -16,6 +16,7 @@ from neftecode.presentation.web.server import (PAGE, CONTROLS_STYLE, FIRST_SNAPS
                                                as_query, cache_key, canonical_conditions, changes_from, defaults_for)
 from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
+from neftecode.infrastructure.llm.config import decision_wait_seconds
 from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
 
 
@@ -155,7 +156,7 @@ def main(argv=None):
                                 max_response_bytes=env.max_response_bytes)
     service = GatewayService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                              args.decision_url or os.getenv("NEFTECODE_DECISION_URL", "http://127.0.0.1:8768"), settings.request_timeout_s,
-                             float(os.getenv("NEFTECODE_GATEWAY_DECISION_TIMEOUT_S", "660")),
+                             float(os.getenv("NEFTECODE_GATEWAY_DECISION_TIMEOUT_S") or decision_wait_seconds(args.root)),
                              root=args.root, artifacts=args.artifacts)
     return serve(service.routes(), settings, service.ready, "gateway-service")
 

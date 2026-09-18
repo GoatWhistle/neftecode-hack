@@ -51,17 +51,29 @@ def _redacted(error: LLMError, secret: Secret) -> LLMError:
     return LLMError(error.kind, message, retryable=error.retryable, code=error.code)
 
 
-def call_with_retries(attempt: Callable[[], LLMResponse], max_retries: int,
-                      sleep: Callable[[float], None]) -> LLMResponse:
-    """Retry only retryable errors, at most `max_retries` extra times, with 1s, 2s, ... backoff."""
+def call_with_retries(attempt: Callable[[float], LLMResponse], max_retries: int,
+                      sleep: Callable[[float], None], budget_s: float, clock: Callable[[], float],
+                      started: float) -> LLMResponse:
+    """Retry only retryable errors, at most `max_retries` extra times, with 1s, 2s, ... backoff.
+
+    `budget_s` bounds all attempts together, not each one: a retry gets what is left after the failed
+    attempt and the pause, and is not made at all when less than a second remains. So one model call
+    never exceeds the deadline the agent budget handed down (`AgentBudget.remaining_seconds`).
+    """
     retry = 0
+    remaining = budget_s
     while True:
         try:
-            return attempt()
+            return attempt(max(1.0, remaining))
         except LLMError as error:
             if not error.retryable or retry >= max_retries:
                 raise
-            sleep(float(2 ** retry))
+            pause = float(2 ** retry)
+            remaining = budget_s - (clock() - started) - pause
+            if remaining < 1.0:
+                raise LLMError(error.kind, f"{error} (повтор не сделан: дедлайн {budget_s:g} с исчерпан)",
+                               retryable=error.retryable, code=error.code) from error
+            sleep(pause)
             retry += 1
 
 
@@ -116,8 +128,8 @@ class OpenAICompatibleClient:
             headers["Authorization"] = f"Bearer {self._api_key.reveal()}"
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         started = self._clock()
-        data = call_with_retries(lambda: self._once(url, headers, body, timeout_s), self.max_retries,
-                                 self._sleep)
+        data = call_with_retries(lambda t: self._once(url, headers, body, t), self.max_retries,
+                                 self._sleep, timeout_s, self._clock, started)
         return LLMResponse(**data, provider=self.provider, model=self.model,
                            latency_s=max(0.0, self._clock() - started))
 
