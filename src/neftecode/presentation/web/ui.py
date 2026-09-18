@@ -110,9 +110,9 @@ function render() {
         (currentRecipeRows().length
           ? `<h3>Состав смеси сейчас</h3><table>${rows(currentRecipeRows())}</table>` : "")
       : `<table>${rows((d.immediate_action ? Object.entries(d.immediate_action.controls) : [])
-            .map(([k, v]) => [k, change(current.controls?.[k], v, 2)])
-            .concat([["Выпуск, т/ч", change(current.throughput_tph, d.immediate_action?.throughput_tph, 1)],
-                     ["Доля присадки", change(current.additive_dose, d.immediate_action?.additive_dose, 4)]]))}</table>
+            .map(([k, v]) => [k, `${tagged(current.controls?.[k], (origin.controls || {})[k], 2)} → ${num(v, 2)}`])
+            .concat([["Выпуск, т/ч", `${tagged(current.throughput_tph, origin.throughput_tph, 1)} → ${num(d.immediate_action?.throughput_tph, 1)}`],
+                     ["Доля присадки", `${tagged(current.additive_dose, origin.additive_dose, 4)} → ${num(d.immediate_action?.additive_dose, 4)}`]]))}</table>
         <p class="note">Уставки задаются регуляторам с обратной связью:<br>${(e.statements || [])
             .filter(s => s.topic.startsWith("control.")).map(s => esc(s.text)).join("<br>")}</p>
         <h3>Состав смеси: сейчас → предложено</h3>
@@ -203,8 +203,51 @@ function render() {
     + (data.state_origin ? `<p class="note">Состояние: ${esc(data.state_origin)}</p>` : "")
     + (data.rule_origin ? `<p class="note">Пороги доверия: ${esc(data.rule_origin)}</p>` : ""));
 
+  // Агентный слой. Без сети система честно уходит в детерминированный ответ — и экран обязан
+  // отличаться от прогона с живой моделью, иначе эксперт не увидит, работала ли модель.
+  const a = d.agentic;
+  const outcomeLabel = {selected: "агенты выбрали план, код подтвердил его проверками",
+    confirmed_legacy: "агенты подтвердили детерминированный ответ",
+    refused: "агенты отклонили все допустимые планы — отказ с основанием",
+    fallback: "модель не отвечала — выдан детерминированный ответ",
+    skipped: "агенты не вызывались: отказ по данным принят раньше"};
+  const verdictLabel = {ACCEPT: "принять", REJECT: "отклонить", REVISE: "доработать", UNKNOWN: "не определено"};
+  if (!a) {
+    body += card("Агентный слой", `<p><span class="badge hold">выключен</span>
+      Агентный слой отключён явно (<code>AGENTIC_DECISION_ENABLED=0</code>): решение детерминированное,
+      модель не вызывалась.</p>`);
+  } else {
+    const b = a.budget || {}, u = b.usage || {};
+    const ran = Number.isFinite(b.llm_calls) && b.llm_calls > 0;
+    const state = a.outcome === "fallback" ? "refuse" : a.outcome === "skipped" ? "recommend_scenario" : "hold";
+    const head = a.outcome === "fallback"
+      ? `<p class="warn">Решение детерминированное: модель не отвечала — <code>${esc(a.fallback_reason || "причина не передана")}</code>.
+         Числа и проверки те же, что без агентов; агентный слой на этом решении не работал.</p>`
+      : a.outcome === "skipped"
+        ? `<p class="warn">Агенты не вызывались: ${esc(a.fallback_reason || "")} — отказ по данным принят до запуска моделей.</p>`
+        : `<p><span class="badge hold">модель работала</span> ${esc(outcomeLabel[a.outcome] || a.outcome)}.</p>`;
+    const opinions = (a.opinions || []).map(o => `<li><b>${esc(o.role)}</b>: ${esc(verdictLabel[o.verdict] || o.verdict)}` +
+      (o.risk_level ? `, риск ${esc(o.risk_level)}` : "") + (o.valid === false ? ` <span class="warn">(ответ невалиден)</span>` : "") +
+      ((o.reasons || []).length ? `<br><span class="note">${o.reasons.slice(0, 4).map(r => esc(r.code + (r.text ? ": " + r.text : ""))).join("; ")}</span>` : "") +
+      `</li>`).join("");
+    const constraints = (a.constraints_applied || []).map(c => `<li>${esc(JSON.stringify(c))}</li>`).join("");
+    const vetoed = Object.entries(a.vetoed_candidates || {}).map(([cid, roles]) => `${esc(cid)} (${esc(roles.join(", "))})`).join(", ");
+    body += card("Агентный слой", head + `<table>${rows([
+      ["Провайдер · модель", `${a.provider ? esc(a.provider) : '<span class="unknown">не настроен</span>'} · ${a.model ? esc(a.model) : '<span class="unknown">—</span>'}`],
+      ["Исход", `<span class="badge ${state}">${esc(a.outcome || "—")}</span>`],
+      ["Вызовов модели", ran || Number.isFinite(b.llm_calls) ? `${b.llm_calls ?? 0} из ${b.max_llm_calls ?? "—"}` : '<span class="unknown">не было</span>'],
+      ["Токены (вход / выход)", Number.isFinite(u.total_tokens) ? `${u.prompt_tokens ?? 0} / ${u.completion_tokens ?? 0}` : '<span class="unknown">—</span>'],
+      ["Мнения специалистов", opinions ? `<ul>${opinions}</ul>` : '<span class="unknown">не запрашивались</span>'],
+      ["Ограничения, предложенные агентами", constraints ? `<ul>${constraints}</ul>` : "нет"],
+      ["Вето по кандидатам", vetoed || "нет"],
+      ["Выбор модели переопределён правилом", a.llm_choice_overridden ? '<span class="warn">да — ранжирование кода важнее выбора модели</span>' : "нет"]])}</table>
+      <p class="note">${esc(a.note || "")}</p>`);
+  }
+
   body += card("Технические подробности", `
-    <details><summary>Журнал агентов</summary><pre>${esc(JSON.stringify(d.trace, null, 2))}</pre></details>
+    <details><summary>Журнал агентов</summary><pre>${esc(JSON.stringify(d.trace, null, 2))}</pre></details>` +
+    (a && a.trace ? `
+    <details><summary>Журнал агентного слоя (вызовы модели, инструменты, решения)</summary><pre>${esc(JSON.stringify(a.trace, null, 2))}</pre></details>` : "") + `
     <details><summary>Все проверки ограничений</summary><pre>${esc(JSON.stringify(d.gate, null, 2))}</pre></details>
     <details><summary>Ограничения вывода</summary><ul>${(e.limits || []).map(l => `<li>${esc(l)}</li>`).join("")}</ul></details>
     <p class="note">${esc(d.note || "")}</p>`);
