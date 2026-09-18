@@ -50,6 +50,8 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
         state_origin=state_origin_label(state, snapshot),
         decision_time=state.get("decision_time"),
         forecast=(snapshot or {}).get("forecast"),
+        forecast_used=(bool(trust.usable and ((snapshot or {}).get("forecast") or {}).get("available"))
+                       if snapshot is not None else None),
     ).payload()
     return {"ok": True, "rejected": False, "scenario_id": scenario.scenario_id,
             "decision": decision, "screen": screen, "trust_origin": trust_origin,

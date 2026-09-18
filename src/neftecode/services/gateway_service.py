@@ -71,7 +71,10 @@ class GatewayService:
                         rule_origin=result.get("trust_origin", self.trust_origin),
                         state_origin=state_origin_label(state, chosen),
                         decision_time=state.get("decision_time"),
-                        forecast=(chosen or {}).get("forecast")).payload()
+                        forecast=(chosen or {}).get("forecast"),
+                        # Привязка среза ставит `measurement_binding`; без неё прогноз в основание не входил.
+                        forecast_used=((result.get("binding") or {}).get("measurement_binding") is not None)
+                        if chosen is not None else None).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
         screen["snapshot"], screen["binding"] = (snapshot_key(chosen) if chosen is not None else None), result.get("binding")
         return screen

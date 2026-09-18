@@ -165,11 +165,15 @@ function render() {
     }
   }
 
-  // Доверие к прогнозу. Показывается и при отказе: оценка неопределённости — часть основания.
+  // Доверие к прогнозу. Показывается и при отказе, но честно: если сценарий с прогнозом не
+  // связывался (отказ по данным принят раньше), прогноз в основание решения не входил — так и пишем.
   const f = data.forecast;
   const covered = f && Number.isFinite(f.coverage_test) && Number.isFinite(f.coverage_target);
+  const unused = f && f.available && data.forecast_used === false;
   body += card("Доверие к прогнозу", (f && f.available)
-    ? `<table>${rows([
+    ? (unused ? `<p class="warn">Прогноз рассчитан, но в основание решения не входил: отказ принят по данным
+        до привязки прогноза. Числа ниже — справочно, для этого момента они не проверялись на применимость.</p>` : "")
+      + `<table>${rows([
         ["Прогноз серы, мг/кг", num(f.value, 2)],
         ["Верхняя граница интервала, мг/кг", num(f.upper, 2)],
         ["Нижняя граница интервала, мг/кг", num(f.lower, 2)],
@@ -181,8 +185,8 @@ function render() {
       + `<p class="note">С пределом серы сравнивается верхняя граница интервала, а не точечный прогноз.
         Покрытие — доля попаданий интервала на отложенной проверке; это не вероятность того, что
         партия пройдёт, и не гарантия для этого решения.</p>`
-    : `<p class="unknown">Прогноз серы не рассчитывался${(f && f.reason)
-        ? ": " + esc(f.reason) : ": решение получено на сценарных условиях"}.</p>`);
+    : (f ? `<p class="unknown">Прогноз серы не рассчитывался: ${f.reason ? esc(f.reason) : "причина не передана"}.</p>`
+         : `<p class="unknown">Прогноз серы не передавался: экран собран без живого прогноза.</p>`));
 
   const stale = (data.sources || []).filter(s => !s.usable);
   body += card("Доверие к данным", `<table>${rows((data.sources || []).map(
@@ -250,8 +254,11 @@ class Screen:
     state_origin: str | None = None
     #: Момент решения (ISO, местное время источников) — из state["decision_time"] или --at.
     decision_time: str | None = None
-    #: Прогноз серы с интервалом (`value`, `lower`, `upper`, `coverage_*`); None — не считался.
+    #: Прогноз серы с интервалом (`value`, `lower`, `upper`, `coverage_*`); None — не передавался.
     forecast: dict | None = None
+    #: Вошёл ли прогноз в основание решения: False — посчитан, но сценарий с ним не связывался
+    #: (отказ по данным принят раньше); None — не известно (сценарные экраны без прогноза).
+    forecast_used: bool | None = None
     title: str = "Советчик оператору цепочки АВТ → гидроочистка → смешение"
 
     def payload(self) -> dict:
@@ -270,6 +277,7 @@ class Screen:
             "state_origin": self.state_origin,
             "decision_time": self.decision_time,
             "forecast": self.forecast,
+            "forecast_used": self.forecast_used,
         }
 
 
