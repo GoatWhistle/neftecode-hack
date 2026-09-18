@@ -56,8 +56,19 @@ def test_the_grid_holds_half_year_taus_the_train_end_and_the_end_of_data(artifac
     assert taus[0] == pd.Timestamp("2024-01-01") and taus[-1] > pd.Timestamp("2024-03-01")
     assert taus[-1].hour == 23, "τ конца данных хранится с временем, а не датой: окно кончается строго до момента"
     assert all(pd.Timestamp(e["window"][1]) == pd.Timestamp(e["tau"]) - pd.Timedelta(6, "h") for e in artifact["estimates"])
+    assert all(pd.Timestamp(e["feed_floor_until"]) == pd.Timestamp(e["window"][1]) for e in artifact["estimates"])
     assert all(e["ci"] is not None for e in artifact["estimates"])
     assert artifact["drift"] and all(d["beta"] < 0 for d in artifact["drift"])
+
+
+def test_future_feed_does_not_change_the_causal_feed_floor():
+    signals, online = synthetic(months=1)
+    cut = signals.index[len(signals) // 2]
+    before = E.prepare(signals, online, feed_floor_until=cut)
+    changed = signals.copy()
+    changed.loc[changed.index > cut, "ht.F9"] = 1.0
+    after = E.prepare(changed, online, feed_floor_until=cut)
+    assert before.attrs["feed_floor"] == after.attrs["feed_floor"]
 
 
 def test_the_live_decision_takes_the_latest_estimate_made_before_the_moment(artifact):
