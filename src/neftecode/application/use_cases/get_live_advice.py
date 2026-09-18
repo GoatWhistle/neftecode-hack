@@ -52,7 +52,7 @@ class GetLiveAdvice:
             )
             decision = self._decision(scenario, raw, snapshot, command.budget, rejection, forecast)
             return LiveAdviceResult(snapshot.at, command.scenario_id, snapshot.state, trust, forecast,
-                                    decision, explain(decision, scenario),
+                                    decision, explain(decision, scenario, snapshot.state),
                                     note="Источники не прошли проверку: решение принято без запуска моделей.",
                                     inventories=inventories)
         if not forecast.available:
@@ -70,7 +70,7 @@ class GetLiveAdvice:
         decision = self._decision(bound_scenario, bound_raw, snapshot, command.budget, forecast=forecast)
         warnings = list((bound_raw.get("measurement_binding") or {}).get("warnings") or ())
         return LiveAdviceResult(snapshot.at, command.scenario_id, snapshot.state, trust, forecast,
-                                decision, explain(decision, bound_scenario), inventories=inventories,
+                                decision, explain(decision, bound_scenario, snapshot.state), inventories=inventories,
                                 bound_sulfur_mgkg=self._bound_sulfur(bound_scenario),
                                 bound_inflow_sulfur_mgkg=self._bound_inflow(bound_scenario),
                                 binding=binding_summary(bound_raw),

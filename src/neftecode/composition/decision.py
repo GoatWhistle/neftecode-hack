@@ -43,7 +43,7 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
     trust = DataTrustAgent(trust_cfg).assess(state)
     screen = Screen(
         decision,
-        explain(decision, scenario),
+        explain(decision, scenario, state),
         inventories={key: value.inventory_t for key, value in initial_state(scenario).items()},
         sources=[source.to_dict() for source in trust.sources.values()],
         rule_origin=trust_origin,

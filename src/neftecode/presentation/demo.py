@@ -19,6 +19,8 @@ import json
 from pathlib import Path
 from typing import Callable
 
+from neftecode.application.contracts import MEASURED_ORIGIN
+
 
 #: (сценарий, состояние, бюджет, пороги доверия; trust_origin=…) -> результат.
 DemoRunner = Callable[..., dict]
@@ -97,7 +99,7 @@ def apply_source_failure(state: dict, fault: str) -> dict:
     out = {**state, **SOURCE_FAULTS[fault]}
     if fault != "healthy":
         # Реальный срез остаётся реальным (иначе связыватель не подставит измерения), инъекция помечается отдельно.
-        if out.get("origin") != "real_measurements_at_decision_time":
+        if out.get("origin") != MEASURED_ORIGIN:
             out["origin"] = "injected_source_failure"
         out["injected_fault"] = fault
         out["injection"] = f"Модельная инъекция отказа: {fault}. Это не наблюдение из данных."
