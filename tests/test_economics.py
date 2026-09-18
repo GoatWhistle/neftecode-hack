@@ -46,14 +46,15 @@ def test_treating_below_the_reference_is_not_cheaper_than_the_reference():
 def test_additive_cost_uses_its_declared_price():
     step = economics().step_cost({"main": 1.0}, 100.0, 1.0, additive_dose=0.02,
                                  ht_temp_c=REFERENCE_TEMP)
-    assert step.additive_cost == pytest.approx(100 * 0.02 * 100.0)
+    assert step.additive_cost == pytest.approx(100 * 0.02 * 10.0)
 
 
-def test_the_expensive_additive_dominates_the_bill():
+def test_the_expensive_additive_is_visible_in_the_bill():
     plain = economics().step_cost({"main": 1.0}, 100.0, 1.0, ht_temp_c=REFERENCE_TEMP)
     dosed = economics().step_cost({"main": 1.0}, 100.0, 1.0, additive_dose=0.02,
                                   ht_temp_c=REFERENCE_TEMP)
-    assert dosed.total > 2 * plain.total
+    # 2% дозы при цене ×10 (ответ 18.09) — заметная, но не доминирующая статья.
+    assert dosed.total - plain.total == pytest.approx(100 * 0.02 * 10.0)
 
 
 def test_more_reserve_costs_more_because_the_reserve_is_dearer():
