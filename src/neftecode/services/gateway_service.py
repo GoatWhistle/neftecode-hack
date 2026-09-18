@@ -12,7 +12,8 @@ from html import escape
 from neftecode.presentation.demo import (SOURCE_FAULTS, healthy_state, apply_source_failure, snapshot_key,
                                          snapshot_title, state_origin_label)
 from neftecode.infrastructure.live.snapshots import load_snapshots
-from neftecode.presentation.web.server import PAGE, CONTROLS_STYLE, defaults_for, changes_from, DemoServerError
+from neftecode.presentation.web.server import (PAGE, CONTROLS_STYLE, FIRST_SNAPSHOT, DecisionCache, DemoServerError,
+                                               as_query, cache_key, canonical_conditions, changes_from, defaults_for)
 from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
@@ -31,10 +32,18 @@ class GatewayService:
         self.trust_cfg, self.trust_origin = load_trust_rules(root, out)
         #: Замороженные реальные срезы (C3): без них демонстрация идёт на синтетическом состоянии.
         self.snapshots = load_snapshots(out)
+        #: Одно вычисление на набор условий; повторное открытие страницы не ждёт decision-service.
+        self.cache = DecisionCache()
 
     def snapshot_options(self):
         options = [(snapshot_key(item), snapshot_title(item)) for item in reversed(self.snapshots)]
-        return options + [("synthetic", "синтетическое состояние сценария")]
+        options.append(("synthetic", "синтетическое состояние сценария"))
+        chosen = self.default_snapshot()
+        return [o for o in options if o[0] == chosen] + [o for o in options if o[0] != chosen]
+
+    def default_snapshot(self):
+        keys = [snapshot_key(item) for item in reversed(self.snapshots)] + ["synthetic"]
+        return FIRST_SNAPSHOT if FIRST_SNAPSHOT in keys else keys[0]
 
     def snapshot(self, name):
         if name in (None, "", "synthetic"):
@@ -54,10 +63,13 @@ class GatewayService:
 
     def decide(self, values, request_id="gateway"):
         names = self.scenarios(request_id); name = (values.get("scenario") or [names[0]])[0]
-        raw = self.raw(name, request_id); fault = (values.get("fault") or ["healthy"])[0]
-        if fault not in SOURCE_FAULTS:
-            raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
-        chosen = self.snapshot((values.get("snapshot") or [self.snapshot_options()[0][0]])[0])
+        raw = self.raw(name, request_id)
+        canonical = canonical_conditions(values, raw, name, self.default_snapshot())
+        return self.cache.get(cache_key(canonical), lambda: self._decide(as_query(canonical), raw, request_id))
+
+    def _decide(self, values, raw, request_id):
+        fault = values["fault"][0]
+        chosen = self.snapshot(values["snapshot"][0])
         base = copy.deepcopy(chosen["state"]) if chosen is not None else healthy_state()
         state = apply_source_failure(base, fault)
         changes = changes_from(values, raw)
@@ -77,12 +89,16 @@ class GatewayService:
                         if chosen is not None else None).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
         screen["snapshot"], screen["binding"] = (snapshot_key(chosen) if chosen is not None else None), result.get("binding")
+        screen["decision_timeout_s"] = self.decision_timeout_s
         return screen
 
     def page(self, name=None, request_id="gateway"):
+        # Страница отдаётся сразу со состоянием «считаем»; решение она запрашивает сама через /api/decide.
         try:
             names = self.scenarios(request_id); chosen = name if name in names else names[0]
-            payload = self.decide({"scenario": [chosen]}, request_id)
+            payload = {"state": "loading", "message": "Считаем решение для выбранных условий…",
+                       "defaults": defaults_for(self.raw(chosen, request_id)), "scenario": chosen,
+                       "snapshot": self.default_snapshot(), "decision_timeout_s": self.decision_timeout_s}
         except Exception as exc:
             names, chosen = [], name
             payload = {**error_payload(str(exc)), "defaults": {}}

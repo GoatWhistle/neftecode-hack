@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from html import escape
 from pathlib import Path
+import threading
 from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
@@ -21,6 +22,8 @@ from .ui import RENDER_JS, STYLE, error_payload
 
 #: Where the scenario files live, relative to the project root.
 SCENARIO_DIR = Path("config/scenarios")
+#: Срез, который судья видит первым: нормальный режим 05.01.2026 08:00 (решение R17 от 18.09).
+FIRST_SNAPSHOT = "20260105-080000"
 
 CONTROLS_STYLE = """
  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
@@ -141,8 +144,24 @@ function show() {
   $("screen").hidden = false;
 }
 
+// Один расчёт за раз: кнопки заблокированы, пока ответ не пришёл; поздний ответ на отменённый
+// запрос не перезаписывает более свежий; у запроса есть предел ожидания, согласованный с бюджетом агента.
+let inFlight = false, requestSeq = 0, ticker = null;
+const buttons = ["run", "run-top", "reset", "reset-top", "scenario"];
+function setBusy(on, label) {
+  inFlight = on;
+  buttons.forEach(id => { $(id).disabled = on; });
+  clearInterval(ticker);
+  if (on) {
+    const started = Date.now();
+    const tick = () => { $("busy").textContent = `${label}… ${Math.round((Date.now() - started) / 1000)} с`; };
+    tick(); ticker = setInterval(tick, 1000);
+  }
+}
+
 async function recompute() {
-  $("busy").textContent = "Считаем…";
+  if (inFlight) return;
+  const seq = ++requestSeq;
   const params = new URLSearchParams({
     scenario: $("scenario").value,
     crude_sulfur_wt_pct: $("crude").value,
@@ -156,15 +175,26 @@ async function recompute() {
     fault: $("fault").value,
     snapshot: $("snapshot").value,
   });
+  const controller = new AbortController();
+  const limit = setTimeout(() => controller.abort(), 1000 * (data.decision_timeout_s || 660));
+  setBusy(true, "Считаем");
   try {
-    const response = await fetch("/api/decide?" + params.toString());
-    data = await response.json();
+    const response = await fetch("/api/decide?" + params.toString(), {signal: controller.signal});
+    const fresh = await response.json();
+    if (seq !== requestSeq) return;
+    data = fresh;
     show();
     $("busy").textContent = data.state === "error" ? "Условие отклонено" : "Пересчитано";
   } catch (error) {
-    data = {state: "error", message: String(error)};
+    if (seq !== requestSeq) return;
+    data = {state: "error", message: error.name === "AbortError"
+      ? `Ответ не пришёл за ${data.decision_timeout_s || 660} с: расчёт прерван на стороне страницы`
+      : String(error)};
     show();
     $("busy").textContent = "Ошибка запроса";
+  } finally {
+    clearTimeout(limit);
+    if (seq === requestSeq) setBusy(false);
   }
 }
 
@@ -172,6 +202,7 @@ $("run").addEventListener("click", recompute);
 $("run-top").addEventListener("click", recompute);
 $("reset-top").addEventListener("click", () => $("reset").click());
 $("reset").addEventListener("click", async () => {
+  if (inFlight) return;
   const response = await fetch("/api/defaults?scenario=" + encodeURIComponent($("scenario").value));
   const fresh = await response.json();
   fillFrom(fresh);
@@ -181,7 +212,11 @@ $("reset").addEventListener("click", async () => {
 $("scenario").addEventListener("change", () => $("reset").click());
 
 fillFrom(defaults);
+if (data.snapshot) $("snapshot").value = data.snapshot;
 show();
+// Страница открывается сразу, с пустым экраном «считаем»; решение запрашивается отдельно и кэшируется
+// на сервере, поэтому повторное открытие тех же условий не платит за расчёт заново.
+if (data.state === "loading") recompute();
 </script>
 </body>
 </html>
@@ -244,22 +279,108 @@ def changes_from(values: dict, raw: dict) -> list[dict]:
     return changes
 
 
+class DecisionCache:
+    """Одно вычисление на набор условий: одинаковые запросы ждут первый расчёт и получают его результат.
+
+    Ошибка не кэшируется — следующий запрос с теми же условиями считает заново.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._entries: dict = {}
+
+    def get(self, key, compute: Callable[[], dict]) -> dict:
+        with self._lock:
+            entry = self._entries.get(key)
+            owner = entry is None
+            if owner:
+                entry = self._entries[key] = {"done": threading.Event(), "payload": None, "error": None}
+        if owner:
+            try:
+                entry["payload"] = compute()
+            except BaseException as exc:
+                entry["error"] = exc
+                with self._lock:
+                    self._entries.pop(key, None)
+            finally:
+                entry["done"].set()
+        else:
+            entry["done"].wait()
+        if entry["error"] is not None:
+            raise entry["error"]
+        return entry["payload"]
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+
+#: Поля панели, которые попадают в ключ кэша, кроме сценария, резервуара, отказа и среза.
+PANEL_NUMBERS = ("crude_sulfur_wt_pct", "product_sulfur_mgkg", "product_t95_c", "product_cetane_number",
+                 "throughput_tph")
+
+
+def canonical_conditions(values: dict, raw: dict, name: str, default_snapshot: str) -> dict:
+    """Полностью разрешённое состояние панели: пустые поля получают значения сценария.
+
+    Так запрос страницы без полей и запрос панели с нетронутыми полями дают один ключ кэша.
+    """
+    defaults = defaults_for(raw)
+    fault = (values.get("fault") or ["healthy"])[0]
+    if fault not in SOURCE_FAULTS:
+        raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
+    out = {"scenario": name, "fault": fault, "snapshot": (values.get("snapshot") or [default_snapshot])[0]}
+    for key in PANEL_NUMBERS:
+        value = _number(values, key)
+        out[key] = defaults.get(key) if value is None else value
+    tanks = defaults["tanks"]
+    tank = (values.get("tank") or [""])[0] or (tanks[0]["id"] if tanks else "")
+    current = next((t for t in tanks if t["id"] == tank), None)
+    stock = _number(values, "tank_inventory")
+    available = (values.get("tank_available") or [""])[0]
+    out["tank"] = tank
+    out["tank_inventory"] = (current["inventory"] if current else None) if stock is None else stock
+    out["tank_available"] = (("1" if current["available"] else "0") if current else "") \
+        if available not in ("0", "1") else available
+    return out
+
+
+def cache_key(canonical: dict) -> tuple:
+    return tuple(sorted(canonical.items()))
+
+
+def as_query(canonical: dict) -> dict:
+    return {k: [str(v)] for k, v in canonical.items() if v is not None and v != ""}
+
+
 @dataclass
 class DemoService:
-    """Holds the scenarios and runs one recomputation per request."""
+    """Holds the scenarios and runs one recomputation per set of conditions."""
 
     root: Path
     demo_factory: Callable[[dict, int], Demo]
     budget: int = 400
-    #: Замороженные реальные срезы (C3): первый в списке страницы — свежайший; без них — синтетика.
+    #: Замороженные реальные срезы (C3); без них — синтетика.
     snapshots: list = field(default_factory=list)
+    #: Срез, который открывается первым (`--snapshot`); None — норма 05.01.2026, иначе свежайший.
+    default_snapshot_key: str | None = None
+    #: Сколько страница ждёт ответа `/api/decide`: бюджет агента плюс запас (см. composition).
+    decision_timeout_s: float = 660.0
+    cache: DecisionCache = field(default_factory=DecisionCache)
 
     def snapshot_options(self) -> list[tuple[str, str]]:
         options = [(snapshot_key(item), snapshot_title(item)) for item in reversed(self.snapshots)]
-        return options + [("synthetic", "синтетическое состояние сценария")]
+        options.append(("synthetic", "синтетическое состояние сценария"))
+        chosen = self.default_snapshot()
+        return [o for o in options if o[0] == chosen] + [o for o in options if o[0] != chosen]
 
     def default_snapshot(self) -> str:
-        return self.snapshot_options()[0][0]
+        keys = [snapshot_key(item) for item in reversed(self.snapshots)] + ["synthetic"]
+        if self.default_snapshot_key is not None:
+            if self.default_snapshot_key not in keys:
+                raise DemoServerError(f"Срез «{self.default_snapshot_key}» не найден. Доступно: " + ", ".join(keys))
+            return self.default_snapshot_key
+        # Судья видит первым нормальный режим на реальном срезе, а не сцену риска (решение R17, 18.09).
+        return FIRST_SNAPSHOT if FIRST_SNAPSHOT in keys else keys[0]
 
     def scenarios(self) -> list[str]:
         return sorted(p.stem for p in (self.root / SCENARIO_DIR).glob("*.json"))
@@ -269,13 +390,19 @@ class DemoService:
             raise DemoServerError(f"Сценарий «{name}» не найден")
         return json.loads((self.root / SCENARIO_DIR / f"{name}.json").read_text())
 
-    def decide(self, values: dict) -> dict:
+    def canonical(self, values: dict) -> dict:
         name = (values.get("scenario") or [self.scenarios()[0]])[0]
+        return canonical_conditions(values, self.raw(name), name, self.default_snapshot())
+
+    def decide(self, values: dict) -> dict:
+        canonical = self.canonical(values)
+        return self.cache.get(cache_key(canonical), lambda: self._decide(as_query(canonical)))
+
+    def _decide(self, values: dict) -> dict:
+        name = values["scenario"][0]
         raw = self.raw(name)
-        fault = (values.get("fault") or ["healthy"])[0]
-        if fault not in SOURCE_FAULTS:
-            raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
-        snapshot = (values.get("snapshot") or [self.default_snapshot()])[0]
+        fault = values["fault"][0]
+        snapshot = values["snapshot"][0]
         result = self.demo_factory(raw, self.budget).run(changes_from(values, raw), fault, snapshot=snapshot)
         payload = dict(result["screen"])
         payload["defaults"] = defaults_for(raw)
@@ -283,13 +410,20 @@ class DemoService:
         payload["injection"] = result.get("injection")
         payload["snapshot"] = result.get("snapshot")
         payload["binding"] = result.get("binding")
+        payload["decision_timeout_s"] = self.decision_timeout_s
         return payload
+
+    def loading_payload(self, name: str) -> dict:
+        """Страница отдаётся сразу; решение страница запрашивает сама через `/api/decide`."""
+        return {"state": "loading", "message": "Считаем решение для выбранных условий…",
+                "defaults": defaults_for(self.raw(name)), "scenario": name,
+                "snapshot": self.default_snapshot(), "decision_timeout_s": self.decision_timeout_s}
 
     def page(self, name: str | None = None) -> str:
         names = self.scenarios()
         chosen = name if name in names else names[0]
         try:
-            payload = self.decide({"scenario": [chosen]})
+            payload = self.loading_payload(chosen)
         except (DemoServerError, DemoError, ValueError) as exc:
             payload = error_payload(str(exc))
             payload["defaults"] = {}
@@ -309,6 +443,15 @@ class DemoService:
         for token, value in replacements.items():
             page = page.replace(token, value)
         return page
+
+    def warm_up(self, name: str | None = None) -> None:
+        """Первое решение считается заранее, чтобы открытие страницы не ждало минуты."""
+        names = self.scenarios()
+        chosen = name if name in names else names[0]
+        try:
+            self.decide({"scenario": [chosen]})
+        except (DemoServerError, DemoError, ValueError):
+            pass  # страница покажет ту же ошибку при своём запросе
 
 
 def make_handler(service: DemoService):
@@ -358,9 +501,11 @@ def make_handler(service: DemoService):
 def serve(service: DemoService, port: int = 8765):
     """Run the demonstration server on localhost until interrupted."""
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service))
-    print(f"Демонстрация: http://127.0.0.1:{port}/")
-    print(f"Сценарии: {', '.join(service.scenarios())}")
-    print("Остановить — Ctrl+C. Сервер слушает только localhost.")
+    print(f"Демонстрация: http://127.0.0.1:{port}/", flush=True)
+    print(f"Сценарии: {', '.join(service.scenarios())}; срез по умолчанию: {service.default_snapshot()}", flush=True)
+    print("Первое решение считается в фоне; страница открывается сразу и покажет его, когда оно готово.", flush=True)
+    print("Остановить — Ctrl+C. Сервер слушает только localhost.", flush=True)
+    threading.Thread(target=service.warm_up, name="warm-up", daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

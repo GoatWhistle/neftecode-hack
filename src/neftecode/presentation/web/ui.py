@@ -63,6 +63,7 @@ const card = (title, body) => `<section><h2>${esc(title)}</h2>${body}</section>`
 function render() {
   if (data.state === "error") return card("Ошибка", `<p class="badge error">Ошибка</p>
     <p>${esc(data.message)}</p>`);
+  if (data.state === "loading") return card("Решение", `<p class="unknown">${esc(data.message || "Считаем решение…")}</p>`);
   const d = data.decision, e = data.explanation;
   const current = e.current_operation || {};
   const change = (before, after, digits) => `${num(before, digits)} → ${num(after, digits)}`;
