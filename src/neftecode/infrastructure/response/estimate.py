@@ -215,9 +215,11 @@ def drift(T, X, y) -> list[dict]:
     return out
 
 
-def tau_grid(f: pd.DataFrame, train_end) -> list[pd.Timestamp]:
-    first = pd.Timestamp(f.index[0]) + pd.DateOffset(months=WINDOW_MONTHS)
-    last = pd.Timestamp(f.index[-1])
+def tau_grid(index, train_end) -> list[pd.Timestamp]:
+    """Сетка τ: 1 января / 1 июля от первого полного окна до конца данных, плюс `train_end` и сам конец."""
+    index = pd.DatetimeIndex(index)
+    first = pd.Timestamp(index[0]) + pd.DateOffset(months=WINDOW_MONTHS)
+    last = pd.Timestamp(index[-1])
     taus = {x for x in pd.date_range(pd.Timestamp(first.year, 1, 1), last, freq="MS") if x.month in (1, 7) and x >= first}
     taus.add(pd.Timestamp(train_end))
     taus.add(last)
@@ -228,8 +230,8 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
                       model_fingerprint: str | None = None, boot: int = BOOT) -> dict:
     """Артефакт C2: объявленная политика из `declared` (config/response_model.json) плюс оценки по данным на сетке τ."""
     estimates = []
-    latest_parts = None
-    for tau in tau_grid(pd.DataFrame(index=signals.index), train_end):
+    parts_by_tau = {}
+    for tau in tau_grid(signals.index, train_end):
         cut = pd.Timestamp(tau) - GUARD
         f = prepare(signals, online, feed_floor_until=cut)
         R = decision_rows(f, row_times(f))
@@ -237,17 +239,19 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
         estimate = fit_at(f, R, T, X, y, tau, boot=boot)
         if estimate is not None:
             estimates.append(estimate)
-            latest_parts = (T, X, y)
+            parts_by_tau[pd.Timestamp(tau)] = (T, X, y)
     if not estimates:
         raise ValueError("Оценка отклика невозможна: ни в одном окне нет 5000 строк ARX")
     primary = next((e for e in estimates if pd.Timestamp(e["tau"]) == pd.Timestamp(train_end)), estimates[0])
+    # Дрейф — по тем же частям, что и основная оценка: порог F9 выучен до её τ − 6 ч, а не по позднейшему τ.
+    primary_parts = parts_by_tau[pd.Timestamp(primary["tau"])]
     method = (f"ARX({ARX_LAGS} lags, 10-min differences of {TEMPERATURE_TAG}, {FLOW_TAG}, PAK 30-min mean), beta = mean cumulative "
               f"PAK response at 3-8 h to a sustained +1 C step in T6; window = {WINDOW_MONTHS} months before tau minus 6 h guard; "
               f"rows = unit running >=12 h before and 6 h after (T6,T5>320 C, P13>3 MPa, F2>30000, "
               f"F9>q01 learned on hot rows no later than each tau minus 6 h, no NaN), PAK valid "
               f"(0.05-50 mg/kg, not frozen >=1 h); ci = month-block bootstrap "
               f"90% ({boot} draws, seed {SEED}); weak = 0.5*beta, strong = beta * max past realized/estimate ratio (cap {STRONG_CAP}); "
-              f"drift = same ARX per half-year (realized); estimated at training on the tau grid, the live decision takes the "
+              f"drift = same ARX per half-year (realized) on the primary estimate's rows; estimated at training on the tau grid, the live decision takes the "
               f"latest tau <= decision time. Method of context/response-research/t6/response_model.py, unchanged.")
     keep = {k: v for k, v in declared.items()
             if k not in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "drift", "model_fingerprint", "t6_range_c",
@@ -257,7 +261,7 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
            "primary": "train_end", "train_end": str(pd.Timestamp(train_end)),
            **{k: primary[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong", "t6_range_c",
                                          "f9_range_tph", "feed_floor_tph", "feed_floor_until")},
-           "drift": drift(*latest_parts), "model_fingerprint": model_fingerprint,
+           "drift": drift(*primary_parts), "model_fingerprint": model_fingerprint,
            "selection_rule": "latest estimate with tau <= decision time; every window of an estimate ends at tau - 6 h",
            "estimates": estimates}
     return out
