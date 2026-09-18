@@ -19,7 +19,6 @@ import hashlib
 import json
 import math
 
-from neftecode.domain.shared.primitives import ContractError
 from neftecode.domain.shared.actions import PendingAction
 from neftecode.domain.production.state import TankState
 from neftecode.domain.production.inventory import draw_step, initial_state

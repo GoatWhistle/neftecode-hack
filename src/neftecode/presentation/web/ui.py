@@ -15,7 +15,6 @@ The main meaning is readable without opening the log; the agent trace and the fu
 a collapsed section underneath.
 """
 from dataclasses import dataclass
-import html
 import json
 from pathlib import Path
 
@@ -200,7 +199,7 @@ function render() {
         + (stale.length < data.sources.length
             ? `Решение опирается только на оставшиеся источники.`
             : `Пригодного источника качества не осталось.`) + `</p>` : "")
-    + (data.sources && data.sources.length ? "" : `<p class="note">Состояние источников не передавалось: решение получено на сценарных условиях.</p>`)
+    + (data.sources && data.sources.length ? "" : `<p class="note">Состояние источников не передавалось.</p>`)
     + (data.state_origin ? `<p class="note">Состояние: ${esc(data.state_origin)}</p>` : "")
     + (data.rule_origin ? `<p class="note">Пороги доверия: ${esc(data.rule_origin)}</p>` : ""));
 

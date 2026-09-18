@@ -33,7 +33,7 @@ def screen(args, parser, root, out):
         payload = Screen(
             decision, explain(decision, scenario),
             inventories={k: v.inventory_t for k, v in initial_state(scenario).items()},
-            state_origin="сценарные условия; реальные измерения не передавались",
+            state_origin="сценарные условия",
         ).payload()
     except (ValueError, OSError) as exc:
         payload = error_payload(str(exc))

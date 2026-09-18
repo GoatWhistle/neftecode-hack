@@ -252,7 +252,7 @@ def make_handler(routes: Mapping[str, Callable[[Request], Any]], readiness: Call
             if parts.path == "/readyz":
                 try:
                     ready = readiness is None or bool(readiness())
-                except Exception as exc:
+                except Exception:
                     error = ServiceError("Сервис не готов", 503, "readiness_unavailable", retryable=True)
                     return self._reply(ServiceEnvelope.failure(error, request_id, service_name), 503)
                 if not ready:

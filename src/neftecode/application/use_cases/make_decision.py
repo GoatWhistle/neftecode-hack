@@ -18,7 +18,7 @@ import hashlib
 import json
 import math
 
-from neftecode.domain.shared.primitives import (CONFIRMED_SCOPE, HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
+from neftecode.domain.shared.primitives import (HOLD, RECOMMEND_SCENARIO, REFUSE, SCENARIO_SCOPE)
 from .plan_operation import PlanOperation, PlannerError
 from neftecode.domain.advisory.optimizer import rank
 from neftecode.domain.advisory.response_guard import moves_temperature, weak_response_raw

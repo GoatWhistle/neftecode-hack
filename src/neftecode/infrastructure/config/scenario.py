@@ -5,7 +5,7 @@
 import json
 from pathlib import Path
 
-from neftecode.domain.shared.primitives import QUALITIES
+from neftecode.domain.shared.primitives import QUALITIES  # noqa: F401 - re-exported for callers
 from neftecode.domain.production.scenario import (
     SCHEMA,
     Additive,

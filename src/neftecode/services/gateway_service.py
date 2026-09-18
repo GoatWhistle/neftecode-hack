@@ -5,7 +5,6 @@ import argparse
 import copy
 import os
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
 import json
 from html import escape
 

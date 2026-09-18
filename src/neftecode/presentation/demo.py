@@ -208,7 +208,7 @@ def scenes(path, snapshots: list | None = None) -> list[dict]:
     normal, normal_fault = real("норма", "healthy")
     frozen, frozen_fault = real("зависший ПАК при работающей установке", "frozen_pak")
     refuse, refuse_fault = real("отказ по данным", "both_broken")
-    quality_risk, _ = real("риск по качеству при возврате нагрузки", "healthy")
+    quality_risk = real("риск по качеству при возврате нагрузки", "healthy")[0]
     items = [
         {"name": "Нормальный режим", "changes": [], "fault": normal_fault, "snapshot": normal,
          "expect": "решение без лишних изменений"},

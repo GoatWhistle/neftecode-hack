@@ -12,7 +12,7 @@ Design rules that keep the result honest:
 * **No global optimum is claimed.** The budget is reported, and when it is exhausted the result
   says the answer is the best of what was examined.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import math
 
 from neftecode.domain.advisory.entities import GateResult
@@ -136,7 +136,6 @@ class CandidateGenerator:
             doses = sorted({0.0, round(top / 2, 6), round(top, 6)})
         recipes = [r for r in (self._recipe(tanks, f) for f in _fractions(self.fraction_step))
                    if r is not None]
-        base_recipe = recipes[0]
         throughputs = self._throughputs()
         base_throughput = self.scenario.current_operation.throughput.value
         control_sets = self._control_options() if allow_control_moves else [dict(base_controls)]
