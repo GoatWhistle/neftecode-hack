@@ -21,7 +21,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--at", help="Местное время решения для advise и snapshot, например 2026-01-05T08:00:00")
     parser.add_argument("--all", action="store_true",
                         help="snapshot: все моменты из config/snapshot_moments.json")
-    parser.add_argument("--snapshot", help="serve/scenes: имя среза (ГГГГММДД-ЧЧММСС) или synthetic")
+    parser.add_argument("--snapshot", help="serve: срез первого экрана (ГГГГММДД-ЧЧММСС) или synthetic; "
+                                           "по умолчанию норма 05.01.2026, иначе свежайший")
     parser.add_argument("--scenario", type=Path, help="Файл сценария для screen и agent-demo")
     parser.add_argument("--decision", type=Path, help="Сохранённое решение для повторного просмотра")
     parser.add_argument("--port", type=int, default=8765, help="Порт демонстрационного сервера")

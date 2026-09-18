@@ -7,4 +7,4 @@ def demo(args, parser, root, out):
     return make_demo(root, out)
 
 def serve(args, parser, root, out):
-    return serve_demo(make_demo_service(root), args.port)
+    return serve_demo(make_demo_service(root, out=out, default_snapshot=args.snapshot), args.port)

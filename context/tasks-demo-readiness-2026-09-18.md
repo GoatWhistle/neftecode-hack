@@ -181,6 +181,11 @@
   не читается нигде в коде — `serve` всегда открывает свежайший срез.
 - `infrastructure/agentic/factory.py:51` читает `.env` из `Path.cwd()`, а не из `--root`:
   запуск из другой папки тихо теряет ключ и уходит в фоллбек, невидимый из-за R03.
+- **Статус: готово.** `serve` получает `out` и `--snapshot` (`make_demo_service(root, out=, default_snapshot=)`);
+  неизвестный срез — одна строка со списком доступных; без флага первый экран — норма `20260105-080000`
+  (R17), иначе свежайший. `default_decision_factory(root)` читает `<root>/.env` (кэш по пути);
+  `serve`, `scenes`, `screen`, `advise`, decision-service передают `--root`. Проверено: из `/tmp` без root —
+  `llm_not_configured`, с root — ключ найден. Справка `--snapshot` уточнена (только `serve`).
 
 ## D. Дефекты кода
 

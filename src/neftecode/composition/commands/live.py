@@ -25,7 +25,7 @@ def handle(args, parser, root, out):
                           raw_scenario,
                           robustness_factory=lambda scenario, raw: RobustnessCheck(
                               scenario, raw, scenario_parser=parse_scenario),
-                          decision_factory=default_decision_factory(),
+                          decision_factory=default_decision_factory(root),
                           response_model=load_response_model(root, out),
                           coverage={name: interval_coverage(out, bundle, name)
                                     for name in bundle.get("radii", {})})

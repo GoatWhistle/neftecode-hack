@@ -1,4 +1,5 @@
 """Composition of the interactive decision flow."""
+from functools import partial
 from pathlib import Path
 
 from neftecode.application.ports.live import ForecastBindingError
@@ -59,16 +60,24 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
             "binding": binding_summary(raw) if snapshot is not None else None}
 
 def make_interactive_demo(raw: dict, budget: int, trust_cfg: dict, trust_origin: str | None = None,
-                          snapshots: list | None = None, response_model: dict | None = None) -> Demo:
-    return Demo(raw, run_demo_decision, trust_cfg, budget, trust_origin=trust_origin,
+                          snapshots: list | None = None, response_model: dict | None = None,
+                          decision_factory=None) -> Demo:
+    runner = (run_demo_decision if decision_factory is None
+              else partial(run_demo_decision, decision_factory=decision_factory))
+    return Demo(raw, runner, trust_cfg, budget, trust_origin=trust_origin,
                 snapshots=list(snapshots or []), response_model=response_model)
 
-def make_demo_service(root: Path, budget: int = 400, out: Path | None = None) -> DemoService:
+def make_demo_service(root: Path, budget: int = 400, out: Path | None = None,
+                      default_snapshot: str | None = None) -> DemoService:
+    """`out` — каталог артефактов (`--out`), `default_snapshot` — срез первого экрана (`--snapshot`)."""
     root = Path(root)
     out = Path(out) if out is not None else root / "artifacts"
     trust_cfg, trust_origin = load_trust_rules(root, out)
     snapshots = load_snapshots(out)
     response_model = load_response_model(root, out)
+    # `.env` берётся из --root, а не из текущей папки: запуск из другого каталога не теряет ключ молча.
+    factory = default_decision_factory(root)
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
-                                                                     snapshots, response_model),
-                       budget, snapshots=snapshots, decision_timeout_s=decision_wait_seconds(root))
+                                                                     snapshots, response_model, factory),
+                       budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
+                       decision_timeout_s=decision_wait_seconds(root))
