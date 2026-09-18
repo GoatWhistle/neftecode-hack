@@ -42,6 +42,15 @@ def mask_stubs(signals: pd.DataFrame, until=None) -> tuple[pd.DataFrame, list[st
     return masked.drop(columns=dead), dead
 
 
+def _single_file(task: Path, pattern: str, what: str) -> Path:
+    """One issued workbook by name pattern; its absence is a named error, not `StopIteration`."""
+    found = sorted(task.glob(pattern))
+    if not found:
+        raise FileNotFoundError(f"В {task} нет файла {pattern}: положите {what} организаторов рядом с data/ "
+                                f"(состав task/ описан в README)")
+    return found[0]
+
+
 def load_sources(task: Path, dead_until=None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Read the four sources. `dead_until` — end of the training period (cfg["train_end"]) for `mask_stubs`."""
     telemetry = []
@@ -57,14 +66,14 @@ def load_sources(task: Path, dead_until=None) -> tuple[pd.DataFrame, pd.DataFram
     signals = pd.concat(telemetry, axis=1).sort_index().replace([np.inf, -np.inf], np.nan)
     signals, _ = mask_stubs(signals, dead_until)
 
-    book = openpyxl.load_workbook(next(task.glob("ЛИМС*.xlsx")), read_only=True, data_only=True)
+    book = openpyxl.load_workbook(_single_file(task, "ЛИМС*.xlsx", "выгрузку ЛИМС"), read_only=True, data_only=True)
     rows = list(book.active.values)
     if rows[1][94] != "Mg.Sulfur" or rows[2][94] != "мг/кг":
         raise ValueError("ЛИМС CQ:CR: изменилась схема целевого показателя")
     lab = series_frame([(r[94], r[95]) for r in rows[4:] if isinstance(r[94], datetime)], "ЛИМС")
     book.close()
 
-    book = openpyxl.load_workbook(next(task.glob("Выгрузка*.xlsx")), read_only=True, data_only=True)
+    book = openpyxl.load_workbook(_single_file(task, "Выгрузка*.xlsx", "выгрузку ПАК"), read_only=True, data_only=True)
     rows = iter(book.active.values)
     names, units = next(rows), next(rows)
     if "Mg.Sulfur" not in str(names[0]) or units[0] != "ppm":

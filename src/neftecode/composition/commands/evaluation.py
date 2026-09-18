@@ -8,7 +8,7 @@ from neftecode.evaluation.episodes import (
 )
 from neftecode.infrastructure.live.tank_check import tank_level_check
 from neftecode.evaluation.vak import check_all
-from neftecode.infrastructure.artifacts import write_json
+from neftecode.infrastructure.artifacts import load_model_bundle, write_json
 from neftecode.infrastructure.config.avt_tags import load_avt_tags
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.infrastructure.data.data import load_sources
@@ -32,9 +32,7 @@ def benchmark(args, parser, root, out):
     print(f"Журнал: {out / 'benchmark.json'}")
 
 def tank_check(args, parser, root, out):
-    import pickle
-    with (out / "model.pkl").open("rb") as stream:
-        cfg = pickle.load(stream)["config"]
+    cfg = load_model_bundle(out)["config"]
     _, lab, online = load_sources(root / "task", cfg["train_end"])
     report = tank_level_check(lab, online, cfg)
     write_json(out / "tank_level_check.json", report)

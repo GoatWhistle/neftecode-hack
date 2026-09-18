@@ -92,8 +92,9 @@ def load_snapshots(out: Path) -> list[dict]:
     for path in sorted(folder.glob("*.json")):
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise ValueError(f"Срез {path} не читается: {exc}") from exc
+        except (OSError, ValueError) as exc:  # JSONDecodeError и UnicodeDecodeError — подклассы ValueError
+            raise ValueError(f"Срез {path} не читается ({type(exc).__name__}: {exc}): удалите файл или "
+                             f"пересоберите срезы командой `uv run neftecode snapshot --all`") from exc
         items.append(_validate(value, str(path), expected))
     return sorted(items, key=lambda item: item["at"])
 
