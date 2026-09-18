@@ -69,11 +69,15 @@ def build_decision_factory(environ: Mapping[str, str] | None = None, dotenv_path
     return DecisionFactory(True, client, settings, None, description)
 
 
-@lru_cache(maxsize=1)
-def _cached_default() -> DecisionFactory:
-    return build_decision_factory()
+@lru_cache(maxsize=4)
+def _cached_default(dotenv_path: Path) -> DecisionFactory:
+    return build_decision_factory(dotenv_path=dotenv_path)
 
 
-def default_decision_factory() -> DecisionFactory:
-    """Factory from the process environment, built once per process."""
-    return _cached_default()
+def default_decision_factory(root: Path | None = None) -> DecisionFactory:
+    """Factory from the process environment and `<root>/.env`, built once per root.
+
+    `root` is the project root the command was given (`--root`); the working directory is only the
+    fallback, so a run from another folder does not silently lose the key and fall back.
+    """
+    return _cached_default((Path(root) if root is not None else Path.cwd()).resolve() / ".env")

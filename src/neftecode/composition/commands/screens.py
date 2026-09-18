@@ -1,4 +1,5 @@
 """CLI handlers for screens."""
+from functools import partial
 import json
 from pathlib import Path
 
@@ -25,7 +26,7 @@ def screen(args, parser, root, out):
             decision = json.loads(args.decision.read_text())
         else:
             raw_scenario = json.loads(Path(scenario_path).read_text())
-            decision = default_decision_factory()(scenario, RobustnessCheck(
+            decision = default_decision_factory(root)(scenario, RobustnessCheck(
                 scenario, raw_scenario, scenario_parser=parse_scenario
             )).decide(budget=400, raw_scenario=raw_scenario)
             write_json(out / f"decision-{scenario.scenario_id}.json", decision)
@@ -43,7 +44,8 @@ def scenes(args, parser, root, out):
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
     trust_cfg, trust_origin = load_trust_rules(root, out)
     snapshots = load_snapshots(out)
-    demo = Demo.from_path(scenario_path, run_demo_decision, trust_cfg, budget=400, trust_origin=trust_origin,
+    runner = partial(run_demo_decision, decision_factory=default_decision_factory(root))
+    demo = Demo.from_path(scenario_path, runner, trust_cfg, budget=400, trust_origin=trust_origin,
                           snapshots=snapshots, response_model=load_response_model(root, out))
     folder = out / "scenes"
     folder.mkdir(parents=True, exist_ok=True)

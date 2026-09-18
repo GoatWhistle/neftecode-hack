@@ -196,7 +196,7 @@ def main(argv=None):
                                 max_response_bytes=env.max_response_bytes)
     service = DecisionService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                               args.model_url or os.getenv("NEFTECODE_MODEL_URL", "http://127.0.0.1:8767"),
-                              settings.request_timeout_s, decision_factory=build_decision_factory(),
+                              settings.request_timeout_s, decision_factory=build_decision_factory(dotenv_path=args.root / ".env"),
                               response_model=load_response_model(root))
     return serve(service.routes(), settings, service.ready, "decision-service")
 
