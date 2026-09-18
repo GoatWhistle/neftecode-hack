@@ -1,11 +1,10 @@
 """CLI handlers for live."""
 import json
 from pathlib import Path
-import pickle
 
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.infrastructure.agentic import default_decision_factory
-from neftecode.infrastructure.artifacts import write_json
+from neftecode.infrastructure.artifacts import load_model_bundle, write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.data.data import load_sources
 from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, interval_coverage, load_response_model
@@ -16,8 +15,7 @@ from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 def handle(args, parser, root, out):
     if not args.at:
         parser.error("Для advise нужен --at с местным временем решения")
-    with (out / "model.pkl").open("rb") as stream:
-        bundle = pickle.load(stream)
+    bundle = load_model_bundle(out)
     when = validate_origin(args.at, bundle)
     signals, lab, online = load_sources(root / "task", bundle["config"]["train_end"])
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
@@ -89,8 +87,7 @@ def snapshot(args, parser, root, out):
     """Заморозить реальные срезы для демонстрации без task/."""
     if not args.at and not args.all:
         parser.error("Для snapshot нужен --at или --all")
-    with (out / "model.pkl").open("rb") as stream:
-        bundle = pickle.load(stream)
+    bundle = load_model_bundle(out)
     moments = []
     if args.all:
         moments = json.loads((root / "config/snapshot_moments.json").read_text(encoding="utf-8"))

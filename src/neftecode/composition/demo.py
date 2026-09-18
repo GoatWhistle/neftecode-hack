@@ -1,13 +1,12 @@
 """Build reproducible demo and replay artifacts."""
 import json
-import pickle
 
 import numpy as np
 import pandas as pd
 
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.composition.decision import run_demo_decision
-from neftecode.infrastructure.artifacts import clean, write_json
+from neftecode.infrastructure.artifacts import clean, load_model_bundle, write_json
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import bind_forecast
 from neftecode.presentation.reports.experiment import make_report
@@ -52,8 +51,7 @@ def make_demo(root, out):
     trust_cfg, _ = load_trust_rules(root, out)
     model_path = out / "model.pkl"
     if model_path.exists():
-        with model_path.open("rb") as stream:
-            bundle = pickle.load(stream)
+        bundle = load_model_bundle(out)
         trust_cfg = bundle.get("config", {})
     normal = bind_forecast(baseline, {
         "model": "synthetic", "value": 6.0, "lower": 4.0, "upper": 8.0,

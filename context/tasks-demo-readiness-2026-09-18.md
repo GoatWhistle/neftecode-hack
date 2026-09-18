@@ -158,6 +158,12 @@
 - Есть CSV, но нет XLSX → `StopIteration` из `infrastructure/data/data.py:63` (`next(task.glob(...))`);
   в `data_service.py:84` это закрыто, в CLI — нет.
 - **Критерий.** Каждая из четырёх ситуаций даёт одну строку: что не так, где, и что сделать.
+- **Статус: готово.** `infrastructure/artifacts/model_bundle.py::load_model_bundle` — нет файла → «Модель …
+  не найдена: выполните train или укажите --out каталогом, где лежит model.pkl»; битый pickle → «повреждена
+  или не дочитана (UnpicklingError: …): выполните train заново»; используется в `advise`, `snapshot`,
+  `demo`, `tank-check`. `load_snapshots` ловит `ValueError` (включая `UnicodeDecodeError`) и называет
+  файл и команду `snapshot --all`. `load_sources` → `FileNotFoundError` «В task нет файла ЛИМС*.xlsx…».
+  README: `--out` — каталог артефактов. Проверено четырьмя прогонами. `serve --out` пока игнорируется — R10.
 
 ### R09. Атомарная запись артефактов
 
