@@ -43,7 +43,7 @@ FEED_FLOOR_Q = 0.01
 SCHEMA_VERSION = "v1"
 
 
-def prepare(signals: pd.DataFrame, online: pd.DataFrame) -> pd.DataFrame:
+def prepare(signals: pd.DataFrame, online: pd.DataFrame, feed_floor_until=None) -> pd.DataFrame:
     """10-минутный кадр: T6, F9, ПАК, признаки работы установки. Все флаги смотрят в прошлое, кроме `stable_label`."""
     missing = [tag for tag in CORE_TAGS if tag not in signals.columns]
     if missing:
@@ -53,10 +53,15 @@ def prepare(signals: pd.DataFrame, online: pd.DataFrame) -> pd.DataFrame:
     f["T6"], f["T5"], f["F9"] = signals[TEMPERATURE_TAG], signals["ht.T5"], signals[FLOW_TAG]
     f["P13"], f["F2"] = signals["ht.P13"], signals["ht.F2"]
     hot = (f.T6 > 320) & (f.T5 > 320) & (f.P13 > 3.0) & (f.F2 > 30000) & (f.F9 > 0)
-    feed_floor = float(f.F9[hot].quantile(FEED_FLOOR_Q)) if hot.any() else math.nan
+    floor_rows = hot
+    if feed_floor_until is not None:
+        floor_rows &= f.index <= pd.Timestamp(feed_floor_until)
+    feed_floor = float(f.F9[floor_rows].quantile(FEED_FLOOR_Q)) if floor_rows.any() else math.nan
     running = hot & (f.F9 > feed_floor) & signals[list(CORE_TAGS)].notna().all(axis=1)
     f["running"] = running
     f.attrs["feed_floor"] = feed_floor
+    f.attrs["feed_floor_until"] = (pd.Timestamp(feed_floor_until).isoformat()
+                                    if feed_floor_until is not None else None)
     r = running.astype(float)
     f["run_past12h"] = r.rolling("12h").min().eq(1)
     f["stable_label"] = f.run_past12h & r[::-1].rolling(37, min_periods=1).min()[::-1].eq(1)
@@ -183,6 +188,8 @@ def fit_at(f: pd.DataFrame, R: pd.DataFrame, T, X, y, tau, boot: int = BOOT) -> 
         "t6_range_c": [round(float(H.T6.quantile(.01)), 1), round(float(H.T6.quantile(.99)), 1)] if len(H) else None,
         "f9_range_tph": [round(float(H.F9.quantile(.01)), 1), round(float(H.F9.quantile(.99)), 1)] if len(H) else None,
         "n_history_rows": int(len(H)),
+        "feed_floor_tph": round(float(f.attrs["feed_floor"]), 3),
+        "feed_floor_until": f.attrs["feed_floor_until"],
         "window": [str(lo), str(cut)],
     }
 
@@ -215,17 +222,25 @@ def tau_grid(f: pd.DataFrame, train_end) -> list[pd.Timestamp]:
 def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, declared: dict,
                       model_fingerprint: str | None = None, boot: int = BOOT) -> dict:
     """Артефакт C2: объявленная политика из `declared` (config/response_model.json) плюс оценки по данным на сетке τ."""
-    f = prepare(signals, online)
-    R = decision_rows(f, row_times(f))
-    T, X, y = arx_design(f)
-    estimates = [e for e in (fit_at(f, R, T, X, y, tau, boot=boot) for tau in tau_grid(f, train_end)) if e is not None]
+    estimates = []
+    latest_parts = None
+    for tau in tau_grid(pd.DataFrame(index=signals.index), train_end):
+        cut = pd.Timestamp(tau) - GUARD
+        f = prepare(signals, online, feed_floor_until=cut)
+        R = decision_rows(f, row_times(f))
+        T, X, y = arx_design(f)
+        estimate = fit_at(f, R, T, X, y, tau, boot=boot)
+        if estimate is not None:
+            estimates.append(estimate)
+            latest_parts = (T, X, y)
     if not estimates:
         raise ValueError("Оценка отклика невозможна: ни в одном окне нет 5000 строк ARX")
     primary = next((e for e in estimates if pd.Timestamp(e["tau"]) == pd.Timestamp(train_end)), estimates[0])
     method = (f"ARX({ARX_LAGS} lags, 10-min differences of {TEMPERATURE_TAG}, {FLOW_TAG}, PAK 30-min mean), beta = mean cumulative "
               f"PAK response at 3-8 h to a sustained +1 C step in T6; window = {WINDOW_MONTHS} months before tau minus 6 h guard; "
-              f"rows = unit running >=12 h before and 6 h after (T6,T5>320 C, P13>3 MPa, F2>30000, F9>q01={f.attrs['feed_floor']:.1f} "
-              f"t/h on hot rows of the whole history, no NaN), PAK valid (0.05-50 mg/kg, not frozen >=1 h); ci = month-block bootstrap "
+              f"rows = unit running >=12 h before and 6 h after (T6,T5>320 C, P13>3 MPa, F2>30000, "
+              f"F9>q01 learned on hot rows no later than each tau minus 6 h, no NaN), PAK valid "
+              f"(0.05-50 mg/kg, not frozen >=1 h); ci = month-block bootstrap "
               f"90% ({boot} draws, seed {SEED}); weak = 0.5*beta, strong = beta * max past realized/estimate ratio (cap {STRONG_CAP}); "
               f"drift = same ARX per half-year (realized); estimated at training on the tau grid, the live decision takes the "
               f"latest tau <= decision time. Method of context/response-research/t6/response_model.py, unchanged.")
@@ -235,8 +250,9 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
     out = {"schema_version": SCHEMA_VERSION, "tag": TEMPERATURE_TAG, "flow_tag": FLOW_TAG, **keep,
            "window_months": WINDOW_MONTHS, "method": method, "flow_beta": declared.get("flow_beta"),
            "primary": "train_end", "train_end": str(pd.Timestamp(train_end)),
-           **{k: primary[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong", "t6_range_c", "f9_range_tph")},
-           "drift": drift(T, X, y), "model_fingerprint": model_fingerprint,
+           **{k: primary[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong", "t6_range_c",
+                                         "f9_range_tph", "feed_floor_tph", "feed_floor_until")},
+           "drift": drift(*latest_parts), "model_fingerprint": model_fingerprint,
            "selection_rule": "latest estimate with tau <= decision time; every window of an estimate ends at tau - 6 h",
            "estimates": estimates}
     return out
@@ -259,4 +275,5 @@ def response_at(response: dict | None, when) -> dict | None:
         return None
     base = {k: v for k, v in response.items() if k != "estimates"}
     return {**base, **{k: chosen[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong",
-                                               "t6_range_c", "f9_range_tph")}}
+                                               "t6_range_c", "f9_range_tph", "feed_floor_tph",
+                                               "feed_floor_until")}}
