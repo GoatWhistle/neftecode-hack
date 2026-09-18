@@ -140,6 +140,9 @@
   `presentation/web/server.py:360` бросает `OSError: [Errno 48] Address already in use` —
   12 строк трейсбека без подсказки про `--port`. Дефолтный порт `serve` и шлюза совпадает: 8765
   (`services/stack.py:46`, `gateway_service.py:132`).
+- **Статус: готово.** `serve()` ловит `EADDRINUSE` и поднимает `DemoServerError` с одной строкой:
+  «Порт N занят … Укажите другой: neftecode serve --port N+1»; диспетчер печатает `Ошибка: …`, код 2.
+  Проверено на занятом 8791.
 
 ### R08. Внятные сообщения для отсутствующих и битых артефактов
 
