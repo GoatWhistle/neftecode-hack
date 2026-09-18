@@ -27,7 +27,7 @@ import pandas as pd
 from neftecode.infrastructure.data.data import build_features, frozen_rule, recent_quality_history
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.ports.robustness import RobustnessEvaluator
-from neftecode.application.contracts import LiveForecast, LiveSnapshot, LiveAdviceCommand
+from neftecode.application.contracts import MEASURED_ORIGIN, LiveForecast, LiveSnapshot, LiveAdviceCommand
 from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
 from neftecode.infrastructure.response.estimate import response_at
@@ -103,7 +103,6 @@ class LocalForecastScenarioBinder:
             raise ForecastBindingError(str(exc)) from exc
 
 
-MEASURED_ORIGIN = "real_measurements_at_decision_time"
 #: Теги, чьи значения на момент решения попадают в сценарий: температура входа Р-202, массовый
 #: расход сырья и расход гидроочищенного ДТ в цех №8 (справочник 24-2000 от 16.09).
 MEASURED_TAGS = ("ht.T6", "ht.F9", "ht.F26")

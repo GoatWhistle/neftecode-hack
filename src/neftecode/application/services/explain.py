@@ -15,7 +15,8 @@ What is deliberately impossible to say:
 from dataclasses import dataclass
 import math
 
-from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN
+from neftecode.application.contracts import MEASURED_ORIGIN
+from neftecode.domain.shared.primitives import PASS, UNKNOWN
 from neftecode.domain.production.scenario import Scenario
 from neftecode.domain.shared.primitives import PRODUCT_LIMITS
 
@@ -103,23 +104,45 @@ def operating_margin_warnings(decision: dict, scenario: Scenario) -> list[dict]:
              "observed_margin_mgkg": round(left, 3), "operating_margin_mgkg": margin}]
 
 
-def current_operation_view(decision: dict, scenario: Scenario) -> dict:
-    """Текущий режим для экрана: из решения, а при его отсутствии — из сценария.
+def current_operation_view(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
+    """Текущий режим для экрана, с происхождением каждого числа.
 
-    Нужен и при отказе: ключевые текущие параметры показываются оператору в любом случае,
-    иначе отказ не с чем сопоставить.
+    Нужен и при отказе: оператору нужно видеть, от чего отсчитывается решение. Но число, которое
+    читается как измерение, обязано им быть. Порядок:
+
+    * `decision["current_operation"]` — подтверждённый режим (replay), origin `decision`;
+    * иначе уставки берутся из сценария вместе с их `source`: `measured`/`derived` — привязанные
+      измерения (после связывания среза), `scenario` — допущение сценария. На реальном срезе
+      (`state["origin"] == MEASURED_ORIGIN`) сценарная уставка не показывается — вместо числа `None`,
+      а измерения тегов на момент решения отдаются отдельно в `measurements`;
+    * рецепт и выпуск всегда сценарные: живой путь их не измеряет.
     """
-    return decision.get("current_operation") or {
-        "controls": {name: spec["current"].value
-                     for stage in scenario.stages.values()
-                     for name, spec in stage.controls.items()},
-        "recipe": dict(scenario.current_operation.recipe),
-        "throughput_tph": scenario.current_operation.throughput.value,
-        "additive_dose": 0.0,
-    }
+    real = bool(state) and state.get("origin") == MEASURED_ORIGIN
+    confirmed = decision.get("current_operation")
+    if confirmed:
+        view = dict(confirmed)
+        view["origin"] = {"controls": {name: "decision" for name in (confirmed.get("controls") or {})},
+                          "recipe": "decision", "throughput_tph": "decision", "additive_dose": "decision"}
+    else:
+        controls, origin = {}, {}
+        for stage in scenario.stages.values():
+            for name, spec in stage.controls.items():
+                current = spec["current"]
+                if current.measured or not real:
+                    controls[name], origin[name] = current.value, current.source
+                else:
+                    controls[name], origin[name] = None, "unknown"
+        view = {"controls": controls, "recipe": dict(scenario.current_operation.recipe),
+                "throughput_tph": scenario.current_operation.throughput.value, "additive_dose": 0.0,
+                "origin": {"controls": origin, "recipe": "scenario", "throughput_tph": "scenario",
+                           "additive_dose": "scenario"}}
+    if real:
+        view["measurements"] = {tag: (dict(item) if isinstance(item, dict) else None)
+                                for tag, item in (state.get("measurements") or {}).items()}
+    return view
 
 
-def explain_decision(decision: dict, scenario: Scenario) -> dict:
+def explain_decision(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
     """Build the operator-facing explanation of a decision that produced a plan."""
     statements: list[Statement] = []
     gate = decision.get("gate") or {}
@@ -232,7 +255,7 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
         "status": decision.get("status"),
         "reason": decision.get("reason"),
         "statements": [s.to_dict() for s in statements],
-        "current_operation": current_operation_view(decision, scenario),
+        "current_operation": current_operation_view(decision, scenario, state),
         "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
         "warnings": operating_margin_warnings(decision, scenario),
         "checks_passed": sum(1 for c in checks if c["status"] == PASS),
@@ -251,7 +274,7 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
     }
 
 
-def explain_refusal(decision: dict, scenario: Scenario) -> dict:
+def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
     """Build a refusal that says what is missing and what would change the answer.
 
     The three kinds are answered differently: bad data needs a measurement, an inapplicable
@@ -304,7 +327,7 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
         "kind": kind,
         "reason": decision.get("reason"),
         "next_steps": next_steps,
-        "current_operation": current_operation_view(decision, scenario),
+        "current_operation": current_operation_view(decision, scenario, state),
         "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
         "limits": [
             "Отказ не снимается ослаблением жёстких ограничений: предел серы 10 мг/кг и другие "
@@ -315,8 +338,8 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
     }
 
 
-def explain(decision: dict, scenario: Scenario) -> dict:
-    """Dispatch to the right explanation for the decision's status."""
+def explain(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
+    """Dispatch to the right explanation for the decision's status; `state` tells whether it is real."""
     if decision.get("status") == "refuse":
-        return explain_refusal(decision, scenario)
-    return explain_decision(decision, scenario)
+        return explain_refusal(decision, scenario, state)
+    return explain_decision(decision, scenario, state)

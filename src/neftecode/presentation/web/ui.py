@@ -44,6 +44,7 @@ STYLE = """ :root { color-scheme: light dark; --ok:#1a7f37; --warn:#9a6700; --ba
  td, th { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); vertical-align: top; }
  th { color:#57606a; font-weight:600; width: 38%; }
  .unknown { color:#9a6700; font-style: italic; }
+ .origin { color:#57606a; font-size:12px; margin-left:6px; }
  .note { color:#57606a; font-size:13px; margin-top:12px; }
  ul { margin: 0; padding-left: 20px; }
  details { margin-top: 8px; }
@@ -71,12 +72,27 @@ function render() {
     change(before ? 100 * (before[k] || 0) : null,
            after ? 100 * (after[k] || 0) : null, 1) + " %"]);
   // Текущие параметры показываются в любом состоянии экрана, включая отказ: оператору нужно
-  // видеть, от чего отсчитывается решение, даже когда предлагать нечего.
-  const currentRows = () => Object.entries(current.controls || {}).map(([k, v]) => [k, num(v, 2)])
-    .concat([["Выпуск, т/ч", num(current.throughput_tph, 1)],
-             ["Доля присадки", num(current.additive_dose, 4)]]);
+  // видеть, от чего отсчитывается решение, даже когда предлагать нечего. Каждое число несёт
+  // происхождение: измерение, сценарное допущение или подтверждённый режим; нет измерения — «неизвестно».
+  const originLabel = {measured: "измерение", derived: "выведено из данных", scenario: "сценарное допущение",
+    decision: "подтверждённый режим", given: "выдано организаторами"};
+  const origin = current.origin || {};
+  const tagged = (v, o, digits, unit) => v === null || v === undefined
+    ? num(v, digits) : `${num(v, digits)}${unit || ""} <span class="origin">${esc(originLabel[o] || o || "")}</span>`;
+  const currentRows = () => Object.entries(current.controls || {})
+    .map(([k, v]) => [k, tagged(v, (origin.controls || {})[k], 2)])
+    .concat([["Выпуск, т/ч", tagged(current.throughput_tph, origin.throughput_tph, 1)],
+             ["Доля присадки", tagged(current.additive_dose, origin.additive_dose, 4)]]);
   const currentRecipeRows = () => Object.entries(current.recipe || {})
-    .map(([k, f]) => [e.component_names?.[k] || k, num(100 * f, 1) + " %"]);
+    .map(([k, f]) => [e.component_names?.[k] || k, tagged(100 * f, origin.recipe, 1, " %")]);
+  // Измерения тегов на момент решения (только реальный срез): то, что установка показывала на самом деле.
+  const measurementRows = () => Object.entries(current.measurements || {}).map(([tag, m]) => [tag, m
+    ? `${num(m.value, 2)} · ${esc(String(m.time || "").replace("T", " "))}` +
+      (Number.isFinite(m.age_min) ? ` · возраст ${num(m.age_min, 0)} мин` : "")
+    : '<span class="unknown">нет измерения на момент решения</span>']);
+  const measurementsCard = () => measurementRows().length
+    ? `<h3>Измерения на момент решения</h3><table>${rows(measurementRows())}</table>
+       <p class="note">ht.T6 — температура входа Р-202, °C; ht.F9 — расход сырья ГО, т/ч; ht.F26 — гидроочищенное ДТ в цех №8, м³/ч.</p>` : "";
   const head = `<h1>${esc(data.title)}</h1>
     <div class="sub">Сценарий <b>${esc(d.scenario_id)}</b>, решение
     <code>${esc(d.decision_id)}</code> · <span class="badge ${esc(d.status)}">${esc(data.status_label)}</span>
@@ -90,7 +106,7 @@ function render() {
           (s.available_in_hours ? ` <span class="warn">(результат до ${s.available_in_hours} ч; ${esc(s.caveat || "")})</span>` : "") +
           `</li>`).join("") + `</ul>
         <h3>Ключевые текущие параметры</h3>
-        <table>${rows(currentRows())}</table>` +
+        <table>${rows(currentRows())}</table>` + measurementsCard() +
         (currentRecipeRows().length
           ? `<h3>Состав смеси сейчас</h3><table>${rows(currentRecipeRows())}</table>` : "")
       : `<table>${rows((d.immediate_action ? Object.entries(d.immediate_action.controls) : [])
@@ -100,7 +116,7 @@ function render() {
         <p class="note">Уставки задаются регуляторам с обратной связью:<br>${(e.statements || [])
             .filter(s => s.topic.startsWith("control.")).map(s => esc(s.text)).join("<br>")}</p>
         <h3>Состав смеси: сейчас → предложено</h3>
-        <table>${rows(recipeRows(current.recipe, d.immediate_action?.recipe))}</table>`));
+        <table>${rows(recipeRows(current.recipe, d.immediate_action?.recipe))}</table>` + measurementsCard()));
 
   if (d.status !== "refuse") {
     body += card("Ожидаемый эффект", `<table>${rows([

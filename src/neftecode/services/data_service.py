@@ -11,6 +11,7 @@ import pandas as pd
 
 from neftecode.infrastructure.data.data import build_features, load_sources, recent_quality_history
 from neftecode.infrastructure.live.advisor import measurements_at
+from neftecode.application.contracts import MEASURED_ORIGIN
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from .common import Request, ServiceError, ServiceSettings, serve, clean, content_hash
@@ -120,7 +121,7 @@ class DataService:
         except (ValueError, TypeError, KeyError) as exc:
             raise ServiceError(str(exc), 422, "snapshot_rejected") from exc
         state = self._state(meta)
-        state["origin"] = "real_measurements_at_decision_time"
+        state["origin"] = MEASURED_ORIGIN
         state.update(recent_quality_history(lab, online, when, cfg))
         state["measurements"] = measurements_at(signals, when, cfg)
         trust = DataTrustAgent(cfg).assess(state).to_dict()

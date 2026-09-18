@@ -188,4 +188,6 @@ def test_explanation_prefers_the_confirmed_current_operation_from_decision():
     scenario = load_scenario(SCENARIOS / "baseline.json")
     current = {"controls": {}, "recipe": {"main": .7, "reserve": .3},
                "throughput_tph": 80, "additive_dose": .01}
-    assert explain({"status": "hold", "current_operation": current}, scenario)["current_operation"] == current
+    view = explain({"status": "hold", "current_operation": current}, scenario)["current_operation"]
+    assert {k: view[k] for k in current} == current
+    assert view["origin"]["recipe"] == "decision"

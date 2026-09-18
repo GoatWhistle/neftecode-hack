@@ -117,7 +117,7 @@ class DecisionService:
                                             decision_context(snapshot.get("at"), snapshot.get("forecast"), raw)))
         decision = maker.decide(state=state or {}, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
         trust = DataTrustAgent(trust_cfg).assess(state or {})
-        return {"decision": clean(decision), "explanation": clean(explain(decision, scenario)),
+        return {"decision": clean(decision), "explanation": clean(explain(decision, scenario, state)),
                 "inventories": {key: value.inventory_t for key, value in initial_state(scenario).items()},
                 "sources": [clean(source.to_dict()) for source in trust.sources.values()],
                 "trust_origin": trust_origin,

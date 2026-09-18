@@ -8,6 +8,9 @@ DecisionResult: TypeAlias = dict[str, object]
 PlanningResult: TypeAlias = dict[str, object]
 ReplayResult: TypeAlias = dict[str, object]
 
+#: Origin of a state built from the issued data at the decision time (snapshots, `advise`, data-service).
+MEASURED_ORIGIN = "real_measurements_at_decision_time"
+
 
 def _mapping(raw: Mapping[str, Any], key: str) -> dict[str, object]:
     value = raw.get(key)

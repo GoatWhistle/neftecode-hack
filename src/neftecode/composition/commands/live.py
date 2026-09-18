@@ -3,14 +3,12 @@ import json
 from pathlib import Path
 import pickle
 
-from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.data.data import load_sources
-from neftecode.infrastructure.live.advisor import (LiveAdviceAdapter, bind_forecast, interval_coverage,
-                                                   load_response_model)
+from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, interval_coverage, load_response_model
 from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.infrastructure.live.snapshots import build_snapshot, write_snapshot
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
@@ -40,19 +38,16 @@ def handle(args, parser, root, out):
     if result.get("decision") is None:
         screen_payload = error_payload(result.get("error", "Решение не получено"))
     else:
-        raw_for_screen = (advisor.raw_scenario
-                           if not result["forecast"].get("available")
-                           else advisor.raw_scenario.copy())
-        if result["forecast"].get("available") and result["trust"].get("usable"):
-            raw_for_screen = bind_forecast(advisor.raw_scenario, result["forecast"], state=result["state"])
-        scenario_for_screen = parse_scenario(raw_for_screen)
+        bound = result.get("binding") is not None
         screen_payload = Screen(
             result["decision"], result["explanation"],
-            inventories={k: v.inventory_t for k, v in initial_state(scenario_for_screen).items()},
+            inventories=result.get("inventories") or {},
             sources=list(result["trust"].get("sources", {}).values()),
             # Пороги доверия здесь берутся из обученной модели, состояние — реальные измерения.
             rule_origin="derived:artifacts/model.pkl",
-            state_origin=f"реальные измерения на момент решения: {when:%d.%m.%Y %H:%M}",
+            state_origin=(f"реальные измерения на момент решения: {when:%d.%m.%Y %H:%M}" if bound else
+                          f"реальный срез {when:%d.%m.%Y %H:%M} без привязки: измерения показаны, "
+                          "сценарные уставки не используются"),
             decision_time=(result.get("state") or {}).get("decision_time") or result.get("at"),
             forecast=result.get("forecast"),
         ).payload()
