@@ -10,8 +10,8 @@
  "horizon_response_source": "beta is the mean cumulative ARX response at 3-8 h to a sustained step, so no effect is credited before 3 h (response_onset_hours); within the 3 h case horizon at most 0.66 of beta*dT is credited: the APC delivers 0.62-0.66 of the commanded T6 step by 3 h (FS = 0.66, F1 first stage on SELECT, context/response-research/t6/response_model.py, RESPONSE_MODEL_T6.md section 5); beyond the horizon (look-ahead) the full beta applies",
  "flow_beta": null,
  "flow_beta_note": "F9 lags enter the ARX only as a control; no identified sustained flow effect (F9 vs F26 as flow tag changes beta by <0.002)",
- "method_reference": "context/response-research/t6/response_model.py, RESPONSE_MODEL_T6.md; ported to src/neftecode/infrastructure/response/estimate.py without changing the method",
+ "method_reference": "context/response-research/t6/response_model.py, RESPONSE_MODEL_T6.md; production-реализация в src/neftecode/infrastructure/response/estimate.py считает q01(F9) причинно по данным до tau - 6 h",
  "history": {
-  "note": "hand-written C2 of 2026-09-17 (tau 2026-01-01, window 2025): beta -0.4332, ci [-0.4761, -0.397], weak_strong [-0.217, -0.739], n_rows 48938, t6_range_c [342.9, 386.1], f9_range_tph [150.3, 256.7]; reproduced by train to 4 decimals (n_rows 48925 after T99 dead-column rule)"
+  "note": "2026-09-17 до исправления утечки q01(F9): beta -0.4332. Пересчёт 2026-09-18 с q01 только до tau - 6 h: beta -0.4226, ci [-0.4767, -0.389], weak_strong [-0.211, -0.721], n_rows 49069, feed_floor 133.457, t6_range [342.9, 386.1], f9_range [149.8, 256.7]."
  }
 }
