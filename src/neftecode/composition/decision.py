@@ -48,6 +48,8 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
         sources=[source.to_dict() for source in trust.sources.values()],
         rule_origin=trust_origin,
         state_origin=state_origin_label(state, snapshot),
+        decision_time=state.get("decision_time"),
+        forecast=(snapshot or {}).get("forecast"),
     ).payload()
     return {"ok": True, "rejected": False, "scenario_id": scenario.scenario_id,
             "decision": decision, "screen": screen, "trust_origin": trust_origin,

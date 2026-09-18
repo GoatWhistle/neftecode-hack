@@ -50,6 +50,11 @@ def handle(args, parser, root, out):
             result["decision"], result["explanation"],
             inventories={k: v.inventory_t for k, v in initial_state(scenario_for_screen).items()},
             sources=list(result["trust"].get("sources", {}).values()),
+            # Пороги доверия здесь берутся из обученной модели, состояние — реальные измерения.
+            rule_origin="derived:artifacts/model.pkl",
+            state_origin=f"реальные измерения на момент решения: {when:%d.%m.%Y %H:%M}",
+            decision_time=(result.get("state") or {}).get("decision_time") or result.get("at"),
+            forecast=result.get("forecast"),
         ).payload()
     write_screen(out / f"screen-{stamp}.html", screen_payload)
     forecast = result["forecast"]

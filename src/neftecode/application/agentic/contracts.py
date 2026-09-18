@@ -346,7 +346,7 @@ class AgentSettings:
     max_tool_result_chars: int = 2500
     max_robustness_runs: int = 2
     max_tool_calls_per_response: int = 3
-    max_tokens: int = 2048
+    max_tokens: int = 6144
     request_timeout_s: float = 120.0
 
     def __post_init__(self):

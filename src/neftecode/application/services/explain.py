@@ -103,6 +103,22 @@ def operating_margin_warnings(decision: dict, scenario: Scenario) -> list[dict]:
              "observed_margin_mgkg": round(left, 3), "operating_margin_mgkg": margin}]
 
 
+def current_operation_view(decision: dict, scenario: Scenario) -> dict:
+    """Текущий режим для экрана: из решения, а при его отсутствии — из сценария.
+
+    Нужен и при отказе: ключевые текущие параметры показываются оператору в любом случае,
+    иначе отказ не с чем сопоставить.
+    """
+    return decision.get("current_operation") or {
+        "controls": {name: spec["current"].value
+                     for stage in scenario.stages.values()
+                     for name, spec in stage.controls.items()},
+        "recipe": dict(scenario.current_operation.recipe),
+        "throughput_tph": scenario.current_operation.throughput.value,
+        "additive_dose": 0.0,
+    }
+
+
 def explain_decision(decision: dict, scenario: Scenario) -> dict:
     """Build the operator-facing explanation of a decision that produced a plan."""
     statements: list[Statement] = []
@@ -216,14 +232,7 @@ def explain_decision(decision: dict, scenario: Scenario) -> dict:
         "status": decision.get("status"),
         "reason": decision.get("reason"),
         "statements": [s.to_dict() for s in statements],
-        "current_operation": decision.get("current_operation") or {
-            "controls": {name: spec["current"].value
-                         for stage in scenario.stages.values()
-                         for name, spec in stage.controls.items()},
-            "recipe": dict(scenario.current_operation.recipe),
-            "throughput_tph": scenario.current_operation.throughput.value,
-            "additive_dose": 0.0,
-        },
+        "current_operation": current_operation_view(decision, scenario),
         "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
         "warnings": operating_margin_warnings(decision, scenario),
         "checks_passed": sum(1 for c in checks if c["status"] == PASS),
@@ -295,6 +304,8 @@ def explain_refusal(decision: dict, scenario: Scenario) -> dict:
         "kind": kind,
         "reason": decision.get("reason"),
         "next_steps": next_steps,
+        "current_operation": current_operation_view(decision, scenario),
+        "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
         "limits": [
             "Отказ не снимается ослаблением жёстких ограничений: предел серы 10 мг/кг и другие "
             "обязательные условия остаются в силе.",
