@@ -12,14 +12,13 @@ from dataclasses import dataclass, field
 import errno
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from html import escape
 from pathlib import Path
 import threading
 from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
 from neftecode.presentation.demo import SOURCE_FAULTS, Demo, DemoError, snapshot_key, snapshot_title
-from .ui import RENDER_JS, STYLE, error_payload
+from .ui import RENDER_JS, STYLE, error_payload, json_for_script, option
 
 #: Where the scenario files live, relative to the project root.
 SCENARIO_DIR = Path("config/scenarios")
@@ -126,7 +125,7 @@ function fillFrom(defs) {
   $("t95").value = defs.product_t95_c ?? "";
   $("cetane").value = defs.product_cetane_number ?? "";
   $("throughput").value = defs.throughput_tph ?? "";
-  $("tank").innerHTML = (defs.tanks || []).map(t => `<option value="${t.id}">${t.id}</option>`).join("");
+  $("tank").innerHTML = (defs.tanks || []).map(t => `<option value="${esc(t.id)}">${esc(t.id)}</option>`).join("");
   if ((defs.tanks || []).length) syncTank();
 }
 
@@ -428,17 +427,15 @@ class DemoService:
         except (DemoServerError, DemoError, ValueError) as exc:
             payload = error_payload(str(exc))
             payload["defaults"] = {}
-        options = "".join(f'<option value="{n}"{" selected" if n == chosen else ""}>{n}</option>'
-                          for n in names)
-        faults = "".join(f'<option value="{f}">{f}</option>' for f in SOURCE_FAULTS)
-        snapshots = "".join(f'<option value="{key}">{escape(title)}</option>'
-                            for key, title in self.snapshot_options())
+        options = "".join(option(n, n, selected=n == chosen) for n in names)
+        faults = "".join(option(f, f) for f in SOURCE_FAULTS)
+        snapshots = "".join(option(key, title) for key, title in self.snapshot_options())
         # Placeholder substitution for the same reason as in ui.py: the page is mostly CSS and
         # JavaScript, and doubling every brace for str.format would be a trap.
         replacements = {
             "__STYLE__": STYLE, "__CONTROLS_STYLE__": CONTROLS_STYLE, "__RENDER_JS__": RENDER_JS,
             "__SCENARIOS__": options, "__FAULTS__": faults, "__SNAPSHOTS__": snapshots,
-            "__PAYLOAD__": json.dumps(payload, ensure_ascii=False, default=str),
+            "__PAYLOAD__": json_for_script(payload),
         }
         page = PAGE
         for token, value in replacements.items():

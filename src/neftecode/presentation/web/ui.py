@@ -15,6 +15,7 @@ The main meaning is readable without opening the log; the agent trace and the fu
 a collapsed section underneath.
 """
 from dataclasses import dataclass
+import html
 import json
 from pathlib import Path
 
@@ -328,14 +329,25 @@ def error_payload(message: str) -> dict:
     return {"state": "error", "message": message}
 
 
+def json_for_script(payload: dict) -> str:
+    """JSON safe inside a `<script>` block: `</` cannot close the tag early, U+2028/2029 stay valid JS."""
+    text = json.dumps(payload, ensure_ascii=False, default=str)
+    return text.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+
+
+def option(value: str, label: str, selected: bool = False) -> str:
+    """One `<option>` with both value and label escaped."""
+    return (f'<option value="{html.escape(str(value), quote=True)}"{" selected" if selected else ""}>'
+            f'{html.escape(str(label))}</option>')
+
+
 def render(payload: dict) -> str:
     """Embed the payload into the page. Values are rendered by the page, never baked in."""
     if payload.get("state") not in STATES:
         raise UiError(f"Неизвестное состояние экрана: {payload.get('state')}")
     # Placeholder substitution, not str.format: the page carries CSS and JavaScript full of
     # braces, and escaping every one of them would make the source unreadable and fragile.
-    return TEMPLATE.replace("__PAYLOAD__",
-                            json.dumps(payload, ensure_ascii=False, default=str))
+    return TEMPLATE.replace("__PAYLOAD__", json_for_script(payload))
 
 
 def write_screen(path: Path, payload: dict) -> Path:

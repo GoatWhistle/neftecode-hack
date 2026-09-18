@@ -5,15 +5,13 @@ import argparse
 import copy
 import os
 from pathlib import Path
-import json
-from html import escape
 
 from neftecode.presentation.demo import (SOURCE_FAULTS, healthy_state, apply_source_failure, snapshot_key,
                                          snapshot_title, state_origin_label)
 from neftecode.infrastructure.live.snapshots import load_snapshots
 from neftecode.presentation.web.server import (PAGE, CONTROLS_STYLE, FIRST_SNAPSHOT, DecisionCache, DemoServerError,
                                                as_query, cache_key, canonical_conditions, changes_from, defaults_for)
-from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, Screen
+from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, json_for_script, option, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.llm.config import decision_wait_seconds
 from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
@@ -102,10 +100,10 @@ class GatewayService:
         except Exception as exc:
             names, chosen = [], name
             payload = {**error_payload(str(exc)), "defaults": {}}
-        options = "".join(f'<option value="{n}"{" selected" if n == chosen else ""}>{n}</option>' for n in names)
-        faults = "".join(f'<option value="{f}">{f}</option>' for f in SOURCE_FAULTS)
-        snapshots = "".join(f'<option value="{key}">{escape(title)}</option>' for key, title in self.snapshot_options())
-        return PAGE.replace("__STYLE__", STYLE).replace("__CONTROLS_STYLE__", CONTROLS_STYLE).replace("__RENDER_JS__", RENDER_JS).replace("__SCENARIOS__", options).replace("__FAULTS__", faults).replace("__SNAPSHOTS__", snapshots).replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False, default=str))
+        options = "".join(option(n, n, selected=n == chosen) for n in names)
+        faults = "".join(option(f, f) for f in SOURCE_FAULTS)
+        snapshots = "".join(option(key, title) for key, title in self.snapshot_options())
+        return PAGE.replace("__STYLE__", STYLE).replace("__CONTROLS_STYLE__", CONTROLS_STYLE).replace("__RENDER_JS__", RENDER_JS).replace("__SCENARIOS__", options).replace("__FAULTS__", faults).replace("__SNAPSHOTS__", snapshots).replace("__PAYLOAD__", json_for_script(payload))
 
     def ready(self):
         for url in (self.data_url + "/readyz", self.decision_url + "/readyz"):
