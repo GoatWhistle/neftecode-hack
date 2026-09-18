@@ -31,7 +31,7 @@ DEFAULT_PERTURBATIONS = (
     {"name": "запаздывание отклика +50%", "path": "hydrotreating.response_lag_hours", "factor": 1.50},
     {"name": "сера резерва +50%", "path": "tank.reserve.sulfur_mgkg", "factor": 1.50},
     {"name": "сера основного компонента +10%", "path": "tank.main.sulfur_mgkg", "factor": 1.10},
-    {"name": "запас резерва -20%", "path": "tank.reserve.inventory", "factor": 0.80},
+    {"name": "подача резерва -20%", "path": "tank.reserve.max_outflow", "factor": 0.80},
     {"name": "доля серы в дизельной фракции +10%", "path": "avt.sulfur_partition", "factor": 1.10},
 )
 
@@ -97,8 +97,10 @@ def perturb(raw: dict, spec: dict) -> dict:
         for tank in out["tanks"]:
             if tank["tank_id"] != tank_id:
                 continue
-            if field_name == "inventory":
-                tank["inventory"]["value"] *= factor
+            if field_name in ("inventory", "max_outflow"):
+                if field_name not in tank:
+                    raise RobustnessError(f"{spec['name']}: у {tank_id} нет поля {field_name}")
+                tank[field_name]["value"] *= factor
             else:
                 if tank["properties"].get(field_name) is None:
                     raise RobustnessError(f"{spec['name']}: у {tank_id} нет свойства {field_name}")
@@ -162,6 +164,8 @@ class RobustnessCheck:
                     tank = stocks[tank_id]
                     if attribute == "inventory":
                         stocks[tank_id] = replace(tank, inventory_t=tank.inventory_t * spec["factor"])
+                    elif attribute == "max_outflow":
+                        stocks[tank_id] = replace(tank, max_outflow_tph=tank.max_outflow_tph * spec["factor"])
                     elif tank.properties.get(attribute) is not None:
                         stocks[tank_id] = replace(tank, properties={**tank.properties,
                             attribute: tank.properties[attribute] * spec["factor"]})

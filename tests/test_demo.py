@@ -51,10 +51,12 @@ def test_removing_a_tank_changes_what_is_proposed(demo):
 
 
 def test_lowering_the_stock_reaches_the_inventory_check(demo):
-    plenty = demo.run([{"change": "tank_inventory", "value": 600.0, "target": "reserve"}])
-    scarce = demo.run([{"change": "tank_inventory", "value": 5.0, "target": "reserve"}])
-    assert plenty["screen"]["inventories"]["reserve"] == 600.0
-    assert scarce["screen"]["inventories"]["reserve"] == 5.0
+    plenty = demo.run([{"change": "tank_inventory", "value": 4000.0, "target": "main"}])
+    scarce = demo.run([{"change": "tank_inventory", "value": 5.0, "target": "main"}])
+    assert plenty["screen"]["inventories"]["main"] == 4000.0
+    assert scarce["screen"]["inventories"]["main"] == 5.0
+    with pytest.raises(DemoError, match="по необходимости"):
+        demo.run([{"change": "tank_inventory", "value": 5.0, "target": "reserve"}])
 
 
 def test_a_tighter_product_limit_changes_the_answer(demo):
@@ -71,7 +73,7 @@ def test_changing_the_throughput_reaches_the_plan(demo):
 
 def test_several_changes_apply_together(demo):
     result = demo.run([{"change": "crude_sulfur_wt_pct", "value": 1.8},
-                       {"change": "tank_inventory", "value": 40.0, "target": "reserve"}])
+                       {"change": "tank_inventory", "value": 40.0, "target": "main"}])
     assert result["ok"] is True
     assert len(result["applied"]) == 2
 
@@ -90,7 +92,7 @@ def test_weakening_the_hard_sulfur_limit_is_refused(demo):
 
 
 def test_a_negative_stock_is_refused(demo):
-    result = demo.run([{"change": "tank_inventory", "value": -100.0, "target": "reserve"}])
+    result = demo.run([{"change": "tank_inventory", "value": -100.0, "target": "main"}])
     assert result["rejected"] is True
     assert "отрицательное" in result["reason"].lower()
 

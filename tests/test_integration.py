@@ -99,7 +99,8 @@ def test_a_bare_number_cannot_pose_as_a_measured_quantity():
 
 def test_a_scenario_constant_is_never_reported_as_measured():
     scenario = load_scenario(BASELINE)
-    assert scenario.tank("reserve").inventory.measured is False
+    assert scenario.tank("main").inventory.measured is False
+    assert scenario.tank("reserve").on_demand is True
     assert scenario.product.limits["sulfur_mgkg"].measured is True
 
 
@@ -140,8 +141,9 @@ def test_an_unknown_limit_blocks_rather_than_passes():
 def test_an_empty_tank_cannot_be_drawn_from():
     empty = raw()
     for tank in empty["tanks"]:
-        if tank["tank_id"] == "reserve":
+        if tank["tank_id"] == "main":
             tank["inventory"]["value"] = 0.0
+            tank["inflow"]["value"] = 0.0
     scenario = parse_scenario(empty)
     ledger = InventoryLedger(scenario)
     result = ledger.run_plan([(0.0, {"main": 0.8, "reserve": 0.2}, 100.0)])
@@ -149,17 +151,16 @@ def test_an_empty_tank_cannot_be_drawn_from():
     assert result["first_failure"] is not None
 
 
-def test_the_advisor_does_not_propose_a_recipe_the_stock_cannot_carry():
-    empty = raw(SOUR)
-    for tank in empty["tanks"]:
+def test_the_advisor_does_not_propose_a_recipe_the_supply_cannot_carry():
+    tight = raw(SOUR)
+    for tank in tight["tanks"]:
         if tank["tank_id"] == "reserve":
-            tank["inventory"]["value"] = 1.0
-    scenario = parse_scenario(empty)
+            tank["max_outflow"]["value"] = 5.0
+    scenario = parse_scenario(tight)
     decision = MakeDecision(scenario).decide(budget=BUDGET)
     if decision["selected_plan"] is not None:
         for step in decision["selected_plan"]["steps"]:
-            used = step["throughput_tph"] * step["recipe"].get("reserve", 0.0) * 3.0
-            assert used <= 1.0 + 1e-6
+            assert step["throughput_tph"] * step["recipe"].get("reserve", 0.0) <= 5.0 + 1e-6
 
 
 # --- Error chain: the delayed effect ---

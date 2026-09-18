@@ -3,7 +3,10 @@
 Three separate things, deliberately not fused into one score:
 
 * **production** — tonnes of blended product over the plan;
-* **cost** — components, the additive and the energy of treating, each from a declared price;
+* **cost** — components, the additive and the energy of treating, each from a declared price.
+  Treating energy grows with the square of how far below the reference sulfur level the stream is
+  pushed (organisers' written answer of 18.09.2026: "растут квадратично от запаса" below 8 ppm);
+  the scale of that square is a scenario constant;
 * **severity** — how far the hydrotreater is driven from its reference regime.
 
 Severity is a described index, not a residual life and not a failure probability. The package
@@ -29,6 +32,34 @@ class EconomicsError(ValueError):
 
 def _finite(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def deep_treating_depth_mgkg(economics: dict, sulfur_mgkg: float | None) -> float:
+    """How far below the reference sulfur level (8 ppm) a stream is treated; 0 at or above it."""
+    reference = economics["deep_treating_reference_mgkg"].value
+    if sulfur_mgkg is None or not _finite(sulfur_mgkg):
+        return 0.0
+    return max(0.0, reference - sulfur_mgkg)
+
+
+def deep_treating_cost_per_t(economics: dict, depth_mgkg: float) -> float:
+    """Extra energy cost per tonne of treating `depth_mgkg` below the reference level: k·depth².
+
+    The quadratic form is the organisers' statement; the coefficient is a scenario constant.
+    """
+    if not _finite(depth_mgkg) or depth_mgkg <= 0:
+        return 0.0
+    return economics["deep_treating_cost_per_ppm2_per_t"].value * depth_mgkg ** 2
+
+
+def on_demand_price_per_t(economics: dict, sulfur_mgkg: float) -> float:
+    """Price of a tonne of diesel produced on demand at a deeper treating level.
+
+    Base diesel plus reference treating plus the quadratic energy of the extra depth.
+    """
+    return (economics["diesel_price_per_t"].value
+            + economics["treating_cost_per_t_at_reference"].value
+            + deep_treating_cost_per_t(economics, deep_treating_depth_mgkg(economics, sulfur_mgkg)))
 
 
 @dataclass(frozen=True)
@@ -71,8 +102,10 @@ class Economics:
         """Cost of running `recipe` at `throughput_tph` for `hours`.
 
         Component cost uses the mass actually drawn. Treating cost is charged on the same
-        mass once: a reference part plus a part proportional to how far above the reference
-        temperature the reactor is held.
+        mass once: a reference part plus the quadratic energy of the extra treating depth. The
+        depth is the sulfur removed beyond the reference regime, taken as
+        `sulfur_depth_per_degree_mgkg` per degree the reactor is held above the reference
+        temperature (the linearised response |β|), so the term is quadratic in the temperature move.
         """
         for name, value in (("throughput_tph", throughput_tph), ("hours", hours),
                             ("additive_dose", additive_dose)):
@@ -91,8 +124,9 @@ class Economics:
             extra_degrees = 0.0
         else:
             extra_degrees = max(0.0, ht_temp_c - reference_temp)
+        depth = economics["sulfur_depth_per_degree_mgkg"].value * extra_degrees
         treating = mass * (economics["treating_cost_per_t_at_reference"].value
-                           + economics["treating_cost_per_extra_degree_per_t"].value * extra_degrees)
+                           + deep_treating_cost_per_t(economics, depth))
         return StepCost(float(hours), mass, component, additive, treating)
 
     def severity(self, controls: dict[str, float]) -> dict:

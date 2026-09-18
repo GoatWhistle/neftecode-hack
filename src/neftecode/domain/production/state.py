@@ -15,6 +15,10 @@ class TankState:
     max_outflow_tph: float = 0.0
     observed_at: str | None = None
     provenance: str = "scenario"
+    #: Produced when drawn (deep-treated diesel made on demand): draws accumulate in
+    #: `produced_t` instead of depleting a stock.
+    on_demand: bool = False
+    produced_t: float = 0.0
 
     def __post_init__(self):
         if not _finite(self.inventory_t) or self.inventory_t < 0:
@@ -31,6 +35,8 @@ class TankState:
         """Withdrawal that would go negative is an error, not a silent clamp to zero."""
         if not _finite(mass_t) or mass_t < 0:
             raise ContractError(f"TankState[{self.tank_id}].draw: масса отбора должна быть конечной и неотрицательной")
+        if self.on_demand:
+            return replace(self, produced_t=self.produced_t + mass_t)
         if mass_t > self.inventory_t + 1e-9:
             raise ContractError(f"TankState[{self.tank_id}]: отбор {mass_t:.3f} т превышает остаток {self.inventory_t:.3f} т")
         return replace(self, inventory_t=max(0.0, self.inventory_t - mass_t))
@@ -73,10 +79,11 @@ class TankState:
         return {"tank_id": self.tank_id, "available": self.available, "inventory_t": self.inventory_t,
                 "properties": dict(self.properties), "inflow_tph": self.inflow_tph,
                 "max_outflow_tph": self.max_outflow_tph, "observed_at": self.observed_at,
-                "provenance": self.provenance}
+                "provenance": self.provenance, "on_demand": self.on_demand, "produced_t": self.produced_t}
 
     @classmethod
     def from_dict(cls, raw: dict) -> "TankState":
         return cls(raw["tank_id"], raw["available"], raw["inventory_t"], dict(raw["properties"]),
                    raw.get("inflow_tph", 0.0), raw.get("max_outflow_tph", 0.0),
-                   raw.get("observed_at"), raw.get("provenance", "scenario"))
+                   raw.get("observed_at"), raw.get("provenance", "scenario"),
+                   raw.get("on_demand", False), raw.get("produced_t", 0.0))

@@ -78,6 +78,8 @@ def apply_change(raw: dict, change: str, value, target: str | None = None) -> di
         for tank in out["tanks"]:
             if tank["tank_id"] == target:
                 if change == "tank_inventory":
+                    if tank.get("on_demand"):
+                        raise DemoError(f"{target}: компонент производится по необходимости, запаса у него нет")
                     tank["inventory"]["value"] = value
                 else:
                     tank["available"] = bool(value)

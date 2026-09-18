@@ -36,7 +36,8 @@ def initial_state(scenario: Scenario) -> dict[str, TankState]:
     return {t.tank_id: TankState(
         t.tank_id, t.available, t.inventory.value,
         {q: t.property_value(q) for q in QUALITIES},
-        t.inflow.value, t.max_outflow.value, provenance="scenario") for t in scenario.tanks}
+        t.inflow.value, t.max_outflow.value, provenance="scenario", on_demand=t.on_demand)
+        for t in scenario.tanks}
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,7 @@ def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_
             reasons.append(f"{tank_id}: требуется {rate:.2f} т/ч при пределе отбора "
                            f"{tank.max_outflow_tph:.2f} т/ч")
             continue
-        if mass > tank.inventory_t + 1e-9:
+        if not tank.on_demand and mass > tank.inventory_t + 1e-9:
             reasons.append(f"{tank_id}: требуется {mass:.2f} т, в наличии {tank.inventory_t:.2f} т")
             continue
         updated[tank_id] = tank.draw(mass)
@@ -168,7 +169,7 @@ class InventoryLedger:
                     "reason": "Правило остатка на конце горизонта сценарием не задано"}
         shortfalls = []
         for tank_id, fraction in (recipe or {}).items():
-            if fraction <= 1e-12 or tank_id not in tanks:
+            if fraction <= 1e-12 or tank_id not in tanks or tanks[tank_id].on_demand:
                 continue
             needed = throughput_tph * fraction * hours
             available = tanks[tank_id].inventory_t
