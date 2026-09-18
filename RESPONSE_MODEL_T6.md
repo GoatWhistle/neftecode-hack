@@ -6,7 +6,14 @@
 Код: `context/response-research/t6/` (`response_model.py`, `s1_frame.py`, `f1_*`, `f2_*`, `f6_*`, `f7_*`, `f9_fit.py`,
 `compare_t11.py`, `c2_export.py`), журнал `context/response-research/t6/notes.md`. Контракт с дорожкой A — `config/response_model.json`.
 
-## 1. Результат (артефакт τ = 2026-01-01, окно 12 мес.)
+> **Актуальные числа production-контура (18.09, `uv run neftecode train`, `artifacts/response_model.json`,
+> τ = 2026-01-01):** β = **−0.4227** [−0.4768; −0.3890], weak/strong −0.211 / −0.721, n_rows 49 105,
+> T6 342.9–386.1 °C, F9 149.8–256.7 т/ч, порог расхода q01(F9) = 133.457 т/ч, выученный на строках до τ − 6 ч.
+> Отличие от таблицы ниже (−0.433): порог F9 в исследовательском прогоне 17.09 считался по всей истории
+> (утечка закрыта в D19, `context/decisions-2026-09-18.md`), 18.09 исправлено усечение маски работы установки
+> (R11). Таблица ниже — исследовательский прогон 17.09, сохранён как история и описание метода.
+
+## 1. Результат исследовательского прогона 17.09 (τ = 2026-01-01, окно 12 мес.)
 
 | Величина | Значение |
 |---|---|
@@ -80,7 +87,11 @@
 
 ## 6. Файл контракта
 
-`config/response_model.json` (schema v1, в git): tag `ht.T6`, flow_tag `ht.F9`, tau 2026-01-01, window_months 12,
-beta −0.4332, ci [−0.4761; −0.3970], envelope_dt_c 2.0, n_rows 48 938, drift по полугодиям, flow_beta null, t6_range_c [342.9; 386.1], f9_range_tph [150.3; 256.7] (q01–q99 истории до τ), weak_strong [−0.217; −0.739],
-model_fingerprint из `artifacts/manifest.json`. Пересборка: `.venv/bin/python context/response-research/t6/c2_export.py`
-(нужны `t6/out/cache.pkl`, `frame.pkl` от `s1_frame.py`; всё вне git).
+С T112 (17.09) разделены политика и оценка. `config/response_model.json` (schema v1, в git) — только объявленная
+политика: tag `ht.T6`, flow_tag `ht.F9`, window_months 12, envelope_dt_c 2.0, `response_onset_hours` 3,
+`horizon_response_share` 0.66, flow_beta null. Оценки β по сетке τ (1 января / 1 июля, плюс `train_end` и конец
+данных) пишет `train` в `artifacts/response_model.json` тем же ARX (`src/neftecode/infrastructure/response/estimate.py`):
+для каждого τ окно 12 мес. до τ − 6 ч, порог F9 = q01 по «горячим» строкам не позже τ − 6 ч, дрейф по полугодиям
+на строках основной оценки (`train_end`), `model_fingerprint` из `artifacts/manifest.json`. Живое решение берёт
+последнюю оценку с τ ≤ момент решения. Текущие числа для τ = 2026-01-01 — в примечании вверху файла.
+Исследовательский экспорт `c2_export.py` (числа таблицы §1) сохранён как история и в production не используется.
