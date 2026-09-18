@@ -195,7 +195,7 @@ def test_the_required_scenes_are_all_present():
 def test_every_scene_produces_a_renderable_screen(demo):
     for scene in scenes(BASELINE):
         result = demo.run(scene["changes"], scene["fault"])
-        assert result["screen"]["state"] in ("decision", "refusal", "error")
+        assert result["screen"]["state"] in ("decision", "refusal")
 
 
 def test_the_scenes_cover_normal_risk_bad_data_and_no_solution(demo):

@@ -274,6 +274,8 @@ def response_at(response: dict | None, when) -> dict | None:
     if chosen is None:
         return None
     base = {k: v for k, v in response.items() if k != "estimates"}
-    return {**base, **{k: chosen[k] for k in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong",
-                                               "t6_range_c", "f9_range_tph", "feed_floor_tph",
-                                               "feed_floor_until")}}
+    required = ("tau", "beta_mgkg_per_c", "ci", "n_rows", "weak_strong", "t6_range_c", "f9_range_tph")
+    optional = ("feed_floor_tph", "feed_floor_until")
+    selected = {k: chosen[k] for k in required}
+    selected.update({k: chosen[k] for k in optional if k in chosen})
+    return {**base, **selected}
