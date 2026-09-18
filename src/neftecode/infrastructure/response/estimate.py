@@ -43,8 +43,13 @@ FEED_FLOOR_Q = 0.01
 SCHEMA_VERSION = "v1"
 
 
-def prepare(signals: pd.DataFrame, online: pd.DataFrame, feed_floor_until=None) -> pd.DataFrame:
-    """10-минутный кадр: T6, F9, ПАК, признаки работы установки. Все флаги смотрят в прошлое, кроме `stable_label`."""
+def prepare(signals: pd.DataFrame, online: pd.DataFrame, feed_floor_until) -> pd.DataFrame:
+    """10-минутный кадр: T6, F9, ПАК, признаки работы установки. Все флаги смотрят в прошлое, кроме `stable_label`.
+
+    `feed_floor_until` обязателен: порог расхода q01(F9) учится только на «горячих» строках не позже этого
+    момента (τ − 6 ч), иначе будущее просачивается в отбор строк. Сама маска `hot` при этом не усекается —
+    `running` считается по всей истории.
+    """
     missing = [tag for tag in CORE_TAGS if tag not in signals.columns]
     if missing:
         raise ValueError(f"Для оценки отклика нет тегов {missing}")
@@ -53,15 +58,15 @@ def prepare(signals: pd.DataFrame, online: pd.DataFrame, feed_floor_until=None) 
     f["T6"], f["T5"], f["F9"] = signals[TEMPERATURE_TAG], signals["ht.T5"], signals[FLOW_TAG]
     f["P13"], f["F2"] = signals["ht.P13"], signals["ht.F2"]
     hot = (f.T6 > 320) & (f.T5 > 320) & (f.P13 > 3.0) & (f.F2 > 30000) & (f.F9 > 0)
-    floor_rows = hot
-    if feed_floor_until is not None:
-        floor_rows &= f.index <= pd.Timestamp(feed_floor_until)
+    if feed_floor_until is None:
+        raise ValueError("prepare: нужен feed_floor_until (τ − 6 ч), иначе порог расхода учится на будущем")
+    # Новый объект: `&=` на ссылке усекал бы саму `hot`, и `running` терял бы строки после τ.
+    floor_rows = hot & (f.index <= pd.Timestamp(feed_floor_until))
     feed_floor = float(f.F9[floor_rows].quantile(FEED_FLOOR_Q)) if floor_rows.any() else math.nan
     running = hot & (f.F9 > feed_floor) & signals[list(CORE_TAGS)].notna().all(axis=1)
     f["running"] = running
     f.attrs["feed_floor"] = feed_floor
-    f.attrs["feed_floor_until"] = (pd.Timestamp(feed_floor_until).isoformat()
-                                    if feed_floor_until is not None else None)
+    f.attrs["feed_floor_until"] = pd.Timestamp(feed_floor_until).isoformat()
     r = running.astype(float)
     f["run_past12h"] = r.rolling("12h").min().eq(1)
     f["stable_label"] = f.run_past12h & r[::-1].rolling(37, min_periods=1).min()[::-1].eq(1)
