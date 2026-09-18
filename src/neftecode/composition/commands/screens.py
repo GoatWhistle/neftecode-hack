@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from neftecode.application.services.explain import explain
+from neftecode.application.services.trust import DataTrustAgent
 from neftecode.composition.decision import run_demo_decision
 from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
@@ -12,7 +13,7 @@ from neftecode.infrastructure.config.scenario import load_scenario, parse_scenar
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import load_response_model
 from neftecode.infrastructure.live.snapshots import load_snapshots
-from neftecode.presentation.demo import Demo, scenes as demo_scenes
+from neftecode.presentation.demo import Demo, healthy_state, scenes as demo_scenes, state_origin_label
 from neftecode.presentation.web.ui import Screen, error_payload, write_screen
 
 def screen(args, parser, root, out):
@@ -29,9 +30,18 @@ def screen(args, parser, root, out):
                 scenario, raw_scenario, scenario_parser=parse_scenario
             )).decide(budget=400, raw_scenario=raw_scenario)
             write_json(out / f"decision-{scenario.scenario_id}.json", decision)
+        # Состояние здесь синтетическое: экран получает тот же контекст источников, что сцены,
+        # но подпись состояния честно говорит, что реальных измерений в нём нет.
+        trust_cfg, trust_origin = load_trust_rules(root, out)
+        state = healthy_state()
+        trust = DataTrustAgent(trust_cfg).assess(state)
         payload = Screen(
             decision, explain(decision, scenario),
             inventories={k: v.inventory_t for k, v in initial_state(scenario).items()},
+            sources=[source.to_dict() for source in trust.sources.values()],
+            rule_origin=trust_origin,
+            state_origin=state_origin_label(state, None),
+            decision_time=state.get("decision_time"),
         ).payload()
     except (ValueError, OSError) as exc:
         payload = error_payload(str(exc))

@@ -69,7 +69,9 @@ class GatewayService:
         result = env.data
         screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", []),
                         rule_origin=result.get("trust_origin", self.trust_origin),
-                        state_origin=state_origin_label(state, chosen)).payload()
+                        state_origin=state_origin_label(state, chosen),
+                        decision_time=state.get("decision_time"),
+                        forecast=(chosen or {}).get("forecast")).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
         screen["snapshot"], screen["binding"] = (snapshot_key(chosen) if chosen is not None else None), result.get("binding")
         return screen

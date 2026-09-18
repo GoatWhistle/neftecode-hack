@@ -70,15 +70,29 @@ function render() {
   ])].map(k => [e.component_names?.[k] || k,
     change(before ? 100 * (before[k] || 0) : null,
            after ? 100 * (after[k] || 0) : null, 1) + " %"]);
+  // Текущие параметры показываются в любом состоянии экрана, включая отказ: оператору нужно
+  // видеть, от чего отсчитывается решение, даже когда предлагать нечего.
+  const currentRows = () => Object.entries(current.controls || {}).map(([k, v]) => [k, num(v, 2)])
+    .concat([["Выпуск, т/ч", num(current.throughput_tph, 1)],
+             ["Доля присадки", num(current.additive_dose, 4)]]);
+  const currentRecipeRows = () => Object.entries(current.recipe || {})
+    .map(([k, f]) => [e.component_names?.[k] || k, num(100 * f, 1) + " %"]);
   const head = `<h1>${esc(data.title)}</h1>
     <div class="sub">Сценарий <b>${esc(d.scenario_id)}</b>, решение
-    <code>${esc(d.decision_id)}</code> · <span class="badge ${esc(d.status)}">${esc(data.status_label)}</span></div>`;
+    <code>${esc(d.decision_id)}</code> · <span class="badge ${esc(d.status)}">${esc(data.status_label)}</span>
+    <br>Момент решения: ${data.decision_time
+      ? esc(String(data.decision_time).replace("T", " "))
+      : '<span class="unknown">неизвестен</span>'}</div>`;
   let body = card("Что делать", `<p>${esc(d.reason)}</p>` +
     (d.status === "refuse"
       ? `<p>Чтобы решение стало возможным, нужно:</p><ul>` +
         (e.next_steps || []).map(s => `<li>${esc(s.need)}` +
           (s.available_in_hours ? ` <span class="warn">(результат до ${s.available_in_hours} ч; ${esc(s.caveat || "")})</span>` : "") +
-          `</li>`).join("") + `</ul>`
+          `</li>`).join("") + `</ul>
+        <h3>Ключевые текущие параметры</h3>
+        <table>${rows(currentRows())}</table>` +
+        (currentRecipeRows().length
+          ? `<h3>Состав смеси сейчас</h3><table>${rows(currentRecipeRows())}</table>` : "")
       : `<table>${rows((d.immediate_action ? Object.entries(d.immediate_action.controls) : [])
             .map(([k, v]) => [k, change(current.controls?.[k], v, 2)])
             .concat([["Выпуск, т/ч", change(current.throughput_tph, d.immediate_action?.throughput_tph, 1)],
@@ -135,8 +149,36 @@ function render() {
     }
   }
 
+  // Доверие к прогнозу. Показывается и при отказе: оценка неопределённости — часть основания.
+  const f = data.forecast;
+  const covered = f && Number.isFinite(f.coverage_test) && Number.isFinite(f.coverage_target);
+  body += card("Доверие к прогнозу", (f && f.available)
+    ? `<table>${rows([
+        ["Прогноз серы, мг/кг", num(f.value, 2)],
+        ["Верхняя граница интервала, мг/кг", num(f.upper, 2)],
+        ["Нижняя граница интервала, мг/кг", num(f.lower, 2)],
+        ["Заданное покрытие интервала", num(f.coverage_target, 2)],
+        ["Покрытие на отложенной проверке", num(f.coverage_test, 3)],
+        ["Модель прогноза", f.model ? esc(f.model) : '<span class="unknown">неизвестна</span>']])}</table>`
+      + (covered && f.coverage_test < f.coverage_target
+          ? `<p class="warn">Покрытие на проверке ниже заданного: интервал на истории оказался узким.</p>` : "")
+      + `<p class="note">С пределом серы сравнивается верхняя граница интервала, а не точечный прогноз.
+        Покрытие — доля попаданий интервала на отложенной проверке; это не вероятность того, что
+        партия пройдёт, и не гарантия для этого решения.</p>`
+    : `<p class="unknown">Прогноз серы не рассчитывался${(f && f.reason)
+        ? ": " + esc(f.reason) : ": решение получено на сценарных условиях"}.</p>`);
+
+  const stale = (data.sources || []).filter(s => !s.usable);
   body += card("Доверие к данным", `<table>${rows((data.sources || []).map(
-    s => [s.name, s.usable ? "пригоден" : `<span class="unknown">${esc(s.reasons.join("; ") || s.status)}</span>`]))}</table>`
+    s => [s.name, s.usable
+      ? `пригоден${Number.isFinite(s.age_hours)
+          ? ` · возраст ${num(s.age_hours, 1)} ч из ${num(s.max_age_hours, 1)} ч` : ""}`
+      : `<span class="unknown">${esc(s.reasons.join("; ") || s.status)}</span>`]))}</table>`
+    + (stale.length ? `<p class="warn">Данные устарели или отсутствуют: `
+        + stale.map(s => esc(s.name)).join(", ") + `. `
+        + (stale.length < data.sources.length
+            ? `Решение опирается только на оставшиеся источники.`
+            : `Пригодного источника качества не осталось.`) + `</p>` : "")
     + (data.sources && data.sources.length ? "" : `<p class="note">Состояние источников не передавалось: решение получено на сценарных условиях.</p>`)
     + (data.state_origin ? `<p class="note">Состояние: ${esc(data.state_origin)}</p>` : "")
     + (data.rule_origin ? `<p class="note">Пороги доверия: ${esc(data.rule_origin)}</p>` : ""));
@@ -190,6 +232,10 @@ class Screen:
     rule_origin: str | None = None
     #: Откуда состояние: реальный срез (C3) или синтетическое состояние сценария.
     state_origin: str | None = None
+    #: Момент решения (ISO, местное время источников) — из state["decision_time"] или --at.
+    decision_time: str | None = None
+    #: Прогноз серы с интервалом (`value`, `lower`, `upper`, `coverage_*`); None — не считался.
+    forecast: dict | None = None
     title: str = "Советчик оператору цепочки АВТ → гидроочистка → смешение"
 
     def payload(self) -> dict:
@@ -206,6 +252,8 @@ class Screen:
             "sources": self.sources or [],
             "rule_origin": self.rule_origin,
             "state_origin": self.state_origin,
+            "decision_time": self.decision_time,
+            "forecast": self.forecast,
         }
 
 

@@ -195,7 +195,8 @@ def scenes(path, snapshots: list | None = None) -> list[dict]:
     Со срезами сцены отказов идут на реальных моментах (`snapshot` — подпись среза из
     config/snapshot_moments.json), а инъекция не нужна. «Ухудшение сырья» остаётся синтетической:
     в живом пути сера сырья сокращается в отношении откликов, сцена имеет смысл только с
-    абсолютной моделью цепочки.
+    абсолютной моделью цепочки. Сцена риска по качеству существует только на реальном срезе:
+    инъекции риска качества здесь нет и быть не должно, поэтому без среза она не показывается.
     """
     labels = {item.get("label") for item in snapshots or []}
 
@@ -205,7 +206,8 @@ def scenes(path, snapshots: list | None = None) -> list[dict]:
     normal, normal_fault = real("норма", "healthy")
     frozen, frozen_fault = real("зависший ПАК при работающей установке", "frozen_pak")
     refuse, refuse_fault = real("отказ по данным", "both_broken")
-    return [
+    quality_risk, _ = real("риск по качеству при возврате нагрузки", "healthy")
+    items = [
         {"name": "Нормальный режим", "changes": [], "fault": normal_fault, "snapshot": normal,
          "expect": "решение без лишних изменений"},
         {"name": "Ухудшение сырья", "fault": "healthy", "snapshot": None,
@@ -219,3 +221,13 @@ def scenes(path, snapshots: list | None = None) -> list[dict]:
          "changes": [{"change": "tank_available", "value": False, "target": "reserve"}],
          "expect": "пересчёт без резерва либо отказ"},
     ]
+    if quality_risk is not None:
+        # Риск качества берётся только из данных: срез 24.07.2026 03:00 — устойчивое превышение
+        # предела ПАК и возврат нагрузки после снижения, источники при этом исправны.
+        items.append(
+            {"name": "Риск ухудшения качества", "fault": "healthy", "changes": [],
+             "snapshot": quality_risk,
+             "expect": "реальный срез без инъекций: прогноз серы притока 14.93 мг/кг (верхняя граница 20.94) "
+                       "выше предела 10 мг/кг, при сохранении режима смесь выходит за предел через 5 ч — "
+                       "раньше запаса реакции 12 ч, поэтому ожидается корректирующая рекомендация, а не hold"})
+    return items
