@@ -1,5 +1,4 @@
 """Composition of the interactive decision flow."""
-import os
 from pathlib import Path
 
 from neftecode.application.ports.live import ForecastBindingError
@@ -12,7 +11,7 @@ from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import load_response_model
-from neftecode.infrastructure.llm.config import agent_limits_from_env, load_environment
+from neftecode.infrastructure.llm.config import decision_wait_seconds
 from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots
 from neftecode.presentation.demo import Demo, state_origin_label
 from neftecode.presentation.web.server import DemoService
@@ -64,15 +63,6 @@ def make_interactive_demo(raw: dict, budget: int, trust_cfg: dict, trust_origin:
     return Demo(raw, run_demo_decision, trust_cfg, budget, trust_origin=trust_origin,
                 snapshots=list(snapshots or []), response_model=response_model)
 
-def decision_timeout_s(root: Path) -> float:
-    """Сколько страница ждёт решение: бюджет агента (`AGENT_TIMEOUT_SECONDS`, env/.env) плюс минута запаса."""
-    env = load_environment(os.environ, Path(root) / ".env")
-    try:
-        return float(agent_limits_from_env(env)["timeout_s"]) + 60.0
-    except ValueError:
-        return 660.0
-
-
 def make_demo_service(root: Path, budget: int = 400, out: Path | None = None) -> DemoService:
     root = Path(root)
     out = Path(out) if out is not None else root / "artifacts"
@@ -81,4 +71,4 @@ def make_demo_service(root: Path, budget: int = 400, out: Path | None = None) ->
     response_model = load_response_model(root, out)
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
                                                                      snapshots, response_model),
-                       budget, snapshots=snapshots, decision_timeout_s=decision_timeout_s(root))
+                       budget, snapshots=snapshots, decision_timeout_s=decision_wait_seconds(root))

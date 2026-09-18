@@ -48,8 +48,8 @@ class AnthropicClient:
                    "content-type": "application/json"}
         url = f"{self.base_url.rstrip('/')}/v1/messages"
         started = self._clock()
-        data = call_with_retries(lambda: _parse(post_json(url, headers, body, timeout_s, self._api_key)),
-                                 self.max_retries, self._sleep)
+        data = call_with_retries(lambda t: _parse(post_json(url, headers, body, t, self._api_key)),
+                                 self.max_retries, self._sleep, timeout_s, self._clock, started)
         return LLMResponse(**data, provider=self.provider, model=self.model,
                            latency_s=max(0.0, self._clock() - started))
 
