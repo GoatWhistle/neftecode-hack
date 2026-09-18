@@ -2,6 +2,7 @@
 
 Загрузка файлов находится за пределами domain; сами сущности импортируются из production.
 """
+from dataclasses import replace
 import json
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from neftecode.domain.production.scenario import (
     CurrentOperation,
     Horizon,
     ProductSpec,
+    Quantity,
     Scenario,
     ScenarioError,
     Stage,
@@ -21,6 +23,7 @@ from neftecode.domain.production.scenario import (
     optional_quantity,
     quantity,
 )
+from neftecode.domain.production.economics import deep_treating_depth_mgkg, on_demand_price_per_t
 
 CRUDE_KINDS = {"sulfur_wt_pct": "sulfur_wt_pct", "density_kgm3": "density_kgm3", "flow_tph": "flow_tph"}
 
@@ -38,7 +41,9 @@ CONTROL_KINDS = {
 ECONOMICS_KINDS = {
     "diesel_price_per_t": "cost_per_t",
     "treating_cost_per_t_at_reference": "cost_per_t",
-    "treating_cost_per_extra_degree_per_t": "cost_per_t",
+    "deep_treating_reference_mgkg": "sulfur_mgkg",
+    "deep_treating_cost_per_ppm2_per_t": "cost_per_ppm2_per_t",
+    "sulfur_depth_per_degree_mgkg": "sulfur_per_degree",
 }
 
 QUALITY_KINDS = {"sulfur_mgkg": "sulfur_mgkg", "t95_c": "t95_c", "cetane_number": "cetane_number",
@@ -74,11 +79,24 @@ def _parse_tank(raw: dict, index: int) -> Tank:
             raise ScenarioError(f"{where}: отсутствует поле «{key}»")
     if not isinstance(raw["available"], bool):
         raise ScenarioError(f"{where}.available: ожидается true или false")
-    inventory = quantity(_require(raw, "inventory", where), "mass_t", f"{where}.inventory")
+    on_demand = raw.get("on_demand", False)
+    if not isinstance(on_demand, bool):
+        raise ScenarioError(f"{where}.on_demand: ожидается true или false")
+    if on_demand:
+        # Produced when needed: no stock to declare, price derived from the treating depth
+        # once economics are known (see parse_scenario).
+        for key in ("inventory", "cost_per_t"):
+            if key in raw:
+                raise ScenarioError(f"{where}.{key}: компонент производится по необходимости, "
+                                    f"запас и цена не задаются, а выводятся")
+        inventory = Quantity(0.0, "т", "derived", "Производится по необходимости: запаса нет")
+        cost = Quantity(0.0, "усл.ед./т", "derived", "Выводится из глубины очистки после разбора economics")
+    else:
+        inventory = quantity(_require(raw, "inventory", where), "mass_t", f"{where}.inventory")
+        cost = quantity(_require(raw, "cost_per_t", where), "cost_per_t", f"{where}.cost_per_t")
     max_outflow = quantity(_require(raw, "max_outflow", where), "flow_tph", f"{where}.max_outflow")
     inflow = quantity(raw.get("inflow", {"value": 0.0, "unit": "т/ч", "source": "scenario"}),
                       "flow_tph", f"{where}.inflow")
-    cost = quantity(_require(raw, "cost_per_t", where), "cost_per_t", f"{where}.cost_per_t")
     if max_outflow.value <= 0 and raw["available"]:
         raise ScenarioError(f"{where}.max_outflow: доступный резервуар с нулевым пределом отбора бессмыслен")
     props_raw = raw.get("properties", {})
@@ -101,7 +119,7 @@ def _parse_tank(raw: dict, index: int) -> Tank:
         raise ScenarioError(f"{where}: сера притока не может одновременно приходить из модели цепочки "
                             f"и из прогноза по измерениям")
     return Tank(raw["tank_id"], raw["name"], raw["available"], inventory, max_outflow, inflow,
-                cost, properties, raw.get("note"), from_chain, inflow_sulfur)
+                cost, properties, raw.get("note"), from_chain, inflow_sulfur, on_demand)
 
 
 def _parse_stage(stage_id: str, raw: dict) -> Stage:
@@ -138,6 +156,23 @@ def _parse_stage(stage_id: str, raw: dict) -> Stage:
                           "step": quantity(step, kind, f"{where}.controls.{name}.step") if step else None,
                           "actuation": actuation}
     return Stage(stage_id, controls, lag, raw.get("model", {}))
+
+
+def _price_on_demand(tank: Tank, economics: dict) -> Tank:
+    """A component produced on demand costs base diesel plus the quadratic energy of its depth."""
+    if not tank.on_demand:
+        return tank
+    sulfur = tank.property_value("sulfur_mgkg")
+    depth = deep_treating_depth_mgkg(economics, sulfur)
+    price = on_demand_price_per_t(economics, sulfur)
+    reference = economics["deep_treating_reference_mgkg"].value
+    return replace(tank, cost_per_t=Quantity(
+        round(price, 6), "усл.ед./т", "derived",
+        f"ДТ {economics['diesel_price_per_t'].value:g} + очистка в опорном режиме "
+        f"{economics['treating_cost_per_t_at_reference'].value:g} + квадрат глубины "
+        f"{economics['deep_treating_cost_per_ppm2_per_t'].value:g}·({reference:g} − {sulfur:g})² "
+        f"= {price:.4f}; глубина {depth:g} мг/кг ниже {reference:g}. Форма квадрата — ответ "
+        f"организаторов 18.09; масштаб — сценарий."))
 
 
 def parse_scenario(raw: dict) -> Scenario:
@@ -226,6 +261,7 @@ def parse_scenario(raw: dict) -> Scenario:
     econ_raw = _require(raw, "economics", "scenario")
     economics = {name: quantity(_require(econ_raw, name, "economics"), kind_, f"economics.{name}")
                  for name, kind_ in ECONOMICS_KINDS.items()}
+    tanks = [_price_on_demand(tank, economics) for tank in tanks]
 
     assumptions = tuple(raw.get("assumptions", ()))
     if not assumptions:

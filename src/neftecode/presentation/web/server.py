@@ -133,7 +133,9 @@ function syncTank() {
   const tanks = (data.defaults || defaults).tanks || [];
   const chosen = tanks.find(t => t.id === $("tank").value) || tanks[0];
   if (!chosen) return;
-  $("stock").value = chosen.inventory;
+  $("stock").value = chosen.inventory ?? "";
+  $("stock").disabled = !!chosen.on_demand;
+  $("stock").placeholder = chosen.on_demand ? "по необходимости" : "";
   $("available").value = chosen.available ? "1" : "0";
 }
 $("tank").addEventListener("change", syncTank);
@@ -246,7 +248,9 @@ def defaults_for(raw: dict) -> dict:
         "product_t95_c": (product.get("t95_c") or {}).get("value"),
         "product_cetane_number": (product.get("cetane_number") or {}).get("value"),
         "throughput_tph": raw["current_operation"]["throughput"]["value"],
-        "tanks": [{"id": t["tank_id"], "inventory": t["inventory"]["value"],
+        "tanks": [{"id": t["tank_id"],
+                   "inventory": None if t.get("on_demand") else t["inventory"]["value"],
+                   "on_demand": bool(t.get("on_demand", False)),
                    "available": t["available"]} for t in raw["tanks"]],
     }
 
@@ -269,7 +273,8 @@ def changes_from(values: dict, raw: dict) -> list[dict]:
     if tank:
         current = next((t for t in defaults["tanks"] if t["id"] == tank), None)
         stock = _number(values, "tank_inventory")
-        if current and stock is not None and abs(stock - float(current["inventory"])) > 1e-9:
+        if current and stock is not None and current["inventory"] is not None \
+                and abs(stock - float(current["inventory"])) > 1e-9:
             changes.append({"change": "tank_inventory", "value": stock, "target": tank})
         raw_available = (values.get("tank_available") or [""])[0]
         if current and raw_available in ("0", "1"):

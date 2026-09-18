@@ -59,8 +59,8 @@ def test_an_edited_field_becomes_a_change(service):
 
 def test_a_tank_edit_carries_its_target(service):
     raw = service.raw("baseline")
-    changes = changes_from(query(tank="reserve", tank_inventory=10.0), raw)
-    assert changes == [{"change": "tank_inventory", "value": 10.0, "target": "reserve"}]
+    changes = changes_from(query(tank="main", tank_inventory=10.0), raw)
+    assert changes == [{"change": "tank_inventory", "value": 10.0, "target": "main"}]
 
 
 def test_switching_a_tank_off_becomes_a_change(service):
@@ -102,8 +102,8 @@ def test_the_computed_blend_sulfur_follows_the_crude(service):
 
 
 def test_lowering_the_stock_reaches_the_screen(service):
-    result = service.decide(query(scenario="baseline", tank="reserve", tank_inventory=25.0))
-    assert result["inventories"]["reserve"] == 25.0
+    result = service.decide(query(scenario="baseline", tank="main", tank_inventory=25.0))
+    assert result["inventories"]["main"] == 25.0
 
 
 def test_an_injected_fault_is_labelled_and_reaches_the_decision(service):
@@ -131,7 +131,7 @@ def test_weakening_the_hard_sulfur_limit_is_refused(service):
 
 
 def test_a_negative_stock_is_refused(service):
-    result = service.decide(query(scenario="baseline", tank="reserve", tank_inventory=-5))
+    result = service.decide(query(scenario="baseline", tank="main", tank_inventory=-5))
     assert result["state"] == "error"
 
 

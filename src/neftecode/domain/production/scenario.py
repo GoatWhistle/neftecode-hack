@@ -28,6 +28,8 @@ UNITS = {
     "sulfur_wt_pct": "% масс.",
     "fraction": "доля",
     "cost_per_t": "усл.ед./т",
+    "cost_per_ppm2_per_t": "усл.ед./т/(мг/кг)²",
+    "sulfur_per_degree": "мг/кг/°C",
     "hours": "ч",
 }
 
@@ -104,7 +106,12 @@ class Horizon:
 
 @dataclass(frozen=True)
 class Tank:
-    """A blending component with a finite inventory and its own declared properties."""
+    """A blending component with its own declared properties.
+
+    Either a finite stock (`inventory`) or a stream produced on demand (`on_demand=True`): the
+    organisers (18.09.2026) have no stored deep-treated reserve — it is made when needed, so its
+    supply is limited by `max_outflow` and paid per tonne, not by a stock that runs out.
+    """
 
     tank_id: str
     name: str
@@ -122,6 +129,9 @@ class Tank:
     #: Sulfur of the stream entering this tank, when a measurement-based forecast supplies it.
     #: The tank's own property stays the sulfur of what is already stored.
     inflow_sulfur: Quantity | None = None
+    #: Produced when drawn, not stored: no inventory to run out, `cost_per_t` derived from the
+    #: treating depth below the reference sulfur level.
+    on_demand: bool = False
 
     def property_value(self, name: str) -> float | None:
         q = self.properties.get(name)
@@ -133,7 +143,8 @@ class Tank:
                 "inflow": self.inflow.to_dict(), "cost_per_t": self.cost_per_t.to_dict(),
                 "properties": {k: (v.to_dict() if v else None) for k, v in self.properties.items()},
                 "note": self.note, "sulfur_from_chain": self.sulfur_from_chain,
-                "inflow_sulfur_mgkg": self.inflow_sulfur.to_dict() if self.inflow_sulfur else None}
+                "inflow_sulfur_mgkg": self.inflow_sulfur.to_dict() if self.inflow_sulfur else None,
+                "on_demand": self.on_demand}
 
 
 @dataclass(frozen=True)
