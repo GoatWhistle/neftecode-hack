@@ -33,6 +33,7 @@
   на `context/experiments/…jsonl` (R20).
 - R14 закрыто без изменений: `coverage_test` в `advise` воспроизводится на основной и fallback-модели.
 - R15 готово: `ruff --select F src/` чист, мелкие дубли текста убраны.
+- R16 готово: payload в `<script>` и `<option>` экранируются.
 
 ## Итог задач 18.09
 
