@@ -36,7 +36,8 @@ class DecisionFactory:
         return AgenticMakeDecision(scenario, self.llm, settings=self.settings,
                                    robustness_evaluator=robustness_evaluator,
                                    response_effect=DataResponseEffect(), live_context=live_context,
-                                   configuration_error=self.configuration_error)
+                                   configuration_error=self.configuration_error,
+                                   provider_description=self.provider_description or None)
 
     def describe(self) -> dict:
         return {"agentic_enabled": self.enabled, "configuration_error": self.configuration_error,

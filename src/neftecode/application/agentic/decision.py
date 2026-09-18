@@ -42,6 +42,8 @@ class AgenticMakeDecision:
     response_effect: ResponseEffectProvider | None = None
     live_context: dict | None = None
     configuration_error: str | None = None
+    #: Safe description of the configured provider (no key); used when there is no client to ask.
+    provider_description: dict | None = None
     orchestrator: OrchestratorAgent = field(default_factory=OrchestratorAgent)
     clock: Callable[[], float] = time.monotonic
     maker: MakeDecision = field(init=False)
@@ -67,7 +69,8 @@ class AgenticMakeDecision:
         legacy = self.maker.decide(**request)
         info = {"mode": "agentic", "outcome": None, "fallback_reason": None,
                 "legacy_decision_id": legacy["decision_id"], "legacy_status": legacy["status"],
-                "provider": getattr(self.llm, "provider", None), "model": getattr(self.llm, "model", None),
+                "provider": getattr(self.llm, "provider", None) or (self.provider_description or {}).get("provider"),
+                "model": getattr(self.llm, "model", None) or (self.provider_description or {}).get("model"),
                 "note": NOTE}
         if (legacy.get("refusal") or {}).get("kind") == "data":
             return self._with(legacy, info, "skipped", "data_refusal")

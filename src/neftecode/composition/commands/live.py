@@ -58,6 +58,7 @@ def handle(args, parser, root, out):
            f"верхняя граница {forecast['upper']:.2f}") if forecast["available"]
           else forecast.get("reason", "Прогноз недоступен"))
     print(f"Источники: {result['trust']['primary'] or 'нет пригодного'}")
+    print(agent_summary(result.get("decision")))
     for warning in ((result.get("binding") or {}).get("measurement_binding") or {}).get("warnings") or ():
         print(f"Внимание: {warning}")
     if result["decision"] is None:
@@ -65,6 +66,23 @@ def handle(args, parser, root, out):
     else:
         print(f"{result['decision']['status']}: {result['decision']['reason']}")
     print(f"Журнал: {path}\nЭкран: {out / f'screen-{stamp}.html'}")
+
+
+def agent_summary(decision: dict | None) -> str:
+    """Одна строка про агентный слой: работала ли модель, или ответ детерминированный и почему."""
+    info = (decision or {}).get("agentic")
+    if decision is None:
+        return "Агенты: решение не выдано"
+    if not info:
+        return "Агенты: выключены (AGENTIC_DECISION_ENABLED=0), решение детерминированное"
+    who = f"{info.get('provider') or 'провайдер не настроен'}/{info.get('model') or '—'}"
+    budget = info.get("budget") or {}
+    calls = budget.get("llm_calls", 0)
+    tokens = (budget.get("usage") or {}).get("total_tokens", 0)
+    if info.get("outcome") in ("fallback", "skipped"):
+        return (f"Агенты: детерминированный ответ — {info.get('fallback_reason') or info.get('outcome')} "
+                f"({who}, вызовов {calls})")
+    return f"Агенты: {who}, исход {info.get('outcome')}, вызовов {calls}, токенов {tokens}"
 
 
 def snapshot(args, parser, root, out):
