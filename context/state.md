@@ -32,6 +32,7 @@
 - R13 готово: README, `RESPONSE_MODEL_T6.md`, `RESPONSE_MODEL_FINAL.md`, D19 приведены к β = −0.4227; ссылка README
   на `context/experiments/…jsonl` (R20).
 - R14 закрыто без изменений: `coverage_test` в `advise` воспроизводится на основной и fallback-модели.
+- R15 готово: `ruff --select F src/` чист, мелкие дубли текста убраны.
 
 ## Итог задач 18.09
 

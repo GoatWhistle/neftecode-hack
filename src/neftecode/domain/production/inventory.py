@@ -12,10 +12,9 @@ Two rules that are easy to get wrong and are enforced here:
   the reserve to zero at the last point is not feasible: the terminal rule demands a declared
   minimum remaining supply.
 """
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 import math
 
-from neftecode.domain.shared.primitives import ContractError
 from neftecode.domain.production.state import TankState
 from neftecode.domain.production.scenario import QUALITIES, Scenario
 

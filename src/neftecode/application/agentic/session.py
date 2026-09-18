@@ -119,7 +119,7 @@ class DecisionSession:
     # --- Constraints ---
 
     def _satisfies(self, candidate_id: str, constraint: AgentConstraint) -> bool:
-        evaluation, plan = self.evaluations[candidate_id], self.plans[candidate_id]
+        plan = self.plans[candidate_id]
         if constraint.type == "min_quality_margin":
             margin = self.quality_margins(candidate_id)[constraint.limit]
             return _finite(margin.get("min_margin")) and margin["min_margin"] >= constraint.value - 1e-9

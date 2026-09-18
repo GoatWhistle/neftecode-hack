@@ -256,15 +256,15 @@ def changes_from(values: dict, raw: dict) -> list[dict]:
     """Turn the panel's fields into scenario changes, skipping anything left as it was."""
     defaults = defaults_for(raw)
     changes = []
-    for field, change in (("crude_sulfur_wt_pct", "crude_sulfur_wt_pct"),
+    for name, change in (("crude_sulfur_wt_pct", "crude_sulfur_wt_pct"),
                           ("product_sulfur_mgkg", "product_sulfur_mgkg"),
                           ("product_t95_c", "product_t95_c"),
                           ("product_cetane_number", "product_cetane_number"),
                           ("throughput_tph", "throughput_tph")):
-        value = _number(values, field)
-        if value is None or defaults.get(field) is None:
+        value = _number(values, name)
+        if value is None or defaults.get(name) is None:
             continue
-        if abs(value - float(defaults[field])) > 1e-9:
+        if abs(value - float(defaults[name])) > 1e-9:
             changes.append({"change": change, "value": value})
     tank = (values.get("tank") or [""])[0]
     if tank:

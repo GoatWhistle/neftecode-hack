@@ -7,7 +7,7 @@ a missing optional quality is preserved as unknown instead of silently becoming 
 from dataclasses import dataclass, field
 import math
 
-from neftecode.domain.shared.primitives import PRODUCT_LIMITS, QUALITIES, QUALITY_DIRECTION, SOURCES
+from neftecode.domain.shared.primitives import PRODUCT_LIMITS, QUALITIES, SOURCES
 
 SCHEMA = "neftecode.scenario.v1"
 

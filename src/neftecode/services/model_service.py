@@ -14,7 +14,7 @@ import pandas as pd
 from neftecode.infrastructure.ml.forecast import interval, predict_candidate
 from neftecode.infrastructure.live.advisor import interval_coverage
 from neftecode.infrastructure.live.origin import validate_origin
-from .common import Request, ServiceError, ServiceSettings, clean, serve, content_hash
+from .common import ServiceError, ServiceSettings, serve, content_hash
 
 
 class ModelService:

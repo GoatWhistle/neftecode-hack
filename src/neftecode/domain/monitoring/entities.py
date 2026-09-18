@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from neftecode.domain.shared.primitives import ContractError, QUALITIES, SOURCES, SCENARIO_SCOPE, _clean_number, _time
+from neftecode.domain.shared.primitives import ContractError, SOURCES, SCENARIO_SCOPE, _clean_number, _time
 
 from neftecode.domain.production.state import TankState
 from neftecode.domain.shared.actions import PendingAction

@@ -232,7 +232,6 @@ class PlanOperation:
         for t in grid:
             inflow_properties[t] = self.inflow_properties(t, pending)
         stock = ledger.run_plan(ledger_steps, inflow_properties)
-        inventories_at = {entry["time_hours"]: entry["inventories"] for entry in stock["timeline"]}
         for index, time_hours in enumerate(grid):
             spec = self._active_step(plan, time_hours)
             stream = self.chain.run_at(time_hours, pending)
@@ -384,7 +383,7 @@ class PlanOperation:
         for candidate in plans:
             try:
                 evaluation = self.evaluate(candidate, confirmed)
-            except (PlannerError, ValueError) as exc:
+            except (PlannerError, ValueError):
                 continue
             evaluations.append(evaluation)
             by_id[candidate.plan_id] = candidate

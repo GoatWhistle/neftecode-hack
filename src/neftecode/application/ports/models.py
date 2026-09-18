@@ -1,4 +1,4 @@
-from typing import Mapping, Protocol, Sequence
+from typing import Mapping, Protocol
 from neftecode.domain.monitoring.entities import ForecastValue
 
 
