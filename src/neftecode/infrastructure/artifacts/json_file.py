@@ -1,6 +1,7 @@
 """JSON serialization with the project's explicit missing-value policy."""
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -26,4 +27,19 @@ def clean(value):
 
 
 def write_json(path: Path, obj) -> None:
-    path.write_text(json.dumps(clean(obj), ensure_ascii=False, indent=2, allow_nan=False) + "\n")
+    write_atomic(path, json.dumps(clean(obj), ensure_ascii=False, indent=2, allow_nan=False) + "\n")
+
+
+def write_atomic(path: Path, content: str | bytes) -> None:
+    """Write through a temporary file and `os.replace`, so an interrupted run leaves the old file intact.
+
+    A half-written `model.pkl` or snapshot is exactly the kind of artifact that later fails with a
+    pickle or JSON traceback; the replace is atomic on the same filesystem.
+    """
+    path = Path(path)
+    tmp = path.with_name(path.name + ".tmp")
+    if isinstance(content, bytes):
+        tmp.write_bytes(content)
+    else:
+        tmp.write_text(content, encoding="utf-8")
+    os.replace(tmp, path)

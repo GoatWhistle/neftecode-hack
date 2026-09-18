@@ -171,6 +171,8 @@
   `composition/training.py:82` пишет `pickle.dump` прямо в `model.pkl`. Прерывание `train`
   оставляет ровно те огрызки, из-за которых возникают ошибки R08.
 - **Критерий.** Запись идёт во временный файл с последующим `os.replace`.
+- **Статус: готово.** `write_atomic(path, str|bytes)` в `json_file.py`: `.tmp` рядом + `os.replace`;
+  `write_json` и `model.pkl` в `training.py` идут через него (`pickle.dumps`).
 
 ### R10. Починить флаги, которые молча ничего не делают
 

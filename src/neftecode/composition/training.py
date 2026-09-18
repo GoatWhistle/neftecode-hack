@@ -3,7 +3,7 @@ import json
 import pickle
 
 from neftecode.composition.demo import make_demo
-from neftecode.infrastructure.artifacts import fingerprint, write_json
+from neftecode.infrastructure.artifacts import fingerprint, write_atomic, write_json
 from neftecode.infrastructure.config.trust_rules import write_source_rules
 from neftecode.infrastructure.data.data import derive_source_rules, load_sources, make_dataset
 from neftecode.infrastructure.data.quality import read_quality_series, report as quality_report
@@ -79,8 +79,7 @@ def train(root, out, cfg):
                                                for e in response["estimates"]]}
     for e in response["estimates"]:
         print(f"  τ={e['tau']}: β={e['beta_mgkg_per_c']} ДИ {e['ci']} weak/strong {e['weak_strong']} строк {e['n_rows']}", flush=True)
-    with (out / "model.pkl").open("wb") as stream:
-        pickle.dump(bundle, stream)
+    write_atomic(out / "model.pkl", pickle.dumps(bundle))
     predictions.to_csv(out / "predictions.csv", index=False)
     write_json(out / "metrics.json", summary)
     write_json(out / "manifest.json", manifest)
