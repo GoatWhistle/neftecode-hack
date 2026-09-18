@@ -116,7 +116,7 @@ tools `{name, description, input_schema}`; ответ — блоки `text`/`too
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_BASE_URL` | —, —, `https://api.anthropic.com` | |
 | `LLM_REQUEST_TIMEOUT_SECONDS` | `120` | На один запрос (живой замер: 10–45 с на вызов у glm-5.3-flash с принудительным thinking) |
 | `LLM_MAX_RETRIES` | `1` | Только retryable ошибки |
-| `LLM_MAX_TOKENS` | `2048` | Включая thinking |
+| `LLM_MAX_TOKENS` | `6144` | Включая thinking |
 | `LLM_TEMPERATURE` | `0.2` | |
 | `AGENT_MAX_STEPS` | `5` | Шагов оркестратора (вызовов LLM оркестратора) |
 | `AGENT_SPECIALIST_MAX_CALLS` | `3` | Вызовов LLM на одно обращение к специалисту |
