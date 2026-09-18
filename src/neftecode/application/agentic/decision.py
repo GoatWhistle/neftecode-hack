@@ -150,14 +150,14 @@ class AgenticMakeDecision:
         return result, name, None
 
     def _guard(self, result: dict, session: DecisionSession, request: dict, trace: AgentTrace) -> dict:
-        """Independent re-evaluation of the released plan with a fresh planner."""
+        """Repeat evaluation of the released plan with a fresh planner instance."""
         if result["status"] not in (HOLD, RECOMMEND_SCENARIO):
             return result
         plan_id = result["selected_plan"]["plan_id"]
         plan = session.plans.get(plan_id)
         failure = None
         if plan is None:
-            failure = [f"План {plan_id} не найден при независимой проверке"]
+            failure = [f"План {plan_id} не найден при повторной проверке"]
         else:
             planner = PlanOperation(self.scenario)
             kwargs = {}
@@ -170,13 +170,13 @@ class AgenticMakeDecision:
                 if not evaluation.feasible:
                     failure = list(evaluation.gate.rejection_reasons())[:5]
             except (PlannerError, ValueError) as exc:
-                failure = [f"Независимая проверка не выполнена: {exc}"]
+                failure = [f"Повторная проверка не выполнена: {exc}"]
         if failure is None:
             trace.add("system", 0, "guard", decision="pass", candidate_ids=(plan_id,))
             return result
         trace.add("system", 0, "guard", decision="fail", candidate_ids=(plan_id,), reason_codes=("guard_failed",))
         core = [entry for entry in result["trace"] if entry.get("agent") in ("data", "optimizer", "agentic")]
-        return self.maker._finish(REFUSE, "Независимая повторная проверка выбранного плана не пройдена: решение не выдаётся",
+        return self.maker._finish(REFUSE, "Повторная проверка выбранного плана не пройдена: решение не выдаётся",
                                   core, None, None, {"kind": "final_recheck_failed", "examples": failure},
                                   current_operation=request["current_operation"])
 

@@ -23,7 +23,7 @@
 |---|---|---|
 | I1 | Явно выключенный флаг ⇒ decision dict 4 сценариев байт-в-байт прежний (sha256) и ровно 20 ключей; набор тестов фиксирует `AGENTIC_DECISION_ENABLED=0` в `tests/conftest.py` | `tests/test_architecture_baseline.py` |
 | I2 | Gate — единственный authoritative механизм допустимости; LLM ACCEPT + Gate FAIL ⇒ FAIL | `tests/agentic/test_safety.py` (adversarial FakeLLM) |
-| I3 | HOLD/RECOMMEND в agentic ⇒ выбранный план проходит `check_plan` при независимой переоценке | guard в `AgenticMakeDecision` + тест |
+| I3 | HOLD/RECOMMEND в agentic ⇒ выбранный план проходит `check_plan` при повторной переоценке | guard в `AgenticMakeDecision` + тест |
 | I4 | Final recheck, look-ahead, robustness — тот же код `release` для обоих путей | экстракция + golden |
 | I5 | Legacy REFUSE по данным ⇒ agentic REFUSE по данным без вызовов LLM | тест, счётчик вызовов = 0 |
 | I6 | Legacy REFUSE no_feasible ⇒ agentic не выдаёт план, не прошедший Gate | тест |
