@@ -168,11 +168,13 @@ def test_the_trained_response_artifact_reproduces_the_study_at_tau_2026():
     assert model["beta_mgkg_per_c"] < 0 and model["ci"][0] <= model["beta_mgkg_per_c"] <= model["ci"][1]
     at_2026 = response_at(model, "2026-01-05T08:00:00")
     assert pd.Timestamp(at_2026["tau"]) == pd.Timestamp("2026-01-01")
-    assert at_2026["beta_mgkg_per_c"] == pytest.approx(-0.4332, abs=5e-4)
-    assert at_2026["ci"] == pytest.approx([-0.4761, -0.397], abs=5e-4)
-    assert at_2026["weak_strong"] == pytest.approx([-0.217, -0.739], abs=2e-3)
+    assert at_2026["beta_mgkg_per_c"] == pytest.approx(-0.4226, abs=5e-4)
+    assert at_2026["ci"] == pytest.approx([-0.4767, -0.389], abs=5e-4)
+    assert at_2026["weak_strong"] == pytest.approx([-0.211, -0.721], abs=2e-3)
     assert at_2026["t6_range_c"] == pytest.approx([342.9, 386.1], abs=0.15)
-    assert at_2026["f9_range_tph"] == pytest.approx([150.3, 256.7], abs=0.15)
+    assert at_2026["f9_range_tph"] == pytest.approx([149.8, 256.7], abs=0.15)
+    assert at_2026["feed_floor_tph"] == pytest.approx(133.457, abs=5e-4)
+    assert pd.Timestamp(at_2026["feed_floor_until"]) == pd.Timestamp("2025-12-31T18:00:00")
     assert model["horizon_response_share"] == 0.66 and model["response_onset_hours"] == 3.0
 
 
