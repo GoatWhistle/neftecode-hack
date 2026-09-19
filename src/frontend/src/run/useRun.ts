@@ -1,108 +1,152 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ScreenPayload } from "../types";
 import { streamDecision } from "./stream";
 import type { AgentEvent, RunPhase, RunState, StageState } from "./types";
 import { EMPTY_RUN } from "./types";
-import { advanceTo, LATE_STAGES, mergePhase, scrollTo, settled } from "./sequence";
+import { advanceTo, chainTo, LATE_STAGES, mergeFacts, mergePhase } from "./sequence";
+import { createRevealQueue } from "./revealQueue";
+import { releaseTakeover, scrollTo, watchTakeover } from "./autoscroll";
 
-const UNPACK_MS = 520;
+function readable(reason: unknown): string {
+  if (reason instanceof DOMException && reason.name === "AbortError") return "прогон остановлен";
+  if (reason instanceof TypeError) return "сервер недоступен, проверьте, что бэкенд запущен";
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
+}
+
+function reducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export interface RunControls {
   run: RunState;
   start: (query: string) => void;
   stop: () => void;
-  skip: () => void;
+  pending: boolean;
+  followsUser: boolean;
+  resumeFollow: () => void;
 }
 
 export function useRun(): RunControls {
   const [run, setRun] = useState<RunState>(EMPTY_RUN);
+  const [pending, setPending] = useState(false);
+  const [followsUser, setFollowsUser] = useState(false);
   const abort = useRef<AbortController | null>(null);
-  const timers = useRef<number[]>([]);
+  const states = useRef<Record<string, StageState>>({});
+  const queued = useRef<Record<string, StageState>>({});
 
-  const clearTimers = useCallback(() => {
-    for (const id of timers.current) window.clearTimeout(id);
-    timers.current = [];
-  }, []);
+  const reveal = useMemo(
+    () =>
+      createRevealQueue((id: string) => {
+        const state = states.current[id] ?? "done";
+        setRun((prev) => ({ ...prev, stages: advanceTo(prev.stages, id, state) }));
+        scrollTo(id, reducedMotion());
+      }),
+    []
+  );
 
   useEffect(() => {
+    const drop = watchTakeover((taken) => setFollowsUser(taken));
     return () => {
       abort.current?.abort();
-      for (const id of timers.current) window.clearTimeout(id);
+      reveal.clear();
+      drop();
     };
+  }, [reveal]);
+
+  const resumeFollow = useCallback(() => {
+    releaseTakeover();
+    setFollowsUser(false);
   }, []);
 
-  const unpack = useCallback((payload: ScreenPayload) => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const step = reduced ? 0 : UNPACK_MS;
-    setRun((prev) => ({ ...prev, payload, stages: { ...prev.stages, agents: "done" } }));
-    LATE_STAGES.forEach((id, position) => {
-      const at = window.setTimeout(() => {
-        setRun((prev) => ({
-          ...prev,
-          stages: { ...prev.stages, [id]: "done" as StageState },
-          status: position === LATE_STAGES.length - 1 ? "done" : prev.status
-        }));
-        scrollTo(id, reduced);
-      }, step * (position + 1));
-      timers.current.push(at);
-    });
-  }, []);
+  const enqueue = useCallback(
+    (id: string, state: StageState) => {
+      for (const step of chainTo(queued.current, id)) {
+        const next = (step === id ? state : "done") as StageState;
+        const held = queued.current[step];
+        if (held === next) continue;
+        if (held === "done" && next !== "done") continue;
+        states.current[step] = next;
+        queued.current[step] = next;
+        reveal.push(step);
+      }
+    },
+    [reveal]
+  );
 
-  const skip = useCallback(() => {
-    clearTimers();
-    setRun((prev) =>
-      prev.payload === null ? prev : { ...prev, stages: settled(), status: "done" }
-    );
-  }, [clearTimers]);
+  const unpack = useCallback(
+    (payload: ScreenPayload) => {
+      setRun((prev) => {
+        const sources = { ...prev.stageSource };
+        for (const id of ["agents", ...LATE_STAGES]) {
+          if (sources[id] === undefined) sources[id] = "payload";
+        }
+        return { ...prev, payload, stageSource: sources };
+      });
+      enqueue("agents", "done");
+      for (const id of LATE_STAGES) enqueue(id, "done");
+      reveal.onDrained(() =>
+        setRun((prev) => (prev.status === "running" ? { ...prev, status: "done" } : prev))
+      );
+    },
+    [enqueue, reveal]
+  );
 
   const start = useCallback(
     (query: string) => {
       abort.current?.abort();
-      clearTimers();
+      reveal.clear();
+      states.current = {};
+      queued.current = {};
+      releaseTakeover();
+      setFollowsUser(false);
+      setPending(true);
       const controller = new AbortController();
       abort.current = controller;
       setRun({ ...EMPTY_RUN, status: "running" });
-      const fail = (message: string): void =>
+      const fail = (message: string): void => {
+        reveal.clear();
+        setPending(false);
         setRun((prev) => ({
           ...prev,
           status: "failed",
           error: message,
           stages: { ...prev.stages, agents: "failed" as StageState }
         }));
+      };
 
       streamDecision(
         query,
         {
-          onPhase: (event) =>
+          onPhase: (event) => {
+            setPending(false);
             setRun((prev) => {
               const phases: RunPhase[] = mergePhase(prev.phases, event);
               return { ...prev, phases, elapsedMs: event.elapsed_ms };
-            }),
+            });
+          },
           onTick: (elapsedMs) => setRun((prev) => ({ ...prev, elapsedMs })),
-          onStage: (stage, elapsedMs, state) => {
-            const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          onStage: (stage, elapsedMs, state, facts) => {
+            setPending(false);
             setRun((prev) => ({
               ...prev,
               elapsedMs,
-              stages: advanceTo(prev.stages, stage, (state ?? "done") as StageState)
+              stageFacts: mergeFacts(prev.stageFacts, stage, facts),
+              stageSource: { ...prev.stageSource, [stage]: "server" }
             }));
-            scrollTo(stage, reduced);
+            enqueue(stage, (state ?? "done") as StageState);
           },
-          onAgent: (event: AgentEvent) =>
-            setRun((prev) => {
-              const first = prev.agentEvents.length === 0;
-              if (first) {
-                const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                window.setTimeout(() => scrollTo("agents", reduced), 0);
-              }
-              return {
-                ...prev,
-                agentEvents: [...prev.agentEvents, event],
-                elapsedMs: event.elapsedMs,
-                stages: advanceTo(prev.stages, "agents", "running" as StageState)
-              };
-            }),
+          onAgent: (event: AgentEvent) => {
+            setPending(false);
+            setRun((prev) => ({
+              ...prev,
+              agentEvents: [...prev.agentEvents, event],
+              elapsedMs: event.elapsedMs
+            }));
+            enqueue("agents", "running");
+          },
           onScreen: (payload, elapsedMs) => {
+            setPending(false);
             setRun((prev) => ({ ...prev, serverMs: elapsedMs, elapsedMs }));
             unpack(payload);
           },
@@ -111,18 +155,23 @@ export function useRun(): RunControls {
         },
         controller.signal
       ).catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
-        fail(String(reason));
+        if (controller.signal.aborted || abort.current !== controller) return;
+        fail(readable(reason));
       });
     },
-    [clearTimers, unpack]
+    [enqueue, reveal, unpack]
   );
 
   const stop = useCallback(() => {
     abort.current?.abort();
-    clearTimers();
+    reveal.clear();
+    states.current = {};
+    queued.current = {};
+    releaseTakeover();
+    setFollowsUser(false);
+    setPending(false);
     setRun(EMPTY_RUN);
-  }, [clearTimers]);
+  }, [reveal]);
 
-  return { run, start, stop, skip };
+  return { run, start, stop, pending, followsUser, resumeFollow };
 }

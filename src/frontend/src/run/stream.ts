@@ -1,12 +1,12 @@
 import type { ScreenPayload } from "../types";
 import { isError, isScreen } from "../types";
-import type { AgentEvent, PhaseEvent } from "./types";
+import type { AgentEvent, PhaseEvent, StageFacts } from "./types";
 
 export interface StreamHandlers {
   onPhase: (phase: PhaseEvent) => void;
   onTick: (elapsedMs: number) => void;
   onAgent: (event: AgentEvent) => void;
-  onStage: (stage: string, elapsedMs: number, state?: string) => void;
+  onStage: (stage: string, elapsedMs: number, state: string | undefined, facts: StageFacts) => void;
   onScreen: (payload: ScreenPayload, elapsedMs: number) => void;
   onFailed: (message: string) => void;
   onEnd: () => void;
@@ -27,43 +27,48 @@ function parseFrame(block: string): { event: string; data: unknown } | null {
   }
 }
 
-function dispatch(event: string, data: Record<string, unknown>, handlers: StreamHandlers): void {
+function dispatch(event: string, data: Record<string, unknown>, handlers: StreamHandlers): boolean {
   if (event === "phase") {
     handlers.onPhase(data as unknown as PhaseEvent);
-    return;
+    return false;
   }
   if (event === "tick") {
     handlers.onTick(Number(data["elapsed_ms"] ?? 0));
-    return;
+    return false;
   }
   if (event === "agent") {
     const raw = data["event"] as Record<string, unknown> | undefined;
     if (raw) handlers.onAgent({ ...raw, elapsedMs: Number(data["elapsed_ms"] ?? 0) } as unknown as AgentEvent);
-    return;
+    return false;
   }
   if (event === "stage") {
+    const facts: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key !== "stage" && key !== "state" && key !== "elapsed_ms") facts[key] = value;
+    }
     handlers.onStage(String(data["stage"] ?? ""), Number(data["elapsed_ms"] ?? 0),
-      data["state"] === undefined ? undefined : String(data["state"]));
-    return;
+      data["state"] === undefined ? undefined : String(data["state"]), facts as StageFacts);
+    return false;
   }
   if (event === "failed") {
     handlers.onFailed(String(data["message"] ?? "сервер прервал расчёт"));
-    return;
+    return true;
   }
   if (event === "screen") {
     const payload = data["payload"] as ScreenPayload | null;
     if (payload && isError(payload)) {
       handlers.onFailed(String((payload as { message?: unknown }).message ?? "сервер вернул ошибку"));
-      return;
+      return true;
     }
     if (payload && isScreen(payload)) {
       handlers.onScreen(payload, Number(data["elapsed_ms"] ?? 0));
-      return;
+      return true;
     }
     handlers.onFailed("сервер вернул payload неизвестной формы");
-    return;
+    return true;
   }
   if (event === "end") handlers.onEnd();
+  return false;
 }
 
 export async function streamDecision(
@@ -76,16 +81,27 @@ export async function streamDecision(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  for (;;) {
-    const chunk = await reader.read();
-    if (chunk.done) break;
-    buffer += decoder.decode(chunk.value, { stream: true });
-    let cut = buffer.indexOf("\n\n");
-    while (cut !== -1) {
-      const frame = parseFrame(buffer.slice(0, cut));
-      buffer = buffer.slice(cut + 2);
-      if (frame) dispatch(frame.event, frame.data as Record<string, unknown>, handlers);
-      cut = buffer.indexOf("\n\n");
+  let settled = false;
+  try {
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      let cut = buffer.indexOf("\n\n");
+      while (cut !== -1) {
+        const frame = parseFrame(buffer.slice(0, cut));
+        buffer = buffer.slice(cut + 2);
+        if (frame && dispatch(frame.event, frame.data as Record<string, unknown>, handlers)) settled = true;
+        cut = buffer.indexOf("\n\n");
+      }
     }
+    if (!settled && !signal.aborted) {
+      handlers.onFailed("поток оборвался: решение от сервера не получено");
+    }
+  } catch (reason) {
+    if (signal.aborted) return;
+    throw reason;
+  } finally {
+    reader.cancel().catch(() => undefined);
   }
 }

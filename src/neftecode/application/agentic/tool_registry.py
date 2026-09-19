@@ -50,8 +50,11 @@ def validate_arguments(schema: dict, value, path: str = "arguments") -> None:
         for index, item in enumerate(value):
             validate_arguments(schema.get("items", {}), item, f"{path}[{index}]")
     elif kind == "string":
-        if not isinstance(value, str) or len(value) > schema.get("maxLength", 10_000):
+        if not isinstance(value, str):
             raise ArgumentError(f"{path}: ожидается строка")
+        limit = schema.get("maxLength", 10_000)
+        if len(value) > limit:
+            raise ArgumentError(f"{path}: строка длиннее {limit} символов, сократите до {limit}")
     elif kind in ("number", "integer"):
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             raise ArgumentError(f"{path}: ожидается число")

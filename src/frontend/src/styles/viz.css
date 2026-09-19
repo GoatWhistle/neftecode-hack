@@ -1,0 +1,196 @@
+@import "./viz-bars.css";
+@import "./viz-headroom.css";
+
+.margins,
+.robust,
+.funnel,
+.offspec,
+.ages,
+.headroom,
+.severity,
+.matrix {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  padding: var(--space-4);
+  margin: 0;
+}
+
+.margins__head,
+.robust__head,
+.funnel__head,
+.offspec__head,
+.ages__head,
+.headroom__head,
+.severity__head {
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.margins__list,
+.robust__list,
+.funnel__rounds,
+.funnel__families,
+.offspec__list,
+.ages__list,
+.headroom__list,
+.severity__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.margins__foot,
+.margins__rest,
+.robust__scalehint,
+.robust__degenerate,
+.funnel__warn,
+.funnel__single,
+.offspec__delta,
+.ages__foot,
+.headroom__foot,
+.severity__foot,
+.severity__zero,
+.offspec__degenerate,
+.matrix__caption {
+  margin: var(--space-3) 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: var(--measure);
+}
+
+.margins__row {
+  display: grid;
+  grid-template-columns: minmax(12ch, 22ch) minmax(120px, 1fr) minmax(16ch, 26ch);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.margins__name {
+  font-size: 14px;
+}
+
+.margins__unit {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: var(--space-1);
+}
+
+.margins__track {
+  display: block;
+  min-width: 0;
+}
+
+.margins__svg {
+  display: block;
+  width: 100%;
+  height: 22px;
+}
+
+.margins__axis {
+  stroke: var(--line-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.margins__span {
+  stroke: var(--carbon);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.margins__span--fail {
+  stroke: var(--fail);
+}
+
+.margins__bound {
+  stroke: var(--carbon);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.margins__mark {
+  fill: var(--pass);
+}
+
+.margins__mark--fail {
+  fill: var(--fail);
+}
+
+.margins__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.matrix {
+  overflow: visible;
+}
+
+.matrix__svg {
+  display: block;
+  width: 100%;
+  min-width: 640px;
+  height: auto;
+}
+
+.matrix__label {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.matrix__axis {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.matrix__axis--outside {
+  fill: var(--unknown);
+}
+
+.matrix__seam {
+  stroke: var(--line-soft);
+  stroke-width: 1;
+}
+
+.matrix__cell rect {
+  stroke: var(--line-soft);
+  stroke-width: 1;
+}
+
+.matrix__cell--pass rect {
+  stroke: var(--carbon);
+  stroke-opacity: 0.45;
+}
+
+.matrix__cell--fail rect {
+  stroke: var(--fail);
+}
+
+.matrix__cell--unknown rect {
+  stroke: var(--unknown);
+}
+
+@media (max-width: 900px) {
+  .margins__row,
+  .funnel__round,
+  .funnel__family,
+  .offspec__row,
+  .ages__row,
+  .headroom__row,
+  .severity__row,
+  .robust__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}

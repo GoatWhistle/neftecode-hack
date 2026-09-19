@@ -1,6 +1,7 @@
 import type { NextStep, OptimizerRound, ScreenPayload, TraceEvent } from "../types";
 import { hours, isNumber, num } from "../format";
 import { Empty, Field, Fields, Note, Readout, Tag } from "./Primitives";
+import { VetoFunnel } from "./VetoFunnel";
 
 const KIND_TEXT: Record<string, string> = {
   no_feasible_plan: "Допустимого плана нет: ни один построенный вариант не проходит все обязательные проверки",
@@ -23,16 +24,6 @@ function optimizerOf(trace: TraceEvent[]): OptimizerTrace | null {
   return event ? (event as OptimizerTrace) : null;
 }
 
-function familyTotals(rounds: OptimizerRound[]): [string, number][] {
-  const totals = new Map<string, number>();
-  for (const round of rounds) {
-    for (const [family, count] of Object.entries(round.veto_families ?? {})) {
-      totals.set(family, (totals.get(family) ?? 0) + count);
-    }
-  }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1]);
-}
-
 export interface RefusalPanelProps {
   payload: ScreenPayload;
 }
@@ -46,7 +37,6 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
   const examples = decision.refusal?.examples ?? [];
   const optimizer = optimizerOf(decision.trace ?? []);
   const rounds = optimizer?.rounds ?? [];
-  const families = familyTotals(rounds);
   const measurements = steps.filter((step) => step.kind === "measurement");
 
   return (
@@ -78,27 +68,7 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
             />
           </div>
 
-          <table className="grid grid--tight">
-            <caption>Что именно не сошлось: суммарные вето по семействам ограничений</caption>
-            <thead>
-              <tr>
-                <th scope="col">Семейство ограничений</th>
-                <th scope="col">Вето за все раунды</th>
-              </tr>
-            </thead>
-            <tbody>
-              {families.map(([family, count]) => (
-                <tr key={family}>
-                  <th scope="row">{family}</th>
-                  <td className="grid__num">{num(count, 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Note>
-            Семейство с наибольшим числом вето — то, из-за которого совет невозможен. Числа в этой таблице
-            считают отклонённые проверки внутри перебора, а не измерения установки.
-          </Note>
+          <VetoFunnel rounds={rounds} compact />
         </>
       ) : null}
 

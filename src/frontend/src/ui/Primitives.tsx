@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { MISSING } from "../format";
-import { useCountUp } from "../useCountUp";
 
 export type Lamp = "pass" | "fail" | "unknown" | "idle";
 
@@ -23,13 +22,12 @@ export interface ReadoutProps {
 }
 
 export function Readout({ label, value, unit, hint, tone, badge }: ReadoutProps) {
-  const shown = useCountUp(value);
   return (
     <div className={`readout ${tone ? `readout--${tone}` : ""}`}>
       <span className="readout__label">{label}</span>
       <span className="readout__value">
-        {shown}
-        {unit ? <span className="readout__unit">{unit}</span> : null}
+        {value}
+        {unit ? <>{" "}<span className="readout__unit">{unit}</span></> : null}
       </span>
       {badge ? <span className="readout__badge">{badge}</span> : null}
       {hint ? <span className="readout__hint">{hint}</span> : null}

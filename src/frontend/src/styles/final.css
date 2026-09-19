@@ -1,0 +1,222 @@
+.stage--final {
+  padding-block: calc(var(--space-7) * 1.6) calc(var(--space-7) * 1.8);
+}
+
+.stage--final .stage__title {
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.04;
+}
+
+.stage--final .stage__step {
+  font-size: 34px;
+}
+
+.stage--final .stage__head {
+  grid-template-columns: 44px minmax(0, 1fr);
+  padding-bottom: var(--space-4);
+  border-bottom-width: 2px;
+  border-bottom-color: var(--carbon);
+}
+
+.stage--final .stage__body {
+  gap: var(--space-6);
+  padding-top: var(--space-6);
+}
+
+.final__kicker {
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.final__kicker::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex: none;
+  background: var(--carbon);
+}
+
+.final__verdict {
+  padding: 0 0 var(--space-5);
+  border-bottom: 1px solid var(--band-line);
+}
+
+.final__label {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: 0.005em;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.final__verdict--refuse .final__label {
+  color: var(--fail);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 10px;
+}
+
+.final__reason {
+  margin: var(--space-4) 0 0;
+  font-size: 19px;
+  line-height: 1.45;
+  max-width: var(--measure-lead);
+}
+
+.final__scope {
+  margin: var(--space-3) 0 0;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.45;
+  max-width: var(--measure);
+}
+
+.final__action {
+  padding: var(--space-5) 0 0;
+}
+
+.final__when {
+  margin: 0 0 var(--space-4);
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.final__when b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.final__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  max-width: var(--dense-max);
+  gap: 1px;
+  margin: 0;
+  background: var(--band-line);
+  border: 1px solid var(--band-line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.final__control {
+  background: var(--paper);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  transition: background-color var(--motion-hover) var(--ease);
+}
+
+.final__control dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.final__control dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(28px, 2.6vw, 38px);
+  font-weight: 300;
+  line-height: 1.05;
+}
+
+.final__unit {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--muted);
+  margin-left: 1px;
+}
+
+.final__origin {
+  margin-top: 2px;
+}
+
+.final__recipe {
+  margin-top: var(--space-5);
+}
+
+.final__blend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: var(--dense-max);
+  border: 1px solid var(--band-line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.final__blend-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8ch minmax(0, 1.4fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: 11px var(--space-4);
+  border-bottom: 1px solid var(--band-line);
+  font-size: 15px;
+  transition: background-color var(--motion-hover) var(--ease);
+}
+
+.final__blend-row:last-child {
+  border-bottom: none;
+}
+
+.final__blend-share {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.final__blend-stock {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.final__none {
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.final__ledger .readouts,
+.final__why > * + * {
+  margin-top: var(--space-3);
+}
+
+.final__why {
+  padding-top: var(--space-2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .final__control:hover,
+  .final__blend-row:hover {
+    background: var(--band-hover);
+  }
+}
+
+@media (max-width: 720px) {
+  .stage--final {
+    padding-block: var(--space-7);
+  }
+
+  .final__blend-row {
+    grid-template-columns: minmax(0, 1fr) 7ch;
+  }
+
+  .final__blend-stock {
+    grid-column: 1 / -1;
+  }
+}

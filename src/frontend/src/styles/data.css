@@ -1,5 +1,6 @@
 @import "./panels.css";
 @import "./provenance.css";
+@import "./viz.css";
 
 .grid {
   width: 100%;
@@ -159,7 +160,7 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
-  max-width: 82ch;
+  max-width: var(--measure);
 }
 
 .note--warn {
@@ -175,7 +176,7 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
-  max-width: 82ch;
+  max-width: var(--measure);
 }
 
 .risk,
@@ -197,7 +198,7 @@
 
 .risk__headline {
   margin: var(--space-2) 0;
-  max-width: 82ch;
+  max-width: var(--measure);
   line-height: 1.4;
 }
 
@@ -209,7 +210,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 84ch;
+  max-width: var(--measure);
   line-height: 1.4;
 }
 
@@ -223,7 +224,7 @@
   margin: 0 0 var(--space-2);
   color: var(--unknown);
   font-weight: 500;
-  max-width: 82ch;
+  max-width: var(--measure);
 }
 
 .limits__head {

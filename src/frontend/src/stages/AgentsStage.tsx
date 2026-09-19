@@ -1,5 +1,5 @@
 import type { TraceEvent } from "../types";
-import type { AgentEvent } from "../run/types";
+import type { AgentEvent, StageFacts } from "../run/types";
 import { Empty, Note } from "../ui/Primitives";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
@@ -22,12 +22,13 @@ function ordered(trace: TraceEvent[]): TraceEvent[] {
 
 export interface AgentsStageProps extends StageProps {
   events: AgentEvent[];
+  facts: StageFacts | undefined;
+  elapsedMs: number;
 }
 
-export function AgentsStage({ payload, index, state, source, events }: AgentsStageProps) {
+export function AgentsStage({ payload, index, state, source, lamp, lampTitle, events, facts, elapsedMs }: AgentsStageProps) {
   const agentic = payload.decision.agentic;
   const trace = ordered(payload.decision.trace ?? []);
-  const vetoes = trace.reduce((acc, event) => acc + ((event["vetoes"] as unknown[] | undefined)?.length ?? 0), 0);
   const running = state === "running";
 
   return (
@@ -38,12 +39,12 @@ export function AgentsStage({ payload, index, state, source, events }: AgentsSta
       source={source}
       title="Агенты"
       lead="Диалог оркестратора со специалистами по мере его хода: кто кого спросил, какой инструмент выбрал сам агент, что вернулось, какой вердикт и почему."
-      lamp={running ? "idle" : trace.length === 0 ? "unknown" : vetoes > 0 ? "fail" : "pass"}
-      lampTitle={`участников: ${trace.length}`}
+      lamp={running ? "idle" : lamp}
+      lampTitle={lampTitle}
     >
       <AgenticMode agentic={agentic} />
 
-      <AgentDialogue events={events} running={running} />
+      <AgentDialogue events={events} running={running} facts={facts} agentic={agentic} elapsedMs={elapsedMs} />
 
       <h3 className="agents__heading">Ответы агентов</h3>
       <Opinions agentic={agentic} />
@@ -67,7 +68,7 @@ export function AgentsStage({ payload, index, state, source, events }: AgentsSta
         сводку вызова и результата. Это решение по безопасности аудита, а не обрезанная выдача.
       </Note>
 
-      <JsonPanel title={`JSON: полная трасса агентного слоя, ${events.length} событий`}
+      <JsonPanel title={`JSON: полная трасса агентного слоя. Событий: ${events.length}`}
         value={agentic?.trace ?? payload.decision.trace} openTo={1} />
     </Section>
   );

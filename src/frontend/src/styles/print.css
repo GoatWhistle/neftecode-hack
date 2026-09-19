@@ -1,0 +1,215 @@
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+    color: #000000;
+    font-size: 11pt;
+  }
+
+  .app {
+    padding: 0;
+  }
+
+  .layout {
+    padding-left: 0;
+    margin-top: 0;
+  }
+
+  .stages {
+    --band-bleed-start: 0px;
+    --band-bleed-end: 0px;
+  }
+
+  .stage.stage.stage,
+  .config.config.config,
+  .strip.strip.strip,
+  .rail__item.rail__item {
+    --band: #ffffff;
+    --band-line: #767676;
+    --band-field: #ffffff;
+    --band-hover: #ffffff;
+    --band-seam: #000000;
+    --paper: #ffffff;
+    --panel: #ffffff;
+    --panel-raised: #ffffff;
+    --field: #ffffff;
+    --row-hover: #ffffff;
+    --vellum: #ffffff;
+    --line-soft: #767676;
+    --muted: #3d3a35;
+  }
+
+  .rail,
+  .stage--outline,
+  .config__actions,
+  .config__offline-actions,
+  .strip__follow {
+    display: none;
+  }
+
+  .config {
+    background-color: transparent;
+    padding-block: 0 8mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .stage {
+    background-color: transparent;
+    border-top: 1px solid #000000;
+    padding-block: 10mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .stages > .stage:first-of-type,
+  .stages > .config:first-child {
+    padding-block-start: 0;
+  }
+
+  .stage--final {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .stage__head,
+  .readouts,
+  .fields,
+  .grid,
+  .risk,
+  .limits,
+  .warnings__item,
+  .panel,
+  .chart,
+  .final__controls,
+  .final__blend {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .stage__title,
+  .final__label {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .scroller {
+    overflow-x: visible;
+    max-width: none;
+  }
+
+  .panel__body {
+    max-height: none;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  .panel,
+  .readout,
+  .field,
+  .grid,
+  .chart,
+  .origin-legend,
+  .final__control,
+  .final__blend,
+  .rail__list {
+    background: #ffffff;
+    border-color: #000000;
+  }
+
+  .grid thead th {
+    background: #ffffff;
+    border-bottom: 1px solid #000000;
+  }
+
+  .grid th,
+  .grid td {
+    border-bottom: 1px solid #767676;
+  }
+
+  .grid {
+    font-size: 9.5pt;
+    table-layout: fixed;
+  }
+
+  .grid th,
+  .grid td,
+  .json__row,
+  .json__toggle {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .json {
+    font-size: 8.5pt;
+  }
+
+  .foot {
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+  }
+
+  .masthead__verdict,
+  .masthead__verdict--refuse,
+  .note,
+  .note--warn,
+  .warnings__text,
+  .readout--fail .readout__value,
+  .readout--unknown .readout__value,
+  .final__verdict--refuse .final__label {
+    color: #000000;
+  }
+
+  .tag--pass {
+    background: #ffffff;
+    color: #000000;
+    border-color: #000000;
+  }
+
+  .tag--fail,
+  .tag--unknown,
+  .origin,
+  .origin--given,
+  .origin--derived,
+  .origin--measured,
+  .origin--scenario,
+  .origin--open,
+  .origin--absent {
+    color: #000000;
+    border-color: #000000;
+  }
+
+  .lamp,
+  .lamp--idle {
+    border-color: #000000;
+  }
+
+  .lamp--pass,
+  .lamp--fail {
+    background: #000000;
+    border-color: #000000;
+  }
+
+  .panel__caret,
+  .json__caret {
+    color: #000000;
+  }
+
+  input,
+  select,
+  textarea {
+    background: #ffffff;
+    color: #000000;
+    border-color: #000000;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+  }
+}

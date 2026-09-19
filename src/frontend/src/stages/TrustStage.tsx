@@ -4,6 +4,7 @@ import { Empty, Field, Fields, LampDot, Note, Readout, Scroller, Tag } from "../
 import { OriginBadge } from "../ui/Origin";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
+import { AgeBars } from "../ui/AgeBars";
 import type { StageProps } from "./StateStage";
 
 function reportOf(trace: TraceEvent[]): TrustReport | null {
@@ -17,12 +18,11 @@ function verdicts(report: TrustReport | null, fallback: SourceVerdict[]): Source
   return fallback ?? [];
 }
 
-export function TrustStage({ payload, index, state, source }: StageProps) {
+export function TrustStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
   const report = reportOf(payload.decision.trace ?? []);
   const sources = verdicts(report, payload.sources);
   const missing = report?.telemetry_missing_fraction ?? null;
   const suspects = report?.suspect_values ?? [];
-  const usable = report ? report.usable : sources.some((s) => s.usable);
 
   return (
     <Section
@@ -32,8 +32,8 @@ export function TrustStage({ payload, index, state, source }: StageProps) {
       source={source}
       title="Доверие к данным"
       lead="Агент данных решает, какому источнику можно верить: возраст замера, пригодность, пропуски телеметрии."
-      lamp={sources.length === 0 ? "unknown" : usable ? "pass" : "fail"}
-      lampTitle={usable ? "источник качества найден" : "достоверного источника нет"}
+      lamp={lamp}
+      lampTitle={lampTitle}
     >
       {sources.length === 0 ? (
         <Empty>
@@ -42,6 +42,8 @@ export function TrustStage({ payload, index, state, source }: StageProps) {
         </Empty>
       ) : (
         <>
+          <AgeBars sources={sources} />
+
           <Scroller label="Источники качества">
             <table className="grid">
               <caption>Источники качества</caption>

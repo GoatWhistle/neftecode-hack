@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { STAGES } from "./stages";
 import type { RunState } from "./run/types";
 
@@ -18,7 +18,8 @@ export function titleOf(run: RunState): string {
 }
 
 export function useDocumentTitle(run: RunState): void {
+  const title = useMemo(() => titleOf(run), [run]);
   useEffect(() => {
-    document.title = titleOf(run);
-  }, [run]);
+    document.title = title;
+  }, [title]);
 }

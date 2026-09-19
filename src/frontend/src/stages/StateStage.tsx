@@ -1,5 +1,6 @@
 import type { StageState } from "../run/types";
 import type { ScreenPayload } from "../types";
+import type { Lamp } from "../ui/Primitives";
 import { controlLabel, controlUnit, moment, num, withUnit } from "../format";
 import { Empty, Field, Fields, Note, Readout, Scroller } from "../ui/Primitives";
 import { Section } from "../ui/Section";
@@ -12,9 +13,11 @@ export interface StageProps {
   index: number;
   state?: StageState | undefined;
   source?: string | undefined;
+  lamp: Lamp;
+  lampTitle: string;
 }
 
-export function StateStage({ payload, index, state, source }: StageProps) {
+export function StateStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
   const operation = payload.explanation.current_operation ?? payload.decision.current_operation;
   const origin = payload.explanation.current_operation?.origin ?? null;
   const names = payload.explanation.component_names ?? {};
@@ -30,8 +33,8 @@ export function StateStage({ payload, index, state, source }: StageProps) {
       source={source}
       title="Состояние"
       lead="Режим на момент решения: уставки, рецепт смешения, запасы компонентов."
-      lamp={operation ? "pass" : "unknown"}
-      lampTitle={operation ? "режим передан" : "режим не передавался"}
+      lamp={lamp}
+      lampTitle={lampTitle}
     >
       <Fields>
         <Field label="Момент решения">{moment(payload.decision_time)}</Field>
@@ -58,7 +61,7 @@ export function StateStage({ payload, index, state, source }: StageProps) {
           </div>
           <div className="readouts">
             <Readout
-              label="Производительность блендинга"
+              label="Производительность"
               value={num(operation.throughput_tph, 2)}
               unit="т/ч"
               badge={<OriginBadge origin={origin?.throughput_tph} />}

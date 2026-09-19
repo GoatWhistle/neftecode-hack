@@ -18,7 +18,10 @@ const FAMILY_LABELS: Record<string, string> = {
   outflow: "Отгрузка",
   control: "Уставки",
   additive: "Присадка",
-  plan: "План"
+  plan: "План",
+  recipe: "Рецепт",
+  throughput: "Производительность",
+  model: "Применимость модели"
 };
 
 const TERM_LABELS: Record<string, string> = {

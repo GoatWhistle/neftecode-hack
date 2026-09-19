@@ -3,6 +3,8 @@ import { familyOf, hours, num } from "../format";
 import { Empty, Field, Fields, LampDot, Note, Readout, Scroller } from "../ui/Primitives";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
+import { GateMatrix } from "../ui/GateMatrix";
+import { HeadroomBars } from "../ui/HeadroomBars";
 import type { StageProps } from "./StateStage";
 
 interface FamilyRow {
@@ -27,11 +29,13 @@ function count(checks: GateCheck[], status: CheckStatus): number {
   return checks.filter((check) => check.status === status).length;
 }
 
-export function GateStage({ payload, index, state, source }: StageProps) {
+export function GateStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
   const gate = payload.decision.gate;
   const checks = gate?.checks ?? [];
   const failed = checks.filter((check) => check.status === "fail");
   const unknown = checks.filter((check) => check.status === "unknown");
+  const broken = [...failed, ...unknown];
+  const shownBroken = broken.slice(0, 25);
   const families = byFamily(checks);
 
   return (
@@ -42,8 +46,8 @@ export function GateStage({ payload, index, state, source }: StageProps) {
       source={source}
       title="Gate"
       lead="Жёсткая проверка выбранного плана: каждое ограничение в каждый момент горизонта."
-      lamp={checks.length === 0 ? "unknown" : failed.length > 0 ? "fail" : unknown.length > 0 ? "unknown" : "pass"}
-      lampTitle={gate?.feasible ? "план проходит" : "план не проходит"}
+      lamp={lamp}
+      lampTitle={lampTitle}
     >
       {checks.length === 0 ? (
         payload.decision.status === "refuse" ? (
@@ -73,6 +77,12 @@ export function GateStage({ payload, index, state, source }: StageProps) {
             />
           </div>
 
+          <Scroller label="Матрица проверок Gate">
+            <GateMatrix checks={checks} />
+          </Scroller>
+
+          <HeadroomBars checks={checks} />
+
           <Scroller label="Проверки по семействам ограничений">
             <table className="grid">
               <caption>Проверки по семействам ограничений</caption>
@@ -100,7 +110,7 @@ export function GateStage({ payload, index, state, source }: StageProps) {
             </table>
           </Scroller>
 
-          {failed.length + unknown.length > 0 ? (
+          {broken.length > 0 ? (
             <Scroller label="Что именно не прошло">
               <table className="grid">
                 <caption>Что именно не прошло</caption>
@@ -114,7 +124,7 @@ export function GateStage({ payload, index, state, source }: StageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...failed, ...unknown].slice(0, 25).map((check, position) => (
+                  {shownBroken.map((check, position) => (
                     <tr key={`${check.constraint_id}-${check.time_hours}-${position}`}>
                       <th scope="row">
                         <LampDot state={check.status === "fail" ? "fail" : "unknown"} />
@@ -133,6 +143,12 @@ export function GateStage({ payload, index, state, source }: StageProps) {
             <Note>Ни одно жёсткое ограничение не нарушено и ни одно не осталось непроверенным.</Note>
           )}
 
+          {broken.length > shownBroken.length ? (
+            <Note>
+              Показаны первые {shownBroken.length} из {broken.length}; остальные — в JSON ниже.
+            </Note>
+          ) : null}
+
           <Fields>
             <Field label="План допустим">{gate?.feasible ? "да" : "нет"}</Field>
             <Field label="Первое нарушение">
@@ -145,7 +161,7 @@ export function GateStage({ payload, index, state, source }: StageProps) {
         </>
       )}
 
-      <JsonPanel title={`JSON: Gate, ${checks.length} проверок`} value={gate} />
+      <JsonPanel title={`JSON: Gate. Проверок: ${checks.length}`} value={gate} />
     </Section>
   );
 }

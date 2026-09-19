@@ -1,0 +1,227 @@
+.consult {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  padding: var(--space-4);
+  animation: enter-up var(--motion-reveal) var(--ease) both;
+}
+
+.consult__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.consult__index {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.consult__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.consult__state {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.consult__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.consult__part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.consult__label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.consult__focus,
+.consult__none,
+.consult__veto,
+.consult__codes {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: var(--measure);
+}
+
+.consult__none,
+.consult__codes {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.consult__veto,
+.consult__broken {
+  color: var(--fail);
+}
+
+.consult__broken {
+  margin: var(--space-1) 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: var(--measure);
+  overflow-wrap: anywhere;
+}
+
+.consult__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.consult__steps-head {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.consult__step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 1px solid var(--line-soft);
+  padding-left: var(--space-3);
+}
+
+.consult__step-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.consult__tools {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.consult__tool {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 6px var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.consult__tool--failed {
+  border-color: var(--fail);
+}
+
+.consult__tool--unmeasured {
+  border-style: dashed;
+  border-color: var(--muted);
+}
+
+.consult__tool-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.consult__tool-state,
+.consult__tool-why {
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.consult__tool--failed .consult__tool-state {
+  color: var(--fail);
+}
+
+.consult__verdict {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.consult__verdict-code {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+.consult__verdict--accept .consult__verdict-code {
+  font-weight: 500;
+}
+
+.consult__verdict--revise .consult__verdict-code {
+  border-bottom: 1px solid var(--carbon);
+}
+
+.consult__verdict--reject .consult__verdict-code {
+  border-bottom: 2px solid var(--fail);
+  color: var(--fail);
+}
+
+.consult__verdict-text,
+.consult__risk {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.consult__confidence {
+  margin: var(--space-1) 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.consult__confidence--absent {
+  font-style: normal;
+}
+
+.consult__conf-bar {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.consult__conf-cell {
+  width: 10px;
+  height: 8px;
+  background: var(--line-soft);
+}
+
+.consult__conf-cell--on {
+  background: var(--carbon);
+}

@@ -74,6 +74,10 @@ export interface Alternative {
   severity_index: number | null;
   changes: number | null;
   why_not: string;
+  controls?: Record<string, number> | undefined;
+  recipe?: Record<string, number> | undefined;
+  throughput_tph?: number | null | undefined;
+  additive_dose?: number | null | undefined;
 }
 
 export interface Candidate {
@@ -157,6 +161,24 @@ export interface LookaheadLeg {
   assumption: string;
 }
 
+export interface LookaheadOffspec {
+  available?: boolean;
+  share: number | null;
+  share_source?: string | null;
+  main_tank?: string | null;
+  main_stock_t: number | null;
+  main_price_per_t: number | null;
+  rework_cost: number | null;
+  hold_cost_per_tonne: number | null;
+  plan_cost_per_tonne: number | null;
+  delta_cost_per_tonne: number | null;
+  production_t: number | null;
+  plan_extra_cost: number | null;
+  affects_admissibility: boolean;
+  note: string | null;
+  hold_feasible: boolean | null;
+}
+
 export interface Lookahead {
   available: boolean;
   lookahead_hours: number | null;
@@ -167,6 +189,7 @@ export interface Lookahead {
   switched: boolean;
   examined: number;
   warning: string | null;
+  offspec?: LookaheadOffspec | null;
 }
 
 export interface Refusal {

@@ -40,11 +40,30 @@ export interface AgentEvent {
   elapsedMs: number;
 }
 
+export interface StageFacts {
+  inventories?: Record<string, number>;
+  sources?: Array<Record<string, unknown>>;
+  usable?: boolean;
+  primary?: string;
+  forecast?: unknown;
+  evaluated?: number;
+  rounds?: number;
+  feasible?: number | boolean;
+  checks?: number;
+  plan_id?: string;
+  alternatives?: number;
+  provider?: string | null;
+  model?: string | null;
+  deterministic_policy?: boolean;
+  budget_limits?: Record<string, number>;
+}
+
 export interface RunState {
   status: RunStatus;
   phases: RunPhase[];
   stages: Record<string, StageState>;
   stageSource: Record<string, StageSource>;
+  stageFacts: Record<string, StageFacts>;
   agentEvents: AgentEvent[];
   payload: ScreenPayload | null;
   elapsedMs: number;
@@ -58,6 +77,7 @@ export const EMPTY_RUN: RunState = {
   phases: [],
   stages: {},
   stageSource: {},
+  stageFacts: {},
   agentEvents: [],
   payload: null,
   elapsedMs: 0,
