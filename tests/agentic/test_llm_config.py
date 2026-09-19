@@ -49,7 +49,7 @@ def test_default_provider_is_the_zai_coding_plan():
     assert (settings.provider, settings.model, settings.base_url) == (
         "zai", "glm-5.3-flash", "https://api.z.ai/api/coding/paas/v4")
     assert (settings.request_timeout_s, settings.max_retries, settings.max_tokens, settings.temperature) == (
-        120.0, 1, 6144, 0.2)
+        120.0, 1, 6144, 0.0)
     assert settings.allow_general_endpoint is False
     assert llm_settings_from_env({"ZAI_ALLOW_GENERAL_ENDPOINT": "Yes"}).allow_general_endpoint is True
 

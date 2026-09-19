@@ -1,8 +1,11 @@
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 import json
+import threading
 
 from neftecode.application.ports.llm import LLMClient, LLMError, LLMMessage, ToolSpec
+from neftecode.application.progress import current_sink, reporting_to
 
 from .budget import AgentBudget, BudgetExhausted
 from .contracts import AgentSettings, AgentTraceEvent, ContractViolation, extract_json_object
@@ -10,15 +13,21 @@ from .tools import ToolRegistry
 
 MAX_INVALID_FINALS = 2
 
+# Инструменты, которые нельзя выполнять параллельно с другими вызовами из того же ответа:
+# search_candidates мутирует общее состояние session (evaluations/plans/constraints).
+UNSAFE_FOR_PARALLEL_TOOLS = frozenset({"search_candidates"})
+
 
 @dataclass
 class AgentTrace:
     events: list = field(default_factory=list)
     sink: Callable[[dict], None] | None = None
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def add(self, agent: str, step: int, kind: str, **values) -> AgentTraceEvent:
-        event = AgentTraceEvent(len(self.events) + 1, agent, step, kind, **values)
-        self.events.append(event)
+        with self._lock:
+            event = AgentTraceEvent(len(self.events) + 1, agent, step, kind, **values)
+            self.events.append(event)
         if self.sink is not None:
             self.sink(event.to_dict())
         return event
@@ -77,6 +86,20 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
                 trace.add(role, step, "tool", decision="extra_tool_calls_dropped",
                           reason_codes=("extra_tool_calls_dropped",))
             messages.append(LLMMessage("assistant", response.content, tool_calls=tuple(kept)))
+            parallel_outcomes: dict[str, object] = {}
+            safe_to_parallelize = (len(kept) > 1
+                                   and not any(c.name == final_tool.name for c in kept)
+                                   and not any(c.name in UNSAFE_FOR_PARALLEL_TOOLS for c in kept))
+            if safe_to_parallelize:
+                sink = current_sink()
+
+                def _execute(call, sink=sink):
+                    with reporting_to(sink):
+                        return call.call_id, registry.execute(call.name, call.arguments, allowlist)
+
+                with ThreadPoolExecutor(max_workers=len(kept)) as pool:
+                    for call_id, outcome in pool.map(_execute, kept):
+                        parallel_outcomes[call_id] = outcome
             for call in kept:
                 if call.name == final_tool.name:
                     try:
@@ -90,7 +113,8 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
                         continue
                     trace.add(role, step, "final", tool_name=call.name, decision="accepted")
                     return LoopResult(final, "final", calls, tuple(evidence))
-                outcome = registry.execute(call.name, call.arguments, allowlist)
+                outcome = parallel_outcomes[call.call_id] if call.call_id in parallel_outcomes \
+                    else registry.execute(call.name, call.arguments, allowlist)
                 if outcome.evidence_ref:
                     evidence.append(outcome.evidence_ref)
                 messages.append(LLMMessage("tool", outcome.text, tool_call_id=call.call_id))
