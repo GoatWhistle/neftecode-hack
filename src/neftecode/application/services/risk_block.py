@@ -119,6 +119,10 @@ def _refusal_items(decision: dict) -> list[dict]:
                  "text": ("Решение не выдано: данные не пригодны для расчёта"
                           + (". Не хватает: " + ", ".join(str(m) for m in missing[:3]) if missing else "")),
                  "missing": list(missing)}]
+    if refusal.get("kind") == "agent_rejected":
+        return [{"kind": "refused_by_agents", "level": "high",
+                 "text": ("Решение не выдано: допустимый план был, но агенты качества/надёжности его отклонили. "
+                          "Режим остаётся прежним, и риск, из-за которого план отклонили, никуда не делся")}]
     return [{"kind": "refused_no_plan", "level": "high",
              "text": ("Решение не выдано: допустимого плана нет. Режим остаётся прежним, "
                       "и риск, из-за которого план не найден, никуда не делся")}]

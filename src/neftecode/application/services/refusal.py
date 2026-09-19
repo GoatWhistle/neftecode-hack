@@ -1,8 +1,8 @@
 from neftecode.application.services.risk_block import risk_block
 from neftecode.domain.production.scenario import Scenario
 
-from .explain_types import (BAD_DATA, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN, REFUSAL_KINDS,
-                            current_operation_view)
+from .explain_types import (AGENT_REJECTED, BAD_DATA, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN,
+                            REFUSAL_KINDS, current_operation_view)
 
 
 def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
@@ -29,7 +29,7 @@ def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = Non
     elif kind == MODEL_NOT_APPLICABLE:
         next_steps.append({"need": "вернуть режим в объявленную область применимости модели",
                            "kind": "regime"})
-    elif refusal.get("kind") == "agent_rejected":
+    elif kind == AGENT_REJECTED:
         codes = ", ".join(refusal.get("reason_codes", [])[:5]) or "без кода"
         next_steps.append({"need": f"проверить замечания агентов качества и надёжности ({codes})",
                            "kind": "agent_review"})

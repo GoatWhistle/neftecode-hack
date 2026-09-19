@@ -8,7 +8,8 @@ from neftecode.domain.production.scenario import Scenario
 BAD_DATA = "bad_data"
 MODEL_NOT_APPLICABLE = "model_not_applicable"
 NO_FEASIBLE_PLAN = "no_feasible_plan"
-REFUSAL_KINDS = (BAD_DATA, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN)
+AGENT_REJECTED = "agent_rejected"
+REFUSAL_KINDS = (BAD_DATA, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN, AGENT_REJECTED)
 
 LAB_DELAY_HOURS = 4.0
 
