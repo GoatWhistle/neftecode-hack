@@ -35,6 +35,8 @@ def test_stack_plan_uses_four_modules_and_default_ports(tmp_path):
     assert [urls[name] for name in ("data", "model", "decision", "gateway")] == [
         "http://127.0.0.1:8766", "http://127.0.0.1:8767",
         "http://127.0.0.1:8768", "http://127.0.0.1:8765"]
+    decision = commands[2]
+    assert decision[decision.index("--artifacts") + 1] == str((tmp_path / "artifacts").resolve())
 
 
 def test_stack_plan_honours_explicit_ports(tmp_path):
