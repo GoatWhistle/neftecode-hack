@@ -90,10 +90,19 @@ class LookaheadMixin:
     def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None,
                 robustness=None, current_operation=None, lookahead=None,
                 tank_estimate=None) -> dict:
+        required_inputs = list((self.scenario.policy or {}).get("deployment_inputs") or ())
+        ready = not any(item.get("status") == "open" for item in required_inputs)
         result = {
             "status": status, "reason": reason, "scope": SCENARIO_SCOPE,
             "current_operation": current_operation,
             "commercial_release_allowed": False,
+            "deployment_readiness": {
+                "ready": ready,
+                "reason": ("Все обязательные заводские параметры переданы."
+                           if ready else "Для промышленного применения завод должен передать фактические "
+                           "параметры парка и допустимую мощность глубокой очистки."),
+                "required_inputs": required_inputs,
+            },
             "scenario_id": self.scenario.scenario_id,
             "selected_plan": plan.to_dict() if plan is not None else None,
             "immediate_action": plan.steps[0].to_advice_dict() if plan is not None else None,

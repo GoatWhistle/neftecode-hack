@@ -49,6 +49,10 @@ def validate_response_model(value, where: str = RESPONSE_FILE) -> dict:
     share = value.get("horizon_response_share", DEFAULT_HORIZON_SHARE)
     if not _finite_number(share) or not 0 < share <= 1:
         raise ValueError(f"Модель отклика {where}: horizon_response_share должна лежать в (0, 1]")
+    plateau = value.get("observed_plateau_window_hours")
+    if plateau is not None and (not _pair(plateau) or plateau[0] < onset or plateau[0] > plateau[1]):
+        raise ValueError(f"Модель отклика {where}: observed_plateau_window_hours должен быть парой "
+                         "неубывающих часов после начала отклика")
     return value
 
 

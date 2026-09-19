@@ -17,12 +17,12 @@ BUDGET = 400
 
 EXPECTED = {
     "baseline": (HOLD, "hold", None, 300.0, False, 1, 200,
-                 ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "48544ca401174328"),
+                 ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "b0e636001278709a"),
     "sour_crude": (RECOMMEND_SCENARIO, "c0160", None, 300.0, True, 1, 200,
-                   ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "6d503b89856e3fbf"),
+                   ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "ef0b957c9388fbca"),
     "ample_reserve": (RECOMMEND_SCENARIO, "c0160", None, 300.0, True, 1, 200,
-                      ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "beab168d6ab786b3"),
-    "no_feasible": (REFUSE, None, "no_feasible_plan", None, None, 2, 32, ["optimizer"], "e225bd88f2ac61fd"),
+                      ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "7dd99cc2b6c448d2"),
+    "no_feasible": (REFUSE, None, "no_feasible_plan", None, None, 2, 32, ["optimizer"], "3717f2f7233aa663"),
 }
 
 

@@ -154,8 +154,9 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
         horizon = float((out.get("horizon") or {}).get("hours") or 0.0)
         stage["response_lag_hours"] = {
             "value": onset, "unit": "ч", "source": "derived",
-            "note": (f"Исследование отклика ({RESPONSE_FILE}): β — средний накопленный отклик через 3–8 ч на устойчивый "
-                     f"шаг T6, поэтому эффект не засчитывается раньше {onset:g} ч; в пределах горизонта {horizon:g} ч "
+            "note": (f"Ответ организаторов 18.09: коррекция начинает действовать через 0,5–2 ч; паспортного "
+                     f"времени нет. Консервативно эффект не засчитывается раньше {onset:g} ч. Исследование "
+                     f"{RESPONSE_FILE} оценивает редкое окно плато 3–8 ч; в пределах горизонта {horizon:g} ч "
                      f"засчитывается не больше {share:.0%} хода (регулятор доводит 0.62–0.66 заданного шага к 3 ч). "
                      f"Сценарное значение {float(stage['response_lag_hours']['value']):g} ч заменено.")}
         model["horizon_response_share"] = share

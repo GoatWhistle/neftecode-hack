@@ -100,7 +100,8 @@ class ModelService:
         low, high = interval(value, bundle["radii"][name])
         reason = "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента"
         if name == "last_pak_bc":
-            reason += "; ПАК скорректирован причинной медианой 20 последних доступных пар ЛИМС−ПАК"
+            reason += ("; лабораторное значение прогнозируется по ПАК с причинной медианой 20 последних "
+                       "доступных пар; это не заводская калибровка ПАК к шкале ЛИМС")
         return {"at": when.isoformat(), "model": name, "value": value, "lower": float(low), "upper": float(high),
                 **interval_coverage(self.artifacts, bundle, name),
                 "available": True, "reason": reason}

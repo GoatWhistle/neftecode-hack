@@ -31,7 +31,7 @@ def synthetic(months: int = 15, beta: float = -0.4, seed: int = 1):
 @pytest.fixture(scope="module")
 def artifact():
     signals, online = synthetic()
-    declared = {"schema_version": "v1", "tag": "ht.T6", "envelope_dt_c": 2.0, "response_onset_hours": 3.0,
+    declared = {"schema_version": "v1", "tag": "ht.T6", "envelope_dt_c": 2.0, "response_onset_hours": 2.0,
                 "horizon_response_share": 0.66, "flow_beta": None}
     return E.estimate_response(signals, online, "2024-01-01", declared, "fp", boot=8)
 

@@ -199,12 +199,29 @@ export interface Refusal {
   [key: string]: unknown;
 }
 
+export interface DeploymentInput {
+  id: string;
+  label: string;
+  status: "open" | "given";
+  unit: string;
+  required_values: string[];
+  scenario_assumptions: Record<string, number | null>;
+  impact: string;
+}
+
+export interface DeploymentReadiness {
+  ready: boolean;
+  reason: string;
+  required_inputs: DeploymentInput[];
+}
+
 export interface Decision {
   status: string;
   reason: string;
   scope: string | null;
   current_operation: PlanStep | null;
   commercial_release_allowed: boolean;
+  deployment_readiness: DeploymentReadiness;
   scenario_id: string | null;
   selected_plan: SelectedPlan | null;
   immediate_action: PlanStep | null;

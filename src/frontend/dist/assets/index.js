@@ -18258,6 +18258,7 @@ function DecisionStage({ payload, index, state, source, lamp, lampTitle }) {
   const warnings = explanation.warnings ?? [];
   const risk = explanation.risk;
   const limits = explanation.limits ?? [];
+  const deployment = decision.deployment_readiness;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Section,
     {
@@ -18272,6 +18273,11 @@ function DecisionStage({ payload, index, state, source, lamp, lampTitle }) {
       final: true,
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(VerdictHead, { payload, refused }),
+        !deployment.ready ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Note, { tone: "warn", children: [
+          "Промышленное применение пока заблокировано: ",
+          deployment.required_inputs.map((item) => item.label).join("; "),
+          ". Числа 4000 т и 30 т/ч остаются только сценарными допущениями."
+        ] }) : null,
         refused ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefusalPanel, { payload }) : action ? /* @__PURE__ */ jsxRuntimeExports.jsx(ActionBlock, { payload, action }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Немедленное действие не передавалось: советовать нечего." }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__ledger", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__kicker", children: "Чего это стоит" }),

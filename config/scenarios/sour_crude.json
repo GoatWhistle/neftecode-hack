@@ -448,6 +448,26 @@
     }
   },
   "policy": {
+    "deployment_inputs": [
+      {
+        "id": "tank_farm",
+        "label": "Фактический рабочий объём и полезная вместимость резервуарного парка",
+        "status": "open",
+        "unit": "т",
+        "required_values": ["current_inventory_t", "usable_capacity_t"],
+        "scenario_assumptions": {"current_inventory_t": 4000.0, "usable_capacity_t": null},
+        "impact": "Определяет разбавление, оборачиваемость, чувствительность советов и физическую замкнутость баланса парка."
+      },
+      {
+        "id": "deep_treatment_capacity",
+        "label": "Допустимая мощность наработки ДТ более глубокой очистки",
+        "status": "open",
+        "unit": "т/ч",
+        "required_values": ["production_capacity_tph"],
+        "scenario_assumptions": {"production_capacity_tph": 30.0},
+        "impact": "Ограничивает доступность on-demand-компонента; 30 т/ч нельзя выдавать за возможность установки."
+      }
+    ],
     "terminal_inventory_rule": "min_hours_of_supply",
     "terminal_min_hours": 1.0,
     "sulfur_operating_margin_mgkg": 1.0,

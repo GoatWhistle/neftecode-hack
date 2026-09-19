@@ -21,6 +21,7 @@ export function DecisionStage({ payload, index, state, source, lamp, lampTitle }
   const warnings = explanation.warnings ?? [];
   const risk = explanation.risk;
   const limits = explanation.limits ?? [];
+  const deployment = decision.deployment_readiness;
 
   return (
     <Section
@@ -39,6 +40,13 @@ export function DecisionStage({ payload, index, state, source, lamp, lampTitle }
       final
     >
       <VerdictHead payload={payload} refused={refused} />
+
+      {!deployment.ready ? (
+        <Note tone="warn">
+          Промышленное применение пока заблокировано: {deployment.required_inputs.map((item) => item.label).join("; ")}.
+          Числа 4000 т и 30 т/ч остаются только сценарными допущениями.
+        </Note>
+      ) : null}
 
       {refused ? (
         <RefusalPanel payload={payload} />
