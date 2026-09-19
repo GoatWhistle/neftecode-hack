@@ -6,12 +6,14 @@ import { VetoFunnel } from "./VetoFunnel";
 const KIND_TEXT: Record<string, string> = {
   no_feasible_plan: "Допустимого плана нет: ни один построенный вариант не проходит все обязательные проверки",
   bad_data: "Данные непригодны: достоверного источника качества на момент решения нет",
-  data: "Данные непригодны: достоверного источника качества на момент решения нет"
+  data: "Данные непригодны: достоверного источника качества на момент решения нет",
+  agent_rejected: "Допустимый план был, но агенты качества/надёжности его отклонили: решение не выдаётся"
 };
 
 const STEP_KIND_TEXT: Record<string, string> = {
   measurement: "измерение",
-  resource_or_scenario_condition: "условие сценария или ресурс"
+  resource_or_scenario_condition: "условие сценария или ресурс",
+  agent_review: "решение агентов"
 };
 
 interface OptimizerTrace extends TraceEvent {
@@ -38,6 +40,8 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
   const optimizer = optimizerOf(decision.trace ?? []);
   const rounds = optimizer?.rounds ?? [];
   const measurements = steps.filter((step) => step.kind === "measurement");
+  const zeroFeasible = kind === "no_feasible_plan";
+  const feasibleCount = zeroFeasible ? 0 : (rounds.length > 0 ? (rounds[rounds.length - 1]?.feasible ?? 0) : 0);
 
   return (
     <div className="refusal">
@@ -56,15 +60,15 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
             <Readout
               label="Планов проверено"
               value={num(optimizer?.evaluated, 0)}
-              hint="ни один не прошёл"
-              tone="fail"
+              hint={zeroFeasible ? "ни один не прошёл" : "часть прошла проверки, но не устроила агентов"}
+              tone={zeroFeasible ? "fail" : "unknown"}
             />
             <Readout label="Раундов поиска" value={String(rounds.length)} hint="с ужесточением запретов" />
             <Readout
               label="Допустимых"
-              value="0"
-              tone="fail"
-              hint="планов, прошедших все проверки"
+              value={String(feasibleCount)}
+              tone={zeroFeasible ? "fail" : "unknown"}
+              hint={zeroFeasible ? "планов, прошедших все проверки" : "прошли обязательные проверки; лучший отклонён агентами"}
             />
           </div>
 

@@ -16551,7 +16551,7 @@ function GateStage({ payload, index, state, source, lamp, lampTitle }) {
       lamp,
       lampTitle,
       children: [
-        checks.length === 0 ? payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Отдельного протокола Gate здесь нет, и это не пропуск: проверять было нечего — ни один план не дожил до финальной проверки. Что именно отсеяло варианты, показано на этапе «Решение» и в трассе оптимизатора на этапе «Кандидаты»." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Проверки Gate не передавались." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        checks.length === 0 ? payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: payload.explanation.kind === "agent_rejected" ? "Отдельного протокола Gate здесь нет: жёсткие проверки допустимый план прошёл (см. этап «Кандидаты»), но до финальной перепроверки дело не дошло — агенты качества/надёжности отклонили его раньше. Подробности — на этапе «Агенты»." : "Отдельного протокола Gate здесь нет, и это не пропуск: проверять было нечего — ни один план не дожил до финальной проверки. Что именно отсеяло варианты, показано на этапе «Решение» и в трассе оптимизатора на этапе «Кандидаты»." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Проверки Gate не передавались." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Проверок всего", value: String(checks.length), hint: `план ${gate?.plan_id ?? "—"}` }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Пройдено", value: String(count(checks, "pass")), tone: "pass" }),
@@ -18043,7 +18043,7 @@ function ChoiceStage({ payload, index, state, source, lamp, lampTitle }) {
               ] })
             ] }, step.time_hours)) })
           ] }) })
-        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "План не выбран, потому что выбирать было не из чего: допустимых вариантов ноль. Сравнение планов между собой имеет смысл только после того, как хотя бы один прошёл обязательные проверки." }),
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: payload.explanation.kind === "agent_rejected" ? "План не выбран: допустимый вариант был, но агенты качества/надёжности его отклонили. Подробности — на этапе «Агенты» и в панели отказа." : "План не выбран, потому что выбирать было не из чего: допустимых вариантов ноль. Сравнение планов между собой имеет смысл только после того, как хотя бы один прошёл обязательные проверки." }),
         rule ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: rule }) : null,
         usesDemand ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: "В рецепте выбранного плана есть компонент, который нарабатывают по необходимости: разбавление им оплачивается более глубокой очисткой, и эта надбавка уже входит в стоимость тонны выше. Ограничением служит темп наработки, а не остаток на складе — остатка у этого компонента нет." }) : null,
         alternatives.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Ближайшие альтернативы", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
@@ -18073,7 +18073,7 @@ function ChoiceStage({ payload, index, state, source, lamp, lampTitle }) {
             /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__diff", children: /* @__PURE__ */ jsxRuntimeExports.jsx(PlanDiff, { alternative: item, baseline, names }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__why", children: item.why_not })
           ] }, item.candidate_id)) })
-        ] }) }) : payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Списка альтернатив нет: он строится из допустимых планов, а их не нашлось. Отклонённые варианты с причинами отсева показаны на этапе «Кандидаты»." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Альтернатив в payload нет." }),
+        ] }) }) : payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: payload.explanation.kind === "agent_rejected" ? "Списка альтернатив нет: допустимые планы были, но решение не выдано после отклонения агентами качества/надёжности. Кто и почему отклонил — на этапе «Агенты»; проверенные варианты — на этапе «Кандидаты»." : "Списка альтернатив нет: он строится из допустимых планов, а их не нашлось. Отклонённые варианты с причинами отсева показаны на этапе «Кандидаты»." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Альтернатив в payload нет." }),
         payload.decision.robustness ? /* @__PURE__ */ jsxRuntimeExports.jsx(RobustnessMap, { robustness: payload.decision.robustness }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Проверка устойчивости не проводилась или её результат не передавался." }),
         payload.decision.lookahead?.offspec ? /* @__PURE__ */ jsxRuntimeExports.jsx(OffspecBlock, { offspec: payload.decision.lookahead.offspec }) : null,
         /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
@@ -18108,11 +18108,13 @@ function ChoiceStage({ payload, index, state, source, lamp, lampTitle }) {
 const KIND_TEXT = {
   no_feasible_plan: "Допустимого плана нет: ни один построенный вариант не проходит все обязательные проверки",
   bad_data: "Данные непригодны: достоверного источника качества на момент решения нет",
-  data: "Данные непригодны: достоверного источника качества на момент решения нет"
+  data: "Данные непригодны: достоверного источника качества на момент решения нет",
+  agent_rejected: "Допустимый план был, но агенты качества/надёжности его отклонили: решение не выдаётся"
 };
 const STEP_KIND_TEXT = {
   measurement: "измерение",
-  resource_or_scenario_condition: "условие сценария или ресурс"
+  resource_or_scenario_condition: "условие сценария или ресурс",
+  agent_review: "решение агентов"
 };
 function optimizerOf(trace) {
   const event = trace.find((item) => item.agent === "optimizer");
@@ -18128,6 +18130,8 @@ function RefusalPanel({ payload }) {
   const optimizer = optimizerOf(decision.trace ?? []);
   const rounds = optimizer?.rounds ?? [];
   const measurements = steps.filter((step) => step.kind === "measurement");
+  const zeroFeasible = kind === "no_feasible_plan";
+  const feasibleCount = zeroFeasible ? 0 : rounds.length > 0 ? rounds[rounds.length - 1]?.feasible ?? 0 : 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "refusal", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Вид отказа", children: /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: kind ?? "—" }) }),
@@ -18142,8 +18146,8 @@ function RefusalPanel({ payload }) {
           {
             label: "Планов проверено",
             value: num(optimizer?.evaluated, 0),
-            hint: "ни один не прошёл",
-            tone: "fail"
+            hint: zeroFeasible ? "ни один не прошёл" : "часть прошла проверки, но не устроила агентов",
+            tone: zeroFeasible ? "fail" : "unknown"
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Раундов поиска", value: String(rounds.length), hint: "с ужесточением запретов" }),
@@ -18151,9 +18155,9 @@ function RefusalPanel({ payload }) {
           Readout,
           {
             label: "Допустимых",
-            value: "0",
-            tone: "fail",
-            hint: "планов, прошедших все проверки"
+            value: String(feasibleCount),
+            tone: zeroFeasible ? "fail" : "unknown",
+            hint: zeroFeasible ? "планов, прошедших все проверки" : "прошли обязательные проверки; лучший отклонён агентами"
           }
         )
       ] }),
