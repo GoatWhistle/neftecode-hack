@@ -1,21 +1,17 @@
-"""Deterministic stand-ins for a language model: no network, no randomness.
-
-`ScriptedLLM` replays a fixed queue of answers. `PolicyLLM` calls a policy function that reads the
-conversation (including tool results) and decides the next step, so a scripted path can still depend on
-what the deterministic tools returned. Both report provider "scripted": they are not language models and
-their traces must never be presented as model reasoning.
-"""
 from collections.abc import Callable, Sequence
 import json
 import re
 
 from neftecode.application.ports.llm import LLMMessage, LLMResponse, LLMUsage, ToolCall, ToolSpec
 
+DETERMINISTIC_PROVIDERS = ("scripted",)
+
+DETERMINISTIC_LABEL = "детерминированная политика, не языковая модель"
+
 _ROLE = re.compile(r"ROLE:\s*([a-z_]+)")
 
 
 def role_of(messages: Sequence[LLMMessage]) -> str:
-    """Agent role declared by the system prompt marker `ROLE: <role>`."""
     for message in messages:
         if message.role == "system":
             match = _ROLE.search(message.content)
@@ -25,7 +21,6 @@ def role_of(messages: Sequence[LLMMessage]) -> str:
 
 
 def tool_results(messages: Sequence[LLMMessage]) -> list[dict]:
-    """Every tool result so far, in order, as {name, arguments, result} with parsed JSON where possible."""
     calls = {}
     out = []
     for message in messages:
@@ -46,7 +41,6 @@ def tool_results(messages: Sequence[LLMMessage]) -> list[dict]:
 
 
 def context_of(messages: Sequence[LLMMessage]) -> dict:
-    """The JSON data block of the first user message, or {} when there is none."""
     for message in messages:
         if message.role == "user":
             start = message.content.find("{")
@@ -63,7 +57,6 @@ def call(name: str, **arguments) -> tuple[str, dict]:
 
 
 def respond(*calls: tuple[str, dict], content: str = "", usage: tuple[int, int] = (0, 0)) -> LLMResponse:
-    """Build a response with tool calls; call ids are assigned by the client."""
     tool_calls = tuple(ToolCall("", name, json.dumps(arguments, ensure_ascii=False)) for name, arguments in calls)
     return LLMResponse(content, tool_calls, "tool_calls" if tool_calls else "stop",
                        LLMUsage(usage[0], usage[1], usage[0] + usage[1]))
@@ -89,7 +82,6 @@ class _Deterministic:
 
 
 class ScriptedLLM(_Deterministic):
-    """Answers from a fixed queue. An item may be a response, an exception to raise, or a callable."""
 
     def __init__(self, responses: Sequence, model: str = "scripted-queue"):
         super().__init__(model)
@@ -113,7 +105,6 @@ class ScriptedLLM(_Deterministic):
 
 
 class PolicyLLM(_Deterministic):
-    """Answers by calling `policy(role, messages, tools)`; the policy may raise to simulate provider errors."""
 
     def __init__(self, policy: Callable[[str, Sequence[LLMMessage], Sequence[ToolSpec]], LLMResponse],
                  model: str = "scripted-policy"):

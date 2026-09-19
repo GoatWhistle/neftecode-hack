@@ -1,4 +1,3 @@
-"""LLM adapters against a fake urlopen: request shape, parsing, error mapping, retries and the factory guard."""
 import io
 import json
 import os
@@ -31,7 +30,6 @@ class FakeResponse:
 
 
 class FakeHTTP:
-    """Replays outcomes in order: dict/bytes -> 200 response, (status, body) -> HTTPError, exception -> raised."""
 
     def __init__(self, *outcomes):
         self.outcomes = list(outcomes)

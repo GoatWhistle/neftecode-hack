@@ -1,8 +1,3 @@
-"""OpenAI-compatible chat completions adapter (Z.AI Coding Plan, OpenAI, local endpoints).
-
-HTTP goes through `urllib.request.urlopen`, looked up at call time so tests can replace it.
-Provider reasoning (`reasoning_content`) is discarded and never reaches `LLMResponse`.
-"""
 import http.client
 import json
 import time
@@ -17,7 +12,6 @@ from .errors import map_http_error, map_transport_error
 
 
 def post_json(url: str, headers: dict, body: dict, timeout_s: float, secret: Secret) -> dict:
-    """POST a JSON body and return the decoded JSON object, mapping every failure to `LLMError`."""
     request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers,
                                      method="POST")
     try:
@@ -54,12 +48,6 @@ def _redacted(error: LLMError, secret: Secret) -> LLMError:
 def call_with_retries(attempt: Callable[[float], LLMResponse], max_retries: int,
                       sleep: Callable[[float], None], budget_s: float, clock: Callable[[], float],
                       started: float) -> LLMResponse:
-    """Retry only retryable errors, at most `max_retries` extra times, with 1s, 2s, ... backoff.
-
-    `budget_s` bounds all attempts together, not each one: a retry gets what is left after the failed
-    attempt and the pause, and is not made at all when less than a second remains. So one model call
-    never exceeds the deadline the agent budget handed down (`AgentBudget.remaining_seconds`).
-    """
     retry = 0
     remaining = budget_s
     while True:
@@ -78,7 +66,6 @@ def call_with_retries(attempt: Callable[[float], LLMResponse], max_retries: int,
 
 
 def check_finish(finish_reason: str, content: str, tool_calls: tuple) -> None:
-    """Reject responses that carry no usable answer."""
     if finish_reason == "sensitive":
         raise LLMError("provider", "провайдер заблокировал ответ (sensitive)", code="sensitive")
     if finish_reason == "network_error":

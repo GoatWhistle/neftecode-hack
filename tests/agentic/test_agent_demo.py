@@ -1,4 +1,3 @@
-"""The offline agent demonstration is deterministic, labelled as scripted and wired into the CLI."""
 import json
 from argparse import Namespace
 from pathlib import Path
@@ -12,7 +11,7 @@ from _agentic_support import legacy_decide
 def run(tmp_path):
     tmp_path.mkdir(parents=True, exist_ok=True)
     agent_demo(Namespace(scenario=None), None, Path.cwd(), tmp_path)
-    return json.loads((tmp_path / "agent-demo.json").read_text()), (tmp_path / "agent-demo.md").read_text()
+    return json.loads((tmp_path / "agent-demo.json").read_text(encoding="utf-8")), (tmp_path / "agent-demo.md").read_text(encoding="utf-8")
 
 
 def strip_latency(value):

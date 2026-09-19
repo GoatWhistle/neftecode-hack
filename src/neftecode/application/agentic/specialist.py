@@ -1,4 +1,3 @@
-"""Common bounded review loop of a specialist agent."""
 from dataclasses import dataclass
 
 from neftecode.application.ports.llm import LLMClient
@@ -10,7 +9,6 @@ from .loop import AgentTrace, run_tool_loop
 from .session import DecisionSession
 from .tools import SUBMIT_OPINION, ToolRegistry
 
-#: How many candidates one consultation may cover.
 MAX_CANDIDATES_PER_CONSULT = 3
 
 CONSTRAINT_VOCABULARY = ("Разрешённые proposed_constraints (только ужесточение): "

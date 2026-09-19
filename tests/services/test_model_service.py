@@ -55,7 +55,7 @@ def test_selected_simple_baseline_is_a_real_available_model(tmp_path):
     }
     with (artifacts / "model.pkl").open("wb") as stream:
         pickle.dump(bundle, stream)
-    (artifacts / "manifest.json").write_text(json.dumps({"fingerprint": "test"}))
+    (artifacts / "manifest.json").write_text(json.dumps({"fingerprint": "test"}), encoding="utf-8")
     service = ModelService(tmp_path, artifacts); server, thread = running(service)
     try:
         assert request(server, "GET", "/readyz")[0] == 200

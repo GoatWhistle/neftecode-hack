@@ -10,7 +10,8 @@ catboost_info/
 # Выданные организаторами исходные данные: 331 МБ, распространение вне задачи не согласовано.
 # Ожидаемое размещение описано в README; репозиторий их не хранит.
 task/
-dist/
+/dist/
+node_modules/
 
 # Keep infrastructure artifact adapter sources tracked
 !src/neftecode/infrastructure/artifacts/
@@ -19,3 +20,4 @@ dist/
 # Локальные секреты (ключи LLM-провайдеров). Никогда не коммитить.
 .env
 .env.*
+.playwright-mcp/

@@ -1,4 +1,3 @@
-"""QualityAgent: protects the quality of the commercial product on top of gate-feasible plans."""
 from dataclasses import dataclass
 
 from .specialist import COMMON_RULES, CONSTRAINT_VOCABULARY, SpecialistAgent
@@ -12,7 +11,8 @@ QUALITY_PROMPT = f"""ROLE: quality
 а сценарную модель называй сценарной); проекцию резервуаров и время до нарушения за горизонтом.
 Практика установки (эксперт, Q&A 15.09): до предела серы 10 мг/кг держат технологический запас 1–2 ppm; сценарное
 значение — context:limits.sulfur_operating_margin_mgkg. Запас меньше него при большой неопределённости — повод для
-REVISE с min_quality_margin или отказа от кандидата. Некондиция в 50–100 раз дороже запаса качества в резервуаре.
+REVISE с min_quality_margin или отказа от кандидата. Повторное смешение некондиции стоит +5 % себестоимости
+на объём резервуара (ответ организаторов 18.09, economics.offspec_rework_cost_share).
 {COMMON_RULES}{CONSTRAINT_VOCABULARY}
 """
 

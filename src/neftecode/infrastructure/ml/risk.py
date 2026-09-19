@@ -1,4 +1,3 @@
-"""Exceedance detection; scores are not asserted to be calibrated probabilities."""
 import numpy as np
 from catboost import CatBoostClassifier
 from sklearn.impute import SimpleImputer
@@ -11,7 +10,6 @@ from neftecode.infrastructure.data.data import split_periods
 
 
 def select_threshold(labels, scores, false_alarm_budget):
-    """Lowest threshold satisfying empirical FPR budget. Ties are never split."""
     if not 0 <= false_alarm_budget < 1:
         raise ValueError("Бюджет ложных тревог должен быть в диапазоне [0, 1)")
     labels, scores = np.asarray(labels, bool), np.asarray(scores, float)
@@ -20,7 +18,6 @@ def select_threshold(labels, scores, false_alarm_budget):
         raise ValueError("Нет проб без превышения для выбора порога")
     allowed = int(np.floor(false_alarm_budget * len(negative)))
     ordered = np.sort(negative)[::-1]
-    # Strictly above this negative score: tie groups cannot breach the budget.
     return float(np.nextafter(ordered[allowed], np.inf))
 
 
@@ -60,8 +57,6 @@ def run_risk_experiment(x, meta, cfg):
     labels = meta.actual_sulfur.to_numpy() > cfg["sulfur_limit"]
     if not (labels[train].any() and (~labels[train]).any()):
         raise ValueError("Для обучения нужны оба класса")
-    # ``pak.lab_bias20`` belongs only to the pre-registered point forecast.
-    # Keep the already selected risk experiment unchanged.
     columns = [c for c in x.columns[x.loc[train].nunique() > 1] if c != "pak.lab_bias20"]
     candidates = ["pak_threshold", "lab_threshold", "logistic", "risk_catboost", "risk_catboost_no_pak"]
     bundle = {"models": {}, "columns": {}, "thresholds": {}, "config": cfg}
@@ -97,7 +92,6 @@ def run_risk_experiment(x, meta, cfg):
     fallback = min(["lab_threshold", "risk_catboost_no_pak"], key=rank)
     bundle.update(selected=selected, fallback=fallback)
     for name, score in scores.items():
-        # New threshold uses calibration-period negatives; the test cannot move it.
         threshold = select_threshold(labels[cal], score[cal], cfg["risk_false_alarm_budget"])
         bundle["thresholds"][name] = threshold
         results[name] = {

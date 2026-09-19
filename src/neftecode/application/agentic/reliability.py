@@ -1,4 +1,3 @@
-"""ReliabilityAgent: judges whether a formally feasible plan is operationally reasonable and stable."""
 from dataclasses import dataclass
 
 from .specialist import COMMON_RULES, CONSTRAINT_VOCABULARY, SpecialistAgent

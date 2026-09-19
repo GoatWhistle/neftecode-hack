@@ -1,4 +1,3 @@
-"""Deterministic source and input manifest used to fingerprint training."""
 
 import hashlib
 import json
@@ -12,6 +11,6 @@ def fingerprint(root: Path, cfg):
     hashes = {}
     for path in files:
         with path.open("rb") as stream:
-            hashes[str(path.relative_to(root))] = hashlib.file_digest(stream, "sha256").hexdigest()
+            hashes[path.relative_to(root).as_posix()] = hashlib.file_digest(stream, "sha256").hexdigest()
     key = hashlib.sha256(json.dumps([hashes, cfg], sort_keys=True).encode()).hexdigest()
     return {"fingerprint": key, "files": hashes, "config": cfg, "python": platform.python_version()}

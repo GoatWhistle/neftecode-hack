@@ -1,4 +1,3 @@
-"""Response effect adapter used until the data-derived response layer is integrated."""
 from collections.abc import Mapping
 
 REASON = ("Модель отклика серы на температуру ГО (RESPONSE_MODEL_FINAL.md v3) не встроена: она построена на T11 "
@@ -8,7 +7,6 @@ REASON = ("Модель отклика серы на температуру ГО
 
 
 class UnavailableResponseEffect:
-    """Always answers that the data-derived effect is unavailable; never invents a number."""
 
     spec = "RESPONSE_MODEL_FINAL.md v3"
 

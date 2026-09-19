@@ -1,12 +1,3 @@
-"""Does a plan lean on the hydrotreating response, and what does it look like at the weak edge?
-
-The data-driven slope β on the reactor-inlet temperature carries a range for the next half-year
-(`weak_strong`). A plan that moves the temperature is only as safe as its weakest credible response:
-if the product limit holds at β but fails at the weak edge, the plan is not a guarantee but a bet.
-These helpers say (a) whether a plan moves the temperature or any hydrotreating setpoint at all —
-holds and blend-only plans do not, so perturbing the response says nothing about them — and
-(b) what the bound scenario looks like with the slope taken at the weak edge.
-"""
 from collections.abc import Iterable
 import copy
 import math
@@ -20,7 +11,6 @@ def _finite(value) -> bool:
 
 
 def _moves(plan, base_controls: dict, confirmed: Iterable, names: tuple[str, ...]) -> bool:
-    """A named setpoint changes in a plan step, or a confirmed pending move already changes it."""
     for _, controls in confirmed or ():
         for name in names:
             if name in controls and abs(float(controls[name]) - float(base_controls.get(name, controls[name]))) > 1e-9:
@@ -42,7 +32,6 @@ def moves_hydrotreating(plan, base_controls: dict, confirmed: Iterable = ()) -> 
 
 
 def weak_response_factor(raw: dict) -> float | None:
-    """Multiplier turning the bound slope k = −β/S₀ into its weak-edge value, or None without data."""
     model = (((raw.get("stages") or {}).get("hydrotreating") or {}).get("model") or {})
     beta, bounds = model.get("beta_mgkg_per_c"), model.get("weak_strong")
     if model.get("provenance") != "derived" or not _finite(beta) or beta == 0:
@@ -54,7 +43,6 @@ def weak_response_factor(raw: dict) -> float | None:
 
 
 def weak_response_raw(raw: dict) -> dict | None:
-    """Copy of the bound scenario with the slope at the weak edge; None when no data-driven slope is bound."""
     factor = weak_response_factor(raw)
     if factor is None:
         return None

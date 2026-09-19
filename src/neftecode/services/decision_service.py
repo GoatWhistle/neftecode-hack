@@ -1,4 +1,3 @@
-"""HTTP process owning scenario decisions and live advice orchestration."""
 from __future__ import annotations
 
 import argparse
@@ -85,9 +84,7 @@ class DecisionService:
                  timeout_s: float = 10.0, decision_factory=None, response_model: dict | None = None):
         self.data_url, self.model_url = data_url.rstrip("/"), model_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
-        #: None keeps the deterministic MakeDecision; main() passes the flag-controlled factory.
         self.decision_factory = decision_factory
-        #: Содержимое artifacts/response_model.json (C2) или None — тогда отклик ГО остаётся сценарным.
         self.response_model = response_model
 
     @staticmethod
@@ -98,13 +95,10 @@ class DecisionService:
 
     def _decision(self, raw: dict, state: dict | None, budget: int, trust_cfg: dict | None = None,
                   trust_origin: str | None = None, snapshot: dict | None = None) -> dict:
-        # Пороги доверия присылает клиент (gateway грузит их из C1/experiment.json); без них — пустой конфиг,
-        # что оставлено только для обратной совместимости старых клиентов.
         trust_cfg = trust_cfg or {}
         try:
             scenario = parse_scenario(raw)
             if snapshot is not None:
-                # Реальный срез (C3): тот же связыватель, что в advise — прогноз, уставки, приток, окно.
                 scenario, raw = bind_snapshot(raw, state or {}, snapshot, self.response_model, trust_cfg)
         except (ScenarioError, ForecastBindingError, ValueError, TypeError) as exc:
             raise ServiceError(str(exc), 422, "scenario_rejected") from exc

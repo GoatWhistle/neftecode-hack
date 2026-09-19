@@ -1,4 +1,3 @@
-"""Hard bounds of one agentic decision: model calls, replans, consultations, robustness runs, wall time."""
 from dataclasses import dataclass, field
 import time
 from typing import Callable
@@ -7,7 +6,6 @@ from .contracts import AgentSettings
 
 
 class BudgetExhausted(RuntimeError):
-    """Raised when a bound is reached. The decision then falls back to the deterministic result."""
 
     def __init__(self, what: str):
         super().__init__(f"budget exhausted: {what}")
@@ -41,7 +39,6 @@ class AgentBudget:
         return max(0.0, self.settings.timeout_s - self.elapsed())
 
     def take_call(self, role: str) -> None:
-        """Reserve one model call. Checked before the call is made."""
         self.check_deadline()
         if self.calls >= self.settings.max_llm_calls:
             raise BudgetExhausted("llm_calls")

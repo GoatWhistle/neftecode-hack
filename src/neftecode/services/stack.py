@@ -1,4 +1,3 @@
-"""Run the four local service processes as one supervised stack."""
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,3 @@
-"""OrchestratorAgent: the coordinating agent loop over deterministic tools and the two specialists."""
 from dataclasses import dataclass, field
 
 from neftecode.application.ports.llm import LLMClient, ToolSpec
@@ -44,7 +43,6 @@ CONSULT_SCHEMA = {"type": "object", "additionalProperties": False, "required": [
 
 
 def opinion_summary(opinion: Opinion) -> dict:
-    """What the orchestrator model sees of a specialist opinion."""
     return {"role": opinion.role, "verdict": opinion.verdict, "risk_level": opinion.risk_level,
             "confidence": opinion.confidence, "valid": opinion.valid,
             "reasons": [{"code": r.code, "text": r.text[:200], "candidate_id": r.candidate_id} for r in opinion.reasons],

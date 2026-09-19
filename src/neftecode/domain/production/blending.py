@@ -1,38 +1,19 @@
-"""Blending four qualities, and what the cetane additive may and may not be credited with.
-
-Density is blended by volume additivity (total mass over total volume), a declared ideal-mixing
-assumption; the product carries a two-sided density limit.
-
-Sulfur is a mass balance: no reaction happens in a tank, so the blend carries the mass-weighted
-sulfur of its components. That is the only one of the three with a defensible exact rule here.
-
-T95 and cetane number are NOT mass-additive in reality. Distillation points and cetane number
-blend non-linearly, and the package supplies no blending indices. So each is computed by a
-declared scenario rule with its own applicability, and the result says which rule produced it.
-Applying the sulfur formula to them silently would be the easy, wrong answer.
-
-Anything unknown stays unknown. A component with no cetane number makes the blend's cetane
-number unknown — not "fine", not "the average of the others".
-"""
 from dataclasses import dataclass
 import math
 
 from neftecode.domain.production.scenario import QUALITIES, Additive, Scenario, Tank
 from neftecode.domain.shared.primitives import PRODUCT_LIMITS, volume_additive_density
 
-#: How each property is obtained. Reported with every blend so no rule is applied invisibly.
 MASS_BALANCE = "mass_balance"
 SCENARIO_LINEAR = "scenario_linear_index"
 VOLUME_ADDITIVE = "volume_additive"
 UNKNOWN = "unknown"
 
-#: Properties the cetane additive is allowed to touch. Sulfur is deliberately absent:
-#: a cetane improver does not remove sulfur, and the scenario loader refuses to claim it does.
 ADDITIVE_MAY_AFFECT = ("cetane_number", "t95_c")
 
 
 class BlendError(ValueError):
-    """Raised when a recipe is impossible or a dose exceeds what the expert allowed."""
+    pass
 
 
 def _finite(value) -> bool:
@@ -41,7 +22,6 @@ def _finite(value) -> bool:
 
 @dataclass(frozen=True)
 class BlendResult:
-    """Qualities of one blend, each with the rule that produced it."""
 
     qualities: dict[str, float | None]
     methods: dict[str, str]
@@ -61,7 +41,6 @@ class BlendResult:
 
 
 def check_recipe(recipe: dict[str, float]) -> None:
-    """Fractions must be a real composition before anything is computed from them."""
     if not recipe:
         raise BlendError("Рецепт пуст: смешивать нечего")
     for name, fraction in recipe.items():
@@ -75,11 +54,10 @@ def check_recipe(recipe: dict[str, float]) -> None:
 
 
 def mass_balance(recipe: dict[str, float], values: dict[str, float | None]) -> float | None:
-    """Mass-weighted average. One unknown component makes the whole result unknown."""
     total = 0.0
     for name, fraction in recipe.items():
         if fraction <= 1e-12:
-            continue  # a component not actually used cannot make the blend unknown
+            continue
         value = values.get(name)
         if value is None or not _finite(value):
             return None
@@ -89,7 +67,6 @@ def mass_balance(recipe: dict[str, float], values: dict[str, float | None]) -> f
 
 @dataclass
 class Blender:
-    """Blends the scenario's tanks, using the scenario's own rules for each property."""
 
     scenario: Scenario
 
@@ -114,7 +91,6 @@ class Blender:
     def blend(self, recipe: dict[str, float], throughput_tph: float, hours: float = 1.0,
               additive_dose: float = 0.0,
               property_overrides: dict[str, dict[str, float | None]] | None = None) -> BlendResult:
-        """Blend `throughput_tph` for `hours`, with the additive dosed on the component mass."""
         check_recipe(recipe)
         self.check_dose(additive_dose)
         if not _finite(throughput_tph) or throughput_tph < 0:
@@ -128,7 +104,6 @@ class Blender:
 
         component_mass = throughput_tph * hours
         masses = {name: component_mass * fraction for name, fraction in recipe.items()}
-        # The dose is a share of the component mass; the additive adds its own mass on top.
         additive_mass = component_mass * additive_dose
         notes: list[str] = []
 
@@ -138,7 +113,6 @@ class Blender:
         qualities: dict[str, float | None] = {}
         methods: dict[str, str] = {}
 
-        # Sulfur: a genuine mass balance, diluted by the additive mass that carries none itself.
         sulfur = mass_balance(recipe, values["sulfur_mgkg"])
         if sulfur is None:
             qualities["sulfur_mgkg"], methods["sulfur_mgkg"] = None, UNKNOWN
@@ -150,7 +124,6 @@ class Blender:
                 notes.append("Присадка снижает серу только разбавлением массы; удаление серы "
                              "ей не приписывается.")
 
-        # T95 and cetane number: declared scenario rules, not the sulfur formula.
         for quality in ("t95_c", "cetane_number"):
             blended = mass_balance(recipe, values[quality])
             if blended is None:
@@ -165,7 +138,6 @@ class Blender:
                          f"В действительности этот показатель смешивается нелинейно; индексов "
                          f"смешения в пакете нет, поэтому правило объявлено допущением.")
 
-        # Density: total mass over total volume, assuming volumes add (no contraction on mixing).
         density = volume_additive_density(masses if component_mass > 0 else dict(recipe),
                                           values["density_kgm3"])
         if density is None:
@@ -180,7 +152,6 @@ class Blender:
             if additive_mass > 0:
                 notes.append("Плотность присадки не задана: её вклад в плотность (не более 3% массы) не учтён.")
 
-        # The additive acts only on what the scenario says it acts on.
         additive = self._additive()
         if additive_dose > 0 and additive is not None:
             for quality in additive.affects:
@@ -203,7 +174,6 @@ class Blender:
                            additive_mass, tuple(dict.fromkeys(notes)))
 
     def meets_spec(self, result: BlendResult) -> dict[str, dict]:
-        """Compare each quality with its limit. Unknown is reported as unknown, never as a pass."""
         checks = {}
         for quality, (prop, direction) in PRODUCT_LIMITS.items():
             limit = self.scenario.product.limit_value(quality)

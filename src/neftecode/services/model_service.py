@@ -1,4 +1,3 @@
-"""Model process: guarded loading and point forecasts over JSON feature maps."""
 from __future__ import annotations
 
 import argparse

@@ -10,10 +10,18 @@ from pathlib import Path
 from types import SimpleNamespace
 from urllib.request import urlopen
 
+import pytest
+
 from neftecode.services.stack import command_plan, run
 
 
 ROOT = Path(__file__).parents[2]
+
+POSIX_ONLY_STOP = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="stack.py останавливает сервисы по группе процессов POSIX (os.killpg, SIGTERM/SIGKILL, "
+           "start_new_session); на Windows групп процессов в этом виде нет, а SIGTERM доставляется "
+           "как TerminateProcess с кодом 1 без обработчика. Остановка стека на Windows не реализована.")
 
 
 def test_stack_plan_uses_four_modules_and_default_ports(tmp_path):
@@ -46,6 +54,7 @@ def test_stack_plan_honours_env_ports_including_8765(tmp_path, monkeypatch):
     assert urls["data"] == "http://127.0.0.1:8765"
 
 
+@POSIX_ONLY_STOP
 def test_stack_cleans_started_process_groups_when_a_child_fails(tmp_path, monkeypatch):
     class Process:
         next_pid = 30000
@@ -101,7 +110,6 @@ def _minimal_root(tmp_path):
     scenario_dir.joinpath("baseline.json").write_bytes(
         (ROOT / "config" / "scenarios" / "baseline.json").read_bytes()
     )
-    # Gateway грузит пороги доверия при старте: без experiment.json корень неполон.
     tmp_path.joinpath("config", "experiment.json").write_bytes(
         (ROOT / "config" / "experiment.json").read_bytes()
     )
@@ -115,10 +123,11 @@ def _minimal_root(tmp_path):
     }
     with artifacts.joinpath("model.pkl").open("wb") as stream:
         pickle.dump(bundle, stream)
-    artifacts.joinpath("manifest.json").write_text(json.dumps(manifest))
+    artifacts.joinpath("manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     return artifacts
 
 
+@POSIX_ONLY_STOP
 def test_real_stack_starts_routes_and_stops_all_processes(tmp_path):
     artifacts = _minimal_root(tmp_path)
     data, model, decision, gateway = _free_ports(4)
@@ -129,7 +138,7 @@ def test_real_stack_starts_routes_and_stops_all_processes(tmp_path):
         "--gateway-port", str(gateway), "--timeout", "15",
     ]
     process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                               text=True)
+                               text=True, encoding="utf-8")
     try:
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:

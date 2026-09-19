@@ -1,374 +1,33 @@
-"""Local interactive demonstration: change the conditions, watch the core recompute.
-
-Only the standard library. The brief requires a run that does not depend critically on external
-services, and a framework here would buy nothing: the page is one file and the server has two
-routes. It binds to localhost and is a demonstration tool, not a deployment.
-
-The controls edit the scenario document, which then goes through the same loader, the same
-validation and the same agent loop as every other entry point. There is no branch here that
-returns a prepared answer, and an inadmissible change comes back as the loader's own error.
-"""
 from dataclasses import dataclass, field
-import errno
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import errno
 import json
 from pathlib import Path
 import threading
 from typing import Callable
+
 from urllib.parse import parse_qs, urlparse
 
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.presentation.demo import SOURCE_FAULTS, Demo, DemoError, snapshot_key, snapshot_title
-from .ui import RENDER_JS, STYLE, error_payload, json_for_script, option
+from .conditions import (DecisionCache, DemoServerError, as_query, cache_key, canonical_conditions,
+                         changes_from, defaults_for)
+from .progress import decision_stream
+from .static import StaticError, StaticFiles, resolve_static_dir
+from .ui import error_payload
 
-#: Where the scenario files live, relative to the project root.
 SCENARIO_DIR = Path("config/scenarios")
-#: Срез, который судья видит первым: нормальный режим 05.01.2026 08:00 (решение R17 от 18.09).
 FIRST_SNAPSHOT = "20260105-080000"
-
-CONTROLS_STYLE = """
- .layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
- @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
- /* The panel is taller than a short viewport, so it scrolls inside itself and the buttons
-    stay reachable instead of sliding off the screen. */
- #panel { position: sticky; top: 16px; border:1px solid var(--line); border-radius:8px;
-   padding:16px; max-height: calc(100vh - 32px); overflow-y: auto; }
- #panel h2 { margin-top: 0; }
- #panel label { display:block; margin: 12px 0 4px; font-size: 13px; color:#57606a; }
- #panel input, #panel select { width: 100%; padding: 6px 8px; font: inherit;
-   border:1px solid var(--line); border-radius:6px; background: transparent; color: inherit; }
- #panel .row { display:flex; gap:8px; align-items:center; margin-top:12px;
-   position: sticky; bottom: 0; padding: 12px 0 4px; background: var(--panel-bg, inherit); }
- #panel button { flex:1; padding: 8px 12px; font: inherit; font-weight:600; cursor:pointer;
-   border:1px solid var(--line); border-radius:6px; background:#1a7f37; color:#fff; }
- #panel button.secondary { background: transparent; color: inherit; font-weight: 400; }
- #panel .hint { font-size:12px; color:#57606a; margin-top:12px; line-height:1.4; }
- #busy { font-size:13px; color:#9a6700; min-height: 18px; margin-top: 8px; }
-"""
-
-PAGE = """<!doctype html>
-<html lang="ru">
-<meta charset="utf-8">
-<title>Нефтекод — интерактивная демонстрация</title>
-<style>
-__STYLE__
-__CONTROLS_STYLE__
-</style>
-<body>
-<div class="layout">
-<form id="panel" onsubmit="return false;">
-  <h2>Условия</h2>
-  <div class="row" style="position:static;margin-top:0">
-    <button id="run-top" type="button">Пересчитать</button>
-    <button id="reset-top" type="button" class="secondary">Сброс</button>
-  </div>
-
-  <label for="scenario">Сценарий</label>
-  <select id="scenario">__SCENARIOS__</select>
-
-  <label for="crude">Сера сырья, % масс.</label>
-  <input id="crude" type="number" step="0.05" min="0" max="6">
-
-  <label for="sulfur">Предел серы продукта, мг/кг (не выше 10)</label>
-  <input id="sulfur" type="number" step="0.5" min="0" max="10">
-
-  <label for="t95">Предел T95, °C</label>
-  <input id="t95" type="number" step="1" min="0">
-
-  <label for="cetane">Минимум цетанового числа</label>
-  <input id="cetane" type="number" step="0.5" min="0">
-
-  <label for="throughput">Текущий выпуск, т/ч</label>
-  <input id="throughput" type="number" step="5" min="0">
-
-  <label for="tank">Резервуар</label>
-  <select id="tank"></select>
-
-  <label for="stock">Запас резервуара, т</label>
-  <input id="stock" type="number" step="10" min="0">
-
-  <label for="available">Резервуар доступен</label>
-  <select id="available"><option value="1">да</option><option value="0">нет</option></select>
-
-  <label for="snapshot">Состояние данных</label>
-  <select id="snapshot">__SNAPSHOTS__</select>
-
-  <label for="fault">Исправность источников</label>
-  <select id="fault">__FAULTS__</select>
-
-  <div class="row">
-    <button id="run" type="button">Пересчитать</button>
-    <button id="reset" type="button" class="secondary">Сброс</button>
-  </div>
-  <div id="busy"></div>
-  <p class="hint">Любое изменение проводится через тот же загрузчик сценария и то же ядро
-  решения, что и командная строка. Недопустимое условие отклоняется загрузчиком, а не
-  исправляется молча. Отказы источников — модельные инъекции, а не наблюдения из данных.</p>
-</form>
-
-<div>
-  <div id="loading">Загрузка решения…</div>
-  <div id="screen" hidden></div>
-</div>
-</div>
-
-<script id="payload" type="application/json">__PAYLOAD__</script>
-<script>
-let data = JSON.parse(document.getElementById("payload").textContent);
-__RENDER_JS__
-
-const $ = (id) => document.getElementById(id);
-const defaults = JSON.parse(document.getElementById("payload").textContent).defaults || {};
-
-function fillFrom(defs) {
-  $("crude").value = defs.crude_sulfur_wt_pct ?? "";
-  $("sulfur").value = defs.product_sulfur_mgkg ?? "";
-  $("t95").value = defs.product_t95_c ?? "";
-  $("cetane").value = defs.product_cetane_number ?? "";
-  $("throughput").value = defs.throughput_tph ?? "";
-  $("tank").innerHTML = (defs.tanks || []).map(t => `<option value="${esc(t.id)}">${esc(t.id)}</option>`).join("");
-  if ((defs.tanks || []).length) syncTank();
-}
-
-function syncTank() {
-  const tanks = (data.defaults || defaults).tanks || [];
-  const chosen = tanks.find(t => t.id === $("tank").value) || tanks[0];
-  if (!chosen) return;
-  $("stock").value = chosen.inventory ?? "";
-  $("stock").disabled = !!chosen.on_demand;
-  $("stock").placeholder = chosen.on_demand ? "по необходимости" : "";
-  $("available").value = chosen.available ? "1" : "0";
-}
-$("tank").addEventListener("change", syncTank);
-
-function show() {
-  $("screen").innerHTML = render();
-  $("loading").hidden = true;
-  $("screen").hidden = false;
-}
-
-// Один расчёт за раз: кнопки заблокированы, пока ответ не пришёл; поздний ответ на отменённый
-// запрос не перезаписывает более свежий; у запроса есть предел ожидания, согласованный с бюджетом агента.
-let inFlight = false, requestSeq = 0, ticker = null;
-const buttons = ["run", "run-top", "reset", "reset-top", "scenario"];
-function setBusy(on, label) {
-  inFlight = on;
-  buttons.forEach(id => { $(id).disabled = on; });
-  clearInterval(ticker);
-  if (on) {
-    const started = Date.now();
-    const tick = () => { $("busy").textContent = `${label}… ${Math.round((Date.now() - started) / 1000)} с`; };
-    tick(); ticker = setInterval(tick, 1000);
-  }
-}
-
-async function recompute() {
-  if (inFlight) return;
-  const seq = ++requestSeq;
-  const params = new URLSearchParams({
-    scenario: $("scenario").value,
-    crude_sulfur_wt_pct: $("crude").value,
-    product_sulfur_mgkg: $("sulfur").value,
-    product_t95_c: $("t95").value,
-    product_cetane_number: $("cetane").value,
-    throughput_tph: $("throughput").value,
-    tank: $("tank").value,
-    tank_inventory: $("stock").value,
-    tank_available: $("available").value,
-    fault: $("fault").value,
-    snapshot: $("snapshot").value,
-  });
-  const controller = new AbortController();
-  const limit = setTimeout(() => controller.abort(), 1000 * (data.decision_timeout_s || 660));
-  setBusy(true, "Считаем");
-  try {
-    const response = await fetch("/api/decide?" + params.toString(), {signal: controller.signal});
-    const fresh = await response.json();
-    if (seq !== requestSeq) return;
-    data = fresh;
-    show();
-    $("busy").textContent = data.state === "error" ? "Условие отклонено" : "Пересчитано";
-  } catch (error) {
-    if (seq !== requestSeq) return;
-    data = {state: "error", message: error.name === "AbortError"
-      ? `Ответ не пришёл за ${data.decision_timeout_s || 660} с: расчёт прерван на стороне страницы`
-      : String(error)};
-    show();
-    $("busy").textContent = "Ошибка запроса";
-  } finally {
-    clearTimeout(limit);
-    if (seq === requestSeq) setBusy(false);
-  }
-}
-
-$("run").addEventListener("click", recompute);
-$("run-top").addEventListener("click", recompute);
-$("reset-top").addEventListener("click", () => $("reset").click());
-$("reset").addEventListener("click", async () => {
-  if (inFlight) return;
-  const response = await fetch("/api/defaults?scenario=" + encodeURIComponent($("scenario").value));
-  const fresh = await response.json();
-  fillFrom(fresh);
-  $("fault").value = "healthy";
-  await recompute();
-});
-$("scenario").addEventListener("change", () => $("reset").click());
-
-fillFrom(defaults);
-if (data.snapshot) $("snapshot").value = data.snapshot;
-show();
-// Страница открывается сразу, с пустым экраном «считаем»; решение запрашивается отдельно и кэшируется
-// на сервере, поэтому повторное открытие тех же условий не платит за расчёт заново.
-if (data.state === "loading") recompute();
-</script>
-</body>
-</html>
-"""
-
-
-class DemoServerError(ValueError):
-    """Raised when the server cannot serve a request as asked."""
-
-
-def _number(values: dict, key: str):
-    raw = (values.get(key) or [""])[0].strip()
-    if not raw:
-        return None
-    try:
-        return float(raw)
-    except ValueError as exc:
-        raise DemoServerError(f"{key}: ожидается число, получено «{raw}»") from exc
-
-
-def defaults_for(raw: dict) -> dict:
-    """Current values of everything the panel can change."""
-    product = raw.get("product", {})
-    return {
-        "crude_sulfur_wt_pct": raw["crude"]["sulfur_wt_pct"]["value"],
-        "product_sulfur_mgkg": (product.get("sulfur_mgkg") or {}).get("value"),
-        "product_t95_c": (product.get("t95_c") or {}).get("value"),
-        "product_cetane_number": (product.get("cetane_number") or {}).get("value"),
-        "throughput_tph": raw["current_operation"]["throughput"]["value"],
-        "tanks": [{"id": t["tank_id"],
-                   "inventory": None if t.get("on_demand") else t["inventory"]["value"],
-                   "on_demand": bool(t.get("on_demand", False)),
-                   "available": t["available"]} for t in raw["tanks"]],
-    }
-
-
-def changes_from(values: dict, raw: dict) -> list[dict]:
-    """Turn the panel's fields into scenario changes, skipping anything left as it was."""
-    defaults = defaults_for(raw)
-    changes = []
-    for name, change in (("crude_sulfur_wt_pct", "crude_sulfur_wt_pct"),
-                          ("product_sulfur_mgkg", "product_sulfur_mgkg"),
-                          ("product_t95_c", "product_t95_c"),
-                          ("product_cetane_number", "product_cetane_number"),
-                          ("throughput_tph", "throughput_tph")):
-        value = _number(values, name)
-        if value is None or defaults.get(name) is None:
-            continue
-        if abs(value - float(defaults[name])) > 1e-9:
-            changes.append({"change": change, "value": value})
-    tank = (values.get("tank") or [""])[0]
-    if tank:
-        current = next((t for t in defaults["tanks"] if t["id"] == tank), None)
-        stock = _number(values, "tank_inventory")
-        if current and stock is not None and current["inventory"] is not None \
-                and abs(stock - float(current["inventory"])) > 1e-9:
-            changes.append({"change": "tank_inventory", "value": stock, "target": tank})
-        raw_available = (values.get("tank_available") or [""])[0]
-        if current and raw_available in ("0", "1"):
-            available = raw_available == "1"
-            if available != bool(current["available"]):
-                changes.append({"change": "tank_available", "value": available, "target": tank})
-    return changes
-
-
-class DecisionCache:
-    """Одно вычисление на набор условий: одинаковые запросы ждут первый расчёт и получают его результат.
-
-    Ошибка не кэшируется — следующий запрос с теми же условиями считает заново.
-    """
-
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._entries: dict = {}
-
-    def get(self, key, compute: Callable[[], dict]) -> dict:
-        with self._lock:
-            entry = self._entries.get(key)
-            owner = entry is None
-            if owner:
-                entry = self._entries[key] = {"done": threading.Event(), "payload": None, "error": None}
-        if owner:
-            try:
-                entry["payload"] = compute()
-            except BaseException as exc:
-                entry["error"] = exc
-                with self._lock:
-                    self._entries.pop(key, None)
-            finally:
-                entry["done"].set()
-        else:
-            entry["done"].wait()
-        if entry["error"] is not None:
-            raise entry["error"]
-        return entry["payload"]
-
-    def __len__(self) -> int:
-        return len(self._entries)
-
-
-#: Поля панели, которые попадают в ключ кэша, кроме сценария, резервуара, отказа и среза.
-PANEL_NUMBERS = ("crude_sulfur_wt_pct", "product_sulfur_mgkg", "product_t95_c", "product_cetane_number",
-                 "throughput_tph")
-
-
-def canonical_conditions(values: dict, raw: dict, name: str, default_snapshot: str) -> dict:
-    """Полностью разрешённое состояние панели: пустые поля получают значения сценария.
-
-    Так запрос страницы без полей и запрос панели с нетронутыми полями дают один ключ кэша.
-    """
-    defaults = defaults_for(raw)
-    fault = (values.get("fault") or ["healthy"])[0]
-    if fault not in SOURCE_FAULTS:
-        raise DemoServerError(f"Неизвестный отказ источника «{fault}»")
-    out = {"scenario": name, "fault": fault, "snapshot": (values.get("snapshot") or [default_snapshot])[0]}
-    for key in PANEL_NUMBERS:
-        value = _number(values, key)
-        out[key] = defaults.get(key) if value is None else value
-    tanks = defaults["tanks"]
-    tank = (values.get("tank") or [""])[0] or (tanks[0]["id"] if tanks else "")
-    current = next((t for t in tanks if t["id"] == tank), None)
-    stock = _number(values, "tank_inventory")
-    available = (values.get("tank_available") or [""])[0]
-    out["tank"] = tank
-    out["tank_inventory"] = (current["inventory"] if current else None) if stock is None else stock
-    out["tank_available"] = (("1" if current["available"] else "0") if current else "") \
-        if available not in ("0", "1") else available
-    return out
-
-
-def cache_key(canonical: dict) -> tuple:
-    return tuple(sorted(canonical.items()))
-
-
-def as_query(canonical: dict) -> dict:
-    return {k: [str(v)] for k, v in canonical.items() if v is not None and v != ""}
 
 
 @dataclass
 class DemoService:
-    """Holds the scenarios and runs one recomputation per set of conditions."""
 
     root: Path
     demo_factory: Callable[[dict, int], Demo]
-    budget: int = 400
-    #: Замороженные реальные срезы (C3); без них — синтетика.
+    budget: int = DEFAULT_BUDGET
     snapshots: list = field(default_factory=list)
-    #: Срез, который открывается первым (`--snapshot`); None — норма 05.01.2026, иначе свежайший.
     default_snapshot_key: str | None = None
-    #: Сколько страница ждёт ответа `/api/decide`: бюджет агента плюс запас (см. composition).
     decision_timeout_s: float = 660.0
     cache: DecisionCache = field(default_factory=DecisionCache)
 
@@ -384,7 +43,6 @@ class DemoService:
             if self.default_snapshot_key not in keys:
                 raise DemoServerError(f"Срез «{self.default_snapshot_key}» не найден. Доступно: " + ", ".join(keys))
             return self.default_snapshot_key
-        # Судья видит первым нормальный режим на реальном срезе, а не сцену риска (решение R17, 18.09).
         return FIRST_SNAPSHOT if FIRST_SNAPSHOT in keys else keys[0]
 
     def scenarios(self) -> list[str]:
@@ -393,7 +51,7 @@ class DemoService:
     def raw(self, name: str) -> dict:
         if name not in self.scenarios():
             raise DemoServerError(f"Сценарий «{name}» не найден")
-        return json.loads((self.root / SCENARIO_DIR / f"{name}.json").read_text())
+        return json.loads((self.root / SCENARIO_DIR / f"{name}.json").read_text(encoding="utf-8"))
 
     def canonical(self, values: dict) -> dict:
         name = (values.get("scenario") or [self.scenarios()[0]])[0]
@@ -402,6 +60,12 @@ class DemoService:
     def decide(self, values: dict) -> dict:
         canonical = self.canonical(values)
         return self.cache.get(cache_key(canonical), lambda: self._decide(as_query(canonical)))
+
+    def recompute(self, values: dict) -> dict:
+        canonical = self.canonical(values)
+        payload = self._decide(as_query(canonical))
+        self.cache.put(cache_key(canonical), payload)
+        return payload
 
     def _decide(self, values: dict) -> dict:
         name = values["scenario"][0]
@@ -419,55 +83,46 @@ class DemoService:
         return payload
 
     def loading_payload(self, name: str) -> dict:
-        """Страница отдаётся сразу; решение страница запрашивает сама через `/api/decide`."""
         return {"state": "loading", "message": "Считаем решение для выбранных условий…",
                 "defaults": defaults_for(self.raw(name)), "scenario": name,
                 "snapshot": self.default_snapshot(), "decision_timeout_s": self.decision_timeout_s}
 
-    def page(self, name: str | None = None) -> str:
+    def options_payload(self, name: str | None = None) -> dict:
         names = self.scenarios()
-        chosen = name if name in names else names[0]
+        chosen = name if name in names else (names[0] if names else None)
         try:
             payload = self.loading_payload(chosen)
         except (DemoServerError, DemoError, ValueError) as exc:
             payload = error_payload(str(exc))
             payload["defaults"] = {}
-        options = "".join(option(n, n, selected=n == chosen) for n in names)
-        faults = "".join(option(f, f) for f in SOURCE_FAULTS)
-        snapshots = "".join(option(key, title) for key, title in self.snapshot_options())
-        # Placeholder substitution for the same reason as in ui.py: the page is mostly CSS and
-        # JavaScript, and doubling every brace for str.format would be a trap.
-        replacements = {
-            "__STYLE__": STYLE, "__CONTROLS_STYLE__": CONTROLS_STYLE, "__RENDER_JS__": RENDER_JS,
-            "__SCENARIOS__": options, "__FAULTS__": faults, "__SNAPSHOTS__": snapshots,
-            "__PAYLOAD__": json_for_script(payload),
-        }
-        page = PAGE
-        for token, value in replacements.items():
-            page = page.replace(token, value)
-        return page
+        payload["scenarios"] = names
+        payload["faults"] = list(SOURCE_FAULTS)
+        payload["snapshots"] = [{"key": key, "title": title} for key, title in self.snapshot_options()]
+        return payload
 
     def warm_up(self, name: str | None = None) -> None:
-        """Первое решение считается заранее, чтобы открытие страницы не ждало минуты."""
         names = self.scenarios()
         chosen = name if name in names else names[0]
         try:
             self.decide({"scenario": [chosen]})
         except (DemoServerError, DemoError, ValueError):
-            pass  # страница покажет ту же ошибку при своём запросе
+            pass
 
 
-def make_handler(service: DemoService):
+def make_handler(service: DemoService, static: StaticFiles | None = None):
+    files = static if static is not None else StaticFiles(resolve_static_dir(service.root))
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "neftecode-demo"
 
-        def log_message(self, fmt, *args):  # noqa: A003 - quieter than the default access log
+        def log_message(self, fmt, *args):
             pass
 
         def _send(self, status: int, body: bytes, content_type: str):
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
 
@@ -475,13 +130,34 @@ def make_handler(service: DemoService):
             self._send(status, json.dumps(payload, ensure_ascii=False, default=str).encode(),
                        "application/json; charset=utf-8")
 
-        def do_GET(self):  # noqa: N802 - required by BaseHTTPRequestHandler
+        def _stream(self, values: dict):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Connection", "close")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+            try:
+                for frame in decision_stream(lambda: service.recompute(values)):
+                    self.wfile.write(frame.encode())
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                return
+
+        def _static(self, path: str):
+            try:
+                asset = files.asset(path)
+            except StaticError as exc:
+                self._json({"error": str(exc)}, status=404)
+                return
+            self._send(200, asset.body, asset.content_type)
+
+        def do_GET(self):
             parsed = urlparse(self.path)
             values = parse_qs(parsed.query)
             try:
-                if parsed.path in ("/", "/index.html"):
-                    name = (values.get("scenario") or [None])[0]
-                    self._send(200, service.page(name).encode(), "text/html; charset=utf-8")
+                if parsed.path == "/api/stream":
+                    self._stream(values)
                 elif parsed.path == "/api/decide":
                     self._json(service.decide(values))
                 elif parsed.path == "/api/defaults":
@@ -489,29 +165,34 @@ def make_handler(service: DemoService):
                     self._json(defaults_for(service.raw(name)))
                 elif parsed.path == "/api/scenarios":
                     self._json({"scenarios": service.scenarios()})
-                else:
+                elif parsed.path == "/api/options":
+                    self._json(service.options_payload((values.get("scenario") or [None])[0]))
+                elif parsed.path.startswith("/api/"):
                     self._json({"error": "Неизвестный путь"}, status=404)
+                else:
+                    self._static(parsed.path)
             except (DemoServerError, DemoError, ValueError) as exc:
-                # An inadmissible condition is an answer, not a crash: the screen shows it.
                 self._json({**error_payload(str(exc)), "defaults": {}}, status=200)
-            except Exception as exc:  # pragma: no cover - last resort, never a silent success
+            except Exception as exc:
                 self._json({**error_payload(f"Внутренняя ошибка: {exc}"), "defaults": {}},
                            status=500)
 
     return Handler
 
 
-def serve(service: DemoService, port: int = 8765):
-    """Run the demonstration server on localhost until interrupted."""
+def serve(service: DemoService, port: int = 8765, static: Path | str | None = None):
+    files = StaticFiles(resolve_static_dir(service.root, static))
     try:
-        httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service))
+        httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service, files))
     except OSError as exc:
         if exc.errno != errno.EADDRINUSE:
             raise
-        # Одна строка вместо трейсбека: порт 8765 делят `serve` и шлюз neftecode-stack.
         raise DemoServerError(f"Порт {port} занят: на нём уже слушает другой процесс (по умолчанию тот же порт "
                               f"у шлюза neftecode-stack). Укажите другой: neftecode serve --port {port + 1}") from exc
+    if not files.available():
+        print(files.missing_message(), flush=True)
     print(f"Демонстрация: http://127.0.0.1:{port}/", flush=True)
+    print(f"Статика фронтенда: {files.directory}", flush=True)
     print(f"Сценарии: {', '.join(service.scenarios())}; срез по умолчанию: {service.default_snapshot()}", flush=True)
     print("Первое решение считается в фоне; страница открывается сразу и покажет его, когда оно готово.", flush=True)
     print("Остановить — Ctrl+C. Сервер слушает только localhost.", flush=True)

@@ -1,10 +1,3 @@
-"""Choose the decision use case: deterministic `MakeDecision` or `AgenticMakeDecision` behind a flag.
-
-The agent layer is on by default. `AGENTIC_DECISION_ENABLED=0` (read from the process environment only)
-switches it off: then nothing else is read — no `.env`, no provider settings, no client. When it is on,
-provider settings may come from `.env`, and any configuration problem leaves the agent layer without a client,
-so every decision falls back to the deterministic result and says why.
-"""
 from dataclasses import dataclass, field
 from functools import lru_cache
 import os
@@ -75,9 +68,4 @@ def _cached_default(dotenv_path: Path) -> DecisionFactory:
 
 
 def default_decision_factory(root: Path | None = None) -> DecisionFactory:
-    """Factory from the process environment and `<root>/.env`, built once per root.
-
-    `root` is the project root the command was given (`--root`); the working directory is only the
-    fallback, so a run from another folder does not silently lose the key and fall back.
-    """
     return _cached_default((Path(root) if root is not None else Path.cwd()).resolve() / ".env")

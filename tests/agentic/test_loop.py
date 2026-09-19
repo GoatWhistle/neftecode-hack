@@ -1,4 +1,3 @@
-"""The bounded tool loop: finals must pass the contract, bounds always hold, failures stop cleanly."""
 import json
 
 import pytest

@@ -1,19 +1,3 @@
-"""Would the chosen plan still hold if the models are a little wrong?
-
-The models here are ours: scenario coefficients, a declared response lag, component properties
-taken from the scenario rather than measured. A plan that only works when all of that is exactly
-right is not a plan, it is a coincidence. So the selected plan is re-evaluated under a declared
-set of perturbations and the result says plainly how many of them it survives.
-
-Deliberate limits of this check:
-
-* the perturbations are OURS. Surviving them is not a probability of success and not a
-  confidence interval; it is "this plan held under these listed deviations".
-* the same response model is perturbed, so this does not test a structurally different plant.
-  That limitation is reported with the result rather than left for the reader to notice.
-* a long excursion in the history is not evidence of a new regime. Applicability is decided by
-  the model's declared region, not by how unusual a period looked.
-"""
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 import copy
@@ -22,8 +6,8 @@ import math
 from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.domain.advisory.response_guard import moves_hydrotreating, moves_temperature
 from neftecode.domain.production.scenario import Scenario
+from neftecode.evaluation.tank_estimate import TankEstimateCheck, default_tank_estimate_factory
 
-#: Deviations applied one at a time. Each is a named, reproducible edit of the scenario.
 DEFAULT_PERTURBATIONS = (
     {"name": "сера сырья +10%", "path": "crude.sulfur_wt_pct", "factor": 1.10},
     {"name": "сера сырья -10%", "path": "crude.sulfur_wt_pct", "factor": 0.90},
@@ -35,16 +19,10 @@ DEFAULT_PERTURBATIONS = (
     {"name": "доля серы в дизельной фракции +10%", "path": "avt.sulfur_partition", "factor": 1.10},
 )
 
-#: A plan surviving fewer than this share of the perturbations is called fragile.
 FRAGILE_BELOW = 1.0
 
 
 def response_perturbations(raw: dict) -> tuple:
-    """Возмущения k по границам отклика из данных, когда модель ГО связана с C2.
-
-    Границы — `weak_strong` (диапазон следующего полугодия по исследованию), при их отсутствии — `beta_ci`.
-    k = −β/S₀, поэтому множитель к текущему k равен bound/β; знаки должны совпадать с β.
-    """
     model = (((raw.get("stages") or {}).get("hydrotreating") or {}).get("model") or {})
     beta = model.get("beta_mgkg_per_c")
     bounds = model.get("weak_strong") or model.get("beta_ci")
@@ -61,12 +39,6 @@ def response_perturbations(raw: dict) -> tuple:
 
 
 def inapplicable_reason(spec: dict, plan, base_controls: dict, pending) -> str | None:
-    """Why a response or lag perturbation cannot act on this plan, or None when it can.
-
-    A perturbed slope only matters to a plan that moves the reactor-inlet temperature; a perturbed lag only to a
-    plan that moves a hydrotreating setpoint. For a hold or a blend-only plan such a perturbation changes nothing,
-    and counting it as "held" would dress the plan up as robust against a deviation it never met.
-    """
     path = spec.get("path", "")
     if path == "hydrotreating.conversion_per_degree" and not moves_temperature(plan, base_controls, pending):
         return "план не меняет температуру входа реактора: возмущение отклика на него не действует"
@@ -76,7 +48,7 @@ def inapplicable_reason(spec: dict, plan, base_controls: dict, pending) -> str |
 
 
 class RobustnessError(ValueError):
-    """Raised when a perturbation cannot be applied to the scenario as declared."""
+    pass
 
 
 def _finite(value) -> bool:
@@ -84,7 +56,6 @@ def _finite(value) -> bool:
 
 
 def perturb(raw: dict, spec: dict) -> dict:
-    """Apply one named perturbation to a raw scenario document."""
     out = copy.deepcopy(raw)
     path, factor = spec["path"], spec["factor"]
     if not _finite(factor) or factor <= 0:
@@ -112,7 +83,6 @@ def perturb(raw: dict, spec: dict) -> dict:
         key = path.split(".", 1)[1]
         stage = out["stages"]["hydrotreating"]
         if key == "response_lag_hours":
-            # The case bounds the lag at three hours; a perturbation may not step outside them.
             stage[key]["value"] = min(3.0, stage[key]["value"] * factor)
         else:
             stage["model"][key] *= factor
@@ -126,19 +96,17 @@ def perturb(raw: dict, spec: dict) -> dict:
 
 @dataclass
 class RobustnessCheck:
-    """Re-evaluates one plan across the declared perturbations."""
 
     scenario: Scenario
     raw: dict
     perturbations: tuple = DEFAULT_PERTURBATIONS
     scenario_parser: Callable[[dict], Scenario] | None = None
+    tank_estimate_factory: Callable[..., TankEstimateCheck | None] = default_tank_estimate_factory
 
     def run(self, plan, confirmed=(), initial_tanks=None, current_operation=None) -> dict:
-        """Evaluate `plan` under each perturbation. Reports every outcome, good and bad."""
         if self.scenario_parser is None:
             raise RobustnessError("Для проверки устойчивости не передан парсер сценария")
         results = []
-        # Возмущения отклика по данным зависят от связанного сценария, поэтому берутся из raw при каждом прогоне.
         specs = tuple(self.perturbations) + response_perturbations(self.raw)
         base_planner = PlanOperation(self.scenario)
         base_controls = base_planner.base_controls()
@@ -217,13 +185,12 @@ class RobustnessCheck:
 
     def evaluate(self, scenario, raw_scenario, plan, confirmed=(), initial_tanks=None,
                  current_operation=None) -> dict:
-        """Application port adapter."""
-        return type(self)(scenario, raw_scenario, self.perturbations, self.scenario_parser).run(
+        return type(self)(scenario, raw_scenario, self.perturbations, self.scenario_parser,
+                          self.tank_estimate_factory).run(
             plan, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
 
 
 def choose_robust(evaluations, checks: dict[str, dict]) -> dict:
-    """Prefer a plan that survives the perturbations over a nominally better fragile one."""
     feasible = [e for e in evaluations if e.feasible]
     if not feasible:
         return {"selected": None, "reason": "Допустимых планов нет"}

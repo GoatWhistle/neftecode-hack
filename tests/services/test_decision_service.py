@@ -59,8 +59,6 @@ def test_real_data_model_decision_live_contract():
         assert result["forecast"]["model"] == "last_pak_bc"
         assert result["forecast"]["value"] == 7.582309246063232
         assert result["forecast"]["upper"] == 10.819024410387263
-        # Верхняя граница прогноза идёт в приток; сера содержимого — среднее доверенных ПАК за окно
-        # запас / измеренный приток (4000 т / F26·ρ ≈ 19.6 ч), а не за сценарные 42 ч.
         assert result["bound_inflow_sulfur_mgkg"] == 10.819
         assert result["bound_sulfur_mgkg"] == 4.5624
         assert result["binding"]["controls"]["ht_reactor_inlet_temp_c"]["current"]["source"] == "measured"
@@ -93,7 +91,7 @@ def test_live_rejected_snapshot_cannot_be_overridden_by_healthy_state():
     from types import SimpleNamespace
     from neftecode.services.common import Request
 
-    raw = json.loads((ROOT / 'config/scenarios/baseline.json').read_text())
+    raw = json.loads((ROOT / 'config/scenarios/baseline.json').read_text(encoding="utf-8"))
     state = {'decision_time': '2026-01-05T08:00:00', 'lab_value': 8.0,
              'lab_age_hours': 5.0, 'lab_usable': True, 'pak_value': 8.4,
              'pak_age_minutes': 10.0, 'pak_usable': True, 'pak_frozen': False,
@@ -118,14 +116,17 @@ def test_live_rejected_snapshot_cannot_be_overridden_by_healthy_state():
     assert result['decision']['immediate_action'] is None
     assert result['decision']['reason'] == 'Отклонено внешней проверкой'
     assert result['sources'] == list(sources.values())
-    assert result['inventories'] == {tank['tank_id']: tank['inventory']['value'] for tank in raw['tanks']}
+    assert result['inventories'] == {tank['tank_id']: tank.get('inventory', {}).get('value', 0.0)
+                                     for tank in raw['tanks']}
+    reserve = next(t for t in raw['tanks'] if t['tank_id'] == 'reserve')
+    assert reserve.get('on_demand') is True and result['inventories']['reserve'] == 0.0
 
 
 def test_live_binding_failure_keeps_http_error_contract():
     from types import SimpleNamespace
     from neftecode.services.common import Request, ServiceError
 
-    raw = json.loads((ROOT / 'config/scenarios/baseline.json').read_text())
+    raw = json.loads((ROOT / 'config/scenarios/baseline.json').read_text(encoding="utf-8"))
 
     class Client:
         def request(self, method, url, body=None, headers=None):

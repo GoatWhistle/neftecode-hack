@@ -1,14 +1,8 @@
-"""Reading `model.pkl` with one-line errors: what is wrong, where, and what to do."""
 import pickle
 from pathlib import Path
 
 
 def load_model_bundle(out: Path) -> dict:
-    """The trained bundle from `out/model.pkl`.
-
-    A missing or broken file is a `ValueError` with the path and the command that repairs it, not a
-    traceback from `pickle`: the person who sees it is running a demo, not debugging the loader.
-    """
     path = Path(out) / "model.pkl"
     if not path.is_file():
         raise ValueError(f"Модель {path} не найдена: выполните `uv run neftecode train` или укажите --out "

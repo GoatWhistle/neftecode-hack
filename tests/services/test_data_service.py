@@ -51,7 +51,7 @@ def test_scenario_get_and_malformed_input():
 
 def test_missing_task_is_graceful_and_snapshot_has_no_dataframe(tmp_path):
     root = tmp_path; (root / "config/scenarios").mkdir(parents=True)
-    (root / "config/scenarios/x.json").write_text(json.dumps({"id": "x"}))
+    (root / "config/scenarios/x.json").write_text(json.dumps({"id": "x"}), encoding="utf-8")
     service = DataService(root); server, thread = running(service)
     try:
         assert request(server, "GET", "/readyz")[0] == 200

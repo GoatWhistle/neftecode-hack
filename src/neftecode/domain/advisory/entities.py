@@ -1,182 +1,20 @@
 from dataclasses import dataclass, field
 
-from neftecode.domain.shared.primitives import (ContractError, QUALITIES, PASS, FAIL, UNKNOWN,
-    CHECK_STATUSES, SCENARIO_SCOPE, CONFIRMED_SCOPE, DECISION_STATUSES, HOLD, REFUSE,
-    RECOMMEND_SCENARIO, _finite, _clean_number, _time)
+from neftecode.domain.shared.primitives import (ContractError, PASS, FAIL, UNKNOWN,
+    CHECK_STATUSES, SCENARIO_SCOPE, DECISION_STATUSES, HOLD, REFUSE,
+    RECOMMEND_SCENARIO, _clean_number, _time)
 
 from neftecode.domain.monitoring.entities import ForecastValue
 
-@dataclass(frozen=True)
-class PlanStep:
-    """One step of a short plan: what is set, what is blended, how much is produced."""
+from .plan import ActionPlan, PlanStep
+from .trajectory import TrajectoryEstimate, TrajectoryPoint
 
-    time_hours: float
-    controls: dict[str, float] = field(default_factory=dict)
-    recipe: dict[str, float] = field(default_factory=dict)
-    throughput_tph: float = 0.0
-    additive_dose: float = 0.0
+__all__ = ["ActionPlan", "CheckResult", "Decision", "GateResult", "PlanStep", "TrajectoryEstimate",
+           "TrajectoryPoint"]
 
-    def __post_init__(self):
-        if not _finite(self.time_hours) or self.time_hours < 0:
-            raise ContractError("PlanStep.time_hours: время шага должно быть конечным и неотрицательным")
-        if self.recipe:
-            total = sum(self.recipe.values())
-            if abs(total - 1.0) > 1e-6:
-                raise ContractError(f"PlanStep[{self.time_hours} ч].recipe: доли дают {total:.6f}, требуется 1.0")
-            negative = [k for k, v in self.recipe.items() if v < -1e-9]
-            if negative:
-                raise ContractError(f"PlanStep[{self.time_hours} ч].recipe: отрицательные доли {negative}")
-        if not 0 <= self.additive_dose <= 1:
-            raise ContractError("PlanStep.additive_dose_fraction: доза вне диапазона [0, 1]")
 
-    def to_dict(self) -> dict:
-        return {"time_hours": self.time_hours, "controls": dict(self.controls), "recipe": dict(self.recipe),
-                "throughput_tph": self.throughput_tph,
-                "additive_dose_fraction": self.additive_dose}
-
-    def to_advice_dict(self) -> dict:
-        """Serialize the established advisor payload without changing its wire contract."""
-        return {"time_hours": self.time_hours, "controls": dict(self.controls),
-                "recipe": dict(self.recipe), "throughput_tph": self.throughput_tph,
-                "additive_dose": self.additive_dose}
-
-    @property
-    def additive_dose_fraction(self) -> float:
-        return self.additive_dose
-
-    @classmethod
-    def from_dict(cls, raw: dict) -> "PlanStep":
-        return cls(raw["time_hours"], dict(raw.get("controls", {})), dict(raw.get("recipe", {})),
-                   raw.get("throughput_tph", 0.0), raw.get("additive_dose", raw.get("additive_dose_fraction", 0.0)))
-@dataclass(frozen=True)
-class ActionPlan:
-    """A short sequence of steps. Only the first one is an immediate instruction."""
-
-    plan_id: str
-    steps: tuple[PlanStep, ...]
-    scope: str = SCENARIO_SCOPE
-    execution_conditions: tuple[str, ...] = ()
-    assumptions: tuple[str, ...] = ()
-
-    def __post_init__(self):
-        if not self.steps:
-            raise ContractError("ActionPlan.steps: план без шагов не является планом")
-        times = [s.time_hours for s in self.steps]
-        if times != sorted(times) or len(set(times)) != len(times):
-            raise ContractError("ActionPlan.steps: шаги должны идти строго по возрастанию времени")
-        if times[0] != 0:
-            raise ContractError("ActionPlan.steps: первый шаг обязан начинаться в момент решения (0 ч)")
-        if self.scope not in (SCENARIO_SCOPE, CONFIRMED_SCOPE):
-            raise ContractError(f"ActionPlan.scope: ожидается {SCENARIO_SCOPE} или {CONFIRMED_SCOPE}")
-
-    @property
-    def immediate(self) -> PlanStep:
-        return self.steps[0]
-
-    @property
-    def horizon_hours(self) -> float:
-        return self.steps[-1].time_hours
-
-    def is_hold(self, current_controls: dict, current_recipe: dict) -> bool:
-        """Keeping the regime is a candidate like any other, and must be recognisable."""
-        first = self.immediate
-        same_controls = all(abs(first.controls.get(k, v) - v) < 1e-9 for k, v in current_controls.items())
-        same_recipe = all(abs(first.recipe.get(k, v) - v) < 1e-9 for k, v in current_recipe.items())
-        return len(self.steps) == 1 and same_controls and same_recipe
-
-    def to_dict(self) -> dict:
-        return {"plan_id": self.plan_id, "steps": [s.to_dict() for s in self.steps], "scope": self.scope,
-                "execution_conditions": list(self.execution_conditions), "assumptions": list(self.assumptions)}
-
-    @classmethod
-    def from_dict(cls, raw: dict) -> "ActionPlan":
-        return cls(raw["plan_id"], tuple(PlanStep.from_dict(s) for s in raw["steps"]),
-                   raw.get("scope", SCENARIO_SCOPE), tuple(raw.get("execution_conditions", ())),
-                   tuple(raw.get("assumptions", ())))
-@dataclass(frozen=True)
-class TrajectoryPoint:
-    """State of the chain at one time of the plan. A missing quality stays None."""
-
-    time_hours: float
-    qualities: dict[str, float | None]
-    inventories: dict[str, float]
-    production_tph: float = 0.0
-    cost_proxy: float = 0.0
-    severity_proxy: float | None = None
-    applicability: str = "in_region"
-    controls: dict[str, float] = field(default_factory=dict)
-    recipe: dict[str, float] = field(default_factory=dict)
-    throughput_tph: float | None = None
-    additive_dose: float = 0.0
-    inventory_reasons: tuple[str, ...] = ()
-
-    def __post_init__(self):
-        object.__setattr__(self, "qualities",
-                           {name: _clean_number(self.qualities.get(name), f"TrajectoryPoint.{name}")
-                            for name in QUALITIES})
-        object.__setattr__(self, "severity_proxy", _clean_number(self.severity_proxy, "TrajectoryPoint.severity_proxy"))
-        if self.throughput_tph is None:
-            object.__setattr__(self, "throughput_tph", self.production_tph)
-        # Gate trajectory points carry raw values so the gate can report violations;
-        # standalone contract points still reject an explicitly negative inventory.
-        negative = [k for k, v in self.inventories.items() if v is not None and v < -1e-9]
-        if self.controls or self.recipe:
-            negative = []
-        if negative:
-            raise ContractError(f"TrajectoryPoint[{self.time_hours} ч]: отрицательные остатки {negative}")
-
-    def unknown_qualities(self) -> list[str]:
-        return [name for name, value in self.qualities.items() if value is None]
-
-    def to_dict(self) -> dict:
-        return {"time_hours": self.time_hours, "qualities": dict(self.qualities),
-                "inventories": dict(self.inventories), "production_tph": self.production_tph,
-                "cost_proxy": self.cost_proxy, "severity_proxy": self.severity_proxy,
-                "applicability": self.applicability, "controls": dict(self.controls),
-                "recipe": dict(self.recipe), "throughput_tph": self.throughput_tph,
-                "additive_dose": self.additive_dose, "inventory_reasons": list(self.inventory_reasons)}
-
-    @classmethod
-    def from_dict(cls, raw: dict) -> "TrajectoryPoint":
-        return cls(raw["time_hours"], dict(raw["qualities"]), dict(raw["inventories"]),
-                   raw.get("production_tph", 0.0), raw.get("cost_proxy", 0.0),
-                   raw.get("severity_proxy"), raw.get("applicability", "unknown"),
-                   dict(raw.get("controls", {})), dict(raw.get("recipe", {})),
-                   raw.get("throughput_tph"), raw.get("additive_dose", 0.0),
-                   tuple(raw.get("inventory_reasons", ())))
-@dataclass(frozen=True)
-class TrajectoryEstimate:
-    plan_id: str
-    timeline: tuple[TrajectoryPoint, ...]
-    model_versions: dict[str, str] = field(default_factory=dict)
-    sensitivity_results: tuple[dict, ...] = ()
-    scope: str = SCENARIO_SCOPE
-
-    def __post_init__(self):
-        if not self.timeline:
-            raise ContractError("TrajectoryEstimate.timeline: пустая траектория ничего не подтверждает")
-
-    @property
-    def terminal_inventory(self) -> dict[str, float]:
-        return dict(self.timeline[-1].inventories)
-
-    def total_cost(self) -> float:
-        return sum(p.cost_proxy for p in self.timeline)
-
-    def to_dict(self) -> dict:
-        return {"plan_id": self.plan_id, "timeline": [p.to_dict() for p in self.timeline],
-                "model_versions": dict(self.model_versions),
-                "sensitivity_results": list(self.sensitivity_results), "scope": self.scope,
-                "terminal_inventory": self.terminal_inventory}
-
-    @classmethod
-    def from_dict(cls, raw: dict) -> "TrajectoryEstimate":
-        return cls(raw["plan_id"], tuple(TrajectoryPoint.from_dict(p) for p in raw["timeline"]),
-                   dict(raw.get("model_versions", {})), tuple(raw.get("sensitivity_results", ())),
-                   raw.get("scope", SCENARIO_SCOPE))
 @dataclass(frozen=True)
 class CheckResult:
-    """One mandatory check at one time. Status `unknown` never counts as satisfied."""
 
     constraint_id: str
     status: str
@@ -208,7 +46,6 @@ class CheckResult:
                    raw.get("time_hours"), raw.get("reason", ""))
 @dataclass(frozen=True)
 class GateResult:
-    """Verdict over the whole trajectory. Feasibility is derived, never asserted by a caller."""
 
     plan_id: str
     checks: tuple[CheckResult, ...]
@@ -246,7 +83,6 @@ class GateResult:
         return cls(raw["plan_id"], tuple(CheckResult.from_dict(c) for c in raw["checks"]))
 @dataclass(frozen=True)
 class Decision:
-    """The advisor's answer, always carrying its scope and the reason behind it."""
 
     decision_id: str
     as_of: str

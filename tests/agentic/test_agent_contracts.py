@@ -1,4 +1,3 @@
-"""Model answers become machine decisions only through strict parsers."""
 import json
 import math
 
@@ -21,7 +20,6 @@ def opinion(**overrides):
     return base
 
 
-# --- constraints ---
 
 @pytest.mark.parametrize("raw, expected", [
     ({"type": "min_quality_margin", "limit": "sulfur_mgkg", "value": 0.5},
@@ -39,11 +37,11 @@ def test_valid_constraints_parse(raw, expected):
 
 
 @pytest.mark.parametrize("raw", [
-    {"type": "raise_sulfur_limit", "value": 12},                               # not in the vocabulary
-    {"type": "min_quality_margin", "limit": "sulfur_mgkg", "value": -1.0},      # would loosen the limit
-    {"type": "min_quality_margin", "limit": "sulfur_mgkg", "value": 50},        # out of range
-    {"type": "min_quality_margin", "limit": "color", "value": 1},               # unknown limit
-    {"type": "min_quality_margin", "value": 1},                                 # limit missing
+    {"type": "raise_sulfur_limit", "value": 12},
+    {"type": "min_quality_margin", "limit": "sulfur_mgkg", "value": -1.0},
+    {"type": "min_quality_margin", "limit": "sulfur_mgkg", "value": 50},
+    {"type": "min_quality_margin", "limit": "color", "value": 1},
+    {"type": "min_quality_margin", "value": 1},
     {"type": "max_changes", "value": 3},
     {"type": "max_changes", "value": 1.5},
     {"type": "max_changes", "value": True},
@@ -65,10 +63,9 @@ def test_constraints_are_accepted_one_by_one_and_deduplicated():
         {"type": "forbid_additive"}, {"type": "forbid_additive"}, {"type": "max_changes", "value": 9},
         {"type": "constant_plans_only"}, {"type": "max_changes", "value": 1}, {"type": "require_not_fragile"}])
     assert [c.type for c in accepted] == ["forbid_additive", "constant_plans_only"]
-    assert len(rejected) == 3  # out of range, fifth and sixth beyond the limit of four
+    assert len(rejected) == 3
 
 
-# --- opinions ---
 
 def test_valid_opinion_parses():
     parsed = parse_opinion("quality", opinion(candidate_verdicts={"c0025": "ACCEPT", "ghost": "REJECT"},
@@ -129,7 +126,6 @@ def test_unknown_opinion_is_marked_invalid():
     assert unknown.verdict == "UNKNOWN" and unknown.valid is False and unknown.vetoed == ()
 
 
-# --- orchestrator final ---
 
 def test_valid_finals_parse():
     final = parse_final({"action": "select", "candidate_id": "c0025", "reason_codes": ["best_allowed"],
@@ -155,7 +151,6 @@ def test_invalid_finals_are_rejected(raw):
         parse_final(raw, evidence=EVIDENCE)
 
 
-# --- repair ---
 
 @pytest.mark.parametrize("text, expected", [
     ('{"a": 1}', {"a": 1}),
@@ -170,7 +165,6 @@ def test_local_repair_accepts_only_a_single_object(text, expected):
     assert extract_json_object(text) == expected
 
 
-# --- settings, trace, budget ---
 
 def test_settings_validate():
     assert AgentSettings().max_llm_calls == 12

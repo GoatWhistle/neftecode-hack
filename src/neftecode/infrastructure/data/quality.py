@@ -1,36 +1,17 @@
-"""Where the estimate of each product quality actually comes from, and where it does not.
-
-The brief requires sulfur, and the experts added T95 and cetane number. These three are not
-in the same position, and pretending otherwise would be the easiest way to produce a confident
-number with nothing behind it:
-
-* **sulfur** — 1 462 laboratory analyses. A forecast is trained and verified chronologically.
-* **T95** — 1 291 analyses at the same sampling point. A forecast can be trained the same way;
-  the published virtual analyser cannot be used (T07: its input has no declared lab point).
-* **cetane number** — 42 analyses in the whole package. No model is claimed. The value comes
-  from the scenario or stays unknown.
-
-`unknown` is a real answer here. A quality with no estimate blocks the plan through the gate;
-it never becomes a pass.
-"""
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
-#: Sampling point confirmed by the expert for the online sulfur analyser (message 517).
-#: Its laboratory columns are the ones the product spec is judged against.
 HYDROTREATING_POINT_2 = {
     "sulfur_mgkg": ("Mg.Sulfur", 94),
     "t95_c": ("95%.T", 92),
     "cetane_number": ("CetaneNumber", 102),
 }
 
-#: Fewer analyses than this and we do not claim a trained model for the property.
 MIN_ANALYSES_FOR_A_MODEL = 200
 
-#: How an estimate may be obtained, in decreasing order of standing.
 VERIFIED_FORECAST = "verified_forecast"
 SCENARIO_VALUE = "scenario_value"
 UNKNOWN = "unknown"
@@ -38,7 +19,6 @@ UNKNOWN = "unknown"
 
 @dataclass(frozen=True)
 class QualitySource:
-    """What may be said about one product quality, and on what basis."""
 
     quality: str
     method: str
@@ -56,7 +36,6 @@ class QualitySource:
 
 
 def read_quality_series(task: Path) -> dict[str, pd.DataFrame]:
-    """Read the three target qualities as independent time series from the laboratory export."""
     import openpyxl
     book = openpyxl.load_workbook(next(Path(task).glob("ЛИМС*.xlsx")), read_only=True, data_only=True)
     rows = list(book.active.values)
@@ -76,7 +55,6 @@ def read_quality_series(task: Path) -> dict[str, pd.DataFrame]:
 
 
 def classify_sources(series: dict[str, pd.DataFrame]) -> dict[str, QualitySource]:
-    """Decide, per quality, whether a trained forecast may be claimed at all."""
     sources = {}
     for quality, frame in series.items():
         n = 0 if frame is None else len(frame)
@@ -96,7 +74,6 @@ def classify_sources(series: dict[str, pd.DataFrame]) -> dict[str, QualitySource
 
 
 def available_estimate(quality: str, sources: dict[str, QualitySource], scenario_value=None) -> dict:
-    """The single answer for one quality at decision time: forecast, scenario value or unknown."""
     source = sources.get(quality)
     if source is not None and source.has_model:
         return {"quality": quality, "method": VERIFIED_FORECAST, "value": None,
@@ -109,7 +86,6 @@ def available_estimate(quality: str, sources: dict[str, QualitySource], scenario
 
 
 def report(task: Path) -> dict:
-    """Machine-readable statement of what the system can and cannot estimate."""
     series = read_quality_series(task)
     sources = classify_sources(series)
     return {

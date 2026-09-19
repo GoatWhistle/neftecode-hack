@@ -1,94 +1,12 @@
-"""Executable chain scenario: what is measured, what is assumed and what stays unknown.
-
-Every physical number carries a unit and a provenance, so a scenario constant can never be
-read back as if it were a plant measurement. Loading validates structure, units and ranges;
-a missing optional quality is preserved as unknown instead of silently becoming a pass.
-"""
 from dataclasses import dataclass, field
-import math
 
 from neftecode.domain.shared.primitives import PRODUCT_LIMITS, QUALITIES, SOURCES
 
-SCHEMA = "neftecode.scenario.v1"
+from .quantities import (Quantity, SCHEMA, ScenarioError, UNITS, _finite, optional_quantity, quantity)
 
-#: Provenance of a scenario number. See config/parameters.json for the same vocabulary.
-
-#: Units accepted for each named quantity. A scenario declaring another unit is rejected
-#: rather than converted by guesswork.
-UNITS = {
-    "sulfur_mgkg": "мг/кг",
-    "t95_c": "°C",
-    "cetane_number": "ед.",
-    "density_kgm3": "кг/м3",
-    "mass_t": "т",
-    "flow_tph": "т/ч",
-    "temperature_c": "°C",
-    "pressure_mpa": "МПа",
-    "volume_flow_m3h": "м3/ч",
-    "sulfur_wt_pct": "% масс.",
-    "fraction": "доля",
-    "cost_per_t": "усл.ед./т",
-    "cost_per_ppm2_per_t": "усл.ед./т/(мг/кг)²",
-    "sulfur_per_degree": "мг/кг/°C",
-    "hours": "ч",
-}
-
-#: Quality properties a blended product is judged on. Expert message 517 requires all three.
-
-#: Which way a limit constrains the property.
-
-
-class ScenarioError(ValueError):
-    """Raised with a message naming the field, so a broken scenario is fixable without reading code."""
-
-
-def _finite(value) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
-
-
-@dataclass(frozen=True)
-class Quantity:
-    """A number that always remembers its unit and where it came from."""
-
-    value: float
-    unit: str
-    source: str
-    note: str | None = None
-
-    def to_dict(self) -> dict:
-        return {"value": self.value, "unit": self.unit, "source": self.source, "note": self.note}
-
-    @property
-    def measured(self) -> bool:
-        """True only for values traceable to the issued data, never for our own assumptions."""
-        return self.source in ("given", "derived", "measured")
-
-
-def quantity(raw, kind: str, where: str, *, allow_negative: bool = False) -> Quantity:
-    if not isinstance(raw, dict):
-        raise ScenarioError(f"{where}: ожидается объект со значением, единицей и источником, получено {type(raw).__name__}")
-    missing = [k for k in ("value", "unit", "source") if k not in raw]
-    if missing:
-        raise ScenarioError(f"{where}: не заданы обязательные поля {', '.join(missing)}")
-    value = raw["value"]
-    if not _finite(value):
-        raise ScenarioError(f"{where}: значение должно быть конечным числом, получено {value!r}")
-    if value < 0 and not allow_negative:
-        raise ScenarioError(f"{where}: отрицательное значение {value} недопустимо для этой величины")
-    expected = UNITS.get(kind)
-    if expected is None:
-        raise ScenarioError(f"{where}: неизвестный вид величины {kind}")
-    if raw["unit"] != expected:
-        raise ScenarioError(f"{where}: единица «{raw['unit']}» не совпадает с ожидаемой «{expected}»; "
-                            f"пересчёт по догадке запрещён")
-    if raw["source"] not in SOURCES:
-        raise ScenarioError(f"{where}: источник «{raw['source']}» не из набора {', '.join(SOURCES)}")
-    return Quantity(float(value), raw["unit"], raw["source"], raw.get("note"))
-
-
-def optional_quantity(raw, kind: str, where: str) -> Quantity | None:
-    """An absent optional quality stays None and later blocks the plan as unknown."""
-    return None if raw is None else quantity(raw, kind, where)
+__all__ = ["ACTUATION_KINDS", "Additive", "ControlActuation", "CurrentOperation", "FEEDBACK_SETPOINT",
+           "Horizon", "ProductSpec", "Quantity", "SCHEMA", "Scenario", "ScenarioError", "Stage", "Tank",
+           "UNITS", "_finite", "optional_quantity", "quantity"]
 
 
 @dataclass(frozen=True)
@@ -106,12 +24,6 @@ class Horizon:
 
 @dataclass(frozen=True)
 class Tank:
-    """A blending component with its own declared properties.
-
-    Either a finite stock (`inventory`) or a stream produced on demand (`on_demand=True`): the
-    organisers (18.09.2026) have no stored deep-treated reserve — it is made when needed, so its
-    supply is limited by `max_outflow` and paid per tonne, not by a stock that runs out.
-    """
 
     tank_id: str
     name: str
@@ -122,16 +34,11 @@ class Tank:
     cost_per_t: Quantity
     properties: dict[str, Quantity | None]
     note: str | None = None
-    #: True when this component leaves the modelled chain, so its sulfur is whatever the chain
-    #: produces at the current regime rather than a standing scenario constant. A real forecast
-    #: bound into the scenario overrides it: a measurement outranks a model.
     sulfur_from_chain: bool = False
-    #: Sulfur of the stream entering this tank, when a measurement-based forecast supplies it.
-    #: The tank's own property stays the sulfur of what is already stored.
     inflow_sulfur: Quantity | None = None
-    #: Produced when drawn, not stored: no inventory to run out, `cost_per_t` derived from the
-    #: treating depth below the reference sulfur level.
     on_demand: bool = False
+    production_lead_time_hours: float = 0.0
+    production_rate_tph: float = 0.0
 
     def property_value(self, name: str) -> float | None:
         q = self.properties.get(name)
@@ -144,12 +51,13 @@ class Tank:
                 "properties": {k: (v.to_dict() if v else None) for k, v in self.properties.items()},
                 "note": self.note, "sulfur_from_chain": self.sulfur_from_chain,
                 "inflow_sulfur_mgkg": self.inflow_sulfur.to_dict() if self.inflow_sulfur else None,
-                "on_demand": self.on_demand}
+                "on_demand": self.on_demand,
+                "production_lead_time_hours": self.production_lead_time_hours,
+                "production_rate_tph": self.production_rate_tph}
 
 
 @dataclass(frozen=True)
 class ProductSpec:
-    """Declared product limits. A None limit is unknown, which is not the same as no limit."""
 
     limits: dict[str, Quantity | None]
 
@@ -166,7 +74,6 @@ class ProductSpec:
 
 @dataclass(frozen=True)
 class Additive:
-    """Cetane additive. Its dose response is our assumption, not a supplied curve."""
 
     max_dose_fraction: Quantity
     price_per_t: Quantity
@@ -181,16 +88,12 @@ class Additive:
                 "affects": list(self.affects)}
 
 
-#: How a proposed control change reaches the plant. Experts said (Q&A 11.09) that both units run
-#: feedback control systems that react quickly, so the operator changes a setpoint and the loop moves
-#: the equipment. The response of product quality is still the stage's declared lag.
 FEEDBACK_SETPOINT = "feedback_setpoint"
 ACTUATION_KINDS = (FEEDBACK_SETPOINT,)
 
 
 @dataclass(frozen=True)
 class ControlActuation:
-    """Who executes a control change and what is known about the loop."""
 
     kind: str
     loop: str
@@ -219,7 +122,6 @@ class ControlActuation:
 
 @dataclass(frozen=True)
 class Stage:
-    """Controls of one process stage with their declared ranges and response lag."""
 
     stage_id: str
     controls: dict[str, dict]
@@ -239,7 +141,6 @@ class Stage:
 
 @dataclass(frozen=True)
 class CurrentOperation:
-    """The blend and throughput running right now. Without it, "keep the regime" is undefined."""
 
     recipe: dict[str, float]
     throughput: Quantity
@@ -276,7 +177,6 @@ class Scenario:
         return tuple(t for t in self.tanks if t.available)
 
     def unknown_properties(self) -> dict[str, list[str]]:
-        """Qualities a tank does not declare. These make the blend result unknown, not compliant."""
         return {t.tank_id: [q for q in QUALITIES if t.properties.get(q) is None] for t in self.tanks}
 
     def to_dict(self) -> dict:

@@ -5,7 +5,6 @@ from neftecode.domain.shared.primitives import (ContractError, QUALITIES, _finit
 
 @dataclass(frozen=True)
 class TankState:
-    """Inventory and properties of one blending component at a point in time."""
 
     tank_id: str
     available: bool
@@ -15,10 +14,11 @@ class TankState:
     max_outflow_tph: float = 0.0
     observed_at: str | None = None
     provenance: str = "scenario"
-    #: Produced when drawn (deep-treated diesel made on demand): draws accumulate in
-    #: `produced_t` instead of depleting a stock.
     on_demand: bool = False
     produced_t: float = 0.0
+    production_lead_time_hours: float = 0.0
+    production_rate_tph: float = 0.0
+    elapsed_hours: float = 0.0
 
     def __post_init__(self):
         if not _finite(self.inventory_t) or self.inventory_t < 0:
@@ -31,8 +31,18 @@ class TankState:
     def unknown_properties(self) -> list[str]:
         return [name for name in QUALITIES if self.properties[name] is None]
 
+    def makeable_by(self, hours: float) -> float:
+        if not self.on_demand:
+            return float("inf")
+        running = max(0.0, hours - self.production_lead_time_hours)
+        return self.production_rate_tph * running
+
+    def advance(self, hours: float) -> "TankState":
+        if not _finite(hours) or hours < 0:
+            raise ContractError(f"TankState[{self.tank_id}].advance: длительность должна быть конечной и неотрицательной")
+        return replace(self, elapsed_hours=self.elapsed_hours + hours)
+
     def draw(self, mass_t: float) -> "TankState":
-        """Withdrawal that would go negative is an error, not a silent clamp to zero."""
         if not _finite(mass_t) or mass_t < 0:
             raise ContractError(f"TankState[{self.tank_id}].draw: масса отбора должна быть конечной и неотрицательной")
         if self.on_demand:
@@ -47,11 +57,6 @@ class TankState:
         return replace(self, inventory_t=self.inventory_t + mass_t)
 
     def mix_in(self, mass_t: float, properties: dict[str, float | None]) -> "TankState":
-        """Add a well-mixed inflow and update modelled properties by mass balance.
-
-        Missing properties remain unknown until a known inflow replaces an empty tank or
-        is mixed with a known existing value.
-        """
         if not _finite(mass_t) or mass_t < 0:
             raise ContractError(f"TankState[{self.tank_id}].mix_in: масса должна быть конечной и неотрицательной")
         if mass_t == 0:
@@ -79,11 +84,15 @@ class TankState:
         return {"tank_id": self.tank_id, "available": self.available, "inventory_t": self.inventory_t,
                 "properties": dict(self.properties), "inflow_tph": self.inflow_tph,
                 "max_outflow_tph": self.max_outflow_tph, "observed_at": self.observed_at,
-                "provenance": self.provenance, "on_demand": self.on_demand, "produced_t": self.produced_t}
+                "provenance": self.provenance, "on_demand": self.on_demand, "produced_t": self.produced_t,
+                "production_lead_time_hours": self.production_lead_time_hours,
+                "production_rate_tph": self.production_rate_tph, "elapsed_hours": self.elapsed_hours}
 
     @classmethod
     def from_dict(cls, raw: dict) -> "TankState":
         return cls(raw["tank_id"], raw["available"], raw["inventory_t"], dict(raw["properties"]),
                    raw.get("inflow_tph", 0.0), raw.get("max_outflow_tph", 0.0),
                    raw.get("observed_at"), raw.get("provenance", "scenario"),
-                   raw.get("on_demand", False), raw.get("produced_t", 0.0))
+                   raw.get("on_demand", False), raw.get("produced_t", 0.0),
+                   raw.get("production_lead_time_hours", 0.0), raw.get("production_rate_tph", 0.0),
+                   raw.get("elapsed_hours", 0.0))

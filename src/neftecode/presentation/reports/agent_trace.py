@@ -1,4 +1,3 @@
-"""Readable rendering of a compact agent trace for operators, auditors and the jury."""
 
 _KIND_ICON = {"tool": "→", "consult": "⇢", "final": "■", "resolution": "◆", "guard": "✔", "fallback": "✖"}
 
@@ -35,7 +34,6 @@ def _step(event: dict) -> str | None:
 
 
 def render_agent_trace(decision: dict) -> list[str]:
-    """Lines describing what the agents did and how code resolved it; empty for a deterministic decision."""
     info = decision.get("agentic")
     if not info:
         return []

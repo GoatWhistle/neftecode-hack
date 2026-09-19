@@ -1,0 +1,75 @@
+import type { Agentic } from "../types";
+import { num } from "../format";
+import { Empty, Field, Fields, Note } from "./Primitives";
+import { JsonPanel } from "./Json";
+
+const ACTIONS: Record<string, string> = {
+  select: "выбрать план",
+  refuse: "отказаться от рекомендации",
+  hold: "сохранить режим"
+};
+
+export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
+  const final = agentic?.final ?? null;
+  const budget = agentic?.budget ?? null;
+  const constraints = agentic?.constraints_applied ?? [];
+
+  return (
+    <div className="final">
+      <h4 className="final__title">Чем закончился диалог</h4>
+      {final ? (
+        <>
+          <p className="final__summary">{final.summary}</p>
+          <Fields>
+            <Field label="Действие">{ACTIONS[final.action] ?? final.action}</Field>
+            <Field label="План">{final.candidate_id ?? "план не выбран"}</Field>
+            <Field label="Коды причин">
+              {final.reason_codes.length > 0 ? final.reason_codes.join(", ") : "не передавались"}
+            </Field>
+          </Fields>
+          {final.evidence_refs && final.evidence_refs.length > 0 ? (
+            <p className="final__evidence">
+              На чём основано: {final.evidence_refs.map((ref) => <code key={ref}>{ref}</code>)}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <Empty>Итог диалога оркестратора не передавался.</Empty>
+      )}
+
+      {constraints.length > 0 ? (
+        <p className="final__constraints">
+          Ограничения, наложенные агентами по ходу поиска:{" "}
+          {constraints.map((item) => (
+            <code key={`${item.type}-${item.limit}`}>
+              {item.type} {item.limit} ≥ {num(item.value, 3)}
+            </code>
+          ))}
+        </p>
+      ) : null}
+
+      {budget ? (
+        <Fields>
+          <Field label="Вызовов модели">
+            {num(budget.llm_calls, 0)} из {num(budget.max_llm_calls, 0)}
+          </Field>
+          <Field label="По ролям">
+            {Object.entries(budget.llm_calls_by_role ?? {})
+              .map(([role, count]) => `${role}: ${count}`)
+              .join(", ") || "не передавались"}
+          </Field>
+          <Field label="Токены">
+            {budget.usage && (budget.usage["total_tokens"] ?? 0) > 0
+              ? `${num(budget.usage["prompt_tokens"], 0)} на запрос, ${num(budget.usage["completion_tokens"], 0)} на ответ, всего ${num(budget.usage["total_tokens"], 0)}`
+              : "ноль: живая модель не вызывалась"}
+          </Field>
+          <Field label="Повторных поисков">{num(budget.replans, 0)}</Field>
+        </Fields>
+      ) : (
+        <Note>Счётчики вызовов не передавались.</Note>
+      )}
+
+      <JsonPanel title="JSON: итог и бюджет агентного слоя" value={{ final, budget, constraints }} openTo={1} />
+    </div>
+  );
+}

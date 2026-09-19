@@ -1,4 +1,3 @@
-"""Map provider HTTP and transport failures to `LLMError` without leaking requests or credentials."""
 import json
 
 from neftecode.application.ports.llm import LLMError
@@ -41,7 +40,6 @@ def _short(text) -> str:
 
 
 def _error_fields(body_text: str) -> tuple[str | None, str | None, str]:
-    """Return (code, type, message) from Z.AI, OpenAI or Anthropic error bodies."""
     try:
         body = json.loads(body_text)
     except (TypeError, ValueError):

@@ -1,4 +1,3 @@
-"""Adversarial model behaviour never produces a plan the gate did not accept, and failures fall back."""
 from dataclasses import replace
 
 import pytest
@@ -58,7 +57,7 @@ def test_a_loosening_constraint_is_rejected_and_changes_nothing():
     decision = agentic_decide("sour_crude", llm)
     assert decision["agentic"]["constraints_applied"] == []
     tool = next(e for e in decision["agentic"]["trace"] if e.get("tool_name") == "search_candidates")
-    assert tool["decision"] == "error"  # schema enum rejects the unknown type before any evaluation
+    assert tool["decision"] == "error"
     assert without_agentic(decision) == legacy_decide("sour_crude")
 
 
@@ -144,7 +143,6 @@ def _veto_then_keep(role, messages, tools):
 
 
 def test_llm_accept_with_gate_fail_is_fail_at_final_recheck(monkeypatch):
-    """A plan the agents like still refuses when the gate fails at the final re-check."""
     document = raw("baseline")
     maker = agentic_for("baseline", PolicyLLM(_veto_then_keep), document=document)
     original_search = maker.maker._search
@@ -158,7 +156,7 @@ def test_llm_accept_with_gate_fail_is_fail_at_final_recheck(monkeypatch):
 
     def evaluate(*args, **kwargs):
         evaluation = original(*args, **kwargs)
-        if searched.get("done", 0) >= 2:  # after the legacy run and the agent session search
+        if searched.get("done", 0) >= 2:
             failed = CheckResult("quality.sulfur_mgkg", FAIL, 11.0, 10.0, 0.0, reason="forced gate failure")
             return replace(evaluation, gate=GateResult(evaluation.gate.plan_id, (failed,)))
         return evaluation
@@ -231,3 +229,18 @@ def test_a_negative_margin_is_rejected_by_the_contract_even_when_the_schema_pass
     assert tool["decision"] == "ok" and "constraints_rejected" in tool["tool_result_summary"]
     assert decision["agentic"]["constraints_applied"] == []
     assert decision["agentic"]["outcome"] == "confirmed_legacy"
+
+
+def test_a_deterministic_policy_is_marked_as_such_in_the_decision():
+    decision = agentic_decide("sour_crude", PolicyLLM(accept_everything))
+    block = decision["agentic"]
+    assert block["provider"] == "scripted"
+    assert block["deterministic_policy"] is True
+    assert "не через языковую модель" in block["provider_label"]
+
+
+def test_the_deterministic_marker_is_not_claimed_by_a_live_provider():
+    decision = agentic_decide("sour_crude", PolicyLLM(accept_everything))
+    block = dict(decision["agentic"])
+    block["provider"] = "zai"
+    assert block["provider"] not in decision_module.DETERMINISTIC_PROVIDERS

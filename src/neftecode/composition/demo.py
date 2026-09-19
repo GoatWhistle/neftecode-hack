@@ -1,4 +1,3 @@
-"""Build reproducible demo and replay artifacts."""
 import json
 
 import numpy as np
@@ -16,7 +15,6 @@ STATE_COLUMNS = ["decision_time", "lab_sample_time", "lab_available_time", "lab_
                  "pak_conflict", "pak_usable", "telemetry_missing_fraction"]
 
 def forecast_from_row(row, prefix: str, model: str) -> dict:
-    """Build the live forecast wire shape from one frozen replay row."""
     value, lower, upper = [clean(row.get(prefix + column))
                            for column in ("prediction", "lower", "upper")]
     values = (lower, value, upper)
@@ -41,13 +39,12 @@ def risk_alarm(reading: dict) -> bool | None:
 
 def make_demo(root, out):
     scenario_dir = root / "config/scenarios"
-    baseline = json.loads((scenario_dir / "baseline.json").read_text())
+    baseline = json.loads((scenario_dir / "baseline.json").read_text(encoding="utf-8"))
     healthy = {"decision_time": "2026-01-15T10:00:00",
                "lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
                "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
                "pak_frozen": False, "pak_conflict": False, "telemetry_missing_fraction": 0,
                "origin": "synthetic_acceptance_test"}
-    # Пороги доверия одни для синтетических кейсов и повтора истории: model.pkl, иначе C1/experiment.json.
     trust_cfg, _ = load_trust_rules(root, out)
     model_path = out / "model.pkl"
     if model_path.exists():
@@ -57,7 +54,6 @@ def make_demo(root, out):
         "model": "synthetic", "value": 6.0, "lower": 4.0, "upper": 8.0,
         "available": True, "reason": "Синтетическая проверка механики решения",
     })
-    # The tank already stores sulfur close to the limit, and the incoming stream could be worse.
     near_limit = json.loads(json.dumps(baseline))
     for tank in near_limit["tanks"]:
         if tank["tank_id"] == "main":
@@ -79,13 +75,13 @@ def make_demo(root, out):
             400, trust_cfg,
         )["decision"],
         "no_feasible_synthetic": run_demo_decision(
-            json.loads((scenario_dir / "no_feasible.json").read_text()), healthy, 400, trust_cfg
+            json.loads((scenario_dir / "no_feasible.json").read_text(encoding="utf-8")), healthy, 400, trust_cfg
         )["decision"],
     }
     replay_rows = []
     if (out / "predictions.csv").exists():
         frame = pd.read_csv(out / "predictions.csv")
-        summary = json.loads((out / "metrics.json").read_text())
+        summary = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
         model_cfg = trust_cfg
         selected = summary["selected"]
         fallback_model = "catboost_no_pak"
@@ -94,7 +90,6 @@ def make_demo(root, out):
             fallback_model = bundle.get("fallback", fallback_model)
         unavailable = 0
         for _, row in frame.iterrows():
-            # Deliberate allowlist: future target and its actual value NEVER reach agents.
             state = clean({key: row[key] for key in STATE_COLUMNS})
             state["origin"] = "historical_replay_with_synthetic_blending"
             trust = DataTrustAgent(model_cfg).assess(state)
@@ -130,7 +125,7 @@ def make_demo(root, out):
         }
         write_json(out / "metrics.json", summary)
     write_json(out / "demo.json", demos)
-    with (out / "audit.jsonl").open("w") as stream:
+    with (out / "audit.jsonl").open("w", encoding="utf-8") as stream:
         for name, decision in demos.items():
             stream.write(json.dumps(clean({"case": name, **decision}), ensure_ascii=False, allow_nan=False) + "\n")
     make_report(out, demos)

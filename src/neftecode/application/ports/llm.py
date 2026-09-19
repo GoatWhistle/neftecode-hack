@@ -1,24 +1,14 @@
-"""Provider-independent language model port.
-
-The agent layer talks to a model only through this contract. Adapters in infrastructure translate it
-to a concrete provider. The port carries no network code and no provider names in its logic.
-
-Hidden reasoning a provider may return is deliberately not part of the response: the agent layer
-records short operator-facing rationale only.
-"""
 from dataclasses import dataclass, field
 from typing import Protocol, Sequence
 
 ROLES = ("system", "user", "assistant", "tool")
 
-#: Error kinds an adapter maps provider failures to.
 ERROR_KINDS = ("timeout", "network", "rate_limit", "overloaded", "quota", "auth", "bad_request",
                "bad_response", "provider", "not_configured")
 
 
 @dataclass(frozen=True)
 class ToolSpec:
-    """A tool the model may call: name, purpose and a JSON Schema object for its arguments."""
 
     name: str
     description: str
@@ -33,7 +23,6 @@ class ToolSpec:
 
 @dataclass(frozen=True)
 class ToolCall:
-    """A tool call requested by the model. Arguments stay raw text until a contract parses them."""
 
     call_id: str
     name: str
@@ -79,7 +68,6 @@ class LLMResponse:
 
 
 class LLMError(RuntimeError):
-    """A provider failure, already stripped of credentials and request bodies."""
 
     def __init__(self, kind: str, message: str, *, retryable: bool = False, code: str | None = None):
         if kind not in ERROR_KINDS:

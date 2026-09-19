@@ -1,9 +1,3 @@
-"""Response-lag map estimated from data, with a null model for the best-lag search.
-
-Picking the strongest correlation over a grid of lags is a search, so the winning
-value is optimistic by construction. Every reported lag is compared against the
-best correlation the same search finds on a deliberately misaligned target.
-"""
 import numpy as np
 import pandas as pd
 
@@ -29,7 +23,6 @@ def _steps(index: pd.DatetimeIndex, max_lag_hours: float, step_hours: float) -> 
 
 def lag_profile(signal: pd.Series, target: pd.Series, max_lag_hours: float = 24,
                 step_hours: float = 1) -> pd.DataFrame:
-    """Correlation of the target with the signal delayed by each lag on the grid."""
     lags, spacing = _steps(signal.index, max_lag_hours, step_hours)
     rows = []
     for lag in lags:
@@ -61,12 +54,10 @@ def _best(values: np.ndarray, target: np.ndarray, lags: list[int]) -> tuple[int,
 
 def lag_map(signals: pd.DataFrame, target, max_lag_hours: float = 24, step_hours: float = 1,
             null_draws: int = 20, seed: int = 42) -> pd.DataFrame:
-    """Best lag per tag next to the noise floor of the same search."""
     frame, aligned_target = _aligned(signals, target)
     lags, spacing = _steps(frame.index, max_lag_hours, step_hours)
     y = aligned_target.to_numpy(float)
     rng = np.random.default_rng(seed)
-    # Offsets far beyond the search grid destroy any real alignment but keep autocorrelation.
     floor_offsets = rng.integers(len(y) // 4, 3 * len(y) // 4, size=null_draws)
     rows = []
     for column in frame.columns:
