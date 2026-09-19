@@ -1,14 +1,15 @@
 from dataclasses import replace
 
 from neftecode.domain.advisory.entities import PlanStep
-from neftecode.domain.advisory.optimizer import CandidateGenerator
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET, CandidateGenerator
 
 from .candidate import PlanCandidate
 
 
 class PlanBuilderMixin:
 
-    def build_plans(self, budget: int = 120, current_operation: dict | None = None) -> tuple[list[PlanCandidate], dict]:
+    def build_plans(self, budget: int = DEFAULT_BUDGET,
+                    current_operation: dict | None = None) -> tuple[list[PlanCandidate], dict]:
         generator_scenario = self.scenario
         base = self.base_controls()
         if current_operation is not None:

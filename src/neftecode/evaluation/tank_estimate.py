@@ -5,6 +5,7 @@ import math
 
 from neftecode.application.progress import reporting_to
 from neftecode.application.use_cases.make_decision import MakeDecision
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.domain.production.scenario import Scenario
 
 SULFUR_ABSOLUTE_MGKG = 1.0
@@ -114,7 +115,7 @@ class TankEstimateCheck:
     sulfur_delta: float = SULFUR_ABSOLUTE_MGKG
     inventory_share: float = INVENTORY_RELATIVE
 
-    def evaluate(self, status: str, plan_id: str | None, budget: int = 200, confirmed=(),
+    def evaluate(self, status: str, plan_id: str | None, budget: int = DEFAULT_BUDGET, confirmed=(),
                  current_operation: dict | None = None, initial_tanks=None) -> dict:
         if self.scenario_parser is None or self.decision_factory is None:
             return self._unavailable("нет парсера сценария или фабрики решения")

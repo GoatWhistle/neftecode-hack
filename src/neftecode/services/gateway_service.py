@@ -15,6 +15,7 @@ from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_
 from neftecode.presentation.web.ui import error_payload, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.llm.config import decision_wait_seconds
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
 
 
@@ -96,7 +97,8 @@ class GatewayService:
         state = apply_source_failure(base, fault)
         changes = changes_from(values, raw)
         env = self.client.request("POST", self.decision_url + "/v1/decisions",
-                                  {"scenario": _changed(raw, changes), "state": state, "budget": 400,
+                                  {"scenario": _changed(raw, changes), "state": state,
+                                   "budget": DEFAULT_BUDGET,
                                    "trust_config": self.trust_cfg, "trust_origin": self.trust_origin,
                                    "snapshot": chosen},
                                   timeout_s=self.decision_timeout_s, headers={"X-Request-ID": request_id})
