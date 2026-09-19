@@ -1,8 +1,29 @@
+import { useEffect, useState } from "react";
 import type { RunState } from "./types";
+
+const STALE_MS = 5000;
 
 function seconds(ms: number): string {
   if (!Number.isFinite(ms)) return "—";
   return `${(ms / 1000).toFixed(1).replace(".", ",")} с`;
+}
+
+function useStaleSeconds(lastFrameAt: number | null, running: boolean): number | null {
+  const [stale, setStale] = useState<number | null>(null);
+  useEffect(() => {
+    if (!running || lastFrameAt === null) {
+      setStale(null);
+      return;
+    }
+    const check = () => {
+      const gap = performance.now() - lastFrameAt;
+      setStale(gap > STALE_MS ? Math.floor(gap / 1000) : null);
+    };
+    check();
+    const timer = window.setInterval(check, 1000);
+    return () => window.clearInterval(timer);
+  }, [lastFrameAt, running]);
+  return stale;
 }
 
 export interface RunStripProps {
@@ -12,6 +33,7 @@ export interface RunStripProps {
 }
 
 export function RunStrip({ run, followsUser, onResumeFollow }: RunStripProps) {
+  const stale = useStaleSeconds(run.lastFrameAt, run.status === "running");
   if (run.status === "idle") return null;
   const done = run.status === "done";
 
@@ -35,6 +57,9 @@ export function RunStrip({ run, followsUser, onResumeFollow }: RunStripProps) {
             {run.status === "running" ? "идёт " : "заняло "}
             {seconds(run.serverMs ?? run.elapsedMs)}
           </p>
+          {stale !== null ? (
+            <p className="strip__stale">последний ответ сервера {stale} с назад</p>
+          ) : null}
         </div>
       </div>
 

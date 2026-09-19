@@ -68,6 +68,7 @@ export interface RunState {
   payload: ScreenPayload | null;
   elapsedMs: number;
   serverMs: number | null;
+  lastFrameAt: number | null;
   error: string | null;
   live: boolean;
 }
@@ -82,6 +83,7 @@ export const EMPTY_RUN: RunState = {
   payload: null,
   elapsedMs: 0,
   serverMs: null,
+  lastFrameAt: null,
   error: null,
   live: false
 };

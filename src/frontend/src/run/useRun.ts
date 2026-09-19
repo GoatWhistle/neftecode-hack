@@ -3,7 +3,7 @@ import type { ScreenPayload } from "../types";
 import { streamDecision } from "./stream";
 import type { AgentEvent, RunPhase, RunState, StageState } from "./types";
 import { EMPTY_RUN } from "./types";
-import { advanceTo, chainTo, LATE_STAGES, mergeFacts, mergePhase } from "./sequence";
+import { advanceTo, chainTo, LATE_STAGES, mergeFacts, mergePhase, ORDER } from "./sequence";
 import { createRevealQueue } from "./revealQueue";
 import { releaseTakeover, scrollTo, watchTakeover } from "./autoscroll";
 
@@ -107,12 +107,19 @@ export function useRun(): RunControls {
       const fail = (message: string): void => {
         reveal.clear();
         setPending(false);
-        setRun((prev) => ({
-          ...prev,
-          status: "failed",
-          error: message,
-          stages: { ...prev.stages, agents: "failed" as StageState }
-        }));
+        setRun((prev) => {
+          const order = ORDER.filter((id) => prev.stages[id] !== undefined);
+          const broken =
+            order.find((id) => prev.stages[id] === "running") ??
+            [...order].reverse().find((id) => prev.stages[id] === "done") ??
+            "agents";
+          return {
+            ...prev,
+            status: "failed",
+            error: message,
+            stages: { ...prev.stages, [broken]: "failed" as StageState }
+          };
+        });
       };
 
       streamDecision(
@@ -125,7 +132,8 @@ export function useRun(): RunControls {
               return { ...prev, phases, elapsedMs: event.elapsed_ms };
             });
           },
-          onTick: (elapsedMs) => setRun((prev) => ({ ...prev, elapsedMs })),
+          onTick: (elapsedMs) =>
+            setRun((prev) => ({ ...prev, elapsedMs, lastFrameAt: performance.now() })),
           onStage: (stage, elapsedMs, state, facts) => {
             setPending(false);
             setRun((prev) => ({

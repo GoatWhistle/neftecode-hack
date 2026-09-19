@@ -16,11 +16,11 @@ export interface HeadroomRow {
   digits: number;
 }
 
-function labelOf(id: string): string {
+function labelOf(id: string, names: Record<string, string>): string {
   const [head, ...rest] = id.split(".");
   const key = rest.join(".");
   if (head === "control") return controlLabel(key);
-  return `${familyOf(id)}: ${key}`;
+  return `${familyOf(id)}: ${names[key] ?? key}`;
 }
 
 function unitOf(id: string): string {
@@ -29,7 +29,7 @@ function unitOf(id: string): string {
   return "т/ч";
 }
 
-export function buildHeadroom(checks: GateCheck[]): HeadroomRow[] {
+export function buildHeadroom(checks: GateCheck[], names: Record<string, string> = {}): HeadroomRow[] {
   const groups = new Map<string, GateCheck[]>();
   for (const check of checks) {
     const head = check.constraint_id.split(".")[0] ?? "";
@@ -50,7 +50,7 @@ export function buildHeadroom(checks: GateCheck[]): HeadroomRow[] {
     const digits = Math.abs(limit) >= 100 ? 1 : 2;
     rows.push({
       id,
-      label: labelOf(id),
+      label: labelOf(id, names),
       unit: unitOf(id),
       limit,
       worst: worstCheck.observed as number,
@@ -98,10 +98,11 @@ function Row({ row }: { row: HeadroomRow }) {
 
 export interface HeadroomBarsProps {
   checks: GateCheck[];
+  names?: Record<string, string>;
 }
 
-export function HeadroomBars({ checks }: HeadroomBarsProps) {
-  const rows = buildHeadroom(checks);
+export function HeadroomBars({ checks, names = {} }: HeadroomBarsProps) {
+  const rows = buildHeadroom(checks, names);
   if (rows.length === 0) return null;
   const constant = rows.filter((row) => row.constant).length;
 
@@ -118,9 +119,11 @@ export function HeadroomBars({ checks }: HeadroomBarsProps) {
         предел. Нижней границы тут нет, поэтому коридор «от и до» не нарисован — его никто не задавал, и
         симметричная вилка была бы выдумкой. Ноль полосы — это ноль величины, а правый край — предел;
         закрашенная часть показывает, насколько близко подошло значение, незакрашенная — запас.
-        {constant > 0
-          ? ` У ${constant} из ${rows.length} ограничений значение одинаково во всех точках горизонта, поэтому показано одно значение, а не семь одинаковых полос.`
-          : ""}{" "}
+        {constant === rows.length
+          ? ` Ни у одного из этих ограничений значение не меняется по горизонту, поэтому у каждого показано одно значение, а не повтор одинаковых полос по числу моментов.`
+          : constant > 0
+            ? ` У ${constant} ограничений из ${rows.length} значение не меняется по горизонту — у них показано одно значение, а не повтор одинаковых полос; у остальных взят худший момент.`
+            : " У каждого ограничения взят худший момент горизонта."}{" "}
         Каждая полоса нормирована своим пределом, и длины между строками сравнивать нельзя: единицы
         разные. Полная раскладка по каждому моменту — в матрице проверок выше.
       </p>

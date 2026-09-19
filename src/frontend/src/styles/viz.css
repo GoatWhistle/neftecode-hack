@@ -137,21 +137,21 @@
 
 .matrix__svg {
   display: block;
-  width: 100%;
-  min-width: 640px;
+  width: auto;
+  max-width: 100%;
   height: auto;
 }
 
 .matrix__label {
   fill: var(--text);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .matrix__axis {
   fill: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .matrix__axis--outside {

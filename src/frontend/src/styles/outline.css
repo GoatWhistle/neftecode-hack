@@ -6,18 +6,6 @@
   position: relative;
 }
 
-.stage__state {
-  margin-inline-start: auto;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.stage__state--running { color: var(--unknown); }
-.stage__state--done { color: var(--muted); }
-.stage__state--failed { color: var(--fail); }
-
 .outline__hint {
   margin: var(--space-2) 0 0;
   color: var(--muted);

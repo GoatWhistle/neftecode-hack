@@ -1,3 +1,7 @@
+.stage[data-band="7"] {
+  padding-block-end: calc(var(--space-7) * 1.5);
+}
+
 .stage--final {
   padding-block: calc(var(--space-7) * 1.6) calc(var(--space-7) * 1.8);
 }
@@ -208,6 +212,10 @@
 }
 
 @media (max-width: 720px) {
+  .stage[data-band="7"] {
+    padding-block-end: calc(var(--space-7) * 1.2);
+  }
+
   .stage--final {
     padding-block: var(--space-7);
   }

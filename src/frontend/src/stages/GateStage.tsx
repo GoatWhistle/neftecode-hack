@@ -85,7 +85,7 @@ export function GateStage({ payload, index, state, source, lamp, lampTitle }: St
             <GateMatrix checks={checks} />
           </Scroller>
 
-          <HeadroomBars checks={checks} />
+          <HeadroomBars checks={checks} names={payload.explanation.component_names ?? {}} />
 
           <Scroller label="Проверки по семействам ограничений">
             <table className="grid">
