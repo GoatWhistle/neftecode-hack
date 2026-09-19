@@ -1,0 +1,39 @@
+{
+  "schema_version": "audit-benchmark-summary-v1",
+  "generated_at": "2026-09-19",
+  "command": ".venv/bin/neftecode benchmark",
+  "budget": 1200,
+  "raw_artifact": {
+    "path": "artifacts/benchmark.json",
+    "sha256": "d83f48c9d0a9d9ba7afd38c17f37c2003782b4520ddcd604e0bd465498838eaf",
+    "tracked": false
+  },
+  "scenario_sha256": {
+    "ample_reserve": "757f16387b449249f1e30216e4b17e9880f11e757327afc60d5679b82ff39b6e",
+    "baseline": "59fdb655e015208a0237656aa5340e9b314f238ebb006fe86e9b771c6feb394b",
+    "light_component": "5431baca36496d7a210cc8407b9dbbe1937656a403765b69f5076ab04441278b",
+    "no_feasible": "b4d9c58d2749c685ba561ed0f93224afe0c85cfacc3a5a960acae51ed29d39eb",
+    "sour_crude": "6fa51de6eb232b574334948cf1efe1ec766600966a1f68125db10cbe8eb634a7",
+    "winter_grade": "cf547703d75a5e1a99b39aeccd47772ca13957ba1786617545d9a1a1ba539793"
+  },
+  "wins": 6,
+  "losses": 6,
+  "totals": {
+    "hold": {"feasible": 3, "refused": 0, "violations": 35, "production_t": 900.0},
+    "threshold": {"feasible": 5, "refused": 1, "violations": 0, "production_t": 1500.0},
+    "advisor": {"feasible": 5, "refused": 1, "violations": 0, "production_t": 1500.0}
+  },
+  "scenarios": {
+    "ample_reserve": {"hold": "infeasible:7", "threshold": "feasible", "advisor": "c0030"},
+    "baseline": {"hold": "feasible", "threshold": "feasible", "advisor": "hold"},
+    "light_component": {"hold": "feasible", "threshold": "feasible", "advisor": "hold"},
+    "no_feasible": {"hold": "infeasible:21", "threshold": "refuse", "advisor": "refuse"},
+    "sour_crude": {"hold": "infeasible:7", "threshold": "feasible", "advisor": "c0030"},
+    "winter_grade": {"hold": "feasible", "threshold": "feasible", "advisor": "hold"}
+  },
+  "limits": [
+    "Результат получен внутри сценарной модели и не является измеренной экономией завода.",
+    "Набор из шести сценариев выбран командой и не является новой независимой выборкой.",
+    "Переходное планирование и конечный резерв не увеличили выпуск на этом наборе."
+  ]
+}

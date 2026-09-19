@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -7,9 +8,11 @@ from neftecode.evaluation.benchmark import (ADVISOR, ADVISOR_NO_TERMINAL,
                                             ADVISOR_NO_TRANSITION, HOLD, STRATEGIES,
                                             THRESHOLD, Benchmark, compare)
 from neftecode.application.use_cases.plan_operation import PlanOperation
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 SCENARIOS = Path("config/scenarios")
+COMMITTED_SUMMARY = Path("context/benchmark-audit-2026-09-19.json")
 BUDGET = 300
 
 
@@ -34,6 +37,18 @@ def report():
 
 def strategies(report, scenario_id):
     return next(r["strategies"] for r in report["scenarios"] if r["scenario_id"] == scenario_id)
+
+
+def test_committed_summary_names_the_current_inputs_and_aggregate(report):
+    summary = json.loads(COMMITTED_SUMMARY.read_text(encoding="utf-8"))
+    assert summary["budget"] == DEFAULT_BUDGET
+    for name, expected in summary["scenario_sha256"].items():
+        assert hashlib.sha256((SCENARIOS / f"{name}.json").read_bytes()).hexdigest() == expected
+    for name in (HOLD, THRESHOLD, ADVISOR):
+        assert summary["totals"][name] == {
+            key: report["totals"][name][key]
+            for key in ("feasible", "refused", "violations", "production_t")
+        }
 
 
 
