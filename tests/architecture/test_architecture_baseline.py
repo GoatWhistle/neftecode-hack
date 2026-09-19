@@ -12,6 +12,7 @@ from neftecode.infrastructure.config.scenario import load_scenario, parse_scenar
 from neftecode.presentation.cli import COMMANDS
 from neftecode.bootstrap import fingerprint, make_demo_service
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 
 
 ROOT = Path(".")
@@ -35,7 +36,7 @@ def decision(path: Path) -> dict:
     scenario = load_scenario(path)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
         scenario, raw, scenario_parser=parse_scenario
-    )).decide(
+    ), scenario_parser=parse_scenario, tank_estimate_factory=default_tank_estimate_factory).decide(
         budget=DEFAULT_BUDGET, raw_scenario=raw)
 
 

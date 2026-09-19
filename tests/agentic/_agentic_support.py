@@ -6,6 +6,7 @@ from neftecode.application.agentic.contracts import AgentSettings
 from neftecode.application.agentic.session import DecisionSession
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.response.unavailable import UnavailableResponseEffect
 
@@ -21,7 +22,9 @@ def raw(name: str) -> dict:
 def maker_for(document: dict) -> MakeDecision:
     scenario = parse_scenario(document)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, document,
-                                                                       scenario_parser=parse_scenario))
+                                                                       scenario_parser=parse_scenario),
+                        scenario_parser=parse_scenario,
+                        tank_estimate_factory=default_tank_estimate_factory)
 
 
 def session_for(name: str, settings: AgentSettings | None = None, document: dict | None = None,
@@ -42,6 +45,8 @@ def agentic_for(name: str, llm, settings: AgentSettings | None = None, document:
     scenario = parse_scenario(document)
     return AgenticMakeDecision(scenario, llm, settings=settings or AgentSettings(),
                                robustness_evaluator=RobustnessCheck(scenario, document, scenario_parser=parse_scenario),
+                               scenario_parser=parse_scenario,
+                               tank_estimate_factory=default_tank_estimate_factory,
                                response_effect=UnavailableResponseEffect())
 
 

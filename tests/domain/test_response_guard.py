@@ -59,7 +59,8 @@ def knife_edge(light: bool = False, tank_sulfur: float = 9.34, upper: float = 10
 def decide(bound: dict) -> dict:
     scenario = parse_scenario(bound)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
-        scenario, bound, scenario_parser=parse_scenario)).decide(budget=800, raw_scenario=bound)
+        scenario, bound, scenario_parser=parse_scenario),
+        scenario_parser=parse_scenario).decide(budget=800, raw_scenario=bound)
 
 
 def guard_trace(decision: dict) -> list[tuple[str, str]]:

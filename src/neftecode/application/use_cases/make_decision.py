@@ -1,8 +1,9 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from neftecode.domain.shared.primitives import (HOLD, RECOMMEND_SCENARIO, REFUSE)
 from .plan_operation import PlanOperation, PlannerError
-from neftecode.domain.advisory.optimizer import rank
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET, rank
 from neftecode.domain.advisory.response_guard import moves_temperature, weak_response_raw
 from neftecode.domain.production.scenario import Scenario
 from neftecode.application.contracts import DataRejection, DecisionCommand, DecisionResult
@@ -30,11 +31,12 @@ class MakeDecision(SearchMixin, LookaheadMixin):
     robustness_evaluator: RobustnessEvaluator | None = None
     tank_estimate_evaluator: TankEstimateEvaluator | None = None
     tank_estimate_factory: TankEstimateFactory | None = None
+    scenario_parser: Callable[[dict], Scenario] | None = None
 
     def __post_init__(self):
         self.planner = PlanOperation(self.scenario)
 
-    def decide(self, state: dict | None = None, confirmed=(), budget: int = 600,
+    def decide(self, state: dict | None = None, confirmed=(), budget: int = DEFAULT_BUDGET,
                trust_cfg: dict | None = None, raw_scenario: dict | None = None,
                initial_tanks=None, current_operation: dict | None = None,
                data_rejection: DataRejection | None = None) -> dict:
@@ -65,6 +67,14 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                       "evaluated": outcome.evaluated, "evaluation_budget": budget,
                       "note": "Бюджет поиска общий; финальная проверка выбранного плана выполняется отдельно."})
         if outcome.selected is None or outcome.selected.get("selected") is None:
+            if not outcome.examined and outcome.computation_errors:
+                errors = sorted({e["error"] for e in outcome.computation_errors})[:5]
+                return self._finish(REFUSE,
+                                    "Расчёт кандидатов завершился ошибкой во всех попытках; "
+                                    "допустимость плана не проверена",
+                                    trace, None, None,
+                                    {"kind": "computation_error", "examples": errors},
+                                    current_operation=current_operation)
             reasons = sorted({r for e in (outcome.last_result or {}).get("rejected", [])
                               for r in e["rejection_reasons"]})[:5]
             return self._finish(REFUSE,
@@ -77,7 +87,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                             initial_tanks=initial_tanks, current_operation=current_operation)
 
     def release(self, selected: dict, selected_plan_obj, feasible, by_id, trace: list[dict], *, confirmed=(),
-                budget: int = 600, raw_scenario: dict | None = None, initial_tanks=None,
+                budget: int = DEFAULT_BUDGET, raw_scenario: dict | None = None, initial_tanks=None,
                 current_operation: dict | None = None) -> dict:
         lookahead = None
         try:
@@ -178,9 +188,8 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                        current_operation, initial_tanks) -> dict | None:
         evaluator = self.tank_estimate_evaluator
         if evaluator is None:
-            factory = self.tank_estimate_factory or getattr(
-                self.robustness_evaluator, "tank_estimate_factory", None)
-            parser = getattr(self.robustness_evaluator, "scenario_parser", None)
+            factory = self.tank_estimate_factory
+            parser = self.scenario_parser
             if factory is None or parser is None or raw_scenario is None:
                 return None
             evaluator = factory(self.scenario, raw_scenario, parser)
@@ -198,7 +207,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
 
     def _weak_response_guard(self, plan, confirmed, raw_scenario, initial_tanks, current_operation,
                              lookahead: dict | None = None) -> dict | None:
-        parser = getattr(self.robustness_evaluator, "scenario_parser", None)
+        parser = self.scenario_parser
         if raw_scenario is None or parser is None:
             return None
         weak = weak_response_raw(raw_scenario)

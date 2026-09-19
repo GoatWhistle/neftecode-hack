@@ -8,6 +8,7 @@ from neftecode.application.services.trust import DataTrustAgent
 from neftecode.application.use_cases.get_live_advice import binding_summary, decision_context
 from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
@@ -41,8 +42,10 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
         emit("stage", stage="forecast", forecast=snapshot.get("forecast"))
     factory = decision_factory or default_decision_factory()
     evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
-    maker = (factory(scenario, evaluator) if snapshot is None else
-             factory(scenario, evaluator, decision_context(snapshot.get("at"), snapshot.get("forecast"), raw)))
+    maker = (factory(scenario, evaluator, tank_estimate_factory=default_tank_estimate_factory,
+                     scenario_parser=parse_scenario) if snapshot is None else
+             factory(scenario, evaluator, decision_context(snapshot.get("at"), snapshot.get("forecast"), raw),
+                    tank_estimate_factory=default_tank_estimate_factory, scenario_parser=parse_scenario))
     emit("phase", key="solving", state="running")
     decision = maker.decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
     emit("phase", key="solving", state="done")

@@ -4,6 +4,7 @@ from neftecode.application.agentic.contracts import AgentSettings
 from neftecode.application.agentic.decision import AgenticMakeDecision
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
@@ -25,8 +26,11 @@ def agent_demo(args, parser, root, out):
         document = json.loads(path.read_text(encoding="utf-8"))
         scenario = parse_scenario(document)
         robustness = RobustnessCheck(scenario, document, scenario_parser=parse_scenario)
-        legacy = MakeDecision(scenario, robustness_evaluator=robustness).decide(budget=DEFAULT_BUDGET, raw_scenario=document)
+        legacy = MakeDecision(scenario, robustness_evaluator=robustness, scenario_parser=parse_scenario,
+                              tank_estimate_factory=default_tank_estimate_factory).decide(
+            budget=DEFAULT_BUDGET, raw_scenario=document)
         agentic = AgenticMakeDecision(scenario, demo_llm(), settings=AgentSettings(), robustness_evaluator=robustness,
+                                      scenario_parser=parse_scenario, tank_estimate_factory=default_tank_estimate_factory,
                                       response_effect=UnavailableResponseEffect()).decide(budget=DEFAULT_BUDGET, raw_scenario=document)
         trace = render_agent_trace(agentic)
         records.append({"scenario": scenario.scenario_id,

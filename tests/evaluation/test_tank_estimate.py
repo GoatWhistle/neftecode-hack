@@ -8,8 +8,8 @@ from neftecode.application.services.risk_block import risk_block
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.evaluation.tank_estimate import (INVENTORY_RELATIVE, SULFUR_ABSOLUTE_MGKG, TankEstimateCheck,
-                                                TankEstimateError, apply, estimate_provenance, perturbations,
-                                                plain_decision)
+                                                TankEstimateError, apply, default_tank_estimate_factory,
+                                                estimate_provenance, perturbations, plain_decision)
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -25,7 +25,9 @@ def decide(path: Path) -> dict:
     document = raw(path)
     scenario = load_scenario(path)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
-        scenario, document, scenario_parser=parse_scenario)).decide(budget=BUDGET, raw_scenario=document)
+        scenario, document, scenario_parser=parse_scenario),
+        scenario_parser=parse_scenario,
+        tank_estimate_factory=default_tank_estimate_factory).decide(budget=BUDGET, raw_scenario=document)
 
 
 def test_the_estimate_that_is_perturbed_is_the_one_the_scenario_carries():
@@ -137,3 +139,19 @@ def test_the_limits_of_the_check_are_stated_next_to_its_verdict():
     limits = decide(BASELINE)["tank_estimate"]["limits"]
     assert any("прямыми пробами" in text for text in limits)
     assert any("не доверительный интервал" in text for text in limits)
+
+
+def test_tank_estimate_works_with_a_minimal_evaluator_that_only_implements_evaluate():
+    class BareEvaluator:
+        def evaluate(self, scenario, raw_scenario, plan, confirmed=(), initial_tanks=None,
+                     current_operation=None) -> dict:
+            return {"held": True, "fragile": False, "perturbations_evaluated": 0, "perturbations": []}
+
+    document = raw(BASELINE)
+    scenario = load_scenario(BASELINE)
+    decision = MakeDecision(scenario, robustness_evaluator=BareEvaluator(),
+                            scenario_parser=parse_scenario,
+                            tank_estimate_factory=default_tank_estimate_factory).decide(
+        budget=BUDGET, raw_scenario=document)
+    assert decision["tank_estimate"] is not None
+    assert decision["tank_estimate"]["available"] is True

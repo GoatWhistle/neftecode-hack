@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from neftecode.domain.advisory.entities import PlanStep
 from neftecode.domain.production.blending import Blender
 from neftecode.domain.production.economics import Economics
-from neftecode.domain.advisory.optimizer import rank
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET, rank
 from neftecode.domain.production.process import ChainModel
 from neftecode.domain.production.scenario import Scenario
 from neftecode.application.contracts import PlanningCommand, PlanningResult
@@ -62,7 +62,7 @@ class PlanOperation(PlanBuilderMixin, PlanEvaluationMixin):
                                  "density_kgm3": tank.property_value("density_kgm3")}}
 
 
-    def plan(self, confirmed=(), budget: int = 120) -> dict:
+    def plan(self, confirmed=(), budget: int = DEFAULT_BUDGET) -> dict:
         plans, info = self.build_plans(budget)
         evaluations = []
         by_id = {}
