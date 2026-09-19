@@ -1,4 +1,3 @@
-"""Dispatch parsed CLI commands to their composition modules."""
 from neftecode.presentation import cli
 
 from . import agentic, demo, evaluation, live, screens, training
@@ -10,6 +9,7 @@ HANDLERS = {
     "screen": screens.screen,
     "scenes": screens.scenes,
     "benchmark": evaluation.benchmark,
+    "expert-grid": evaluation.expert_grid,
     "episodes": evaluation.episodes,
     "tank-check": evaluation.tank_check,
     "vak": evaluation.vak,

@@ -1,4 +1,3 @@
-"""Agent tests never reach the network. Provider tests install their own mock on top of this guard."""
 import socket
 import urllib.request
 

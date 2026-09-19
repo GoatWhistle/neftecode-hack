@@ -1,8 +1,3 @@
-"""JSON-адаптер карты тегов АВТ, прочитанной со схем 14 сентября.
-
-Карта говорит, на какой колонне и у какого потока стоит прибор, и выделен ли он легендой
-«управляемые переменные». Это не подтверждение единиц, масштаба или того, что прибор — регулятор.
-"""
 import json
 import re
 from pathlib import Path
@@ -15,11 +10,10 @@ TAG_PATTERN = re.compile(r"^[A-Z]\d{1,2}$")
 
 
 class TagMapError(ValueError):
-    """Карта тегов противоречит своему формату."""
+    pass
 
 
 def parse_avt_tags(raw: dict) -> dict[str, dict]:
-    """Проверить карту и вернуть копию записей по короткому тегу."""
     if not isinstance(raw, dict) or not isinstance(raw.get("tags"), dict) or not raw["tags"]:
         raise TagMapError("Карта тегов АВТ: нет раздела tags")
     tags = {}

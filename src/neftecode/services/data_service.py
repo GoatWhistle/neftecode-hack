@@ -1,4 +1,3 @@
-"""Data process: scenarios and point-in-time feature snapshots."""
 from __future__ import annotations
 
 import argparse
@@ -47,7 +46,6 @@ class DataService:
         return clean(value)
 
     def _config(self) -> dict:
-        """experiment.json с наложенными порогами из artifacts/source_rules.json, если он есть."""
         if self._config_cache is None:
             try:
                 value, origin = load_trust_rules(self.root, self.artifacts)
@@ -70,7 +68,6 @@ class DataService:
                     if not self.measurements_available():
                         raise ServiceError("Измерения task недоступны", 503, "measurements_unavailable",
                                            retryable=True)
-                    # Мёртвые колонки отбираются по обучающему периоду, как при обучении модели.
                     until = self._config().get("train_end")
                     try:
                         self._sources_cache = load_sources(task, until)

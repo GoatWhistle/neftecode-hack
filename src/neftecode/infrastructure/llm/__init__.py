@@ -1,4 +1,3 @@
-"""Language model adapters (Z.AI, OpenAI, Anthropic) behind the application LLM port."""
 from .anthropic import AnthropicClient
 from .config import (LLMSettings, Secret, agent_limits_from_env, agentic_enabled, llm_settings_from_env,
                      load_environment, parse_dotenv, truthy)

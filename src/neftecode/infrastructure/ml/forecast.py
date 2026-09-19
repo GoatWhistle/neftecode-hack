@@ -1,4 +1,3 @@
-"""Frozen chronological experiment. Final test never selects or calibrates models."""
 import math
 
 import numpy as np
@@ -17,14 +16,6 @@ _UNSET = object()
 
 def metrics(y, prediction, limit=10, lower=None, upper=None, *,
             direction="max", near_margin=5.0):
-    """Calculate accuracy and, when configured, property-specific risk metrics.
-
-    ``limit=None`` deliberately means that the property's risk is unknown.  It
-    must not inherit sulfur's limit just because the same experiment config is
-    used for another target.  ``near_margin`` is expressed in the target's
-    units and is required for the near-limit MAE; there is no universal 5--15
-    interval across quality properties.
-    """
     if direction not in {"max", "min"}:
         raise ValueError("Направление ограничения должно быть max или min")
     if limit is not None and not np.isfinite(limit):
@@ -69,21 +60,12 @@ def metrics(y, prediction, limit=10, lower=None, upper=None, *,
     return result
 
 
-#: A complex model must beat the best simple baseline by at least this share of its error
-#: before it is allowed to replace it. Chosen because the observed gap in T05 was 0.3%,
-#: which is indistinguishable from noise on 174 analyses.
 MIN_RELATIVE_GAIN = 0.05
 
-#: Baselines that require no fitting. One of them stays in charge unless clearly beaten.
 SIMPLE_BASELINES = ("last_lab", "last_pak")
 
 
 def paired_bootstrap(errors_a, errors_b, draws: int = 2000, seed: int = 0) -> dict:
-    """Confidence interval of the MAE difference on the SAME analyses.
-
-    Paired resampling: comparing two models on different subsets would let availability
-    masquerade as accuracy.
-    """
     a, b = np.asarray(errors_a, float), np.asarray(errors_b, float)
     if a.shape != b.shape:
         raise ValueError("Сравнение требует одинакового набора наблюдений для обеих моделей")
@@ -97,12 +79,6 @@ def paired_bootstrap(errors_a, errors_b, draws: int = 2000, seed: int = 0) -> di
 
 def select_model(scores: dict, errors: dict, min_relative_gain: float = MIN_RELATIVE_GAIN,
                  seed: int = 0) -> dict:
-    """Pick a model, keeping the simple baseline unless the gain is real and useful.
-
-    Two conditions must both hold for a fitted model to win: the improvement is at least
-    `min_relative_gain` of the baseline error, and a paired bootstrap interval of the
-    difference excludes zero.
-    """
     available = [name for name in SIMPLE_BASELINES if name in scores]
     if not available:
         raise ValueError("Ни один простой прогноз не участвует в сравнении")
@@ -146,7 +122,6 @@ def interval(prediction, radius):
 
 def predict_candidate(bundle, name, x):
     if name == "last_lab":
-        # Persistence of the target property itself when it differs from sulfur.
         column = "lab.target" if "lab.target" in x.columns else "lab.sulfur"
         return x[column].to_numpy()
     if name == "last_pak":
@@ -173,12 +148,9 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
         raise ValueError("Предел должен быть конечным или None")
     if near_margin is not None and (not np.isfinite(near_margin) or near_margin < 0):
         raise ValueError("Окрестность предела должна быть конечной и неотрицательной")
-    # The rolling bias is a separately pre-registered point method.  Do not
-    # silently give this new feature to the legacy fitted candidates.
     columns = [c for c in x.columns[x.loc[train].nunique() > 1] if c != "pak.lab_bias20"]
     no_pak = [c for c in columns if not c.startswith("pak.")]
     bundle = {"models": {}, "columns": {}, "radii": {}, "config": cfg}
-    # The online analyser measures sulfur only: it is not a baseline for any other property.
     own_target = "lab.target" in x.columns
     production_selection = None if own_target else validate_forecast_selection(cfg)
     sulfur_baselines = ["last_pak"]
@@ -201,7 +173,6 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
             bundle["models"][name] = model
             bundle["columns"][name] = cols
         predictions[name] = predict_candidate(bundle, name, x)
-    # Selection on the same validation observations, including both simple baselines.
     common = val.copy()
     for p in predictions.values():
         common &= np.isfinite(p)
@@ -220,10 +191,8 @@ def run_experiment(x, meta, cfg, target: str = "actual_sulfur", limit: float | N
     bundle["selected"] = selected
     bundle["selection_decision"] = choice
     bundle["production_selection"] = production_selection
-    # Fallback is evaluated separately; never claim it retains the main model's accuracy.
     bundle["fallback"] = "catboost_no_pak"
     bundle["candidates"] = candidates
-    # Typical training state, used later to attribute a single decision to a chain group.
     bundle["reference_row"] = x.loc[train].median()
     common_test = test.copy()
     for prediction in predictions.values():

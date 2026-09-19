@@ -1,4 +1,3 @@
-"""Shared process and HTTP contracts for the future service split."""
 
 from .common import (RawResponse, Request, ServiceEnvelope, ServiceError, ServiceHTTPClient,
                      ServiceHTTPServer, ServiceSettings, clean, decode_json, encode_json,

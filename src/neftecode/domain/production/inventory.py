@@ -1,30 +1,15 @@
-"""Tank inventories over the plan: what is actually available, step by step.
-
-A recipe that is fine right now can be impossible an hour later. This module carries the mass
-balance forward through the plan so that a blend which would empty a tank mid-horizon is caught
-where it fails, not averaged away.
-
-Two rules that are easy to get wrong and are enforced here:
-
-* **Mass is conserved.** Every tonne drawn leaves the tank; replaying the same step twice does
-  not spend the stock twice, because each step returns a new state instead of mutating one.
-* **The end of the horizon is not the end of the plant.** A plan that survives only by draining
-  the reserve to zero at the last point is not feasible: the terminal rule demands a declared
-  minimum remaining supply.
-"""
 from dataclasses import dataclass, field
 import math
 
 from neftecode.domain.production.state import TankState
 from neftecode.domain.production.scenario import QUALITIES, Scenario
 
-#: Terminal rules a scenario may declare for what must remain at the end of the horizon.
 MIN_HOURS_OF_SUPPLY = "min_hours_of_supply"
 NO_TERMINAL_RULE = "none"
 
 
 class InventoryError(ValueError):
-    """Raised when a draw is impossible or a scenario's terminal rule is unknown."""
+    pass
 
 
 def _finite(value) -> bool:
@@ -32,17 +17,17 @@ def _finite(value) -> bool:
 
 
 def initial_state(scenario: Scenario) -> dict[str, TankState]:
-    """Tank states at the moment of decision, taken from the scenario."""
     return {t.tank_id: TankState(
         t.tank_id, t.available, t.inventory.value,
         {q: t.property_value(q) for q in QUALITIES},
-        t.inflow.value, t.max_outflow.value, provenance="scenario", on_demand=t.on_demand)
+        t.inflow.value, t.max_outflow.value, provenance="scenario", on_demand=t.on_demand,
+        production_lead_time_hours=t.production_lead_time_hours,
+        production_rate_tph=t.production_rate_tph)
         for t in scenario.tanks}
 
 
 @dataclass(frozen=True)
 class DrawResult:
-    """Outcome of drawing one step's worth of components."""
 
     tanks: dict[str, TankState]
     drawn_t: dict[str, float]
@@ -57,11 +42,6 @@ class DrawResult:
 
 def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_tph: float,
               hours: float, inflow_properties: dict[str, dict[str, float | None]] | None = None) -> DrawResult:
-    """Draw one step. Returns a NEW state; the input is never mutated.
-
-    Infeasibility is reported, not raised: the optimiser needs to see why a candidate failed
-    so it can propose a different one.
-    """
     if not _finite(throughput_tph) or throughput_tph < 0:
         raise InventoryError("Выпуск должен быть конечным и неотрицательным")
     if not _finite(hours) or hours < 0:
@@ -89,8 +69,17 @@ def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_
         if not tank.on_demand and mass > tank.inventory_t + 1e-9:
             reasons.append(f"{tank_id}: требуется {mass:.2f} т, в наличии {tank.inventory_t:.2f} т")
             continue
+        if tank.on_demand:
+            until = tank.elapsed_hours + hours
+            makeable = tank.makeable_by(until)
+            wanted = tank.produced_t + mass
+            if wanted > makeable + 1e-9:
+                reasons.append(f"{tank_id}: к {until:g} ч нужно суммарно {wanted:.2f} т, "
+                               f"а произвести можно {makeable:.2f} т "
+                               f"(подготовка {tank.production_lead_time_hours:g} ч, "
+                               f"темп {tank.production_rate_tph:.2f} т/ч)")
+                continue
         updated[tank_id] = tank.draw(mass)
-    # Inflow arrives during the same step for every tank, drawn from or not.
     unknown_inflow: list[str] = []
     for tank_id, tank in updated.items():
         if tank.inflow_tph > 0:
@@ -98,6 +87,9 @@ def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_
             if any(props.get(q) is None for q in QUALITIES):
                 unknown_inflow.extend(q for q in QUALITIES if props.get(q) is None)
             updated[tank_id] = tank.mix_in(tank.inflow_tph * hours, props)
+    for tank_id, tank in updated.items():
+        if tank.on_demand:
+            updated[tank_id] = tank.advance(hours)
     if unknown_inflow:
         reasons.append("Приток содержит неизвестные свойства: " + ", ".join(dict.fromkeys(unknown_inflow)))
     return DrawResult(updated, drawn, not reasons, tuple(dict.fromkeys(reasons)))
@@ -105,7 +97,6 @@ def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_
 
 @dataclass
 class InventoryLedger:
-    """Runs a whole plan through the tanks and states where it first becomes impossible."""
 
     scenario: Scenario
     tanks: dict[str, TankState] = field(init=False)
@@ -121,11 +112,6 @@ class InventoryLedger:
         return rule, float(policy.get("terminal_min_hours", 0.0))
 
     def run_plan(self, steps, inflow_properties=None) -> dict:
-        """Walk the plan. `steps` are `(time_hours, recipe, throughput_tph)` in order.
-
-        The mass of each step is the throughput held until the next step's time; the last step
-        is held to the scenario horizon.
-        """
         times = [float(t) for t, _, _ in steps]
         if times != sorted(times):
             raise InventoryError("Шаги плана должны идти по возрастанию времени")
@@ -162,7 +148,6 @@ class InventoryLedger:
 
     def check_terminal(self, tanks: dict[str, TankState], throughput_tph: float,
                        recipe: dict[str, float]) -> dict:
-        """Would the last recipe still be sustainable just past the horizon?"""
         rule, hours = self.terminal_rule()
         if rule == NO_TERMINAL_RULE or hours <= 0:
             return {"rule": NO_TERMINAL_RULE, "satisfied": True,

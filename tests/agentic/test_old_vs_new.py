@@ -1,4 +1,3 @@
-"""Old vs new on every shipped scenario: the agent layer may narrow or refuse, never release an unchecked plan."""
 import random
 
 import pytest
@@ -59,7 +58,7 @@ def random_policy(seed: int, candidates: list[str]):
                                 reasons=[{"code": "random", "text": "случайный ответ"}],
                                 proposed_constraints=[{"type": "max_changes", "value": rng.choice([0, 1, 2, 7])}]))
         shortlist = [c["id"] for c in context_of(messages).get("candidates", [])]
-        ids_here = shortlist * 3 + ids  # mostly real shortlist ids, sometimes wrong ones
+        ids_here = shortlist * 3 + ids
         if pick < 0.6 and len(names) > 1:
             name = rng.choice(ORCHESTRATOR_TOOLS)
             if name.startswith("ask_"):

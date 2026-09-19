@@ -1,4 +1,3 @@
-"""The language model port validates its messages; the response effect boundary never invents numbers."""
 import pytest
 
 from neftecode.application.ports import LLMError, LLMMessage, ResponseEffectProvider, ToolCall, ToolSpec

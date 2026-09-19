@@ -1,17 +1,3 @@
-"""AgenticMakeDecision: language model agents on top of the deterministic decision, never around it.
-
-Order of authority:
-
-1. The legacy `MakeDecision` runs first. Its result is the reference and the fallback.
-2. Agents inspect gate-feasible candidates, consult each other, narrow the search and propose an action.
-3. Code resolves the action: only gate-feasible, validator-passing plans that satisfy the accepted
-   constraints and carry no veto are allowed; among them the declared `rank()` chooses.
-4. The chosen plan goes through the same `release` as legacy (look-ahead, final re-check, robustness).
-5. A guard re-evaluates the released plan with a fresh planner; if the gate fails, the answer is a refusal.
-
-Any failure of the agent layer returns the legacy decision. The agent layer can make an answer more
-conservative (a refusal with evidence, a narrower choice), never less safe.
-"""
 from collections.abc import Callable
 from dataclasses import dataclass, field
 import time
@@ -25,12 +11,19 @@ from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
 
 from .budget import AgentBudget
 from .contracts import AgentSettings, OrchestratorFinal
+from neftecode.application.progress import emit_agent_event
+
 from .loop import AgentTrace
 from .orchestrator import OrchestratorAgent, opinion_summary
 from .session import DecisionSession
 
 NOTE = ("LLM-агенты выбирают инструменты и предлагают ограничения; числа, допустимость, ранжирование, "
         "финальная перепроверка и устойчивость — детерминированный код. Сценарный результат.")
+
+DETERMINISTIC_PROVIDERS = ("scripted",)
+
+DETERMINISTIC_LABEL = ("Решение прошло через детерминированную политику, а не через языковую модель: "
+                       "шаги в трассе заданы кодом и воспроизводятся побитово. Это не рассуждение модели.")
 
 
 @dataclass
@@ -42,7 +35,6 @@ class AgenticMakeDecision:
     response_effect: ResponseEffectProvider | None = None
     live_context: dict | None = None
     configuration_error: str | None = None
-    #: Safe description of the configured provider (no key); used when there is no client to ask.
     provider_description: dict | None = None
     orchestrator: OrchestratorAgent = field(default_factory=OrchestratorAgent)
     clock: Callable[[], float] = time.monotonic
@@ -72,19 +64,21 @@ class AgenticMakeDecision:
                 "provider": getattr(self.llm, "provider", None) or (self.provider_description or {}).get("provider"),
                 "model": getattr(self.llm, "model", None) or (self.provider_description or {}).get("model"),
                 "note": NOTE}
+        info["deterministic_policy"] = info["provider"] in DETERMINISTIC_PROVIDERS
+        if info["deterministic_policy"]:
+            info["provider_label"] = DETERMINISTIC_LABEL
         if (legacy.get("refusal") or {}).get("kind") == "data":
             return self._with(legacy, info, "skipped", "data_refusal")
         if self.llm is None:
             return self._with(legacy, info, "fallback", self.configuration_error or "llm_not_configured")
-        trace = AgentTrace()
+        trace = AgentTrace(sink=emit_agent_event)
         agent_budget = AgentBudget(self.settings, clock=self.clock)
         try:
             return self._agentic(legacy, request, info, trace, agent_budget)
-        except Exception as exc:  # the agent layer must never cost the plant its deterministic answer
+        except Exception as exc:
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
             return self._with(legacy, info, "fallback", f"unexpected_error:{type(exc).__name__}")
 
-    # --- Internals ---
 
     def _agentic(self, legacy: dict, request: dict, info: dict, trace: AgentTrace, agent_budget: AgentBudget) -> dict:
         outcome = self.maker._search(request["budget"], request["confirmed"], request["initial_tanks"],
@@ -153,7 +147,6 @@ class AgenticMakeDecision:
         return result, name, None
 
     def _guard(self, result: dict, session: DecisionSession, request: dict, trace: AgentTrace) -> dict:
-        """Repeat evaluation of the released plan with a fresh planner instance."""
         if result["status"] not in (HOLD, RECOMMEND_SCENARIO):
             return result
         plan_id = result["selected_plan"]["plan_id"]

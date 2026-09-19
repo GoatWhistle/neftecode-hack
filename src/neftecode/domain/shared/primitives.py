@@ -1,13 +1,9 @@
-"""Общие примитивы и статусы доменного слоя."""
 import math
 from datetime import datetime
 
-#: measured — значение тега телеметрии на момент решения (привязка реальных измерений в live-пути).
 SOURCES = ("given", "derived", "measured", "scenario", "open")
 QUALITIES = ("sulfur_mgkg", "t95_c", "cetane_number", "density_kgm3")
 QUALITY_DIRECTION = {"sulfur_mgkg": "max", "t95_c": "max", "cetane_number": "min"}
-#: Product limits: limit id -> (property, direction). Density is two-sided, so one property can
-#: carry two limits; every other property has exactly one, named like the property itself.
 PRODUCT_LIMITS = {
     "sulfur_mgkg": ("sulfur_mgkg", "max"),
     "t95_c": ("t95_c", "max"),
@@ -18,10 +14,6 @@ PRODUCT_LIMITS = {
 
 
 def volume_additive_density(masses: dict, densities: dict):
-    """Density of a mixture assuming ideal additivity of volumes: total mass over total volume.
-
-    One unknown density among the components actually present makes the result unknown.
-    """
     total_mass, total_volume = 0.0, 0.0
     for name, mass in masses.items():
         if mass <= 1e-12:
@@ -41,7 +33,7 @@ DECISION_STATUSES = (HOLD, RECOMMEND_SCENARIO, REFUSE)
 SCENARIO_SCOPE, CONFIRMED_SCOPE = "synthetic_scenario", "confirmed_model"
 
 class ContractError(ValueError):
-    """Нарушение доменного контракта."""
+    pass
 
 def _finite(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)

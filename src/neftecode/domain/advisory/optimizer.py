@@ -1,32 +1,16 @@
-"""Generating candidate actions and choosing between the ones that survive the gate.
-
-Design rules that keep the result honest:
-
-* **Keeping the regime is always a candidate.** If the current mode is feasible and no change
-  clears the minimum useful benefit, the answer is to leave it alone.
-* **The search is finite and enumerated in a fixed order**, so the result does not depend on
-  dictionary iteration or on which candidate happened to be generated first. Ties are broken by
-  a declared comparison key ending in the candidate id.
-* **Infeasible candidates are never ranked.** They are filtered by the gate before comparison,
-  so no weighting can let a violation win.
-* **No global optimum is claimed.** The budget is reported, and when it is exhausted the result
-  says the answer is the best of what was examined.
-"""
 from dataclasses import dataclass
 import math
 
 from neftecode.domain.advisory.entities import GateResult
 from neftecode.domain.production.scenario import Scenario
 
-#: Order the ranking applies, after the gate. Production first, then cost, then severity.
 RANKING = ("-production_t", "cost_per_tonne", "severity_index", "changes", "candidate_id")
 
-#: Default ceiling on how many candidates are built. Reported with the result.
 DEFAULT_BUDGET = 1200
 
 
 class OptimizerError(ValueError):
-    """Raised when the search space itself is impossible."""
+    pass
 
 
 def _finite(value) -> bool:
@@ -35,7 +19,6 @@ def _finite(value) -> bool:
 
 @dataclass(frozen=True)
 class Candidate:
-    """One proposed way to run the plant over the horizon."""
 
     candidate_id: str
     controls: dict[str, float]
@@ -57,7 +40,6 @@ def _fractions(step: float = 0.05) -> list[float]:
 
 @dataclass
 class CandidateGenerator:
-    """Builds a bounded, reproducible set of candidates from the scenario's own ranges."""
 
     scenario: Scenario
     fraction_step: float = 0.05
@@ -65,7 +47,6 @@ class CandidateGenerator:
     budget: int = DEFAULT_BUDGET
 
     def current(self) -> Candidate:
-        """The regime already running. Always the first candidate examined."""
         controls = {}
         for stage in self.scenario.stages.values():
             for name, spec in stage.controls.items():
@@ -78,13 +59,6 @@ class CandidateGenerator:
         return Candidate("hold", controls, recipe, operation.throughput.value, 0.0, changes=0)
 
     def _throughputs(self) -> list[float]:
-        """Current output and below, never above.
-
-        Raising output is a commercial decision the advisor is not making: its job is to keep
-        quality, and lowering throughput is the lever the brief names for that (a smaller run
-        instead of a load increase that is not available). Proposing more output would also
-        manufacture a "gain" in every comparison and drown the hold candidate.
-        """
         current = self.scenario.current_operation.throughput.value
         floor = current * float(self.scenario.policy.get("min_throughput_fraction", 0.5))
         values = []
@@ -95,11 +69,6 @@ class CandidateGenerator:
         return sorted(values) or [current]
 
     def _control_options(self) -> list[dict[str, float]]:
-        """Setpoint sets: the current one, plus one declared step on ONE control at a time.
-
-        Moving every setpoint at once is neither a sensible instruction to an operator nor a
-        change whose effect could be attributed afterwards, so the cross-product is not built.
-        """
         base = {}
         moves = []
         for stage in self.scenario.stages.values():
@@ -119,13 +88,6 @@ class CandidateGenerator:
 
     def generate(self, allow_control_moves: bool = True,
                  forbidden: tuple[str, ...] = ()) -> tuple[list[Candidate], dict]:
-        """Enumerate candidates in fixed layers until the budget is spent.
-
-        Layers rather than one nested product: truncating a nested loop would silently drop
-        whole regions of the search (every high reserve fraction, say) and the result would
-        look like a decision when it was an artefact of the iteration order. Each layer varies
-        one aspect, so an exhausted budget costs the least important layer first.
-        """
         tanks = [t.tank_id for t in self.scenario.available_tanks()]
         if not tanks:
             raise OptimizerError("Нет доступных резервуаров: смешивать нечего")
@@ -151,6 +113,7 @@ class CandidateGenerator:
         ]
         hold = self.current()
         candidates: list[Candidate] = [hold]
+        next_index = 1
         seen = {self._signature(hold)}
         exhausted, covered = False, []
         for name, combinations in layers:
@@ -159,17 +122,19 @@ class CandidateGenerator:
                 if len(candidates) >= self.budget:
                     exhausted = True
                     break
-                # Changing the blend or the throughput IS a change: a plan that reworks the
-                # recipe is not "keeping the regime", however still its setpoints are.
                 changes = sum(1 for key, value in controls.items()
                               if abs(value - base_controls[key]) > 1e-9)
                 changes += 0 if dose == 0 else 1
                 changes += 0 if self._same_recipe(recipe, hold.recipe) else 1
                 changes += 0 if abs(throughput - hold.throughput_tph) < 1e-9 else 1
-                candidate = Candidate(f"c{len(candidates):04d}", dict(controls), recipe,
+                candidate = Candidate(f"c{next_index:04d}", dict(controls), recipe,
                                       throughput, dose, changes)
                 signature = self._signature(candidate)
-                if signature in seen or candidate.candidate_id in forbidden:
+                if signature in seen:
+                    continue
+                next_index += 1
+                if candidate.candidate_id in forbidden:
+                    seen.add(signature)
                     continue
                 seen.add(signature)
                 candidates.append(candidate)
@@ -195,7 +160,6 @@ class CandidateGenerator:
                 tuple(sorted(candidate.controls.items())), candidate.additive_dose)
 
     def _recipe(self, tanks: list[str], reserve_fraction: float) -> dict[str, float] | None:
-        """Two-component recipes over the first two available tanks, in a fixed order."""
         if len(tanks) == 1:
             return {tanks[0]: 1.0} if reserve_fraction == 0.0 else None
         main, reserve = tanks[0], tanks[1]
@@ -205,20 +169,19 @@ class CandidateGenerator:
 
 @dataclass
 class Evaluation:
-    """A candidate together with its gate verdict and comparable figures."""
 
     candidate: Candidate
     gate: GateResult
     production_t: float = 0.0
     cost_per_tonne: float | None = None
     severity_index: float | None = None
+    severity_detail: dict | None = None
 
     @property
     def feasible(self) -> bool:
         return self.gate.feasible
 
     def key(self) -> tuple:
-        """Declared comparison order. Missing figures sort last, never first."""
         return (-self.production_t,
                 self.cost_per_tonne if _finite(self.cost_per_tonne) else math.inf,
                 self.severity_index if _finite(self.severity_index) else math.inf,
@@ -233,12 +196,6 @@ class Evaluation:
 
 
 def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0) -> dict:
-    """Choose among feasible candidates, keeping the regime unless a change clearly earns it.
-
-    `min_useful_gain` is the share of the hold candidate's cost per tonne that a change must
-    save before it is worth disturbing the plant. Production still outranks cost: a change
-    that produces strictly more is not blocked by this rule.
-    """
     feasible = [e for e in evaluations if e.feasible]
     rejected = [e for e in evaluations if not e.feasible]
     if not feasible:

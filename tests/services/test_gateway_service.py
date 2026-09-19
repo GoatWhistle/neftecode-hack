@@ -43,7 +43,7 @@ def test_gateway_legacy_decide_matches_local_decision():
     try:
         status, payload = get(gateway, "/api/decide?scenario=baseline&snapshot=synthetic")
         assert status == 200
-        local = run_demo_decision(json.loads((ROOT / "config/scenarios/baseline.json").read_text()),
+        local = run_demo_decision(json.loads((ROOT / "config/scenarios/baseline.json").read_text(encoding="utf-8")),
                                   {"decision_time": "2026-01-05T08:00:00", "lab_value": 8.0,
                                    "lab_age_hours": 5.0, "lab_usable": True, "pak_value": 8.4,
                                    "pak_age_minutes": 10.0, "pak_usable": True, "pak_frozen": False,
@@ -53,13 +53,11 @@ def test_gateway_legacy_decide_matches_local_decision():
         assert payload["rule_origin"] == gateway_service.trust_origin
         assert payload["state_origin"].startswith("синтетическое состояние")
         if gateway_service.snapshots:
-            # Со срезами по умолчанию идёт свежайший реальный момент через тот же связыватель, что и advise.
             status, real = get(gateway, "/api/decide?scenario=baseline")
             assert status == 200
             assert real["state_origin"].startswith("реальный срез")
             assert real["binding"]["tank_inflow"]["source"] == "derived"
             assert real["decision"]["decision_id"] != payload["decision"]["decision_id"]
-        # Пороги gateway доходят до decision service: устаревшая ЛИМС отвергается по возрасту, а не только по флагу.
         status, stale = get(gateway, "/api/decide?scenario=baseline&fault=stale_lab")
         assert status == 200
         lims = next(source for source in stale["sources"] if source["name"] == "ЛИМС")
@@ -115,13 +113,26 @@ def test_gateway_generates_unique_request_id_and_propagates_header():
         data.shutdown(); data.server_close(); data_thread.join(timeout=3)
 
 
-def test_gateway_upstream_down_still_serves_html_error_page():
+def test_gateway_upstream_down_still_answers_options_with_json_error():
     gateway, thread = start(GatewayService("http://127.0.0.1:1", "http://127.0.0.1:2"), "gateway-service", make_gateway_handler)
+    try:
+        connection = HTTPConnection("127.0.0.1", gateway.server_port, timeout=15)
+        connection.request("GET", "/api/options")
+        response = connection.getresponse(); body = response.read().decode(); content_type = response.getheader("Content-Type"); connection.close()
+        assert response.status == 200 and content_type.startswith("application/json")
+        assert json.loads(body)["state"] == "error"
+    finally:
+        gateway.shutdown(); gateway.server_close(); thread.join(timeout=3)
+
+
+def test_gateway_without_a_frontend_build_answers_the_root_with_a_named_json_error(tmp_path):
+    gateway, thread = start(GatewayService("http://127.0.0.1:1", "http://127.0.0.1:2", static=tmp_path),
+                            "gateway-service", make_gateway_handler)
     try:
         connection = HTTPConnection("127.0.0.1", gateway.server_port, timeout=2)
         connection.request("GET", "/")
-        response = connection.getresponse(); body = response.read().decode(); content_type = response.getheader("Content-Type"); connection.close()
-        assert response.status == 200 and content_type.startswith("text/html") and "Ошибка" in body
+        response = connection.getresponse(); body = response.read().decode(); connection.close()
+        assert response.status == 404 and "не найден" in json.loads(body)["error"]
     finally:
         gateway.shutdown(); gateway.server_close(); thread.join(timeout=3)
 

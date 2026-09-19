@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="CUTPOINT">
+  <rect width="512" height="512" rx="96" fill="#f0efe9" />
+  <path d="M256 76a180 180 0 1 0 125 309l-49-52a110 110 0 1 1 0-155l49-52A179 179 0 0 0 256 76z" fill="#322d2a" />
+  <line x1="330" y1="256" x2="416" y2="256" stroke="#c8761a" stroke-width="70" stroke-linecap="round" />
+</svg>

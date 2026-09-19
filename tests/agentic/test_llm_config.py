@@ -1,4 +1,3 @@
-"""LLM configuration: .env parsing, key aliases, defaults, validation and secret redaction."""
 import pytest
 
 from neftecode.infrastructure.llm.config import (LLMSettings, Secret, agent_limits_from_env, agentic_enabled,
@@ -20,7 +19,7 @@ def test_dotenv_parsing_handles_comments_quotes_export_and_case():
 
 def test_real_environment_wins_over_dotenv(tmp_path):
     path = tmp_path / ".env"
-    path.write_text("ZAI_MODEL=from-file\nLLM_MAX_TOKENS=100\n")
+    path.write_text("ZAI_MODEL=from-file\nLLM_MAX_TOKENS=100\n", encoding="utf-8")
     merged = load_environment({"ZAI_MODEL": "from-env"}, path)
     assert merged == {"ZAI_MODEL": "from-env", "LLM_MAX_TOKENS": "100"}
     assert load_environment({"A": "1"}, tmp_path / "missing.env") == {"A": "1"}
@@ -36,7 +35,6 @@ def test_zai_key_aliases_in_priority_order():
 
 
 def test_local_plant_model_is_an_option():
-    """Q&A 11.09: closed network, local OpenAI-compatible model; the model name must be configured."""
     local = llm_settings_from_env({"LLM_PROVIDER": "local"})
     assert (local.provider, local.model, local.base_url) == ("local", "", "http://127.0.0.1:8000/v1")
     assert not local.api_key

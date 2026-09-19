@@ -74,11 +74,9 @@ def test_handler_health_readiness_routes_and_errors():
 def test_handler_generates_request_id_and_rejects_post_headers_and_size():
     settings = ServiceSettings(max_body_bytes=3, max_response_bytes=1000)
     server, thread = running_server({"/echo": lambda request: request.body})
-    # The helper defaults are intentionally independent; use a handler with strict settings.
     server.shutdown(); server.server_close(); thread.join(timeout=2)
     server, thread = running_server({"/echo": lambda request: request.body})
     server.RequestHandlerClass = make_handler({"/echo": lambda request: request.body}, service_name="echo", settings=settings)
-    # A fresh server is needed for the handler class to be selected at construction time.
     server.shutdown(); server.server_close(); thread.join(timeout=2)
     server = ServiceHTTPServer(("127.0.0.1", 0), make_handler({"/echo": lambda request: request.body}, service_name="echo", settings=settings))
     thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()

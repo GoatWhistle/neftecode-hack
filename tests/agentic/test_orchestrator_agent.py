@@ -1,11 +1,10 @@
-"""The orchestrator coordinates specialists and tools; code resolves its action deterministically."""
 import pytest
 
 from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
 from neftecode.infrastructure.llm.demo_policy import demo_llm, quality_policy, reliability_policy
 from neftecode.infrastructure.llm.scripted import PolicyLLM, ScriptedLLM, call, context_of, respond, tool_results
 
-from _agentic_support import agentic_decide, legacy_decide, without_agentic
+from _agentic_support import agentic_decide, legacy_decide, session_for, without_agentic
 
 
 def finalize(action, codes=("done",), candidate=None, refs=("context:legacy",), summary="итог"):
@@ -51,7 +50,7 @@ def test_constraint_driven_replan_releases_a_gate_feasible_plan():
     assert decision["agentic"]["constraints_applied"][0]["type"] == "min_quality_margin"
     assert decision["selected_plan"]["plan_id"] != legacy["selected_plan"]["plan_id"]
     agents = [t["agent"] for t in decision["trace"]]
-    assert agents == ["optimizer", "agentic", "lookahead", "quality", "reliability", "robustness"]
+    assert agents == ["optimizer", "agentic", "lookahead", "quality", "reliability", "robustness", "tank_estimate"]
     margin = decision["agentic"]["constraints_applied"][0]["value"]
     sulfur = [c for c in decision["gate"]["checks"] if c["constraint_id"] == "quality.sulfur_mgkg"]
     assert all(c["limit"] - c["observed"] >= margin - 1e-9 for c in sulfur)
@@ -59,10 +58,20 @@ def test_constraint_driven_replan_releases_a_gate_feasible_plan():
 
 
 def test_select_is_resolved_by_rank_not_by_the_model():
-    llm = ScriptedLLM([finalize("select", ("prefer_other",), candidate="c0126", refs=("context:candidates",))])
+    session = session_for("baseline")
+    ranked = session.rank_allowed()["selected"]
+    other = next(cid for cid in session.allowed_ids() if cid != ranked)
+    llm = ScriptedLLM([finalize("select", ("prefer_other",), candidate=other, refs=("context:candidates",))])
     decision = agentic_decide("baseline", llm)
     assert decision["agentic"]["llm_choice_overridden"] is True
-    assert decision["status"] == HOLD and decision["selected_plan"]["plan_id"] == "hold"
+    assert decision["status"] == HOLD and decision["selected_plan"]["plan_id"] == ranked == "hold"
+
+
+def test_a_selection_outside_the_allowed_set_falls_back_instead_of_being_obeyed():
+    llm = ScriptedLLM([finalize("select", ("prefer_other",), candidate="ghost", refs=("context:candidates",))])
+    decision = agentic_decide("baseline", llm)
+    assert decision["agentic"]["outcome"] == "fallback"
+    assert decision["agentic"]["llm_choice_overridden"] is False
 
 
 def test_quality_veto_of_hold_moves_to_the_next_allowed_plan():

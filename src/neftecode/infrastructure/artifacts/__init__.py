@@ -1,4 +1,3 @@
-"""File based artifacts used by the presentation commands."""
 
 from .json_file import clean, write_atomic, write_json
 from .json_sink import JsonArtifactSink

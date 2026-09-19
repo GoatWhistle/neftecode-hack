@@ -5,7 +5,7 @@ from neftecode.domain.production.scenario import Scenario
 
 
 class ForecastBindingError(ValueError):
-    """A forecast cannot be safely bound to the production scenario."""
+    pass
 
 
 class ScenarioProvider(Protocol):

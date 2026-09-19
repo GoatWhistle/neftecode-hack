@@ -1,31 +1,15 @@
-"""Changeable demonstration: the jury edits the conditions, the core recomputes.
-
-The requirement this satisfies is narrow and strict: an arbitrary admissible change must reach
-the calculation, not switch between prepared answers. So a change here is an edit of the
-scenario document, which is then parsed by the same loader with the same validation, and run
-through the same orchestrator. There is no branch in this module that returns a stored text.
-
-Consequences kept on purpose:
-
-* an inadmissible change is rejected by the scenario loader with its own message — the demo
-  does not silently repair it;
-* an injected failure (a frozen analyser, an unavailable tank) is labelled as an injection, so
-  nobody mistakes it for something observed in the data;
-* the original scenario is always recoverable, because every change is applied to a fresh copy.
-"""
 from dataclasses import dataclass, field
 import copy
 import json
 from pathlib import Path
 from typing import Callable
 
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.application.contracts import MEASURED_ORIGIN
 
 
-#: (сценарий, состояние, бюджет, пороги доверия; trust_origin=…) -> результат.
 DemoRunner = Callable[..., dict]
 
-#: What the jury may change, and where it lands in the scenario document.
 CHANGES = {
     "crude_sulfur_wt_pct": ("crude", "Сера сырья, % масс."),
     "product_sulfur_mgkg": ("product", "Предел серы продукта, мг/кг"),
@@ -37,7 +21,6 @@ CHANGES = {
     "source_failure": ("state", "Исправность источников данных"),
 }
 
-#: Data faults the jury can inject. They are model injections, never observations.
 SOURCE_FAULTS = {
     "healthy": {},
     "frozen_pak": {"pak_frozen": True, "pak_usable": False},
@@ -48,7 +31,7 @@ SOURCE_FAULTS = {
 
 
 class DemoError(ValueError):
-    """Raised when a requested change is not one the demo offers."""
+    pass
 
 
 def healthy_state() -> dict:
@@ -60,7 +43,6 @@ def healthy_state() -> dict:
 
 
 def apply_change(raw: dict, change: str, value, target: str | None = None) -> dict:
-    """Apply one change to a COPY of the scenario. The original is never touched."""
     if change not in CHANGES:
         raise DemoError(f"Демонстрация не умеет менять «{change}». "
                         f"Доступно: {', '.join(sorted(CHANGES))}")
@@ -94,13 +76,11 @@ def apply_change(raw: dict, change: str, value, target: str | None = None) -> di
 
 
 def apply_source_failure(state: dict, fault: str) -> dict:
-    """Inject a data fault, labelled as an injection."""
     if fault not in SOURCE_FAULTS:
         raise DemoError(f"Неизвестный отказ источника «{fault}». "
                         f"Доступно: {', '.join(sorted(SOURCE_FAULTS))}")
     out = {**state, **SOURCE_FAULTS[fault]}
     if fault != "healthy":
-        # Реальный срез остаётся реальным (иначе связыватель не подставит измерения), инъекция помечается отдельно.
         if out.get("origin") != MEASURED_ORIGIN:
             out["origin"] = "injected_source_failure"
         out["injected_fault"] = fault
@@ -110,34 +90,28 @@ def apply_source_failure(state: dict, fault: str) -> dict:
 
 @dataclass
 class Demo:
-    """Holds the original scenario and recomputes from it after every change."""
 
     raw: dict
     runner: DemoRunner
-    #: Пороги доверия к источникам — те же, что у сервисов и live-советчика (T83).
     trust_cfg: dict
-    budget: int = 400
+    budget: int = DEFAULT_BUDGET
     trust_origin: str | None = None
     changes: list = field(default_factory=list)
-    #: Замороженные реальные срезы (C3); пусто — демонстрация идёт на синтетическом состоянии.
     snapshots: list = field(default_factory=list)
-    #: Содержимое artifacts/response_model.json (C2, оценки по τ) для связывания срезов.
     response_model: dict | None = None
 
     @classmethod
     def from_path(cls, path, runner: DemoRunner, trust_cfg: dict, budget: int = 400,
                   trust_origin: str | None = None, snapshots: list | None = None,
                   response_model: dict | None = None) -> "Demo":
-        return cls(json.loads(Path(path).read_text()), runner, trust_cfg, budget, trust_origin,
+        return cls(json.loads(Path(path).read_text(encoding="utf-8")), runner, trust_cfg, budget, trust_origin,
                    snapshots=list(snapshots or []), response_model=response_model)
 
     def reset(self) -> "Demo":
-        """Back to the original conditions. Nothing accumulated is kept."""
         return Demo(self.raw, self.runner, self.trust_cfg, self.budget, self.trust_origin,
                     snapshots=self.snapshots, response_model=self.response_model)
 
     def snapshot(self, name: str | None):
-        """Срез по имени файла (ГГГГММДД-ЧЧММСС[-synthetic]) или по подписи; None/`synthetic` — без среза."""
         if name in (None, "", "synthetic"):
             return None
         for item in self.snapshots:
@@ -147,7 +121,6 @@ class Demo:
                         + ", ".join(snapshot_key(item) for item in self.snapshots) + ", synthetic")
 
     def run(self, changes=(), fault: str = "healthy", snapshot: str | None = None) -> dict:
-        """Apply the changes to a fresh copy, then run the same core on the result."""
         raw = copy.deepcopy(self.raw)
         applied = []
         for change in changes:
@@ -169,7 +142,6 @@ class Demo:
 
 
 def snapshot_title(snapshot: dict) -> str:
-    """Подпись среза для экрана и списка: метка и момент (ДД.ММ.ГГГГ ЧЧ:ММ)."""
     at = snapshot["at"]
     day, clock = at[:10].split("-"), at[11:16]
     label = snapshot.get("label") or "реальный срез"
@@ -177,7 +149,6 @@ def snapshot_title(snapshot: dict) -> str:
 
 
 def state_origin_label(state: dict, snapshot: dict | None) -> str:
-    """Подпись состояния на экране: реальный срез (с оговорками) или синтетическое состояние."""
     if snapshot is None:
         return "синтетическое состояние сценария (реальных измерений нет)"
     label = f"реальный срез: {snapshot_title(snapshot)}"
@@ -194,14 +165,6 @@ def snapshot_key(snapshot: dict) -> str:
 
 
 def scenes(path, snapshots: list | None = None) -> list[dict]:
-    """The demonstration scenes, expressed as changes rather than as canned answers.
-
-    Со срезами сцены отказов идут на реальных моментах (`snapshot` — подпись среза из
-    config/snapshot_moments.json), а инъекция не нужна. «Ухудшение сырья» остаётся синтетической:
-    в живом пути сера сырья сокращается в отношении откликов, сцена имеет смысл только с
-    абсолютной моделью цепочки. Сцена риска по качеству существует только на реальном срезе:
-    инъекции риска качества здесь нет и быть не должно, поэтому без среза она не показывается.
-    """
     labels = {item.get("label") for item in snapshots or []}
 
     def real(label, fault):
@@ -226,8 +189,6 @@ def scenes(path, snapshots: list | None = None) -> list[dict]:
          "expect": "пересчёт без резерва либо отказ"},
     ]
     if quality_risk is not None:
-        # Риск качества берётся только из данных: срез 24.07.2026 03:00 — устойчивое превышение
-        # предела ПАК и возврат нагрузки после снижения, источники при этом исправны.
         items.append(
             {"name": "Риск ухудшения качества", "fault": "healthy", "changes": [],
              "snapshot": quality_risk,

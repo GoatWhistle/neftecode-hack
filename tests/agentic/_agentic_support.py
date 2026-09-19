@@ -1,4 +1,3 @@
-"""Shared builders for agent tests (not collected: leading underscore)."""
 import json
 from pathlib import Path
 
@@ -10,12 +9,13 @@ from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.response.unavailable import UnavailableResponseEffect
 
-SCENARIOS = Path("config/scenarios")
+ROOT = Path(__file__).resolve().parents[2]
+SCENARIOS = ROOT / "config" / "scenarios"
 BUDGET = 400
 
 
 def raw(name: str) -> dict:
-    return json.loads((SCENARIOS / f"{name}.json").read_text())
+    return json.loads((SCENARIOS / f"{name}.json").read_text(encoding="utf-8"))
 
 
 def maker_for(document: dict) -> MakeDecision:

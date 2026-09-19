@@ -1,14 +1,10 @@
-"""Command-line presentation boundary.
-
-The parser owns the stable command contract. Runtime wiring is supplied by the top-level
-composition root so this layer does not depend on infrastructure or evaluation modules.
-"""
 import argparse
+import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
 
-COMMANDS = ("train", "demo", "advise", "snapshot", "vak", "episodes", "tank-check", "benchmark", "screen", "scenes", "serve",
+COMMANDS = ("train", "demo", "advise", "snapshot", "vak", "episodes", "tank-check", "benchmark", "expert-grid", "screen", "scenes", "serve",
             "agent-demo")
 
 
@@ -26,11 +22,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scenario", type=Path, help="Файл сценария для screen и agent-demo")
     parser.add_argument("--decision", type=Path, help="Сохранённое решение для повторного просмотра")
     parser.add_argument("--port", type=int, default=8765, help="Порт демонстрационного сервера")
+    parser.add_argument("--static", type=Path, default=None,
+                        help="serve: каталог собранного фронтенда, по умолчанию src/frontend/dist")
     return parser
+
+
+def use_utf8_streams() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None and getattr(stream, "encoding", "").lower() not in ("utf-8", "utf8"):
+            reconfigure(encoding="utf-8", errors="replace")
 
 
 def main(argv: Sequence[str] | None = None,
          execute: Callable[[argparse.Namespace, argparse.ArgumentParser], object] | None = None):
+    use_utf8_streams()
     parser = build_parser()
     args = parser.parse_args(argv)
     if execute is None:

@@ -1,37 +1,61 @@
-"""Compatibility gateway: old browser API backed by remote services."""
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
 import copy
 import os
 from pathlib import Path
 
-from neftecode.presentation.demo import (SOURCE_FAULTS, healthy_state, apply_source_failure, snapshot_key,
-                                         snapshot_title, state_origin_label)
+from neftecode.presentation.demo import (SOURCE_FAULTS, apply_change, healthy_state, apply_source_failure,
+                                         snapshot_key, snapshot_title, state_origin_label)
 from neftecode.infrastructure.live.snapshots import load_snapshots
-from neftecode.presentation.web.server import (PAGE, CONTROLS_STYLE, FIRST_SNAPSHOT, DecisionCache, DemoServerError,
+from neftecode.presentation.web.server import (FIRST_SNAPSHOT, DecisionCache, DemoServerError,
                                                as_query, cache_key, canonical_conditions, changes_from, defaults_for)
-from neftecode.presentation.web.ui import STYLE, RENDER_JS, error_payload, json_for_script, option, Screen
+from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_static_dir
+from neftecode.presentation.web.ui import error_payload, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.llm.config import decision_wait_seconds
 from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
 
 
+class StaticRoutes(Mapping):
+    def __init__(self, api: dict, fallback):
+        self.api = dict(api)
+        self.fallback = fallback
+
+    def __getitem__(self, key):
+        if key in self.api:
+            return self.api[key]
+        if key.startswith("/api/") or key.startswith("/v1/"):
+            raise KeyError(key)
+        return self.fallback
+
+    def __iter__(self):
+        return iter(self.api)
+
+    def __len__(self) -> int:
+        return len(self.api)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+
 class GatewayService:
     def __init__(self, data_url="http://127.0.0.1:8766", decision_url="http://127.0.0.1:8768", timeout_s=10.0,
-                 decision_timeout_s=660.0, root: str | Path = ".", artifacts: str | Path | None = None):
+                 decision_timeout_s=660.0, root: str | Path = ".", artifacts: str | Path | None = None,
+                 static: str | Path | None = None):
         self.data_url, self.decision_url = data_url.rstrip("/"), decision_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
-        #: A decision with language model agents takes minutes, not seconds (AGENT_TIMEOUT_SECONDS + margin).
         self.decision_timeout_s = decision_timeout_s
-        #: Пороги доверия к источникам грузятся один раз при старте и уходят в каждое решение (T83).
         root = Path(root)
         out = Path(artifacts) if artifacts is not None else root / "artifacts"
         self.trust_cfg, self.trust_origin = load_trust_rules(root, out)
-        #: Замороженные реальные срезы (C3): без них демонстрация идёт на синтетическом состоянии.
         self.snapshots = load_snapshots(out)
-        #: Одно вычисление на набор условий; повторное открытие страницы не ждёт decision-service.
         self.cache = DecisionCache()
+        self.static = StaticFiles(resolve_static_dir(root, static))
 
     def snapshot_options(self):
         options = [(snapshot_key(item), snapshot_title(item)) for item in reversed(self.snapshots)]
@@ -82,7 +106,6 @@ class GatewayService:
                         state_origin=state_origin_label(state, chosen),
                         decision_time=state.get("decision_time"),
                         forecast=(chosen or {}).get("forecast"),
-                        # Привязка среза ставит `measurement_binding`; без неё прогноз в основание не входил.
                         forecast_used=((result.get("binding") or {}).get("measurement_binding") is not None)
                         if chosen is not None else None).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
@@ -90,20 +113,26 @@ class GatewayService:
         screen["decision_timeout_s"] = self.decision_timeout_s
         return screen
 
-    def page(self, name=None, request_id="gateway"):
-        # Страница отдаётся сразу со состоянием «считаем»; решение она запрашивает сама через /api/decide.
+    def options_payload(self, name=None, request_id="gateway"):
         try:
             names = self.scenarios(request_id); chosen = name if name in names else names[0]
             payload = {"state": "loading", "message": "Считаем решение для выбранных условий…",
                        "defaults": defaults_for(self.raw(chosen, request_id)), "scenario": chosen,
                        "snapshot": self.default_snapshot(), "decision_timeout_s": self.decision_timeout_s}
         except Exception as exc:
-            names, chosen = [], name
+            names = []
             payload = {**error_payload(str(exc)), "defaults": {}}
-        options = "".join(option(n, n, selected=n == chosen) for n in names)
-        faults = "".join(option(f, f) for f in SOURCE_FAULTS)
-        snapshots = "".join(option(key, title) for key, title in self.snapshot_options())
-        return PAGE.replace("__STYLE__", STYLE).replace("__CONTROLS_STYLE__", CONTROLS_STYLE).replace("__RENDER_JS__", RENDER_JS).replace("__SCENARIOS__", options).replace("__FAULTS__", faults).replace("__SNAPSHOTS__", snapshots).replace("__PAYLOAD__", json_for_script(payload))
+        payload["scenarios"] = names
+        payload["faults"] = list(SOURCE_FAULTS)
+        payload["snapshots"] = [{"key": key, "title": title} for key, title in self.snapshot_options()]
+        return payload
+
+    def asset(self, path):
+        try:
+            asset = self.static.asset(path)
+        except StaticError as exc:
+            return RawResponse(encode_json({"error": str(exc)}), "application/json; charset=utf-8", 404)
+        return RawResponse(asset.body, asset.content_type)
 
     def ready(self):
         for url in (self.data_url + "/readyz", self.decision_url + "/readyz"):
@@ -120,19 +149,19 @@ class GatewayService:
                     return RawResponse(encode_json({**error_payload(str(exc)), "defaults": {}}),
                                        "application/json; charset=utf-8", 200)
             return route
-        return {"/v1/capabilities": lambda _r: {"service": "gateway-service", "legacy_api": True},
+        api = {"/v1/capabilities": lambda _r: {"service": "gateway-service", "legacy_api": True},
                 "/api/scenarios": legacy(lambda r: {"scenarios": self.scenarios(r.request_id)}),
                 "/api/defaults": legacy(lambda r: defaults_for(self.raw((r.query.get("scenario") or [self.scenarios(r.request_id)[0]])[0], r.request_id))),
-                "/api/decide": legacy(lambda r: self.decide(r.query, r.request_id)) ,
-                "/": lambda r: RawResponse(self.page((r.query.get("scenario") or [None])[0], r.request_id).encode(), "text/html; charset=utf-8"),
-                "/index.html": lambda r: RawResponse(self.page((r.query.get("scenario") or [None])[0], r.request_id).encode(), "text/html; charset=utf-8")}
+                "/api/decide": legacy(lambda r: self.decide(r.query, r.request_id)),
+                "/api/options": legacy(lambda r: self.options_payload((r.query.get("scenario") or [None])[0], r.request_id)),
+                "/": lambda r: self.asset("/")}
+        return StaticRoutes(api, lambda r: self.asset(r.path))
 
 
 def _changed(raw, changes):
-    import copy
-    from neftecode.presentation.demo import apply_change
     value = copy.deepcopy(raw)
-    for change in changes: value = apply_change(value, change["change"], change.get("value"), change.get("target"))
+    for change in changes:
+        value = apply_change(value, change["change"], change.get("value"), change.get("target"))
     return value
 
 
@@ -146,6 +175,7 @@ def main(argv=None):
     parser.add_argument("--data-url", default=None); parser.add_argument("--decision-url", default=None)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--artifacts", type=Path, default=Path("artifacts"))
+    parser.add_argument("--static", type=Path, default=None)
     args = parser.parse_args(argv); env = ServiceSettings.from_env("NEFTECODE_GATEWAY_", ServiceSettings(port=8765))
     settings = ServiceSettings(host=args.host or env.host, port=args.port or env.port,
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
@@ -154,7 +184,7 @@ def main(argv=None):
     service = GatewayService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                              args.decision_url or os.getenv("NEFTECODE_DECISION_URL", "http://127.0.0.1:8768"), settings.request_timeout_s,
                              float(os.getenv("NEFTECODE_GATEWAY_DECISION_TIMEOUT_S") or decision_wait_seconds(args.root)),
-                             root=args.root, artifacts=args.artifacts)
+                             root=args.root, artifacts=args.artifacts, static=args.static)
     return serve(service.routes(), settings, service.ready, "gateway-service")
 
 

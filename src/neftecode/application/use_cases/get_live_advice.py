@@ -1,4 +1,3 @@
-"""The single live-advice orchestration use case."""
 from dataclasses import dataclass
 from typing import Callable, Mapping
 
@@ -14,13 +13,11 @@ from neftecode.domain.production.inventory import initial_state
 
 RobustnessFactory = Callable[[Scenario, Mapping[str, object]], RobustnessEvaluator | None]
 
-#: Builds the decision use case: (scenario, robustness evaluator, live context) -> object with `decide(...)`.
 DecisionFactory = Callable[[Scenario, RobustnessEvaluator | None, dict | None], object]
 
 
 @dataclass
 class GetLiveAdvice:
-    """Coordinates scenario, snapshot, trust, forecast, binding and decision."""
     scenarios: ScenarioProvider
     snapshots: LiveSnapshotProvider
     forecasts: ForecastProvider
@@ -110,13 +107,11 @@ class GetLiveAdvice:
 
 
 def decision_context(at, forecast: Mapping[str, object] | None, bound_raw: Mapping[str, object] | None) -> dict:
-    """Живой контекст для агентов: момент, прогноз и сводка привязки (измерения, отклик, предупреждения)."""
     return {"at": at, "forecast": dict(forecast) if forecast is not None else None,
             "binding": binding_summary(bound_raw) if bound_raw is not None else None}
 
 
 def binding_summary(raw: Mapping[str, object]) -> dict | None:
-    """Сводка привязки по связанному сценарию: откуда уставки ГО, отклик, приток и окно резервуара."""
     stage = ((raw.get("stages") or {}).get("hydrotreating") or {})
     controls, model = stage.get("controls") or {}, stage.get("model") or {}
     main = next((t for t in raw.get("tanks") or [] if t.get("tank_id") == "main"), None)

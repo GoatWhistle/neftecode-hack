@@ -1,8 +1,3 @@
-"""Compact starting context for an agent, bounded in characters.
-
-Only summaries and a short list of candidate cards go to a model. Everything larger stays in the session
-and is reachable through tools.
-"""
 import json
 
 from .session import DecisionSession, SessionError
@@ -16,7 +11,6 @@ def _dump(value: dict) -> str:
 
 
 def build_context(session: DecisionSession, role: str, candidate_ids=None, focus: str | None = None) -> tuple[str, tuple]:
-    """Return (message text, evidence refs of the included sections)."""
     limit = session.settings.max_context_chars
     if candidate_ids is None:
         ids = session.shortlist()

@@ -1,10 +1,3 @@
-"""Замороженные реальные срезы (C3): состояние, доверие, прогноз и измерения на момент 2026 года.
-
-Срез делается командой `snapshot` там, где есть `task/` и `model.pkl`, и кладётся в
-`artifacts/snapshots/`. Демонстрация (`serve`, `scenes`) читает срезы без исходных данных и
-проходит через тот же связыватель, что и `advise`. Срез привязан к отпечатку модели: срез от
-другой модели не загружается.
-"""
 import json
 from pathlib import Path
 
@@ -31,7 +24,6 @@ def snapshot_name(snapshot: dict) -> str:
 def build_snapshot(signals, lab, online, bundle: dict, at, label: str = "", why: str = "",
                    synthetic_missing: tuple[str, ...] = (), coverage: dict | None = None,
                    source_rules_fingerprint: str | None = None) -> dict:
-    """Один момент: то, что `advise` увидел бы в этот момент, без решения."""
     when = validate_origin(at, bundle)
     state = state_at(signals, lab, online, bundle, when)
     edits = []
@@ -80,7 +72,6 @@ def _validate(value, where: str, expected_fingerprint: str | None) -> dict:
 
 
 def load_snapshots(out: Path) -> list[dict]:
-    """Все срезы из `out/snapshots/`, по времени; отпечаток сверяется с `out/manifest.json`, если он есть."""
     folder = Path(out) / FOLDER
     if not folder.is_dir():
         return []
@@ -92,7 +83,7 @@ def load_snapshots(out: Path) -> list[dict]:
     for path in sorted(folder.glob("*.json")):
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:  # JSONDecodeError и UnicodeDecodeError — подклассы ValueError
+        except (OSError, ValueError) as exc:
             raise ValueError(f"Срез {path} не читается ({type(exc).__name__}: {exc}): удалите файл или "
                              f"пересоберите срезы командой `uv run neftecode snapshot --all`") from exc
         items.append(_validate(value, str(path), expected))
@@ -101,11 +92,6 @@ def load_snapshots(out: Path) -> list[dict]:
 
 
 def bind_snapshot(raw: dict, state: dict, snapshot: dict, response_model: dict | None, trust_cfg: dict):
-    """Тот же связыватель, что в live: прогноз и измерения среза входят в копию сценария.
-
-    При отказе по данным или недоступном прогнозе сценарий не связывается: решение по такому
-    состоянию выносит ядро (отказ), а не подставленные числа.
-    """
     trust = DataTrustAgent(trust_cfg).assess(state)
     forecast = LiveForecast.from_dict(snapshot["forecast"])
     if not trust.usable or not forecast.available:

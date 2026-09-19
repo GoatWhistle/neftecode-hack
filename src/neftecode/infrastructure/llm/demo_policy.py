@@ -1,16 +1,9 @@
-"""A deterministic policy that drives the agent layer without a language model.
-
-It exists for tests and for the offline demonstration trace. Every branch reads what the deterministic tools
-returned, so different situations produce different tool sequences. It is NOT a language model and its
-trace must be labelled as a scripted policy wherever it is shown.
-"""
 from collections.abc import Sequence
 
 from neftecode.application.ports.llm import LLMMessage, LLMResponse, ToolSpec
 
 from .scripted import PolicyLLM, call, context_of, respond, tool_results
 
-#: Fallback when the context carries no operating margin (Q&A 15.09: plants keep 1–2 ppm below 10).
 THIN_SULFUR_MARGIN = 1.0
 
 

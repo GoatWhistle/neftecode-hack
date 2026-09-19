@@ -1,4 +1,3 @@
-"""Composition of data preparation, model experiments and persisted artifacts."""
 import json
 import pickle
 
@@ -15,7 +14,6 @@ def train(root, out, cfg):
     manifest = fingerprint(root, cfg)
     print("Чтение телеметрии и независимых временных рядов ЛИМС/ПАК…", flush=True)
     signals, lab, online = load_sources(root / "task", cfg["train_end"])
-    # Source-trust thresholds come from the training period, not from hand-set numbers.
     rules = derive_source_rules(signals, lab, online, cfg["train_end"], cfg)
     cfg = {**cfg, **rules}
     print("Пороги доверия к источникам по данным до " + cfg["train_end"] + ": "
@@ -35,7 +33,6 @@ def train(root, out, cfg):
     availability = quality_report(root / "task")
     bundle["quality_availability"] = availability
     summary["quality_availability"] = availability
-    # T95 has its own laboratory series at the same point, so it gets the same honest treatment.
     series = read_quality_series(root / "task")
     extra = {}
     for name in availability["modelled"]:
@@ -43,9 +40,6 @@ def train(root, out, cfg):
             continue
         try:
             xq, mq = make_dataset(signals, lab, online, cfg, target_lab=series[name])
-            # Risk thresholds belong to the measured property.  In particular,
-            # an absent T95 product limit remains unknown; sulfur's 10 mg/kg
-            # limit must never be inherited by a temperature forecast.
             quality_cfg = cfg.get("quality_metrics", {}).get(name, {})
             qbundle, qsummary, _ = run_experiment(
                 xq, mq, cfg, target="actual_target",
@@ -68,7 +62,6 @@ def train(root, out, cfg):
     summary["extra_targets"] = extra
     summary["source_rules"] = {k: v for k, v in rules.items()}
     bundle["manifest"] = manifest
-    # Отклик серы на T6 (C2): тот же ARX, что в исследовании, на сетке τ; живое решение берёт оценку до момента.
     print("Оценка отклика серы на температуру входа реактора по данным до train_end и по скользящим окнам…", flush=True)
     declared = json.loads((root / "config/response_model.json").read_text(encoding="utf-8"))
     response = estimate_response(signals, online, cfg["train_end"], declared, manifest["fingerprint"])
@@ -83,7 +76,6 @@ def train(root, out, cfg):
     predictions.to_csv(out / "predictions.csv", index=False)
     write_json(out / "metrics.json", summary)
     write_json(out / "manifest.json", manifest)
-    # Те же пороги для демо и сервисов без model.pkl в памяти (артефакт C1).
     write_source_rules(out, rules, cfg, manifest["fingerprint"])
     print(f"Основной прогноз: {summary['selected']}", flush=True)
     make_demo(root, out)

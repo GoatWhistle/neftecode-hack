@@ -1,0 +1,133 @@
+import type { StageState } from "../run/types";
+import type { ScreenPayload } from "../types";
+import { controlLabel, controlUnit, moment, num, withUnit } from "../format";
+import { Empty, Field, Fields, Note, Readout, Scroller } from "../ui/Primitives";
+import { Section } from "../ui/Section";
+import { JsonPanel } from "../ui/Json";
+import { OriginBadge, OriginLegend } from "../ui/Origin";
+import { onDemandIds, stockLine, tanksOf } from "../provenance";
+
+export interface StageProps {
+  payload: ScreenPayload;
+  index: number;
+  state?: StageState | undefined;
+  source?: string | undefined;
+}
+
+export function StateStage({ payload, index, state, source }: StageProps) {
+  const operation = payload.explanation.current_operation ?? payload.decision.current_operation;
+  const origin = payload.explanation.current_operation?.origin ?? null;
+  const names = payload.explanation.component_names ?? {};
+  const inventories = payload.inventories ?? {};
+  const tanks = tanksOf(payload);
+  const demand = onDemandIds(payload);
+
+  return (
+    <Section
+      id="state"
+      index={index}
+      state={state}
+      source={source}
+      title="Состояние"
+      lead="Режим на момент решения: уставки, рецепт смешения, запасы компонентов."
+      lamp={operation ? "pass" : "unknown"}
+      lampTitle={operation ? "режим передан" : "режим не передавался"}
+    >
+      <Fields>
+        <Field label="Момент решения">{moment(payload.decision_time)}</Field>
+        <Field label="Происхождение состояния">{payload.state_origin ?? "не указано"}</Field>
+        <Field label="Сценарий">{payload.decision.scenario_id ?? "—"}</Field>
+        <Field label="Идентификатор решения">
+          <code>{payload.decision.decision_id ?? "—"}</code>
+        </Field>
+      </Fields>
+
+      {operation ? (
+        <>
+          <OriginLegend />
+          <div className="readouts">
+            {Object.entries(operation.controls ?? {}).map(([key, value]) => (
+              <Readout
+                key={key}
+                label={controlLabel(key)}
+                value={num(value, 2)}
+                unit={controlUnit(key)}
+                badge={<OriginBadge origin={origin?.controls?.[key]} />}
+              />
+            ))}
+          </div>
+          <div className="readouts">
+            <Readout
+              label="Производительность блендинга"
+              value={num(operation.throughput_tph, 2)}
+              unit="т/ч"
+              badge={<OriginBadge origin={origin?.throughput_tph} />}
+            />
+            <Readout
+              label="Доза присадки"
+              value={num(operation.additive_dose, 3)}
+              unit="кг/т"
+              badge={<OriginBadge origin={origin?.additive_dose} />}
+            />
+          </div>
+          <Scroller label="Рецепт смешения и запасы">
+            <table className="grid">
+              <caption>
+                Рецепт смешения и запасы <OriginBadge origin={origin?.recipe} label="рецепт" />
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Компонент</th>
+                  <th scope="col">Доля в смеси</th>
+                  <th scope="col">Остаток на момент решения</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys({ ...names, ...operation.recipe, ...inventories }).map((key) => {
+                  const line = stockLine(payload, key);
+                  return (
+                    <tr key={key}>
+                      <th scope="row">{names[key] ?? key}</th>
+                      <td className="grid__num">{withUnit(operation.recipe?.[key], "", 3)}</td>
+                      <td>
+                        <span className={`stock ${line.onDemand ? "stock--demand" : ""}`}>
+                          <OriginBadge origin={line.origin} />
+                          {line.text}
+                        </span>
+                        <span className="stock__hint">{line.hint}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Scroller>
+
+          {demand.length > 0 ? (
+            <Note>
+              Компонент «{names[demand[0] as string] ?? demand[0]}» на складе не хранится: поле запаса у него
+              пустое не потому, что склад опустел, а потому, что запаса у него не бывает. Его нарабатывают под
+              заявку, и ограничением служит темп наработки, а не остаток. Разбавление этим компонентом
+              оплачивается более глубокой очисткой — она дороже тонны основного потока, и эта разница входит в
+              стоимость тонны на этапе «Выбор».
+            </Note>
+          ) : null}
+
+          {tanks.some((tank) => tank.available === false) ? (
+            <Note tone="warn">
+              Компоненты, помеченные «выведен из работы», исключены условиями сценария: в смешение они не идут
+              независимо от остатка.
+            </Note>
+          ) : null}
+        </>
+      ) : (
+        <Empty>Текущий режим в решении не передавался.</Empty>
+      )}
+
+      <JsonPanel
+        title="JSON: текущий режим и запасы"
+        value={{ current_operation: operation, inventories, tanks }}
+      />
+    </Section>
+  );
+}

@@ -1,4 +1,3 @@
-"""Filesystem adapter for application artifacts."""
 
 import json
 from pathlib import Path
@@ -6,7 +5,6 @@ from typing import Any
 
 
 class JsonArtifactSink:
-    """Persist JSON serializable reports under a controlled output directory."""
 
     def __init__(self, directory: str | Path):
         self.directory = Path(directory)

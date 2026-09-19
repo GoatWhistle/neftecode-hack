@@ -1,4 +1,3 @@
-"""Stable executable entry point and public composition helpers."""
 from neftecode.composition.commands.dispatcher import execute, main as _main
 from neftecode.composition.decision import (
     make_demo_service,

@@ -1,0 +1,122 @@
+.strip {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+}
+
+.strip__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.strip__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.strip__tick {
+  width: 4px;
+  height: 4px;
+  background: var(--carbon);
+  display: inline-block;
+}
+
+.strip__clock {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.strip__phases {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.strip__phase {
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: 9px var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.strip__phase--running {
+  background: var(--vellum);
+  border: 1px solid var(--line);
+}
+
+.strip__phase--running::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  height: 2px;
+  width: 32%;
+  background: var(--carbon);
+  animation: strip-sweep 1400ms var(--ease) infinite;
+}
+
+.strip__phase--failed {
+  background: var(--vellum);
+  border-left: 3px solid var(--fail);
+  color: var(--fail);
+}
+
+.strip__label {
+  font-weight: 400;
+}
+
+.strip__detail {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.strip__at {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.strip__honest {
+  margin: var(--space-3) 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  border-left: 3px solid var(--line-soft);
+  padding-left: var(--space-3);
+  max-width: var(--measure);
+}
+
+@keyframes strip-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip__phase--running::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    width: 100%;
+  }
+}

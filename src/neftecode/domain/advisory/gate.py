@@ -1,32 +1,13 @@
-"""The one place a plan is allowed to be declared acceptable.
-
-Every mandatory condition — product qualities, control ranges, additive dose, tank stocks,
-outflow limits, model applicability — is checked at EVERY point of the trajectory and folded
-into a single `GateResult`. Feasibility is derived from the checks, never asserted by a caller.
-
-Two properties this module exists to guarantee:
-
-* a plan that is safe only at the end of the horizon does not pass, because the violation is
-  recorded at the time it happens;
-* `unknown` blocks. A condition that could not be evaluated is not a condition that was met,
-  no matter how attractive the plan's economics are.
-
-Discretisation is explicit: the gate sees the points the trajectory was computed at. Between
-two checked points nothing is known, so `step_hours` is reported and a coarse grid is flagged
-rather than silently trusted.
-"""
 from neftecode.domain.advisory.entities import CheckResult, GateResult, TrajectoryPoint
 from neftecode.domain.shared.primitives import FAIL, PASS, UNKNOWN, PRODUCT_LIMITS, _finite
 from neftecode.domain.production.scenario import Scenario
 
-#: Grid finer than this is considered adequate for a 0-3 hour horizon; coarser is flagged.
 MAX_TRUSTED_STEP_HOURS = 1.0
 
 
 
 
 def quality_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
-    """Compare each product quality with its limit at this point."""
     checks = []
     for quality, (prop, direction) in PRODUCT_LIMITS.items():
         limit = scenario.product.limit_value(quality)
@@ -49,7 +30,6 @@ def quality_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResul
 
 
 def control_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
-    """Every setpoint must stay inside the range the scenario declares for it."""
     checks = []
     declared = set()
     for stage in scenario.stages.values():
@@ -82,7 +62,6 @@ def control_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResul
 
 
 def recipe_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
-    """Fractions form a composition, the dose stays within the expert's limit."""
     checks = []
     fractions = step.recipe or {}
     invalid = [name for name, fraction in fractions.items()
@@ -118,7 +97,6 @@ def recipe_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult
 
 
 def inventory_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
-    """Stocks must stay non-negative and outflow limits must hold."""
     checks = []
     inventories = step.inventories or {}
     for tank_id, mass in inventories.items():
@@ -162,7 +140,6 @@ def inventory_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckRes
 
 
 def applicability_check(step: TrajectoryPoint) -> CheckResult:
-    """A result produced outside the model's declared region cannot support a recommendation."""
     if step.applicability == "in_region":
         return CheckResult("model.applicability", PASS, None, None, step.time_hours)
     return CheckResult("model.applicability", UNKNOWN, None, None, step.time_hours,
@@ -171,7 +148,6 @@ def applicability_check(step: TrajectoryPoint) -> CheckResult:
 
 
 def discretisation_check(steps, horizon_hours: float) -> CheckResult:
-    """Between two checked points nothing is known; say so instead of assuming."""
     times = [s.time_hours for s in steps]
     if not _finite(horizon_hours) or any(not _finite(t) for t in times):
         return CheckResult("plan.discretisation", UNKNOWN, None, None, None,
@@ -189,7 +165,6 @@ def discretisation_check(steps, horizon_hours: float) -> CheckResult:
 
 
 def time_grid_check(steps, scenario: Scenario) -> CheckResult:
-    """Require the complete, declared scenario grid from zero through the horizon."""
     times = [s.time_hours for s in steps]
     expected = scenario.horizon.times_hours()
     if (not times or any(not _finite(t) for t in times) or
@@ -212,7 +187,6 @@ def throughput_check(step: TrajectoryPoint) -> CheckResult:
 
 def check_plan(plan_id: str, steps, scenario: Scenario,
                terminal: dict | None = None) -> GateResult:
-    """Run every mandatory check at every point, plus the terminal and discretisation rules."""
     steps = list(steps)
     checks: list[CheckResult] = []
     checks.append(time_grid_check(steps, scenario))

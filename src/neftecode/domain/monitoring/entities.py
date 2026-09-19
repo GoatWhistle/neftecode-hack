@@ -8,7 +8,6 @@ from neftecode.domain.shared.actions import PendingAction
 
 @dataclass(frozen=True)
 class Observation:
-    """One reading, keeping sample time and availability time apart."""
 
     tag_id: str
     source: str
@@ -40,7 +39,6 @@ class Observation:
         return self.validity == "ok" and self.value is not None
 
     def visible_at(self, when: str | datetime) -> bool:
-        """A late sample appears only after available_at, never retroactively."""
         return self.available_at <= _time(when, "visible_at")
 
     def age_hours(self, when: str | datetime) -> float:
@@ -59,7 +57,6 @@ class Observation:
                    raw.get("provenance", "given"))
 @dataclass(frozen=True)
 class PlantState:
-    """Everything known at the moment of decision, and nothing that was not yet available."""
 
     as_of: str
     observations: tuple[Observation, ...] = ()
@@ -118,7 +115,6 @@ class PlantState:
                    raw.get("origin", SCENARIO_SCOPE))
 @dataclass(frozen=True)
 class ForecastValue:
-    """A forecast of one quality, or an explicit statement that none is available."""
 
     target: str
     horizon_hours: float
@@ -144,7 +140,6 @@ class ForecastValue:
         return None not in (self.value, self.lower, self.upper)
 
     def usable_at(self, when) -> bool:
-        """A model must not be applied before the moment its calibration existed."""
         return self.valid_from is None or self.valid_from <= _time(when, "ForecastValue.usable_at")
 
     def to_dict(self) -> dict:

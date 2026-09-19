@@ -1,0 +1,214 @@
+@import "./stage.css";
+@import "./outline.css";
+@import "./layout.css";
+@import "./run.css";
+@import "./strip.css";
+@import "./rail.css";
+@import "./scroll.css";
+
+:root {
+  color-scheme: light;
+  --font-sans: Inter, "Inter var", system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "Liberation Mono", monospace;
+  --vellum: #f0efe9;
+  --paper: #ffffff;
+  --carbon: #322d2a;
+  --onyx: #0f0e12;
+  --mercury: #8b8b8b;
+  --panel: var(--vellum);
+  --panel-raised: var(--paper);
+  --field: #e7e5dd;
+  --line: #322d2a;
+  --line-soft: #d6d3c9;
+  --text: var(--carbon);
+  --muted: #5a564e;
+  --pass: #2f5d4f;
+  --fail: #8c3322;
+  --unknown: #6a4a11;
+  --accent: #322d2a;
+  --band-0: #f0efe9;
+  --band-1: #f2ebd7;
+  --band-2: #d7e4f2;
+  --band-3: #f2d7e0;
+  --band-4: #e2d7f2;
+  --band-5: #d7edf2;
+  --band-6: #dbf2d7;
+  --band-7: #f2e2d7;
+  --band-8: #d7f2eb;
+  --band-line-0: #d6d3c9;
+  --band-line-1: #d0cab9;
+  --band-line-2: #b9c4d0;
+  --band-line-3: #d0b9c1;
+  --band-line-4: #c2b9d0;
+  --band-line-5: #b9ccd0;
+  --band-line-6: #bcd0b9;
+  --band-line-7: #d0c2b9;
+  --band-line-8: #b9d0ca;
+  --band: var(--band-0);
+  --band-line: var(--band-line-0);
+  --band-seam: rgba(50, 45, 42, 0.1);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 22px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --page-gutter: clamp(22px, 2.2vw, 48px);
+  --measure: 78ch;
+  --dense-max: 1600px;
+  --radius-sm: 8px;
+  --radius-card: 12px;
+  --radius-nav: 16px;
+  --radius-pill: 100px;
+  --radius-large: 80px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-reveal: 260ms;
+  --motion-panel: 200ms;
+  --motion-hover: 140ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--vellum);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+.grid__num,
+.readout__value,
+.agent__counter dd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+code {
+  font-size: 0.88em;
+  color: var(--carbon);
+  background: var(--field);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  word-break: break-word;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--carbon);
+  outline-offset: 2px;
+}
+
+.app {
+  width: 100%;
+  margin: 0;
+  padding: var(--space-5) var(--page-gutter) var(--space-6);
+}
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.masthead__text {
+  flex: 1 1 480px;
+}
+
+.masthead__title {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+.masthead__logo {
+  display: block;
+  width: clamp(200px, 26vw, 340px);
+  height: auto;
+}
+
+.masthead__sub {
+  margin: var(--space-3) 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: var(--measure);
+}
+
+.masthead__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+  align-items: flex-end;
+}
+
+.masthead__meta--verdict {
+  flex: 1 0 100%;
+}
+
+.masthead__meta dt {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.masthead__meta dd {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
+
+.masthead__meta--verdict dt {
+  color: var(--carbon);
+}
+
+.masthead__meta dd.masthead__verdict {
+  font-family: var(--font-sans);
+  font-size: clamp(24px, 2.2vw, 32px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+
+.masthead__verdict--refuse {
+  color: var(--fail);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-property: opacity, background-color, color, border-color !important;
+    transition-duration: var(--motion-hover) !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

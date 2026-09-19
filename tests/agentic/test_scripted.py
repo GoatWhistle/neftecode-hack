@@ -1,4 +1,3 @@
-"""Deterministic model stand-ins and the network guard."""
 import socket
 import urllib.request
 

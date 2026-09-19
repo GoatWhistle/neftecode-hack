@@ -1,4 +1,3 @@
-"""Specialists are tool-using agents: their path depends on what the tools return."""
 import pytest
 
 from neftecode.application.agentic.contracts import AgentConstraint, AgentSettings
@@ -13,7 +12,6 @@ from _agentic_support import session_for
 
 
 def quality_policy(role, messages, tools):
-    """Look at margins first; a thin sulfur margin makes the agent dig into uncertainty and stocks."""
     assert role == "quality"
     candidate = context_of(messages)["candidates"][0]["id"]
     results = tool_results(messages)
@@ -33,7 +31,6 @@ def quality_policy(role, messages, tools):
 
 
 def reliability_policy(role, messages, tools):
-    """Changes first; a plan that moves the regime is also tested against model deviations."""
     assert role == "reliability"
     candidate = context_of(messages)["candidates"][0]["id"]
     results = tool_results(messages)
@@ -58,7 +55,7 @@ def reliability_policy(role, messages, tools):
 def review(agent, name, candidate, policy=None, llm=None, settings=None):
     settings = settings or AgentSettings()
     session = session_for(name, settings=settings)
-    budget, trace = session.budget, AgentTrace()  # one budget shared by the session tools and the loop
+    budget, trace = session.budget, AgentTrace()
     opinion = agent.review(llm=llm or PolicyLLM(policy), session=session,
                            registry=ToolRegistry(session_tools(session), settings.max_tool_result_chars),
                            candidate_ids=[candidate], focus=None, budget=budget, settings=settings, trace=trace)

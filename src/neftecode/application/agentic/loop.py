@@ -1,10 +1,3 @@
-"""The bounded conversation between one agent and its tools.
-
-The model chooses which allowlisted tool to call next; code executes it and returns compact results. The
-loop ends when the model submits a final answer that passes the strict contract, or when a bound is hit.
-It never loops past `max_calls`, never runs a tool outside the allowlist and never accepts a final answer
-the parser rejects.
-"""
 from collections.abc import Callable
 from dataclasses import dataclass, field
 import json
@@ -15,17 +8,19 @@ from .budget import AgentBudget, BudgetExhausted
 from .contracts import AgentSettings, AgentTraceEvent, ContractViolation, extract_json_object
 from .tools import ToolRegistry
 
-#: How many invalid final answers an agent may submit before the loop gives up on it.
 MAX_INVALID_FINALS = 2
 
 
 @dataclass
 class AgentTrace:
     events: list = field(default_factory=list)
+    sink: Callable[[dict], None] | None = None
 
     def add(self, agent: str, step: int, kind: str, **values) -> AgentTraceEvent:
         event = AgentTraceEvent(len(self.events) + 1, agent, step, kind, **values)
         self.events.append(event)
+        if self.sink is not None:
+            self.sink(event.to_dict())
         return event
 
     def to_list(self) -> list[dict]:

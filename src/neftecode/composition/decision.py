@@ -1,13 +1,14 @@
-"""Composition of the interactive decision flow."""
 from functools import partial
 from pathlib import Path
 
 from neftecode.application.ports.live import ForecastBindingError
+from neftecode.application.progress import emit
 from neftecode.application.services.explain import explain
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.application.use_cases.get_live_advice import binding_summary, decision_context
 from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
@@ -21,12 +22,6 @@ from neftecode.presentation.web.ui import Screen, error_payload
 def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
                       decision_factory=None, trust_origin: str | None = None,
                       snapshot: dict | None = None, response_model: dict | None = None) -> dict:
-    """Compose the interactive demo with the real parser, core and robustness check.
-
-    `trust_cfg` обязателен: пороги доверия к источникам приходят снаружи (load_trust_rules или
-    model.pkl), пустой конфиг здесь не подставляется. Со срезом (`snapshot`, C3) сценарий проходит
-    через тот же связыватель, что и `advise`: прогноз, измеренные уставки, приток и окно резервуара.
-    """
     if not isinstance(trust_cfg, dict):
         raise ValueError("trust_cfg должен быть словарём порогов доверия к источникам")
     try:
@@ -36,13 +31,21 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
     except (ScenarioError, ForecastBindingError) as exc:
         return {"ok": False, "rejected": True, "reason": str(exc),
                 "screen": error_payload(str(exc))}
+    emit("phase", key="scenario", state="done")
+    trust = DataTrustAgent(trust_cfg).assess(state)
+    emit("stage", stage="state", inventories={key: value.inventory_t
+                                              for key, value in initial_state(scenario).items()})
+    emit("stage", stage="trust", sources=[source.to_dict() for source in trust.sources.values()],
+         usable=trust.usable)
+    if snapshot is not None:
+        emit("stage", stage="forecast", forecast=snapshot.get("forecast"))
     factory = decision_factory or default_decision_factory()
     evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
-    # Реальный срез: агенты видят тот же живой контекст, что в advise (прогноз, измерения, отклик).
     maker = (factory(scenario, evaluator) if snapshot is None else
              factory(scenario, evaluator, decision_context(snapshot.get("at"), snapshot.get("forecast"), raw)))
+    emit("phase", key="solving", state="running")
     decision = maker.decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
-    trust = DataTrustAgent(trust_cfg).assess(state)
+    emit("phase", key="solving", state="done")
     screen = Screen(
         decision,
         explain(decision, scenario, state),
@@ -67,15 +70,13 @@ def make_interactive_demo(raw: dict, budget: int, trust_cfg: dict, trust_origin:
     return Demo(raw, runner, trust_cfg, budget, trust_origin=trust_origin,
                 snapshots=list(snapshots or []), response_model=response_model)
 
-def make_demo_service(root: Path, budget: int = 400, out: Path | None = None,
+def make_demo_service(root: Path, budget: int = DEFAULT_BUDGET, out: Path | None = None,
                       default_snapshot: str | None = None) -> DemoService:
-    """`out` — каталог артефактов (`--out`), `default_snapshot` — срез первого экрана (`--snapshot`)."""
     root = Path(root)
     out = Path(out) if out is not None else root / "artifacts"
     trust_cfg, trust_origin = load_trust_rules(root, out)
     snapshots = load_snapshots(out)
     response_model = load_response_model(root, out)
-    # `.env` берётся из --root, а не из текущей папки: запуск из другого каталога не теряет ключ молча.
     factory = default_decision_factory(root)
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
                                                                      snapshots, response_model, factory),

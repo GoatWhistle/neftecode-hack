@@ -1,8 +1,6 @@
-"""Markdown report for forecast and agent experiments."""
 import json
 
 def selection_section(summary):
-    """Why this forecast won, and what the system can estimate at all."""
     lines = []
     choice = summary.get("selection_decision", {})
     if choice:
@@ -55,7 +53,7 @@ def selection_section(summary):
 def make_report(out, demos):
     lines = ["# Первый рабочий проход", "", "Прогноз на реальных данных. Оптимизация смешения — явно модельный сценарий.", ""]
     if (out / "metrics.json").exists():
-        summary = json.loads((out / "metrics.json").read_text())
+        summary = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
         selection_text = (f"Production-выбор по rolling до 2026: **{summary['selected']}**."
                           if summary.get("production_selection") else
                           f"Выбор только по validation: **{summary['selected']}**.")
@@ -76,7 +74,7 @@ def make_report(out, demos):
         lines += selection_section(summary)
         lines += ["## Допущения", "", *[f"- {a}" for a in summary["assumptions"]], ""]
     if (out / "risk_metrics.json").exists():
-        risk = json.loads((out / "risk_metrics.json").read_text())
+        risk = json.loads((out / "risk_metrics.json").read_text(encoding="utf-8"))
         lines += ["## Обнаружение превышений", "",
                   f"Выбран по validation: **{risk['selected']}**, резерв: **{risk['fallback']}**. "
                   f"Экспериментальный бюджет ложных тревог: {risk['false_alarm_budget']:.0%}. "
@@ -104,4 +102,4 @@ def make_report(out, demos):
     lines += ["Численные условия берутся из config/scenarios/*.json. audit.jsonl содержит решения, "
               "проверки и причины запретов. Фактическое будущее в решение не передается.", "",
               "Результат остаётся исследовательским советом: решение не разрешает промышленный выпуск.", ""]
-    (out / "report.md").write_text("\n".join(lines))
+    (out / "report.md").write_text("\n".join(lines), encoding="utf-8")

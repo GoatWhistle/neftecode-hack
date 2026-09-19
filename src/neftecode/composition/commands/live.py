@@ -1,4 +1,3 @@
-"""CLI handlers for live."""
 import json
 from pathlib import Path
 
@@ -10,7 +9,8 @@ from neftecode.infrastructure.data.data import load_sources
 from neftecode.infrastructure.live.advisor import LiveAdviceAdapter, interval_coverage, load_response_model
 from neftecode.infrastructure.live.origin import validate_origin
 from neftecode.infrastructure.live.snapshots import build_snapshot, write_snapshot
-from neftecode.presentation.web.ui import Screen, error_payload, write_screen
+from neftecode.infrastructure.llm.scripted import DETERMINISTIC_PROVIDERS
+from neftecode.presentation.web.ui import Screen, error_payload
 
 def handle(args, parser, root, out):
     if not args.at:
@@ -19,8 +19,7 @@ def handle(args, parser, root, out):
     when = validate_origin(args.at, bundle)
     signals, lab, online = load_sources(root / "task", bundle["config"]["train_end"])
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
-    raw_scenario = json.loads(Path(scenario_path).read_text())
-    # Устойчивость проверяется на связанном сценарии (после прогноза и измерений), а не на исходном.
+    raw_scenario = json.loads(Path(scenario_path).read_text(encoding="utf-8"))
     advisor = LiveAdviceAdapter(signals, lab, online, bundle,
                           raw_scenario,
                           robustness_factory=lambda scenario, raw: RobustnessCheck(
@@ -41,7 +40,6 @@ def handle(args, parser, root, out):
             result["decision"], result["explanation"],
             inventories=result.get("inventories") or {},
             sources=list(result["trust"].get("sources", {}).values()),
-            # Пороги доверия здесь берутся из обученной модели, состояние — реальные измерения.
             rule_origin="derived:artifacts/model.pkl",
             state_origin=(f"реальные измерения на момент решения: {when:%d.%m.%Y %H:%M}" if bound else
                           f"реальный срез {when:%d.%m.%Y %H:%M} без привязки: измерения показаны, "
@@ -50,7 +48,7 @@ def handle(args, parser, root, out):
             forecast=result.get("forecast"),
             forecast_used=bound,
         ).payload()
-    write_screen(out / f"screen-{stamp}.html", screen_payload)
+    write_json(out / f"screen-{stamp}.json", screen_payload)
     forecast = result["forecast"]
     print((f"Прогноз {forecast['model']}: {forecast['value']:.2f} мг/кг, "
            f"верхняя граница {forecast['upper']:.2f}") if forecast["available"]
@@ -63,11 +61,10 @@ def handle(args, parser, root, out):
         print(f"Решение не выдано: {result.get('error')}")
     else:
         print(f"{result['decision']['status']}: {result['decision']['reason']}")
-    print(f"Журнал: {path}\nЭкран: {out / f'screen-{stamp}.html'}")
+    print(f"Журнал: {path}\nЭкран: {out / f'screen-{stamp}.json'}")
 
 
 def agent_summary(decision: dict | None) -> str:
-    """Одна строка про агентный слой: работала ли модель, или ответ детерминированный и почему."""
     info = (decision or {}).get("agentic")
     if decision is None:
         return "Агенты: решение не выдано"
@@ -80,11 +77,13 @@ def agent_summary(decision: dict | None) -> str:
     if info.get("outcome") in ("fallback", "skipped"):
         return (f"Агенты: детерминированный ответ — {info.get('fallback_reason') or info.get('outcome')} "
                 f"({who}, вызовов {calls})")
+    if info.get("provider") in DETERMINISTIC_PROVIDERS:
+        return (f"Агенты: детерминированная политика, не языковая модель ({who}), "
+                f"исход {info.get('outcome')}, шагов {calls}")
     return f"Агенты: {who}, исход {info.get('outcome')}, вызовов {calls}, токенов {tokens}"
 
 
 def snapshot(args, parser, root, out):
-    """Заморозить реальные срезы для демонстрации без task/."""
     if not args.at and not args.all:
         parser.error("Для snapshot нужен --at или --all")
     bundle = load_model_bundle(out)

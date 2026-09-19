@@ -1,10 +1,3 @@
-"""Regression net for the deterministic decision loop before the agent layer is added.
-
-Every case the agent layer must never make less safe is pinned here: hold, recommendation,
-refusal on data (both paths), refusal with no feasible plan, a failed final re-check, an
-unknown limit and a fragile plan. The frozen hashes live in tests/test_architecture_baseline.py;
-this file pins the meaning behind them so a change is explained, not only detected.
-"""
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -21,20 +14,19 @@ from neftecode.infrastructure.config.scenario import parse_scenario
 SCENARIOS = Path("config/scenarios")
 BUDGET = 400
 
-#: scenario -> (status, plan id, refusal kind, production, fragile, rounds, evaluated, trace agents, decision id)
 EXPECTED = {
     "baseline": (HOLD, "hold", None, 300.0, False, 1, 200,
-                 ["optimizer", "lookahead", "quality", "reliability", "robustness"], "eb7a8b51939efaaf"),
-    "sour_crude": (RECOMMEND_SCENARIO, "c0025", None, 180.0, True, 1, 200,
-                   ["optimizer", "lookahead", "quality", "reliability", "robustness"], "366e460dc398c321"),
-    "ample_reserve": (RECOMMEND_SCENARIO, "c0029", None, 300.0, True, 1, 200,
-                      ["optimizer", "lookahead", "quality", "reliability", "robustness"], "db5dc506cebc5d1b"),
-    "no_feasible": (REFUSE, None, "no_feasible_plan", None, None, 2, 200, ["optimizer"], "1313333faf87fbcc"),
+                 ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "c9bab7719ad82102"),
+    "sour_crude": (RECOMMEND_SCENARIO, "c0160", None, 300.0, True, 1, 200,
+                   ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "76fcf80c52e18f07"),
+    "ample_reserve": (RECOMMEND_SCENARIO, "c0160", None, 300.0, True, 1, 200,
+                      ["optimizer", "lookahead", "quality", "reliability", "robustness", "tank_estimate"], "d0d4021eaa0a80c0"),
+    "no_feasible": (REFUSE, None, "no_feasible_plan", None, None, 2, 32, ["optimizer"], "e225bd88f2ac61fd"),
 }
 
 
 def raw(name: str) -> dict:
-    return json.loads((SCENARIOS / f"{name}.json").read_text())
+    return json.loads((SCENARIOS / f"{name}.json").read_text(encoding="utf-8"))
 
 
 def decision_maker(document: dict) -> MakeDecision:
@@ -86,8 +78,10 @@ def test_repeated_decisions_are_identical():
 def test_healthy_state_keeps_the_hold():
     decision = decide("baseline", state=healthy_state())
     assert decision["status"] == HOLD
-    assert decision["trace"][0] == {"agent": "data", "usable": True, "primary": decision["trace"][0]["primary"],
-                                    "reasons": decision["trace"][0]["reasons"]}
+    entry = decision["trace"][0]
+    assert entry["agent"] == "data" and entry["usable"] is True
+    assert set(entry) == {"agent", "usable", "primary", "reasons", "report"}
+    assert set(entry["report"]) >= {"sources", "telemetry_missing_fraction", "suspect_values", "primary"}
 
 
 def test_untrusted_state_refuses_on_data_before_search():
@@ -172,7 +166,6 @@ def test_a_fragile_plan_is_released_with_a_warning():
 
 
 def test_the_legacy_review_vetoes_only_what_the_gate_already_rejects():
-    """The deterministic quality/reliability roles are validators derived from gate checks."""
     maker = decision_maker(raw("baseline"))
     plans, _ = maker.planner.build_plans(BUDGET)
     for plan in plans[:60]:

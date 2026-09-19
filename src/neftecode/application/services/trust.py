@@ -1,30 +1,12 @@
-"""Whether the inputs deserve to carry a decision, and what to do when they do not.
-
-Three positions are kept apart on purpose:
-
-* a source is **usable** — fresh, self-consistent and not contradicted;
-* a source is **suspect** — something is odd but not proven wrong, so it may still be
-  reported while losing the right to be the only basis of a recommendation;
-* a source is **unusable** — it cannot support a decision, and the reason says what is missing.
-
-A telemetry value of exactly 307 is a polling stub (experts, chat message 582) and is already replaced by a
-missing value when the sources are loaded; here it is still flagged if it reaches a state. A negative
-reading is not deleted automatically: for vacuum and zero offsets it can be physically real.
-"""
 from dataclasses import dataclass, field
 import math
 
-#: Verdicts a single source can receive.
-OK, SUSPECT, UNUSABLE, MISSING = "ok", "suspect", "unusable", "missing"
+OK, UNUSABLE, MISSING = "ok", "unusable", "missing"
 
-#: Identical consecutive analyser readings that mean a frozen instrument when no rule was derived from data.
 LEGACY_FROZEN_READINGS = 6
 
-#: Priority given by the brief, section 2. It does not change with predictive accuracy.
 SOURCE_PRIORITY = ("ЛИМС", "ПАК")
 
-#: Repeated exactly in 64 of 71 AVT tags and in 15 of 26 tags of 24-2000; a polling stub, confirmed by the
-#: experts as an outlier (chat message 582). See context/requirements-map.md, section 6.
 PLACEHOLDER_VALUE = 307.0
 
 
@@ -34,7 +16,6 @@ def _finite(value) -> bool:
 
 @dataclass(frozen=True)
 class SourceVerdict:
-    """One source at one moment, with its age and every reason it lost trust."""
 
     name: str
     status: str
@@ -47,11 +28,6 @@ class SourceVerdict:
     def usable(self) -> bool:
         return self.status == OK
 
-    @property
-    def reportable(self) -> bool:
-        """Suspect data may be shown to the operator, but cannot alone justify an action."""
-        return self.status in (OK, SUSPECT)
-
     def to_dict(self) -> dict:
         return {"name": self.name, "status": self.status, "value": self.value,
                 "age_hours": self.age_hours, "max_age_hours": self.max_age_hours,
@@ -60,7 +36,6 @@ class SourceVerdict:
 
 @dataclass(frozen=True)
 class TrustReport:
-    """The data agent's answer: what may be believed, what replaces it, what is missing."""
 
     as_of: str | None
     sources: dict[str, SourceVerdict]
@@ -73,14 +48,12 @@ class TrustReport:
 
     @property
     def usable(self) -> bool:
-        """A decision may proceed only when at least one quality source stands up."""
         return self.primary is not None
 
     def verdict(self, name: str) -> SourceVerdict:
         return self.sources[name]
 
     def refusal_reason(self) -> str | None:
-        """What exactly would have to change for a decision to become possible."""
         if self.usable:
             return None
         if self.missing_requirements:
@@ -101,7 +74,6 @@ class TrustReport:
 
 
 def inspect_value(tag: str, value) -> dict | None:
-    """Flag a value as worth checking without deciding it is wrong."""
     if value is None or not _finite(value):
         return {"tag": tag, "value": None, "note": "Значение отсутствует или не является числом"}
     if value == PLACEHOLDER_VALUE:
@@ -157,11 +129,9 @@ def _pak_verdict(state: dict, cfg: dict) -> SourceVerdict:
 
 @dataclass
 class DataTrustAgent:
-    """Assesses availability, staleness, freezing, contradictions and value admissibility."""
 
     cfg: dict = field(default_factory=dict)
 
-    #: Telemetry may be incomplete, but not to the point where features stop meaning anything.
     max_missing_fraction: float = 0.1
 
     def assess(self, state: dict) -> TrustReport:
@@ -186,8 +156,6 @@ class DataTrustAgent:
                         (inspect_value(tag, value) for tag, value in (state.get("raw_values") or {}).items())
                         if found is not None)
 
-        # Priority is the brief's, not the forecaster's: LIMS outranks PAK even when PAK
-        # happens to predict better.
         primary = None
         if telemetry_ok:
             for name in SOURCE_PRIORITY:
@@ -200,8 +168,6 @@ class DataTrustAgent:
             if pak.status in (MISSING, UNUSABLE):
                 missing.append("исправный поточный анализатор либо подтверждение его показаний")
 
-        # Falling back means the analyzer cannot be relied on, so a model using its
-        # features must not be used either.
         fallback_mode = not sources["ПАК"].usable
         return TrustReport(state.get("decision_time"), sources, primary, fallback_mode,
                            float(missing_fraction) if _finite(missing_fraction) else None,

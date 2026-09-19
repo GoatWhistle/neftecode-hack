@@ -1,7 +1,7 @@
-"""CLI handlers for evaluation."""
 import json
 
 from neftecode.evaluation.benchmark import compare as compare_strategies
+from neftecode.evaluation.expert_grid import ExpertGrid, totals as grid_totals
 from neftecode.evaluation.episodes import (
     _as_series, classify_episodes, excursion_episodes, lead_times, margin_series,
     sampling_step_hours, violation_profile,
@@ -10,6 +10,8 @@ from neftecode.infrastructure.live.tank_check import tank_level_check
 from neftecode.evaluation.vak import check_all
 from neftecode.infrastructure.artifacts import load_model_bundle, write_json
 from neftecode.infrastructure.config.avt_tags import load_avt_tags
+from neftecode.composition.decision import make_interactive_demo
+from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.infrastructure.data.data import load_sources
 from neftecode.infrastructure.data.vak_workbooks import load_vak_inputs, read_avt_points
@@ -17,7 +19,7 @@ from neftecode.infrastructure.data.vak_workbooks import load_vak_inputs, read_av
 def benchmark(args, parser, root, out):
     items = []
     for path in sorted((root / "config/scenarios").glob("*.json")):
-        items.append((load_scenario(path), json.loads(path.read_text())))
+        items.append((load_scenario(path), json.loads(path.read_text(encoding="utf-8"))))
     report = compare_strategies(items, scenario_parser=parse_scenario)
     write_json(out / "benchmark.json", report)
     for record in report["scenarios"]:
@@ -41,7 +43,7 @@ def tank_check(args, parser, root, out):
     print(f"Журнал: {out / 'tank_level_check.json'}")
 
 def episodes(args, parser, root, out):
-    cfg = json.loads(args.config.read_text())
+    cfg = json.loads(args.config.read_text(encoding="utf-8"))
     _, _, online = load_sources(root / "task", cfg.get("train_end"))
     series = _as_series(online)
     episodes = classify_episodes(excursion_episodes(series, cfg["sulfur_limit"]),
@@ -81,7 +83,7 @@ def episodes(args, parser, root, out):
     print(f"Журнал: {out / 'episodes.json'}")
 
 def vak(args, parser, root, out):
-    cfg = json.loads(args.config.read_text())
+    cfg = json.loads(args.config.read_text(encoding="utf-8"))
     signals, _, _ = load_sources(root / "task", cfg.get("train_end"))
     formula_rows, lab_series = load_vak_inputs(root / "task")
     avt_lab = read_avt_points(next((root / "task").glob("ЛИМС*.xlsx")))
@@ -92,3 +94,22 @@ def vak(args, parser, root, out):
     print(f"Прошли порог корреляции: {report['passed_correlation_threshold'] or 'ни одной'}")
     print(f"Используется как оценка качества: {report['used_as_quality_estimate'] or 'ни одна'}")
     print(f"Журнал: {out / 'vak_check.json'}")
+
+def expert_grid(args, parser, root, out):
+    trust_cfg, trust_origin = load_trust_rules(root, out)
+    per_scenario = []
+    for path in sorted((root / "config/scenarios").glob("*.json")):
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        demo = make_interactive_demo(raw, 200, trust_cfg, trust_origin)
+        record = ExpertGrid(demo.run, raw, path.stem).run(progress=lambda line: print(line, flush=True))
+        for row in record["rows"]:
+            row["scenario_id"] = path.stem
+        per_scenario.append(record)
+        print(f"=== {path.stem}: {record['combinations']} комбинаций, трейсбеков "
+              f"{len(record['tracebacks'])}, худшее время {record['seconds']['max']} с")
+        for name, count in record["statuses"].items():
+            print(f"  {name:22s} {count}")
+    report = {"totals": grid_totals(per_scenario), "scenarios": per_scenario}
+    write_json(out / "expert_grid.json", report)
+    print(report["totals"]["criterion"])
+    print(f"Журнал: {out / 'expert_grid.json'}")

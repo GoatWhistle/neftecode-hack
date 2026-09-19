@@ -1,0 +1,236 @@
+@import "./panels.css";
+@import "./provenance.css";
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.grid caption {
+  text-align: left;
+  padding: 0 var(--space-1) var(--space-2);
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.grid th,
+.grid td {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 10px var(--space-3);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.4;
+}
+
+.grid thead th {
+  background: var(--field);
+  color: var(--carbon);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .grid tbody tr:hover {
+    background: var(--vellum);
+  }
+}
+
+.grid tbody tr:last-child th,
+.grid tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.grid tbody th {
+  font-weight: 500;
+}
+
+.grid__num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.grid__why {
+  color: var(--text);
+  min-width: 26ch;
+}
+
+.grid__reasons {
+  display: block;
+  color: var(--unknown);
+  font-size: 13px;
+}
+
+.grid--tight th,
+.grid--tight td {
+  padding: 6px var(--space-2);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+  max-width: var(--dense-max);
+  gap: 1px;
+  margin: 0;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.field {
+  background: var(--paper);
+  outline: 1px solid var(--line-soft);
+  padding: var(--space-3) var(--space-4);
+}
+
+.field__label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.field__value {
+  margin: var(--space-1) 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  border: 1px solid var(--line-soft);
+  background: var(--field);
+  border-radius: var(--radius-pill);
+  padding: 3px 12px;
+  margin: 2px 4px 2px 0;
+  font-size: 13px;
+  white-space: normal;
+  max-width: 100%;
+}
+
+.chip b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  margin-left: 6px;
+  font-size: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+}
+
+.tag--pass {
+  border-color: var(--carbon);
+  background: var(--carbon);
+  color: var(--vellum);
+}
+
+.tag--fail {
+  border-color: var(--fail);
+  color: var(--fail);
+  font-weight: 500;
+}
+
+.tag--unknown {
+  border-color: var(--unknown);
+  border-style: dashed;
+  color: var(--unknown);
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 82ch;
+}
+
+.note--warn {
+  color: var(--unknown);
+  font-weight: 500;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius-card);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 82ch;
+}
+
+.risk,
+.warnings__item,
+.limits {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  padding: var(--space-4);
+}
+
+.risk__head {
+  margin: 0;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.risk__headline {
+  margin: var(--space-2) 0;
+  max-width: 82ch;
+  line-height: 1.4;
+}
+
+.risk__items,
+.limits__list {
+  margin: var(--space-2) 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 84ch;
+  line-height: 1.4;
+}
+
+.warnings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.warnings__text {
+  margin: 0 0 var(--space-2);
+  color: var(--unknown);
+  font-weight: 500;
+  max-width: 82ch;
+}
+
+.limits__head {
+  margin: 0;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}

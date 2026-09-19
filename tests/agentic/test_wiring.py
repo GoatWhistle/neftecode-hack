@@ -1,5 +1,5 @@
-"""The flag decides the path; off means the deterministic system exactly as before."""
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -11,16 +11,17 @@ from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.composition.decision import run_demo_decision
 from neftecode.infrastructure.agentic import factory as factory_module
-from neftecode.infrastructure.agentic.factory import build_decision_factory
+from neftecode.infrastructure.agentic.factory import build_decision_factory, default_decision_factory
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.presentation.web.ui import Screen
 from neftecode.services.common import clean
 from neftecode.services.decision_service import DecisionService
 
-from _agentic_support import legacy_decide, raw
+from _agentic_support import legacy_decide, raw, without_agentic
 
-TRUST_CFG, _ = load_trust_rules(Path("."), Path("artifacts"))
+ROOT = Path(__file__).resolve().parents[2]
+TRUST_CFG, _ = load_trust_rules(ROOT, ROOT / "artifacts")
 
 FAKE_KEY = "sk-test-SECRET-123"
 
@@ -46,9 +47,44 @@ def test_agent_layer_is_on_by_default(tmp_path):
 
 
 def test_suite_pins_the_deterministic_mode():
-    import os
-
     assert os.environ["AGENTIC_DECISION_ENABLED"] == "0"
+
+
+@pytest.fixture
+def product_environment(monkeypatch, tmp_path):
+    monkeypatch.delenv("AGENTIC_DECISION_ENABLED", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "scripted")
+    monkeypatch.chdir(tmp_path)
+    factory_module._cached_default.cache_clear()
+    yield tmp_path
+    factory_module._cached_default.cache_clear()
+
+
+def test_the_product_default_entry_point_builds_the_agent_layer(product_environment):
+    factory = default_decision_factory()
+    assert factory.enabled is True, "продуктовый дефолт — агенты включены"
+    assert factory.configuration_error is None and factory.llm.provider == "scripted"
+    assert isinstance(factory(parse_scenario(raw("baseline"))), AgenticMakeDecision)
+
+
+def test_the_product_path_runs_a_decision_through_the_agent_layer(product_environment):
+    document = raw("sour_crude")
+    result = run_demo_decision(document, {}, 400, TRUST_CFG)
+    decision = result["decision"]
+    assert result["ok"] is True
+    assert "agentic" in decision, "без явной фабрики продуктовый путь обязан пройти через агентов"
+    assert decision["agentic"]["outcome"] in {"selected", "confirmed_legacy"}
+    assert without_agentic(decision).keys() == legacy_decide("sour_crude").keys()
+    assert result["screen"]["status_label"]
+    json.dumps(clean(decision), ensure_ascii=False)
+
+
+def test_the_cached_default_factory_is_rebuilt_per_root(product_environment):
+    first = default_decision_factory(product_environment)
+    assert first is default_decision_factory(product_environment)
+    other = product_environment / "other"
+    other.mkdir()
+    assert default_decision_factory(other) is not first
 
 
 def test_flag_off_demo_decision_is_byte_identical_to_legacy():
@@ -71,7 +107,7 @@ def test_flag_on_with_scripted_provider_runs_the_agent_layer(tmp_path):
 
 def test_provider_settings_may_come_from_dotenv(tmp_path):
     dotenv = tmp_path / ".env"
-    dotenv.write_text("LLM_PROVIDER=scripted\nAGENT_MAX_STEPS=4\n")
+    dotenv.write_text("LLM_PROVIDER=scripted\nAGENT_MAX_STEPS=4\n", encoding="utf-8")
     factory = build_decision_factory({"AGENTIC_DECISION_ENABLED": "yes"}, dotenv_path=dotenv)
     assert factory.llm.provider == "scripted" and factory.settings.max_steps == 4
 
@@ -144,7 +180,7 @@ def test_live_use_case_passes_forecast_context_to_the_factory():
         LiveAdviceCommand(at="2026-01-05T08:00:00", scenario_id="baseline"))
     assert result.decision["status"] == "hold"
     assert seen["forecast"]["upper"] == 9.0 and seen["at"] == "2026-01-05T08:00:00"
-    assert seen["binding"]["tank_inflow"]["value"] == 212.6   # сводка связанного сценария доходит до агентов
+    assert seen["binding"]["tank_inflow"]["value"] == 212.6
 
 
 def test_agent_rejected_refusal_is_explained_and_rendered():

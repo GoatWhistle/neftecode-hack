@@ -1,8 +1,3 @@
-"""Environment configuration for language model adapters and agent budgets.
-
-Values come from the process environment, optionally overlaid on a `.env` file. Keys are wrapped in
-`Secret` and never appear in reprs, descriptions or error messages.
-"""
 import math
 import os
 from dataclasses import dataclass, field
@@ -13,20 +8,16 @@ from urllib.parse import urlsplit, urlunsplit
 ZAI_CODING_URL = "https://api.z.ai/api/coding/paas/v4"
 ZAI_DEFAULT_MODEL = "glm-5.3-flash"
 OPENAI_URL = "https://api.openai.com/v1"
-#: Q&A 11.09: the plant network has no internet and runs a local OpenAI-compatible model up to ~30B.
-#: That model is an option (`LLM_PROVIDER=local`); the default is Z.AI by the user's decision of 2026-09-17.
 LOCAL_URL = "http://127.0.0.1:8000/v1"
 DEFAULT_PROVIDER = "zai"
 ANTHROPIC_URL = "https://api.anthropic.com"
 
-#: Environment variables that hold a provider key, in priority order.
 KEY_VARIABLES = {
     "zai": ("ZAI_API_KEY", "TOKEN", "token"),
     "openai": ("OPENAI_API_KEY",),
     "anthropic": ("ANTHROPIC_API_KEY",),
     "local": ("LOCAL_LLM_API_KEY",),
 }
-#: Providers that work without a key (a local server inside the closed network).
 KEY_OPTIONAL = {"local"}
 
 AGENT_LIMITS = {
@@ -45,10 +36,6 @@ AGENT_LIMITS = {
 
 
 class Secret:
-    """A credential that refuses to print itself.
-
-    Deliberately not a dataclass: `dataclasses.asdict` on settings must not unwrap the value.
-    """
 
     __slots__ = ("_value",)
 
@@ -83,7 +70,6 @@ class Secret:
 
 
 def parse_dotenv(text: str) -> dict[str, str]:
-    """Parse `KEY=VALUE` lines; blank lines, `#` comments and an `export ` prefix are allowed."""
     values = {}
     for line in text.splitlines():
         line = line.strip()
@@ -102,7 +88,6 @@ def parse_dotenv(text: str) -> dict[str, str]:
 
 
 def load_environment(environ: Mapping[str, str], dotenv_path: Path | None = None) -> dict[str, str]:
-    """Merge `.env` values under the real environment, which always wins."""
     merged = {}
     if dotenv_path is not None and Path(dotenv_path).is_file():
         merged.update(parse_dotenv(Path(dotenv_path).read_text(encoding="utf-8")))
@@ -119,7 +104,6 @@ def falsy(value) -> bool:
 
 
 def agentic_enabled(env: Mapping[str, str]) -> bool:
-    """The agent layer is on unless explicitly switched off (tests pin the deterministic mode this way)."""
     return not falsy(env.get("AGENTIC_DECISION_ENABLED"))
 
 
@@ -136,7 +120,6 @@ class LLMSettings:
     allow_general_endpoint: bool = False
 
     def describe(self) -> dict:
-        """Safe summary for traces: no key, no query string."""
         parts = urlsplit(self.base_url)
         return {"provider": self.provider, "model": self.model,
                 "base_url": urlunsplit((parts.scheme, parts.netloc, parts.path, "", "")),
@@ -164,7 +147,6 @@ def _number(env: Mapping[str, str], name: str, default, kind, *, minimum=0, stri
 
 
 def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
-    """Build adapter settings from an environment mapping (see plan/03 §3)."""
     provider = (_raw(env, "LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     common = dict(
         request_timeout_s=_number(env, "LLM_REQUEST_TIMEOUT_SECONDS", 120.0, float),
@@ -192,11 +174,6 @@ def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
 
 
 def decision_wait_seconds(root: Path, environ: Mapping[str, str] | None = None, margin_s: float = 60.0) -> float:
-    """How long a caller waits for one decision: the agent budget (`AGENT_TIMEOUT_SECONDS`) plus a margin.
-
-    The retry inside a model call is bounded by the same budget (see `call_with_retries`), so this is a
-    true upper bound; the gateway and the demo page share it instead of a separate constant.
-    """
     env = load_environment(os.environ if environ is None else environ, Path(root) / ".env")
     try:
         return float(agent_limits_from_env(env)["timeout_s"]) + margin_s
@@ -205,5 +182,4 @@ def decision_wait_seconds(root: Path, environ: Mapping[str, str] | None = None, 
 
 
 def agent_limits_from_env(env: Mapping[str, str]) -> dict[str, int | float]:
-    """Agent budgets; every value must be positive, invalid input raises instead of clamping."""
     return {key: _number(env, name, default, type(default)) for key, (name, default) in AGENT_LIMITS.items()}

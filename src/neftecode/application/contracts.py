@@ -1,14 +1,13 @@
-"""Typed messages exchanged by application use cases and their adapters."""
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence, TypeAlias
 
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.domain.production.state import TankState
 
 DecisionResult: TypeAlias = dict[str, object]
 PlanningResult: TypeAlias = dict[str, object]
 ReplayResult: TypeAlias = dict[str, object]
 
-#: Origin of a state built from the issued data at the decision time (snapshots, `advise`, data-service).
 MEASURED_ORIGIN = "real_measurements_at_decision_time"
 
 
@@ -31,14 +30,12 @@ def _optional_float(value: object, key: str) -> float | None:
 
 @dataclass(frozen=True)
 class LiveForecast:
-    """Forecast crossing the live application boundary."""
     model: str | None
     value: float | None
     lower: float | None
     upper: float | None
     available: bool
     reason: str = ""
-    #: Заявленное покрытие интервала и фактическое на тесте 2026 (из metrics.json), если известны.
     coverage_target: float | None = None
     coverage_test: float | None = None
 
@@ -83,7 +80,6 @@ class LiveSnapshot:
     feature_schema: Sequence[Mapping[str, object]] = ()
     feature_schema_hash: str | None = None
     schema_version: str = "v1"
-    #: Откуда пороги доверия: derived:model.pkl, derived:artifacts/source_rules.json или fallback:config/experiment.json.
     trust_origin: str | None = None
 
     @classmethod
@@ -134,7 +130,6 @@ class LiveAdviceResult:
     error_kind: str | None = None
     inventories: Mapping[str, float] = field(default_factory=dict)
     bound_inflow_sulfur_mgkg: float | None = None
-    #: Что и откуда попало в связанный сценарий: уставки, отклик, приток, окно резервуара.
     binding: Mapping[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
@@ -188,4 +183,4 @@ class ReplayCommand:
 class LiveAdviceCommand:
     at: str
     scenario_id: str
-    budget: int = 400
+    budget: int = DEFAULT_BUDGET

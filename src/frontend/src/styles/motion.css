@@ -1,0 +1,80 @@
+.stage__head,
+.stage__step,
+.stage__state,
+.readout,
+.readouts {
+  transition: border-color var(--motion-panel) var(--ease),
+    color var(--motion-panel) var(--ease), opacity var(--motion-panel) var(--ease);
+}
+
+.stage {
+  transition: opacity var(--motion-panel) var(--ease);
+}
+
+.stage--running .stage__step {
+  animation: step-breathe 1800ms var(--ease) infinite;
+}
+
+.dialogue__event {
+  animation: line-in var(--motion-reveal) var(--ease) both;
+}
+
+.outline__event {
+  animation: line-in var(--motion-reveal) var(--ease) both;
+}
+
+@keyframes step-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.42; }
+}
+
+@keyframes line-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+
+.chart__line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 600ms var(--ease) both;
+}
+
+.chart__dot,
+.chart__area {
+  animation: chart-fade 300ms var(--ease) both;
+  animation-delay: 540ms;
+}
+
+@keyframes chart-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes chart-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage--running .stage__step {
+    animation: none;
+  }
+
+  .dialogue__event,
+  .outline__event {
+    animation-duration: 0.01ms;
+    transform: none;
+  }
+
+  .chart__line {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+
+  .chart__dot,
+  .chart__area {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+  }
+}

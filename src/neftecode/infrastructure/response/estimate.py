@@ -1,21 +1,3 @@
-"""β — отклик серы после гидроочистки на температуру входа реактора, оценённый при обучении.
-
-Перенос без изменения метода из `context/response-research/t6/response_model.py` (`RESPONSE_MODEL_T6.md`):
-
-* 10-минутный кадр `prepare`: установка в работе (T6, T5 > 320 °C, P13 > 3 МПа, F2 > 30000, F9 > q01 F9 на «горячих»
-  строках, без NaN в опорных тегах), `stable_label` = работа ≥ 12 ч до и 6 ч после строки, ПАК на сетке 10 мин
-  (среднее, правая метка), зависание — плато ≥ 1 ч по прошлому, ПАК валиден в 0.05–50 мг/кг;
-  F2 по справочнику — расход газа на линии от ЦК-201; здесь это только эмпирический фильтр режима,
-  не управляющая уставка и не утверждение, что весь поток проходит через Р-202;
-* ARX на 10-минутных приращениях (24 лага T6, F9, ПАК-30 мин) по строкам `stable_label`; β — среднее накопленного
-  отклика через 3–8 ч на устойчивый шаг +1 °C по T6; окно (τ − 12 мес., τ − 6 ч]; ДИ90 — бутстреп по месяцам, 40 повторов;
-* weak = 0.5·β; strong = β × max прошлых отношений realized/estimate по полугодиям (cap −1.0 мг/кг/°C);
-* область: q01–q99 T6 и F9 по пригодным 30-минутным строкам до τ; дрейф — тот же ARX по полугодиям (realized).
-
-Оценка делается на сетке τ (1 января / 1 июля, начиная с первого τ, у которого есть 12 месяцев истории, плюс
-`train_end` и конец данных); живое решение берёт последнюю оценку с τ не позже момента решения (`response_at`),
-все её окна заканчиваются в τ − 6 ч — строго до момента.
-"""
 from __future__ import annotations
 
 import math
@@ -24,92 +6,19 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-TEMPERATURE_TAG = "ht.T6"
-FLOW_TAG = "ht.F9"
-CORE_TAGS = ("ht.T6", "ht.T5", "ht.F9", "ht.P13", "ht.F2", "ht.T11")
-HORIZON_H = 3.0
-GUARD = pd.Timedelta(6, "h")             # окна заканчиваются в τ − 6 ч: метка устойчивости смотрит на 6 ч вперёд
-WINDOW_MONTHS = 12
-ARX_LAGS = 24                            # 4 ч 10-минутных лагов
-STEP_HORIZON = 54                        # шагов отклика: 9 ч
-PLATEAU_STEPS = slice(17, 48)            # накопленный отклик на 3.0 … 8.0 ч
-MIN_ROWS = 5000
-BOOT = 40
-SEED = 0
-WEAK_MULT = 0.5
-STRONG_DEFAULT = 2.5
-STRONG_CAP = -1.0                        # мг/кг на °C, верхняя граница эксперта (Q&A 11.09) — априорная, не из данных
-FEED_FLOOR_Q = 0.01
-SCHEMA_VERSION = "v1"
+from .preparation import (ARX_LAGS, BOOT, CORE_TAGS, FEED_FLOOR_Q, FLOW_TAG, GUARD, HORIZON_H, MIN_ROWS,
+                          PLATEAU_STEPS, SCHEMA_VERSION, SEED, STEP_HORIZON, STRONG_CAP, STRONG_DEFAULT,
+                          TEMPERATURE_TAG, WEAK_MULT, WINDOW_MONTHS, _wmean, decision_rows, prepare,
+                          row_times)
 
-
-def prepare(signals: pd.DataFrame, online: pd.DataFrame, feed_floor_until) -> pd.DataFrame:
-    """10-минутный кадр: T6, F9, ПАК, признаки работы установки. Все флаги смотрят в прошлое, кроме `stable_label`.
-
-    `feed_floor_until` обязателен: порог расхода q01(F9) учится только на «горячих» строках не позже этого
-    момента (τ − 6 ч), иначе будущее просачивается в отбор строк. Сама маска `hot` при этом не усекается —
-    `running` считается по всей истории.
-    """
-    missing = [tag for tag in CORE_TAGS if tag not in signals.columns]
-    if missing:
-        raise ValueError(f"Для оценки отклика нет тегов {missing}")
-    idx = signals.index
-    f = pd.DataFrame(index=idx)
-    f["T6"], f["T5"], f["F9"] = signals[TEMPERATURE_TAG], signals["ht.T5"], signals[FLOW_TAG]
-    f["P13"], f["F2"] = signals["ht.P13"], signals["ht.F2"]
-    hot = (f.T6 > 320) & (f.T5 > 320) & (f.P13 > 3.0) & (f.F2 > 30000) & (f.F9 > 0)
-    if feed_floor_until is None:
-        raise ValueError("prepare: нужен feed_floor_until (τ − 6 ч), иначе порог расхода учится на будущем")
-    # Новый объект: `&=` на ссылке усекал бы саму `hot`, и `running` терял бы строки после τ.
-    floor_rows = hot & (f.index <= pd.Timestamp(feed_floor_until))
-    feed_floor = float(f.F9[floor_rows].quantile(FEED_FLOOR_Q)) if floor_rows.any() else math.nan
-    running = hot & (f.F9 > feed_floor) & signals[list(CORE_TAGS)].notna().all(axis=1)
-    f["running"] = running
-    f.attrs["feed_floor"] = feed_floor
-    f.attrs["feed_floor_until"] = pd.Timestamp(feed_floor_until).isoformat()
-    r = running.astype(float)
-    f["run_past12h"] = r.rolling("12h").min().eq(1)
-    f["stable_label"] = f.run_past12h & r[::-1].rolling(37, min_periods=1).min()[::-1].eq(1)
-    p = online.set_index("time").value.sort_index()
-    changed = p.diff().abs().gt(1e-6) | p.diff().isna()
-    run = changed.cumsum()
-    t = p.index.to_series()
-    frozen = (t - t.groupby(run).transform("min")) >= pd.Timedelta(1, "h")
-    grid = lambda s, how: s.resample("10min", label="right", closed="right").agg(how).reindex(idx)
-    pak = grid(p, "mean")
-    fr = grid(frozen.astype(float), "max").fillna(1.0).astype(bool)
-    f["pak"] = pak.where(~fr & pak.between(0.05, 50))
-    return f
-
-
-def _wmean(s: pd.Series, t: pd.DatetimeIndex, start_min: int, end_min: int, min_valid: int = 1):
-    width = (end_min - start_min) // 10
-    return s.rolling(width, min_periods=min_valid).mean().reindex(t + pd.Timedelta(end_min, "min")).to_numpy()
-
-
-def decision_rows(f: pd.DataFrame, times: pd.DatetimeIndex) -> pd.DataFrame:
-    """30-минутные строки: входы, шаг T6 за 30 мин, цель через 3 ч и признак пригодности для обучения."""
-    d = pd.DataFrame(index=times)
-    d["PAK30m"] = _wmean(f.pak, times, -30, 0, 1)
-    d["PAK24h"] = _wmean(f.pak, times, -1440, 0, 72)
-    d["T6"] = _wmean(f.T6, times, -30, 0, 1)
-    d["F9"] = _wmean(f.F9, times, -30, 0, 1)
-    d["A30"] = _wmean(f.T6, times, 0, 30, 1) - d.T6
-    d["y3"] = _wmean(f.pak, times, 180, 210, 2)
-    ok = np.ones(len(times), bool)
-    for off in (-420, -60, 0, 30, 60, 120, 180, 210):
-        ok &= f.stable_label.reindex(times + pd.Timedelta(off, "min")).fillna(False).to_numpy(bool)
-    d["train_valid"] = ok & np.isfinite(d[["PAK30m", "PAK24h", "T6", "F9", "A30", "y3"]]).all(axis=1).to_numpy()
-    return d
-
-
-def row_times(f: pd.DataFrame) -> pd.DatetimeIndex:
-    times = f.index[(f.index.minute % 30 == 0)]
-    return times[(times >= times[0] + pd.Timedelta(31, "D")) & (times <= times[-1] - pd.Timedelta(4, "h"))]
+__all__ = ["ARX_LAGS", "BOOT", "CORE_TAGS", "FEED_FLOOR_Q", "FLOW_TAG", "GUARD", "HORIZON_H", "MIN_ROWS",
+           "PLATEAU_STEPS", "SCHEMA_VERSION", "SEED", "STEP_HORIZON", "STRONG_CAP", "STRONG_DEFAULT",
+           "TEMPERATURE_TAG", "WEAK_MULT", "WINDOW_MONTHS", "arx_design", "decision_rows", "drift",
+           "_wmean", "estimate_response", "fit_at", "halves", "past_ratios", "plateau", "prepare", "response_at",
+           "row_times", "step_response", "tau_grid"]
 
 
 def arx_design(f: pd.DataFrame):
-    """(времена, X, y) ARX на 10-минутных приращениях по строкам stable_label с валидным ПАК."""
     g = pd.DataFrame({"T6": f.T6, "F9": f.F9, "pak": f.pak.rolling("30min").mean()})
     D = g.diff()
     X = pd.concat({f"{c}_{j}": D[c].shift(j) for c in ("T6", "F9", "pak") for j in range(1, ARX_LAGS + 1)}, axis=1)
@@ -119,7 +28,6 @@ def arx_design(f: pd.DataFrame):
 
 
 def step_response(coef: np.ndarray) -> np.ndarray:
-    """Накопленный отклик ПАК на устойчивый шаг +1 °C по T6 (первые ARX_LAGS коэффициентов — T6, последние — ПАК)."""
     b, a = coef[:ARX_LAGS], coef[2 * ARX_LAGS:3 * ARX_LAGS]
     u = np.zeros(STEP_HORIZON + ARX_LAGS)
     u[ARX_LAGS] = 1.0
@@ -130,7 +38,6 @@ def step_response(coef: np.ndarray) -> np.ndarray:
 
 
 def plateau(T: pd.DatetimeIndex, X: np.ndarray, y: np.ndarray, mask: np.ndarray, boot: int = 0, seed: int = SEED):
-    """β на строках mask: среднее накопленного отклика на 3–8 ч; с boot > 0 — (β, [q05, q95], n), иначе (β, None, n)."""
     def one(ix):
         return float(step_response(LinearRegression().fit(X[ix], y[ix]).coef_)[PLATEAU_STEPS].mean())
     ix = np.flatnonzero(mask)
@@ -152,7 +59,6 @@ def _window_mask(T: pd.DatetimeIndex, start, end) -> np.ndarray:
 
 
 def past_ratios(T, X, y, first_time, cut) -> dict[str, float]:
-    """Отношения realized/estimate правила trailing-12 по полугодиям, закончившимся до τ − 6 ч."""
     ratios = {}
     h0 = pd.Timestamp(first_time) + pd.DateOffset(months=WINDOW_MONTHS)
     starts = [x for x in pd.date_range(pd.Timestamp(h0.year, 1, 1), cut, freq="MS") if x.month in (1, 7) and x >= h0]
@@ -168,7 +74,6 @@ def past_ratios(T, X, y, first_time, cut) -> dict[str, float]:
 
 
 def fit_at(f: pd.DataFrame, R: pd.DataFrame, T, X, y, tau, boot: int = BOOT) -> dict | None:
-    """Оценка при τ по данным до τ − 6 ч; None, если строк ARX в окне меньше MIN_ROWS."""
     tau = pd.Timestamp(tau)
     cut = tau - GUARD
     lo = tau - pd.DateOffset(months=WINDOW_MONTHS)
@@ -205,7 +110,6 @@ def halves(index) -> np.ndarray:
 
 
 def drift(T, X, y) -> list[dict]:
-    """Тот же ARX внутри каждого полугодия (realized, не trailing)."""
     hv = halves(T)
     out = []
     for h in sorted(np.unique(hv)):
@@ -216,7 +120,6 @@ def drift(T, X, y) -> list[dict]:
 
 
 def tau_grid(index, train_end) -> list[pd.Timestamp]:
-    """Сетка τ: 1 января / 1 июля от первого полного окна до конца данных, плюс `train_end` и сам конец."""
     index = pd.DatetimeIndex(index)
     first = pd.Timestamp(index[0]) + pd.DateOffset(months=WINDOW_MONTHS)
     last = pd.Timestamp(index[-1])
@@ -228,7 +131,6 @@ def tau_grid(index, train_end) -> list[pd.Timestamp]:
 
 def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, declared: dict,
                       model_fingerprint: str | None = None, boot: int = BOOT) -> dict:
-    """Артефакт C2: объявленная политика из `declared` (config/response_model.json) плюс оценки по данным на сетке τ."""
     estimates = []
     parts_by_tau = {}
     for tau in tau_grid(signals.index, train_end):
@@ -243,7 +145,6 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
     if not estimates:
         raise ValueError("Оценка отклика невозможна: ни в одном окне нет 5000 строк ARX")
     primary = next((e for e in estimates if pd.Timestamp(e["tau"]) == pd.Timestamp(train_end)), estimates[0])
-    # Дрейф — по тем же частям, что и основная оценка: порог F9 выучен до её τ − 6 ч, а не по позднейшему τ.
     primary_parts = parts_by_tau[pd.Timestamp(primary["tau"])]
     method = (f"ARX({ARX_LAGS} lags, 10-min differences of {TEMPERATURE_TAG}, {FLOW_TAG}, PAK 30-min mean), beta = mean cumulative "
               f"PAK response at 3-8 h to a sustained +1 C step in T6; window = {WINDOW_MONTHS} months before tau minus 6 h guard; "
@@ -268,7 +169,6 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
 
 
 def response_at(response: dict | None, when) -> dict | None:
-    """Модель отклика, сделанная строго до момента `when`: последняя оценка с τ ≤ when; без `estimates` — сам файл."""
     if response is None:
         return None
     estimates = response.get("estimates")

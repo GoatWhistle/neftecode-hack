@@ -1,4 +1,3 @@
-"""Инструмент get_response_effect отвечает по β на ht.T6 из живой привязки, а не «недоступно»."""
 import pytest
 
 from neftecode.application.use_cases.get_live_advice import decision_context
@@ -10,7 +9,6 @@ from neftecode.infrastructure.response.data_model import DataResponseEffect
 from _agentic_support import raw, session_for
 
 FORECAST = {"model": "last_pak", "value": 6.0, "lower": 4.0, "upper": 9.0, "available": True, "reason": "тест"}
-#: Оценка τ = 2026-01-01 (окно 2025) — те же числа, что пишет `train` в artifacts/response_model.json.
 RESPONSE = {"schema_version": "v1", "tag": "ht.T6", "flow_tag": "ht.F9", "tau": "2026-01-01", "window_months": 12,
             "beta_mgkg_per_c": -0.4332, "ci": [-0.4761, -0.397], "envelope_dt_c": 2.0, "n_rows": 48925, "method": "тест",
             "drift": [], "flow_beta": None, "model_fingerprint": "x", "t6_range_c": [342.9, 386.1],

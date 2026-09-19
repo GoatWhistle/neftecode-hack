@@ -1,4 +1,3 @@
-"""Build a live language model client from settings, refusing unsafe or incomplete configurations."""
 import os
 from typing import Mapping
 

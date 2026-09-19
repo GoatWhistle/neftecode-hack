@@ -1,4 +1,3 @@
-"""Anthropic Messages API adapter: top-level system prompt, tool_use / tool_result content blocks."""
 import json
 import time
 from typing import Callable, Sequence

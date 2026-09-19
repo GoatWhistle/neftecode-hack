@@ -1,0 +1,76 @@
+.stage--outline {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: var(--space-card);
+  background: var(--paper);
+}
+
+.stage--outline.stage--pending {
+  border-style: dashed;
+  opacity: 0.62;
+}
+
+.stage--outline.stage--running {
+  border-color: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+
+.stage--outline.stage--running::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 2px;
+  background: var(--ink);
+  animation: stage-progress 1.4s var(--ease) infinite;
+}
+
+@keyframes stage-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.stage__state {
+  margin-inline-start: auto;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stage__state--running { color: var(--ink); }
+.stage__state--done { color: var(--muted); }
+.stage__state--failed { color: var(--fail); }
+
+.outline__hint {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.outline__feed {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.outline__event {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: 14px;
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.outline__who { font-weight: 500; }
+.outline__kind { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; }
+.outline__what { color: var(--muted); overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage--outline.stage--running::after { animation: none; opacity: 0.4; }
+}

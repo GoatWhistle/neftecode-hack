@@ -6,7 +6,6 @@ from neftecode.domain.shared.primitives import _time
 
 @dataclass(frozen=True)
 class PendingAction:
-    """An advised action. Advice alone changes neither equipment nor inventory."""
 
     action_id: str
     proposed_at: str
@@ -30,11 +29,9 @@ class PendingAction:
 
     @property
     def executed(self) -> bool:
-        """Only a confirmed action may be assumed to act on the plant."""
         return self.execution_status == CONFIRMED
 
     def effect_expected_at(self) -> str | None:
-        """Unconfirmed advice has no expected effect time: it was never executed."""
         if not self.executed:
             return None
         start = datetime.fromisoformat(self.confirmed_at)
