@@ -94,5 +94,5 @@ def report(task: Path) -> dict:
         "modelled": sorted(k for k, v in sources.items() if v.has_model),
         "not_modelled": sorted(k for k, v in sources.items() if not v.has_model),
         "rule": f"Обученная модель заявляется только при {MIN_ANALYSES_FOR_A_MODEL} и более анализах. "
-                f"Виртуальный анализатор источником значения не служит: см. context/vak-review.md.",
+                f"Виртуальный анализатор источником значения не служит.",
     }
