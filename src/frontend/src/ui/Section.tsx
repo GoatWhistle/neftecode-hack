@@ -2,13 +2,7 @@ import type { ReactNode } from "react";
 import type { StageState } from "../run/types";
 import type { Lamp } from "./Primitives";
 import { LampDot } from "./Primitives";
-
-const STATE_TEXT: Record<StageState, string> = {
-  pending: "ещё не начат",
-  running: "идёт",
-  done: "готов",
-  failed: "не пройден"
-};
+import { STATE_WORD } from "../run/railStatus";
 
 export interface SectionProps {
   id: string;
@@ -48,7 +42,7 @@ export function Section({
           <LampDot state={lamp} title={lampTitle} />
           {title}
           <span className="sr-only">, </span>
-          <span className="stage__state">{STATE_TEXT[state]}</span>
+          <span className="stage__state">{STATE_WORD[state]}</span>
         </h2>
         <p className="stage__lead">{lead}</p>
         {source ? <p className="stage__source">{source}</p> : null}

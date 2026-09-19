@@ -82,6 +82,15 @@ export function App() {
     start(queryOf(conditions));
   }, [conditions, start]);
 
+  useEffect(() => {
+    if (run.status !== "running") return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") stop();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [run.status, stop]);
+
   return (
     <div className="app">
       <header className="masthead">

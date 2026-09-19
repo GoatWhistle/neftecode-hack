@@ -1,6 +1,7 @@
 import type { ScreenPayload } from "../types";
 import type { Lamp } from "../ui/Primitives";
 import { lampOf } from "../stages";
+import { hasLiveFacts } from "./StageLive";
 import type { RunState, StageFacts, StageState } from "./types";
 
 export interface RailSignal {
@@ -12,7 +13,28 @@ export interface RailSignal {
 const RUNNING: RailSignal = { lamp: "idle", note: "идёт", live: true };
 const PENDING: RailSignal = { lamp: "idle", note: "ждёт", live: false };
 const FAILED: RailSignal = { lamp: "fail", note: "отказ", live: true };
-const SILENT: RailSignal = { lamp: "idle", note: "без отметок", live: false };
+export const SILENT_NOTE = "без отметок";
+
+const SILENT: RailSignal = { lamp: "idle", note: SILENT_NOTE, live: false };
+
+export const STATE_WORD: Record<StageState, string> = {
+  pending: "ожидает",
+  running: "идёт",
+  done: "готово",
+  failed: "отказ"
+};
+
+export function marked(id: string, facts: StageFacts | undefined, events = 0): boolean {
+  if (id === "agents" && events > 0) return true;
+  if (hasLiveFacts(id, facts)) return true;
+  return facts !== undefined && Object.keys(facts).length > 0;
+}
+
+export function outlineStateWord(id: string, state: StageState, facts: StageFacts | undefined,
+                                 events = 0): string {
+  if (state !== "done") return STATE_WORD[state];
+  return marked(id, facts, events) ? STATE_WORD.done : SILENT_NOTE;
+}
 
 function factSignal(id: string, facts: StageFacts | undefined): RailSignal | null {
   if (!facts) return null;
@@ -77,5 +99,8 @@ export function railSignal(run: RunState, payload: ScreenPayload | null, id: str
     return { lamp, note: "пройден", live: true };
   }
 
-  return live ?? SILENT;
+  if (live) return live;
+  return marked(id, run.stageFacts[id], run.agentEvents.length)
+    ? { lamp: "idle", note: "отметки приняты", live: true }
+    : SILENT;
 }

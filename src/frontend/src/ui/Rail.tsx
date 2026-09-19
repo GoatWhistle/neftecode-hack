@@ -73,7 +73,7 @@ export function Rail({ payload, active, run, onNavigate }: RailProps) {
             <span className="rail__cursor" aria-hidden="true" />
             <RailOrder value={0} state="done" />
             <span className="rail__label">
-              Условия
+              <span className="rail__name">Условия</span>
               <span className="rail__note">приняты</span>
             </span>
           </a>
@@ -97,7 +97,7 @@ export function Rail({ payload, active, run, onNavigate }: RailProps) {
                 <span className="rail__cursor" aria-hidden="true" />
                 <RailOrder value={position + 1} state={state} />
                 <span className="rail__label">
-                  {stage.label}
+                  <span className="rail__name">{stage.label}</span>
                   <span className={`rail__note rail__note--${signal.lamp}`}>{signal.note}</span>
                 </span>
                 {signal.live ? <LampDot state={signal.lamp} /> : null}
