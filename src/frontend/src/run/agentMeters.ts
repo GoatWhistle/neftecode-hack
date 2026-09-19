@@ -68,8 +68,11 @@ function seconds(ms: number): string {
   return `${(ms / 1000).toFixed(1).replace(".", ",")} с`;
 }
 
-function tokens(total: number): string {
-  return `${total.toLocaleString("ru-RU")} ток.`;
+function tokens(total: number, prompt: number | undefined, completion: number | undefined): string {
+  const head = `${total.toLocaleString("ru-RU")} ток.`;
+  if (typeof prompt !== "number" || typeof completion !== "number") return head;
+  if (prompt <= 0 && completion <= 0) return head;
+  return `${head} (${prompt.toLocaleString("ru-RU")} запрос + ${completion.toLocaleString("ru-RU")} ответ)`;
 }
 
 export function callMeter(event: AgentEvent, deterministic: boolean): CallMeter {
@@ -81,7 +84,9 @@ export function callMeter(event: AgentEvent, deterministic: boolean): CallMeter 
   }
   return {
     latency: measured ? seconds(latency) : "длительность не передана",
-    usage: typeof total === "number" && total > 0 ? tokens(total) : "токенов не передано",
+    usage: typeof total === "number" && total > 0
+      ? tokens(total, event.usage?.["prompt_tokens"], event.usage?.["completion_tokens"])
+      : "токенов не передано",
     finish: finishText(event.decision),
     measured
   };

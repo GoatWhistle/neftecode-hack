@@ -2,20 +2,15 @@ import { useCallback, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
 import type { ScreenPayload } from "../types";
 import { STAGES } from "../stages";
+import { duration } from "../format";
 import type { RunState } from "../run/types";
-import { stageStateOf } from "../run/types";
-import { ORDER } from "../run/sequence";
-import { scrollToDirect } from "../run/autoscroll";
-import { railSignal } from "../run/railStatus";
-import { LampDot } from "./Primitives";
+import { ORDER, reachedState } from "../run/sequence";
+import { scrollToDirect, takeOver } from "../run/autoscroll";
+import { pinStage } from "../useActiveStage";
+import { useLiveClock } from "../useLiveClock";
 import { RailOrder } from "./RailOrder";
 
 const FAR_GAP = 3;
-
-function seconds(ms: number): string {
-  if (!Number.isFinite(ms)) return "—";
-  return `${(ms / 1000).toFixed(1).replace(".", ",")} с`;
-}
 
 export interface RailProps {
   payload: ScreenPayload | null;
@@ -28,8 +23,9 @@ function indexOf(id: string): number {
   return id === "config" ? -1 : ORDER.indexOf(id);
 }
 
-export function Rail({ payload, active, run, onNavigate }: RailProps) {
+export function Rail({ active, run, onNavigate }: RailProps) {
   const listRef = useRef<HTMLOListElement>(null);
+  const liveMs = useLiveClock(run.elapsedMs, run.lastFrameAt, run.status === "running");
 
   useEffect(() => {
     const list = listRef.current;
@@ -48,6 +44,8 @@ export function Rail({ payload, active, run, onNavigate }: RailProps) {
       event.preventDefault();
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const far = Math.abs(indexOf(id) - indexOf(active)) > FAR_GAP;
+      takeOver();
+      pinStage(id);
       scrollToDirect(id, reduced || far ? "auto" : "smooth");
       onNavigate?.();
     },
@@ -56,12 +54,6 @@ export function Rail({ payload, active, run, onNavigate }: RailProps) {
 
   return (
     <aside className="rail rail--enter" aria-label="Ход прогона">
-      {run.status === "running" ? (
-        <p className="rail__clock" aria-hidden="true">
-          <span className="rail__clock-word">идёт</span>
-          <span className="rail__clock-value">{seconds(run.elapsedMs)}</span>
-        </p>
-      ) : null}
       <ol className="rail__list" ref={listRef}>
         <li className={`rail__item rail__item--done ${active === "config" ? "rail__item--active" : ""}`}>
           <a
@@ -74,14 +66,20 @@ export function Rail({ payload, active, run, onNavigate }: RailProps) {
             <RailOrder value={0} state="done" />
             <span className="rail__label">
               <span className="rail__name">Условия</span>
-              <span className="rail__note">приняты</span>
             </span>
           </a>
         </li>
         {STAGES.map((stage, position) => {
-          const state = stageStateOf(run, stage.id);
+          const state = reachedState(run.stages, stage.id);
+          const startedAt = position === 0 ? 0 : (run.stageAt[ORDER[position - 1] as string] ?? 0);
+          const at = run.stageAt[stage.id];
+          const spent =
+            state === "running"
+              ? Math.max(0, liveMs - startedAt)
+              : (state === "done" || state === "failed") && at !== undefined
+                ? Math.max(0, at - startedAt)
+                : null;
           const isActive = active === stage.id;
-          const signal = railSignal(run, payload, stage.id);
           return (
             <li
               key={stage.id}
@@ -98,14 +96,25 @@ export function Rail({ payload, active, run, onNavigate }: RailProps) {
                 <RailOrder value={position + 1} state={state} />
                 <span className="rail__label">
                   <span className="rail__name">{stage.label}</span>
-                  <span className={`rail__note rail__note--${signal.lamp}`}>{signal.note}</span>
                 </span>
-                {signal.live ? <LampDot state={signal.lamp} /> : null}
+                {spent !== null ? (
+                  <span className="rail__at">
+                    {state !== "running" && spent < 100 ? "<0,1" : duration(spent)}
+                  </span>
+                ) : null}
               </a>
             </li>
           );
         })}
       </ol>
+      {run.status === "idle" ? null : (
+        <p className="rail__clock" aria-hidden="true">
+          <span className="rail__clock-word">{run.status === "running" ? "идёт" : "всего"}</span>
+          <span className="rail__clock-value">
+            {duration(run.status === "running" ? liveMs : (run.serverMs ?? run.elapsedMs))}
+          </span>
+        </p>
+      )}
     </aside>
   );
 }

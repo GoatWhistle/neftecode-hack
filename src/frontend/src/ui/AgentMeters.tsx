@@ -1,3 +1,5 @@
+import { duration } from "../format";
+import { useLiveClock } from "../useLiveClock";
 import type { BudgetRow, ProviderBand } from "../run/agentMeters";
 import { BUDGET_CELL_MAX } from "../run/agentMeters";
 import { CONSTRAINT_TEXT, CONSTRAINT_VOCABULARY } from "../run/agentVocab";
@@ -42,26 +44,47 @@ function Segments({ row }: { row: BudgetRow }) {
   );
 }
 
-function originText(row: BudgetRow): string {
-  const counter = row.exact ? "счётчик сервера" : "подсчёт по событиям";
-  if (row.limit === null) return `${counter}, предел не передавался`;
-  return `${counter}, предел от сервера`;
+function counterText(row: BudgetRow): string {
+  return row.exact ? "счётчик сервера" : "подсчёт по событиям";
+}
+
+function sharedCounter(rows: BudgetRow[]): string | null {
+  if (rows.length === 0) return null;
+  const first = counterText(rows[0] as BudgetRow);
+  return rows.every((row) => counterText(row) === first) ? first : null;
+}
+
+function originLine(rows: BudgetRow[], shared: string | null): string | null {
+  if (shared === null) return null;
+  const withLimit = rows.filter((row) => row.limit !== null).length;
+  if (withLimit === rows.length) return `${shared}, предел от сервера`;
+  if (withLimit === 0) return `${shared}, предел не передавался`;
+  return `${shared}; предел от сервера там, где он показан`;
 }
 
 function Rows({ rows }: { rows: BudgetRow[] }) {
+  const shared = sharedCounter(rows);
+  const line = originLine(rows, shared);
+  const mixedLimits = rows.some((row) => row.limit === null) && rows.some((row) => row.limit !== null);
   return (
-    <ul className="budget__rows">
-      {rows.map((row) => (
-        <li key={row.role} className={`budget__row${row.spent ? " budget__row--spent" : ""}`}>
-          <span className="budget__label">
-            {row.label} {row.limit === null ? row.used : `${row.used}/${row.limit}`}
-          </span>
-          <Segments row={row} />
-          {row.spent ? <span className="budget__spent">исчерпано</span> : null}
-          <span className="budget__origin">{originText(row)}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="budget__rows">
+        {rows.map((row) => (
+          <li key={row.role} className={`budget__row${row.spent ? " budget__row--spent" : ""}`}>
+            <span className="budget__label">
+              {row.label} {row.limit === null ? row.used : `${row.used}/${row.limit}`}
+            </span>
+            <Segments row={row} />
+            {row.spent ? <span className="budget__spent">исчерпано</span> : null}
+            {shared === null ? <span className="budget__origin">{counterText(row)}</span> : null}
+            {mixedLimits && row.limit === null ? (
+              <span className="budget__origin">предела нет</span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {line === null ? null : <p className="budget__origin budget__origin--group">Происхождение счётчиков группы: {line}</p>}
+    </>
   );
 }
 
@@ -128,12 +151,17 @@ export function emptyPicks(): ConstraintPick[] {
   }));
 }
 
-export function WaitingCounter({ elapsedMs, sinceMs }: { elapsedMs: number; sinceMs: number }) {
-  const held = Math.max(0, Math.floor((elapsedMs - sinceMs) / 1000));
+export function WaitingCounter({ elapsedMs, sinceMs, lastFrameAt }: {
+  elapsedMs: number;
+  sinceMs: number;
+  lastFrameAt: number | null;
+}) {
+  const liveMs = useLiveClock(elapsedMs, lastFrameAt ?? null, true);
+  const held = Math.max(0, liveMs - sinceMs);
   return (
     <p className="waiting" role="status">
       <span className="waiting__mark" aria-hidden="true" />
-      ждём ответа модели, {held} с
+      ждём ответа модели, {duration(held)}
     </p>
   );
 }

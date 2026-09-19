@@ -1,13 +1,19 @@
 import type { AgentOpinion, Agentic } from "../types";
 import { num } from "../format";
 import type { Lamp } from "./Primitives";
-import { Empty, Tag } from "./Primitives";
+import { Empty, LampDot, Tag } from "./Primitives";
 import { JsonPanel } from "./Json";
 
 const ROLES: Record<string, string> = {
   quality: "Агент качества",
   reliability: "Агент надёжности",
   data: "Агент данных"
+};
+
+const SCOPES: Record<string, string> = {
+  quality: "свойства продукта",
+  reliability: "режим и оборудование",
+  data: "пригодность источников"
 };
 
 const VERDICTS: Record<string, string> = {
@@ -17,9 +23,9 @@ const VERDICTS: Record<string, string> = {
 };
 
 const RISK: Record<string, string> = {
-  low: "низкий риск",
-  medium: "средний риск",
-  high: "высокий риск"
+  low: "низкий",
+  medium: "средний",
+  high: "высокий"
 };
 
 function toneOf(verdict: string): Lamp {
@@ -28,41 +34,71 @@ function toneOf(verdict: string): Lamp {
   return "unknown";
 }
 
+function ConfidenceBar({ value }: { value: number }) {
+  const cells = Array.from({ length: 5 }, (_, index) => index < Math.round(value * 5));
+  return (
+    <span className="opinion__conf" aria-hidden="true">
+      {cells.map((on, index) => (
+        <span key={index} className={`opinion__conf-cell${on ? " opinion__conf-cell--on" : ""}`} />
+      ))}
+    </span>
+  );
+}
+
 function Opinion({ opinion }: { opinion: AgentOpinion }) {
   const tone = toneOf(opinion.verdict);
+  const risk = opinion.risk_level;
+  const confidence = opinion.confidence;
+
   return (
     <article className={`opinion opinion--${tone}`}>
       <header className="opinion__head">
-        <h4 className="opinion__role">{ROLES[opinion.role] ?? opinion.role}</h4>
+        <h4 className="opinion__role">
+          <LampDot state={tone} />
+          {ROLES[opinion.role] ?? opinion.role}
+        </h4>
+        <p className="opinion__scope">{SCOPES[opinion.role] ?? "зона ответственности не названа"}</p>
         <Tag tone={tone}>{VERDICTS[opinion.verdict] ?? opinion.verdict}</Tag>
       </header>
 
       <dl className="opinion__meta">
-        <div>
+        <div className="opinion__metric">
           <dt>Уровень риска</dt>
-          <dd>{RISK[opinion.risk_level ?? ""] ?? opinion.risk_level ?? "не передан"}</dd>
+          <dd>{risk === null || risk === undefined ? "не передан" : RISK[risk] ?? risk}</dd>
         </div>
-        <div>
+        <div className="opinion__metric">
           <dt>Уверенность</dt>
-          <dd>{opinion.confidence === null ? "не передана" : num(opinion.confidence, 2)}</dd>
+          <dd>
+            {confidence === null ? (
+              "не передана"
+            ) : (
+              <>
+                <ConfidenceBar value={confidence} />
+                <span className="opinion__conf-value">{num(confidence, 2)}</span>
+              </>
+            )}
+          </dd>
         </div>
       </dl>
 
-      {opinion.reasons.length > 0 ? (
-        <ul className="opinion__reasons">
-          {opinion.reasons.map((reason) => (
-            <li key={reason.code}>
-              <p className="opinion__text">{reason.text}</p>
-              <p className="opinion__code">
-                код: <code>{reason.code}</code>
-                {reason.candidate_id ? <> · план <code>{reason.candidate_id}</code></> : null}
-              </p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <Empty>Обоснование не передавалось.</Empty>
-      )}
+      <div className="opinion__reasoning">
+        <h5 className="opinion__label">Чем обосновано</h5>
+        {opinion.reasons.length > 0 ? (
+          <ul className="opinion__reasons">
+            {opinion.reasons.map((reason) => (
+              <li key={reason.code} className="opinion__reason">
+                <p className="opinion__text">{reason.text}</p>
+                <p className="opinion__code">
+                  <code>{reason.code}</code>
+                  {reason.candidate_id ? <> · план <code>{reason.candidate_id}</code></> : null}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Empty>Обоснование не передавалось.</Empty>
+        )}
+      </div>
 
       {opinion.proposed_constraints && opinion.proposed_constraints.length > 0 ? (
         <p className="opinion__proposal">
@@ -75,7 +111,9 @@ function Opinion({ opinion }: { opinion: AgentOpinion }) {
         </p>
       ) : null}
 
-      <JsonPanel title={`JSON мнения «${opinion.role}»`} value={opinion} openTo={2} />
+      <div className="opinion__foot">
+        <JsonPanel title={`JSON мнения «${opinion.role}»`} value={opinion} openTo={2} />
+      </div>
     </article>
   );
 }

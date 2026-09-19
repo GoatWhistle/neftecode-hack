@@ -5,17 +5,13 @@ import type { AgentEvent, RunPhase, RunState, StageState } from "./types";
 import { EMPTY_RUN } from "./types";
 import { advanceTo, chainTo, LATE_STAGES, mergeFacts, mergePhase, ORDER } from "./sequence";
 import { createRevealQueue } from "./revealQueue";
-import { releaseTakeover, scrollTo, watchTakeover } from "./autoscroll";
+import { releaseTakeover, startSticking, stopSticking, watchTakeover } from "./autoscroll";
 
 function readable(reason: unknown): string {
   if (reason instanceof DOMException && reason.name === "AbortError") return "прогон остановлен";
   if (reason instanceof TypeError) return "сервер недоступен, проверьте, что бэкенд запущен";
   if (reason instanceof Error) return reason.message;
   return String(reason);
-}
-
-function reducedMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export interface RunControls {
@@ -40,7 +36,6 @@ export function useRun(): RunControls {
       createRevealQueue((id: string) => {
         const state = states.current[id] ?? "done";
         setRun((prev) => ({ ...prev, stages: advanceTo(prev.stages, id, state) }));
-        scrollTo(id, reducedMotion());
       }),
     []
   );
@@ -50,6 +45,7 @@ export function useRun(): RunControls {
     return () => {
       abort.current?.abort();
       reveal.clear();
+      stopSticking();
       drop();
     };
   }, [reveal]);
@@ -61,7 +57,7 @@ export function useRun(): RunControls {
 
   const enqueue = useCallback(
     (id: string, state: StageState) => {
-      for (const step of chainTo(queued.current, id)) {
+      for (const step of chainTo(queued.current, id, state)) {
         const next = (step === id ? state : "done") as StageState;
         const held = queued.current[step];
         if (held === next) continue;
@@ -85,9 +81,10 @@ export function useRun(): RunControls {
       });
       enqueue("agents", "done");
       for (const id of LATE_STAGES) enqueue(id, "done");
-      reveal.onDrained(() =>
-        setRun((prev) => (prev.status === "running" ? { ...prev, status: "done" } : prev))
-      );
+      reveal.onDrained(() => {
+        stopSticking();
+        setRun((prev) => (prev.status === "running" ? { ...prev, status: "done" } : prev));
+      });
     },
     [enqueue, reveal]
   );
@@ -101,11 +98,13 @@ export function useRun(): RunControls {
       releaseTakeover();
       setFollowsUser(false);
       setPending(true);
+      startSticking();
       const controller = new AbortController();
       abort.current = controller;
       setRun({ ...EMPTY_RUN, status: "running" });
       const fail = (message: string): void => {
         reveal.clear();
+        stopSticking();
         setPending(false);
         setRun((prev) => {
           const order = ORDER.filter((id) => prev.stages[id] !== undefined);
@@ -140,7 +139,8 @@ export function useRun(): RunControls {
               ...prev,
               elapsedMs,
               stageFacts: mergeFacts(prev.stageFacts, stage, facts),
-              stageSource: { ...prev.stageSource, [stage]: "server" }
+              stageSource: { ...prev.stageSource, [stage]: "server" },
+              stageAt: { ...prev.stageAt, [stage]: elapsedMs }
             }));
             enqueue(stage, (state ?? "done") as StageState);
           },
@@ -173,6 +173,7 @@ export function useRun(): RunControls {
   const stop = useCallback(() => {
     abort.current?.abort();
     reveal.clear();
+    stopSticking();
     states.current = {};
     queued.current = {};
     releaseTakeover();

@@ -1,5 +1,10 @@
+@import "./controls.css";
+
 .config {
   scroll-margin-top: var(--space-4);
+  --config-label: 11px;
+  --config-track: 0.1em;
+  --config-control-h: 42px;
 }
 
 .config__head {
@@ -32,75 +37,10 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
-  max-width: var(--measure);
+  max-width: var(--measure-lead);
 }
 
-.config__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: var(--space-3);
-}
 
-.config__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.config__field > span {
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.config__field select,
-.config__field input {
-  font: inherit;
-  font-size: 15px;
-  color: var(--text);
-  background: var(--field);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
-  padding: 9px 11px;
-  min-width: 0;
-}
-
-.config__field input {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.config__field select:focus-visible,
-.config__field input:focus-visible {
-  outline: 2px solid var(--carbon);
-  outline-offset: 1px;
-}
-
-.config__field select:disabled,
-.config__field input:disabled {
-  opacity: 0.55;
-}
-
-.config__missing {
-  align-self: end;
-  max-width: var(--measure);
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--muted);
-  border-left: 2px dashed var(--line);
-  padding-left: 9px;
-}
-
-.config__missing > span {
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.config__hint,
 .config__offline {
   align-self: end;
   max-width: var(--measure);
@@ -132,7 +72,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line-soft);
 }
 
 .config__start {
@@ -143,7 +85,7 @@
   background: var(--carbon);
   border: 1px solid var(--carbon);
   border-radius: var(--radius-pill);
-  padding: 13px 34px;
+  padding: 14px 40px;
   cursor: pointer;
   transition: opacity var(--motion-hover) var(--ease), transform 80ms var(--ease);
 }

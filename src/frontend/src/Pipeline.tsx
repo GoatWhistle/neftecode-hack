@@ -24,9 +24,10 @@ export interface PipelineProps {
   stages: Record<string, StageState>;
   stageFacts: Record<string, StageFacts>;
   elapsedMs: number;
+  lastFrameAt: number | null;
 }
 
-export function Pipeline({ payload, stateOf, sources, agentEvents, stages, stageFacts, elapsedMs }: PipelineProps) {
+export function Pipeline({ payload, stateOf, sources, agentEvents, stages, stageFacts, elapsedMs, lastFrameAt }: PipelineProps) {
   const shown = visibleCount(stages);
   const label = (id: string): string | undefined => {
     const source = sources[id];
@@ -52,7 +53,7 @@ export function Pipeline({ payload, stateOf, sources, agentEvents, stages, stage
       {shown >= 3 ? <ForecastStage {...common("forecast")} index={3} /> : null}
       {shown >= 4 ? <CandidatesStage {...common("candidates")} index={4} /> : null}
       {shown >= 5 ? <GateStage {...common("gate")} index={5} /> : null}
-      {shown >= 6 ? <AgentsStage {...common("agents")} index={6} events={agentEvents} facts={stageFacts["agents"]} elapsedMs={elapsedMs} /> : null}
+      {shown >= 6 ? <AgentsStage {...common("agents")} index={6} events={agentEvents} facts={stageFacts["agents"]} elapsedMs={elapsedMs} lastFrameAt={lastFrameAt} /> : null}
       {shown >= 7 ? <ChoiceStage {...common("choice")} index={7} /> : null}
       {shown >= 8 ? <DecisionStage {...common("decision")} index={8} /> : null}
     </>

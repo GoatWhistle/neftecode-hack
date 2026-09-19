@@ -106,10 +106,10 @@ export function lampOf(id: string, payload: ScreenPayload): StageLamp {
 export const STAGES: readonly Stage[] = [
   { id: "state", label: "Состояние" },
   { id: "trust", label: "Доверие к данным" },
-  { id: "forecast", label: "Прогноз" },
   { id: "candidates", label: "Кандидаты" },
+  { id: "forecast", label: "Прогноз" },
+  { id: "choice", label: "Выбор" },
   { id: "gate", label: "Gate" },
   { id: "agents", label: "Агенты" },
-  { id: "choice", label: "Выбор" },
   { id: "decision", label: "Решение" }
 ];

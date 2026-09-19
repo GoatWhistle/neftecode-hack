@@ -26,7 +26,7 @@
 
   .stage.stage.stage,
   .config.config.config,
-  .strip.strip.strip,
+
   .rail__item.rail__item {
     --band: #ffffff;
     --band-line: #767676;
@@ -47,9 +47,6 @@
   .stage--outline,
   .config__actions,
   .config__offline-actions,
-  .strip__follow {
-    display: none;
-  }
 
   .config {
     background-color: transparent;
@@ -146,12 +143,6 @@
 
   .json {
     font-size: 8.5pt;
-  }
-
-  .foot {
-    background: #ffffff;
-    color: #000000;
-    border: 1px solid #000000;
   }
 
   .masthead__verdict,

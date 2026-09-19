@@ -3,6 +3,8 @@ import type { Conditions, RunOptions } from "./options";
 import { FAULT_LABELS } from "./options";
 import type { RunStatus } from "./types";
 import { NumberField, TankField } from "./ConfigFields";
+import { ConfigBrief } from "./ConfigBrief";
+import { Select } from "../ui/Select";
 
 export interface ConfigStageProps {
   options: RunOptions | null;
@@ -83,68 +85,62 @@ export function ConfigStage({
           ) : null}
         </div>
       ) : (
-        <div className="config__groups">
-          <fieldset className="config__group" disabled={running}>
-            <legend className="config__legend">Какой прогон</legend>
-            <div className="config__grid">
-              <label className="config__field">
-                <span>Сценарий</span>
-                <select value={conditions.scenario}
-                  onChange={(event) => onScenario(event.target.value)}>
-                  {options.scenarios.map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="config__field">
-                <span>Момент решения</span>
-                <select value={conditions.snapshot}
-                  onChange={(event) => onChange({ snapshot: event.target.value })}>
-                  {options.snapshots.map((item) => (
-                    <option key={item.key} value={item.key}>{item.title}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="config__field">
-                <span>Отказ источника</span>
-                <select value={conditions.fault}
-                  onChange={(event) => onChange({ fault: event.target.value })}>
-                  {options.faults.map((name) => (
-                    <option key={name} value={name}>{FAULT_LABELS[name] ?? name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <NumberField label="Производительность, т/ч" step="1" value={conditions.throughput_tph}
-                disabled={running} onChange={(value) => onChange({ throughput_tph: value })} />
-            </div>
-          </fieldset>
-
-          <fieldset className="config__group" disabled={running}>
-            <legend className="config__legend">Пределы продукта</legend>
-            <div className="config__grid">
-              <NumberField label="Сера сырья, % масс." step="0.01" value={conditions.crude_sulfur_wt_pct}
-                disabled={running} onChange={(value) => onChange({ crude_sulfur_wt_pct: value })} />
-              <NumberField label="Предел серы продукта, мг/кг" step="0.5" value={conditions.product_sulfur_mgkg}
-                disabled={running} onChange={(value) => onChange({ product_sulfur_mgkg: value })} />
-              <NumberField label="Предел T95, °C" step="1" value={conditions.product_t95_c}
-                disabled={running} onChange={(value) => onChange({ product_t95_c: value })} />
-              <NumberField label="Минимум цетанового числа" step="0.5" value={conditions.product_cetane_number}
-                disabled={running} onChange={(value) => onChange({ product_cetane_number: value })} />
-            </div>
-          </fieldset>
-
-          {options.defaults.tanks.length > 0 ? (
+        <div className="config__body">
+          <div className="config__groups">
             <fieldset className="config__group" disabled={running}>
-              <legend className="config__legend">Резервуар</legend>
+              <legend className="config__legend">Какой прогон</legend>
               <div className="config__grid">
-                <TankField conditions={conditions} tanks={options.defaults.tanks} tank={tank}
-                  disabled={running} onChange={onChange} />
+                <Select label="Сценарий" value={conditions.scenario} disabled={running}
+                  onChange={onScenario}
+                  options={options.scenarios.map((name) => ({ value: name, label: name }))} />
+
+                <Select label="Момент решения" value={conditions.snapshot} disabled={running}
+                  onChange={(value) => onChange({ snapshot: value })}
+                  options={options.snapshots.map((item) => ({ value: item.key, label: item.title }))} />
+
+                <Select label="Отказ источника" value={conditions.fault} disabled={running}
+                  onChange={(value) => onChange({ fault: value })}
+                  options={options.faults.map((name) => ({
+                    value: name,
+                    label: FAULT_LABELS[name] ?? name
+                  }))} />
+
+                <NumberField label="Производительность" unit="т/ч" step="1"
+                  value={conditions.throughput_tph} disabled={running}
+                  onChange={(value) => onChange({ throughput_tph: value })} />
               </div>
             </fieldset>
-          ) : null}
+
+            <fieldset className="config__group" disabled={running}>
+              <legend className="config__legend">Пределы продукта</legend>
+              <div className="config__grid">
+                <NumberField label="Сера сырья" unit="% масс." step="0.01"
+                  value={conditions.crude_sulfur_wt_pct} disabled={running}
+                  onChange={(value) => onChange({ crude_sulfur_wt_pct: value })} />
+                <NumberField label="Предел серы продукта" unit="мг/кг" step="0.5"
+                  value={conditions.product_sulfur_mgkg} disabled={running}
+                  onChange={(value) => onChange({ product_sulfur_mgkg: value })} />
+                <NumberField label="Предел T95" unit="°C" step="1"
+                  value={conditions.product_t95_c} disabled={running}
+                  onChange={(value) => onChange({ product_t95_c: value })} />
+                <NumberField label="Минимум цетанового числа" step="0.5"
+                  value={conditions.product_cetane_number} disabled={running}
+                  onChange={(value) => onChange({ product_cetane_number: value })} />
+              </div>
+            </fieldset>
+
+            {options.defaults.tanks.length > 0 ? (
+              <fieldset className="config__group" disabled={running}>
+                <legend className="config__legend">Резервуар</legend>
+                <div className="config__grid">
+                  <TankField conditions={conditions} tanks={options.defaults.tanks} tank={tank}
+                    disabled={running} onChange={onChange} />
+                </div>
+              </fieldset>
+            ) : null}
+          </div>
+
+          <ConfigBrief options={options} conditions={conditions} tank={tank} />
         </div>
       )}
 

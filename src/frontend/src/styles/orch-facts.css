@@ -1,0 +1,151 @@
+.orch-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 2px var(--space-3);
+  font-size: 14px;
+}
+
+.orch-facts__row {
+  display: contents;
+}
+
+.orch-facts__label {
+  margin: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.orch-facts__value {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.orch-rank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+}
+
+.orch-rank__label {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.orch-rank__keys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  counter-reset: rankkey;
+}
+
+.orch-rank__key {
+  counter-increment: rankkey;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.orch-rank__key::before {
+  content: counter(rankkey) ". ";
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.orch-rank__key--absent {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.orch-rank__key--absent::before {
+  content: "";
+}
+
+.orch-rank__reason {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  max-width: var(--measure);
+}
+
+.orch-decision {
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.orch-decision__label {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.orch-decision__tool {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.orch-decision__text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text);
+  max-width: var(--measure);
+}
+
+.orch-decision__codes,
+.orch-decision__ids,
+.orch-decision__detail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  max-width: var(--measure);
+}
+
+.orch-raw {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.orch-raw__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  max-width: var(--measure);
+}
+
+.orch-raw__text {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+}

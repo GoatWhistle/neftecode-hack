@@ -3,7 +3,6 @@
 @import "./layout.css";
 @import "./run.css";
 @import "./config-groups.css";
-@import "./strip.css";
 @import "./rail.css";
 @import "./scroll.css";
 @import "./acts.css";
@@ -131,16 +130,9 @@ a {
 
 .masthead {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  align-items: flex-end;
-  justify-content: space-between;
+  justify-content: center;
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--line);
-}
-
-.masthead__text {
-  flex: 1 1 480px;
 }
 
 .masthead__title {
@@ -157,57 +149,6 @@ a {
   display: block;
   width: clamp(200px, 26vw, 340px);
   height: auto;
-}
-
-.masthead__sub {
-  margin: var(--space-3) 0 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.4;
-  max-width: var(--measure);
-}
-
-.masthead__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-4);
-  margin: 0;
-  align-items: flex-end;
-}
-
-.masthead__meta--verdict {
-  flex: 1 0 100%;
-}
-
-.masthead__meta dt {
-  font-size: 12px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.masthead__meta dd {
-  margin: var(--space-1) 0 0;
-  font-family: var(--font-mono);
-  font-size: 15px;
-}
-
-.masthead__meta--verdict dt {
-  color: var(--carbon);
-}
-
-.masthead__meta dd.masthead__verdict {
-  font-family: var(--font-sans);
-  font-size: clamp(18px, 1.4vw, 22px);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  max-width: 24ch;
-  text-wrap: balance;
-}
-
-.masthead__verdict--refuse {
-  color: var(--fail);
 }
 
 @media (prefers-reduced-motion: reduce) {

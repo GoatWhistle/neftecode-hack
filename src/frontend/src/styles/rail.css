@@ -27,6 +27,14 @@
   font-weight: 400;
 }
 
+.rail__item--pending:not(.rail__item--active) .rail__link {
+  color: var(--muted);
+}
+
+.rail__item--pending:not(.rail__item--active) .rail__name {
+  font-weight: 400;
+}
+
 .rail__item--done {
   --rail-ink: var(--rail-pass);
 }
@@ -43,6 +51,15 @@
 
 .rail__item--running {
   --rail-ink: var(--rail-run);
+}
+
+.rail__item--running .rail__order {
+  animation: rail-blink 1200ms steps(1, end) infinite;
+}
+
+@keyframes rail-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0.35; }
 }
 
 .rail__item--active {
@@ -141,10 +158,15 @@
   .rail--enter {
     animation: none;
   }
+
+  .rail__item--running .rail__order {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 .rail__clock {
-  margin: 0 0 var(--space-2);
+  margin: var(--space-2) 0 0;
   padding: 7px var(--space-3);
   background: var(--paper);
   border: 1px solid var(--line-soft);
@@ -183,4 +205,17 @@
   .rail__clock-value {
     font-size: 12px;
   }
+}
+
+.rail__follow {
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-nav);
+  padding: 6px var(--space-3);
+  margin: 0 0 var(--space-2);
+  cursor: pointer;
+  text-align: left;
 }

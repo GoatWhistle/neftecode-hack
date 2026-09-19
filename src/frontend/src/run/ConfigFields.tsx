@@ -1,27 +1,37 @@
+import { useId } from "react";
 import type { Conditions, TankOption } from "./options";
+import { Select } from "../ui/Select";
 
 export interface NumberFieldProps {
   label: string;
+  unit?: string;
   value: string;
   step: string;
   disabled: boolean;
   onChange: (value: string) => void;
 }
 
-export function NumberField({ label, value, step, disabled, onChange }: NumberFieldProps) {
+export function NumberField({ label, unit, value, step, disabled, onChange }: NumberFieldProps) {
+  const id = useId();
   if (value === "") {
     return (
-      <p className="config__missing">
-        <span>{label}</span>: сервер значения не передал, менять нечего.
+      <p className="ctl ctl--missing">
+        <span className="ctl__label">{label}</span>
+        <span className="ctl__absent">сервер значения не передал, менять нечего</span>
       </p>
     );
   }
   return (
-    <label className="config__field">
-      <span>{label}</span>
-      <input type="number" step={step} value={value} disabled={disabled}
-        onChange={(event) => onChange(event.target.value)} />
-    </label>
+    <div className="ctl">
+      <label className="ctl__label" htmlFor={id}>
+        {label}
+      </label>
+      <div className="ctl__wrap">
+        <input id={id} className="ctl__control ctl__control--number" type="number" step={step}
+          value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
+        {unit ? <span className="ctl__unit" aria-hidden="true">{unit}</span> : null}
+      </div>
+    </div>
   );
 }
 
@@ -47,36 +57,27 @@ export function TankField({ conditions, tanks, tank, disabled, onChange }: TankF
 
   return (
     <>
-      <label className="config__field">
-        <span>Резервуар</span>
-        <select value={conditions.tank} disabled={disabled} onChange={(event) => pick(event.target.value)}>
-          {tanks.map((item) => (
-            <option key={item.id} value={item.id}>{item.id}</option>
-          ))}
-        </select>
-      </label>
+      <Select label="Резервуар" value={conditions.tank} disabled={disabled} onChange={pick}
+        options={tanks.map((item) => ({ value: item.id, label: item.id }))} />
 
       {tank?.on_demand ? (
-        <p className="config__hint">
-          Компонент <code>{tank.id}</code> нарабатывают по необходимости: запаса на складе у него нет,
-          менять нечего.
+        <p className="ctl ctl--missing">
+          <span className="ctl__label">Запас резервуара</span>
+          <span className="ctl__absent">
+            <code>{tank.id}</code> нарабатывают по необходимости: запаса на складе нет
+          </span>
         </p>
       ) : (
-        <label className="config__field">
-          <span>Запас резервуара, т</span>
-          <input type="number" step="10" value={conditions.tank_inventory} disabled={disabled}
-            onChange={(event) => onChange({ tank_inventory: event.target.value })} />
-        </label>
+        <NumberField label="Запас резервуара" unit="т" step="10" value={conditions.tank_inventory}
+          disabled={disabled} onChange={(value) => onChange({ tank_inventory: value })} />
       )}
 
-      <label className="config__field">
-        <span>Доступность резервуара</span>
-        <select value={conditions.tank_available} disabled={disabled}
-          onChange={(event) => onChange({ tank_available: event.target.value })}>
-          <option value="1">в работе</option>
-          <option value="0">выведен</option>
-        </select>
-      </label>
+      <Select label="Доступность резервуара" value={conditions.tank_available} disabled={disabled}
+        onChange={(value) => onChange({ tank_available: value })}
+        options={[
+          { value: "1", label: "в работе" },
+          { value: "0", label: "выведен" }
+        ]} />
     </>
   );
 }

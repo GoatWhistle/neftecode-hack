@@ -46,6 +46,13 @@ export interface StageFacts {
   usable?: boolean;
   primary?: string;
   forecast?: unknown;
+  available?: boolean;
+  lookahead_hours?: number;
+  min_reaction_hours?: number;
+  hours_to_violation?: number;
+  stock_ends_at_hours?: number;
+  switched?: boolean;
+  examined?: number;
   evaluated?: number;
   rounds?: number;
   feasible?: number | boolean;
@@ -63,6 +70,7 @@ export interface RunState {
   phases: RunPhase[];
   stages: Record<string, StageState>;
   stageSource: Record<string, StageSource>;
+  stageAt: Record<string, number>;
   stageFacts: Record<string, StageFacts>;
   agentEvents: AgentEvent[];
   payload: ScreenPayload | null;
@@ -78,6 +86,7 @@ export const EMPTY_RUN: RunState = {
   phases: [],
   stages: {},
   stageSource: {},
+  stageAt: {},
   stageFacts: {},
   agentEvents: [],
   payload: null,

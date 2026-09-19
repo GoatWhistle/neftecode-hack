@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { moment } from "./format";
 import { Rail } from "./ui/Rail";
 import { useActiveStage } from "./useActiveStage";
 import { ConfigStage } from "./run/ConfigStage";
-import { RunStrip } from "./run/RunStrip";
 import { useRun } from "./run/useRun";
 import { stageStateOf } from "./run/types";
 import type { Conditions, RunOptions } from "./run/options";
@@ -23,7 +21,7 @@ export function App() {
   const [options, setOptions] = useState<RunOptions | null>(null);
   const [conditions, setConditions] = useState<Conditions>(BLANK);
   const [optionsError, setOptionsError] = useState<string | null>(null);
-  const { run, start, stop, pending, followsUser, resumeFollow } = useRun();
+  const { run, start, stop, pending } = useRun();
   const active = useActiveStage(run.status !== "idle");
   const payload = run.payload;
   useDocumentTitle(run);
@@ -94,39 +92,15 @@ export function App() {
   return (
     <div className="app">
       <header className="masthead">
-        <div className="masthead__text">
-          <h1 className="masthead__title">
-            <Logo className="masthead__logo" />
-          </h1>
-          <p className="masthead__sub">
-            Советчик оператору цепочки АВТ → гидроочистка → смешение. Путь числа от источника до
-            рекомендации: сначала условия, затем восемь этапов по мере того, как сервер их отдаёт.
-          </p>
-        </div>
-        <dl className="masthead__meta">
-          <div className="masthead__meta--verdict">
-            <dt>Вердикт</dt>
-            <dd
-              className={`masthead__verdict ${
-                payload?.decision.status === "refuse" ? "masthead__verdict--refuse" : ""
-              }`}
-            >
-              {payload ? payload.status_label : "прогона ещё не было"}
-            </dd>
-          </div>
-          <div>
-            <dt>Момент решения</dt>
-            <dd>{payload ? moment(payload.decision_time) : "—"}</dd>
-          </div>
-          <div>
-            <dt>Сценарий</dt>
-            <dd>{payload?.decision.scenario_id ?? (conditions.scenario || "—")}</dd>
-          </div>
-        </dl>
+        <h1 className="masthead__title">
+          <Logo className="masthead__logo" />
+        </h1>
       </header>
 
       <div className={`layout ${run.status === "idle" ? "layout--solo" : "layout--railed"}`}>
-        {run.status === "idle" ? null : <Rail payload={payload} active={active} run={run} onNavigate={resumeFollow} />}
+        {run.status === "idle" ? null : (
+          <Rail payload={payload} active={active} run={run} />
+        )}
         <main className="stages" aria-live="polite" aria-relevant="additions">
           <ConfigStage
             options={options}
@@ -140,7 +114,6 @@ export function App() {
             onRetry={loadOptions}
             pending={pending}
           />
-          <RunStrip run={run} followsUser={followsUser} onResumeFollow={resumeFollow} />
           {payload ? (
             <Pipeline
               payload={payload}
@@ -150,6 +123,7 @@ export function App() {
               stages={run.stages}
               stageFacts={run.stageFacts}
               elapsedMs={run.elapsedMs}
+              lastFrameAt={run.lastFrameAt}
             />
           ) : run.status === "running" || run.status === "failed" ? (
             <StageOutline
@@ -158,17 +132,12 @@ export function App() {
               factsOf={(id) => run.stageFacts[id]}
               agentEvents={run.agentEvents}
               elapsedMs={run.elapsedMs}
+              lastFrameAt={run.lastFrameAt}
             />
           ) : null}
         </main>
       </div>
 
-      <footer className="foot">
-        <p>
-          Все числа на странице взяты из payload решения без пересчёта. Пустой блок означает, что данных
-          не передавали, а не что всё в порядке.
-        </p>
-      </footer>
     </div>
   );
 }

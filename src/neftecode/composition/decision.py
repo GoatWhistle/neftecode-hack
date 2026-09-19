@@ -38,8 +38,6 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
                                               for key, value in initial_state(scenario).items()})
     emit("stage", stage="trust", sources=[source.to_dict() for source in trust.sources.values()],
          usable=trust.usable)
-    if snapshot is not None:
-        emit("stage", stage="forecast", forecast=snapshot.get("forecast"))
     factory = decision_factory or default_decision_factory()
     evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
     maker = (factory(scenario, evaluator, tank_estimate_factory=default_tank_estimate_factory,

@@ -102,3 +102,14 @@ export function moment(value: string | null): string {
 export function pretty(value: unknown): string {
   return JSON.stringify(value, null, 2) ?? "null";
 }
+
+export function duration(ms: number | undefined): string {
+  if (ms === undefined || !Number.isFinite(ms)) return "—";
+  const total = Math.max(0, ms);
+  const minutes = Math.floor(total / 60000);
+  const rest = total - minutes * 60000;
+  const seconds = Math.floor(rest / 1000);
+  const tenth = Math.floor((rest - seconds * 1000) / 100);
+  if (minutes === 0) return `${seconds},${tenth}`;
+  return `${minutes}:${String(seconds).padStart(2, "0")},${tenth}`;
+}

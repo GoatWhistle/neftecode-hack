@@ -90,6 +90,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                 budget: int = DEFAULT_BUDGET, raw_scenario: dict | None = None, initial_tanks=None,
                 current_operation: dict | None = None) -> dict:
         lookahead = None
+        emit("stage", stage="forecast", state="running")
         try:
             lookahead, selected, selected_plan_obj = self._look_ahead(
                 selected, selected_plan_obj, feasible, by_id, confirmed, initial_tanks, current_operation)
@@ -97,6 +98,14 @@ class MakeDecision(SearchMixin, LookaheadMixin):
             lookahead = {"available": False, "reason": f"Расчёт за горизонтом не выполнен: {exc}"}
         if lookahead is not None:
             trace.append({"agent": "lookahead", **{k: v for k, v in lookahead.items() if k != "alternatives"}})
+        horizon = (lookahead or {}).get("selected") or {}
+        emit("stage", stage="forecast", state="done", available=(lookahead or {}).get("available"),
+             lookahead_hours=(lookahead or {}).get("lookahead_hours"),
+             min_reaction_hours=(lookahead or {}).get("min_reaction_hours"),
+             hours_to_violation=horizon.get("hours_to_violation"),
+             stock_ends_at_hours=horizon.get("stock_ends_at_hours"),
+             switched=(lookahead or {}).get("switched"),
+             examined=(lookahead or {}).get("examined"))
 
         plan_id = selected["selected"]["candidate_id"]
         emit("stage", stage="choice", state="done", plan_id=plan_id,

@@ -1,0 +1,197 @@
+@import "./orch-facts.css";
+
+.orch {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  animation: enter-up var(--motion-reveal) var(--ease) both;
+}
+
+.orch__title {
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.orch__moves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.orch-move {
+  display: grid;
+  grid-template-columns: minmax(96px, 128px) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  align-items: start;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+.orch-move:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.orch-move__step {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.orch-move__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.orch-move__call {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.orch-move__call--unmeasured {
+  font-style: italic;
+}
+
+.orch-move__meter,
+.orch-move__origin {
+  font-variant-numeric: tabular-nums;
+}
+
+.orch-move__seq,
+.orch-tool__seq {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.orch-move__origin {
+  font-family: var(--font-mono);
+}
+
+.orch-move__other {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.orch-move__tools {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.orch-tool {
+  border-left: 2px solid var(--line);
+  padding-left: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.orch-tool--failed {
+  border-left-style: dashed;
+  border-left-color: var(--fail);
+}
+
+.orch-tool__head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.orch-tool__verb {
+  font-weight: 500;
+}
+
+.orch-tool__arg {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.orch-tool__name {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.orch-tool__question {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text);
+  max-width: var(--measure);
+}
+
+.orch-tool__quote {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.orch-tool__error {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fail);
+  overflow-wrap: anywhere;
+}
+
+.orch-tool__partial,
+.orch-tool__ids,
+.orch-tool__codes {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .orch-move {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .orch-tool__name {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orch {
+    animation-duration: 0.01ms;
+    transform: none;
+  }
+}

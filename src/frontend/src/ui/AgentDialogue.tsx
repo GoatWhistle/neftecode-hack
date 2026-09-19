@@ -4,7 +4,8 @@ import { buildActs } from "../run/agentActs";
 import { budgetRows, providerBand, spendRows, totalCalls } from "../run/agentMeters";
 import { BudgetMeter, ProviderStrip, WaitingCounter } from "./AgentMeters";
 import { ConsultCard } from "./ConsultCard";
-import { ActRow, ChoiceAgreement, FallbackPlate, GuardPlate, OverridePlate } from "./AgentBreak";
+import { ChoiceAgreement, FallbackPlate, GuardPlate, OverridePlate } from "./AgentBreak";
+import { OrchMoves } from "./OrchMove";
 import { Empty } from "./Primitives";
 
 export interface AgentDialogueProps {
@@ -13,9 +14,10 @@ export interface AgentDialogueProps {
   facts: StageFacts | undefined;
   agentic: Agentic | null;
   elapsedMs: number;
+  lastFrameAt: number | null;
 }
 
-export function AgentDialogue({ events, running, facts, agentic, elapsedMs }: AgentDialogueProps) {
+export function AgentDialogue({ events, running, facts, agentic, elapsedMs, lastFrameAt }: AgentDialogueProps) {
   const band = providerBand(facts, agentic);
   const deterministic = band?.deterministic === true;
   const acts = buildActs(events);
@@ -55,7 +57,7 @@ export function AgentDialogue({ events, running, facts, agentic, elapsedMs }: Ag
               if (act.kind === "override") return <OverridePlate key={act.key} act={act} />;
               if (act.kind === "fallback") return <FallbackPlate key={act.key} act={act} />;
               if (act.kind === "orchestrator") {
-                return <ActRow key={act.key} act={act} deterministic={deterministic} />;
+                return <OrchMoves key={act.key} act={act} deterministic={deterministic} facts={facts} band={band} />;
               }
               return null;
             })}
@@ -65,7 +67,7 @@ export function AgentDialogue({ events, running, facts, agentic, elapsedMs }: Ag
 
       {running ? null : <ChoiceAgreement overridden={overridden} />}
 
-      {running && !deterministic ? <WaitingCounter elapsedMs={elapsedMs} sinceMs={lastMs} /> : null}
+      {running && !deterministic ? <WaitingCounter elapsedMs={elapsedMs} sinceMs={lastMs} lastFrameAt={lastFrameAt} /> : null}
 
       <BudgetMeter rows={rows} total={total} spend={spend} />
     </div>

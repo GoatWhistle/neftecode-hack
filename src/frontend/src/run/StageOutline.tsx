@@ -6,7 +6,7 @@ import { outlineStateWord } from "./railStatus";
 import { AgentDialogue } from "../ui/AgentDialogue";
 
 const WAITING: Record<string, string> = {
-  forecast: "Прогноз в этом прогоне сервер отдельным событием не передавал: он раскроется вместе с полным решением.",
+  forecast: "Расчёт за горизонтом в этом прогоне не выполнялся: в сценарии не задан горизонт или запас реакции.",
   agents: "Оркестратор ещё не обращался к специалистам.",
   decision: "Решение собирается после того, как агенты закончат."
 };
@@ -17,15 +17,16 @@ export interface StageOutlineProps {
   agentEvents: AgentEvent[];
   stages: Record<string, StageState>;
   elapsedMs: number;
+  lastFrameAt: number | null;
 }
 
-export function StageOutline({ stateOf, factsOf, agentEvents, stages, elapsedMs }: StageOutlineProps) {
+export function StageOutline({ stateOf, factsOf, agentEvents, stages, elapsedMs, lastFrameAt }: StageOutlineProps) {
   const shown = visibleCount(stages);
   return (
     <>
       {STAGES.slice(0, shown).map((stage, position) => {
         const state = stateOf(stage.id);
-        const facts = factsOf(stage.id);
+        const facts = state === "pending" ? undefined : factsOf(stage.id);
         const hasLive = hasLiveFacts(stage.id, facts);
         return (
           <section
@@ -49,6 +50,7 @@ export function StageOutline({ stateOf, factsOf, agentEvents, stages, elapsedMs 
                 facts={facts}
                 agentic={null}
                 elapsedMs={elapsedMs}
+                lastFrameAt={lastFrameAt}
               />
             ) : (
               <StageLive id={stage.id} facts={facts} />

@@ -52,6 +52,40 @@ export function trustSources(facts: StageFacts | undefined): FactSource[] {
   });
 }
 
+export function forecastLines(facts: StageFacts | undefined): FactLine[] {
+  if (!facts) return [];
+  const out: FactLine[] = [];
+  if (facts.available === false) {
+    out.push({ label: "Расчёт за горизонтом", value: "не выполнялся", tone: "unknown" });
+    return out;
+  }
+  if (typeof facts.lookahead_hours === "number") {
+    out.push({ label: "Горизонт", value: `${num(facts.lookahead_hours, 0)} ч`, tone: "idle" });
+  }
+  if (typeof facts.min_reaction_hours === "number") {
+    out.push({ label: "Запас реакции", value: `${num(facts.min_reaction_hours, 0)} ч`, tone: "idle" });
+  }
+  if (typeof facts.hours_to_violation === "number") {
+    const window = typeof facts.min_reaction_hours === "number" ? facts.min_reaction_hours : null;
+    out.push({
+      label: "До нарушения",
+      value: `${num(facts.hours_to_violation, 1)} ч`,
+      tone: window !== null && facts.hours_to_violation < window ? "fail" : "pass"
+    });
+  } else if (facts.available === true) {
+    out.push({ label: "До нарушения", value: "за горизонтом не наступает", tone: "pass" });
+  }
+  if (typeof facts.stock_ends_at_hours === "number") {
+    out.push({ label: "Запас компонента кончится", value: `${num(facts.stock_ends_at_hours, 1)} ч`, tone: "unknown" });
+  }
+  if (facts.switched === true) {
+    out.push({ label: "План", value: "заменён по упреждению", tone: "fail" });
+  } else if (facts.switched === false) {
+    out.push({ label: "План", value: "оставлен прежним", tone: "pass" });
+  }
+  return out;
+}
+
 export function candidateLines(facts: StageFacts | undefined): FactLine[] {
   if (!facts) return [];
   const out: FactLine[] = [];

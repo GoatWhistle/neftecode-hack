@@ -1,9 +1,8 @@
 import type { SeverityFactors, TraceEvent } from "../types";
 import { isNumber, num } from "../format";
 import type { Lamp } from "./Primitives";
-import { LampDot, Note, Tag } from "./Primitives";
+import { LampDot, Tag } from "./Primitives";
 import { JsonPanel } from "./Json";
-import { SeverityBars } from "./SeverityBars";
 
 const TITLES: Record<string, string> = {
   data: "Агент данных",
@@ -31,7 +30,6 @@ function lampOf(event: TraceEvent): Lamp {
   if (event["usable"] === true) return "pass";
   if (event["usable"] === false) return "fail";
   if (event["fragile"] === true) return "unknown";
-  if (event.agent === "optimizer" || event.agent === "lookahead") return "idle";
   return "idle";
 }
 
@@ -67,49 +65,60 @@ export function AgentCard({ event }: { event: TraceEvent }) {
   const vetoes = (event["vetoes"] as string[] | undefined) ?? [];
   const unknown = (event["unknown"] as string[] | undefined) ?? [];
   const scope = event["scope"] as string | undefined;
+  const rows = counters(event);
+  const lamp = lampOf(event);
 
   return (
     <article className="agent">
       <header className="agent__head">
-        <h3 className="agent__name">
-          <LampDot state={lampOf(event)} />
+        <h4 className="agent__name">
+          <LampDot state={lamp} />
           {TITLES[event.agent] ?? event.agent}
-        </h3>
+        </h4>
         <p className="agent__role">{ROLES[event.agent] ?? "участник трассы"}</p>
-        <Tag tone={lampOf(event)}>{verdictText(event)}</Tag>
+        <Tag tone={lamp}>{verdictText(event)}</Tag>
       </header>
 
-      {counters(event).length > 0 ? (
-        <dl className="agent__counters">
-          {counters(event).map(([label, value]) => (
-            <div key={label} className="agent__counter">
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
+      <div className="agent__body">
+        {rows.length > 0 ? (
+          <dl className="agent__counters">
+            {rows.map(([label, value]) => (
+              <div key={label} className="agent__counter">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
 
-      {vetoes.length > 0 ? (
-        <ul className="agent__list agent__list--veto">
-          {vetoes.map((reason, index) => (
-            <li key={`${index}-${reason}`}>{reason}</li>
-          ))}
-        </ul>
-      ) : null}
+        {vetoes.length > 0 ? (
+          <ul className="agent__list agent__list--veto">
+            {vetoes.map((reason, index) => (
+              <li key={`${index}-${reason}`}>{reason}</li>
+            ))}
+          </ul>
+        ) : null}
 
-      {unknown.length > 0 ? (
-        <ul className="agent__list agent__list--unknown">
-          {unknown.map((reason, index) => (
-            <li key={`${index}-${reason}`}>{reason}</li>
-          ))}
-        </ul>
-      ) : null}
+        {unknown.length > 0 ? (
+          <ul className="agent__list agent__list--unknown">
+            {unknown.map((reason, index) => (
+              <li key={`${index}-${reason}`}>{reason}</li>
+            ))}
+          </ul>
+        ) : null}
 
-      {severity ? <SeverityBars factors={severity} /> : null}
-      {scope ? <Note>{scope}</Note> : null}
+        {severity ? (
+          <p className="agent__pointer">
+            Разложение тяжести режима вынесено под сетку: там ему хватает ширины строки.
+          </p>
+        ) : null}
 
-      <JsonPanel title={`JSON агента «${event.agent}»`} value={event} openTo={2} />
+        {scope ? <p className="agent__scope">{scope}</p> : null}
+      </div>
+
+      <div className="agent__foot">
+        <JsonPanel title={`JSON агента «${event.agent}»`} value={event} openTo={2} />
+      </div>
     </article>
   );
 }

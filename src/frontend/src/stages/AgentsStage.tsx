@@ -1,4 +1,4 @@
-import type { TraceEvent } from "../types";
+import type { SeverityFactors, TraceEvent } from "../types";
 import type { AgentEvent, StageFacts } from "../run/types";
 import { Empty, Note } from "../ui/Primitives";
 import { Section } from "../ui/Section";
@@ -8,6 +8,7 @@ import { AgenticMode } from "../ui/AgenticMode";
 import { AgentDialogue } from "../ui/AgentDialogue";
 import { Opinions } from "../ui/Opinions";
 import { AgentFinal } from "../ui/AgentFinal";
+import { SeverityBars } from "../ui/SeverityBars";
 import type { StageProps } from "./StateStage";
 
 const ORDER = ["data", "optimizer", "lookahead", "quality", "reliability", "robustness"];
@@ -20,15 +21,25 @@ function ordered(trace: TraceEvent[]): TraceEvent[] {
   });
 }
 
+function severityOf(trace: TraceEvent[]): SeverityFactors | null {
+  for (const event of trace) {
+    const factors = event["severity_factors"] as SeverityFactors | undefined;
+    if (factors) return factors;
+  }
+  return null;
+}
+
 export interface AgentsStageProps extends StageProps {
   events: AgentEvent[];
   facts: StageFacts | undefined;
   elapsedMs: number;
+  lastFrameAt: number | null;
 }
 
-export function AgentsStage({ payload, index, state, source, lamp, lampTitle, events, facts, elapsedMs }: AgentsStageProps) {
+export function AgentsStage({ payload, index, state, source, lamp, lampTitle, events, facts, elapsedMs, lastFrameAt }: AgentsStageProps) {
   const agentic = payload.decision.agentic;
   const trace = ordered(payload.decision.trace ?? []);
+  const severity = severityOf(trace);
   const running = state === "running";
 
   return (
@@ -44,23 +55,36 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ev
     >
       <AgenticMode agentic={agentic} />
 
-      <AgentDialogue events={events} running={running} facts={facts} agentic={agentic} elapsedMs={elapsedMs} />
+      <AgentDialogue events={events} running={running} facts={facts} agentic={agentic}
+        elapsedMs={elapsedMs} lastFrameAt={lastFrameAt} />
 
-      <h3 className="agents__heading">Ответы агентов</h3>
-      <Opinions agentic={agentic} />
+      <div className="agents__block">
+        <h3 className="agents__heading">Ответы агентов</h3>
+        <p className="agents__lead">
+          Каждый специалист отвечает на своём участке: вердикт, риск, уверенность, затем обоснования
+          с кодами причин.
+        </p>
+        <Opinions agentic={agentic} />
+      </div>
+
       <AgentFinal agentic={agentic} />
 
       {trace.length === 0 ? (
         <Empty>Сводная трасса участников не передавалась.</Empty>
       ) : (
-        <>
+        <div className="agents__block">
           <h3 className="agents__heading">Сводка по участникам</h3>
+          <p className="agents__lead">
+            Шесть участников трассы: что каждый проверил и чем закончил. Карточки одного размера,
+            длинные разборы вынесены под сетку.
+          </p>
           <div className="agents">
             {trace.map((event) => (
               <AgentCard key={event.agent} event={event} />
             ))}
           </div>
-        </>
+          {severity ? <SeverityBars factors={severity} /> : null}
+        </div>
       )}
 
       <Note>

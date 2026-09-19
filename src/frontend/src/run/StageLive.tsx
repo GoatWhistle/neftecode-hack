@@ -3,6 +3,7 @@ import type { FactLine, FactSource } from "./stageFacts";
 import {
   candidateLines,
   choiceLines,
+  forecastLines,
   gateLines,
   inventoryLines,
   trustSources,
@@ -42,6 +43,7 @@ export function hasLiveFacts(id: string, facts: StageFacts | undefined): boolean
   if (id === "state") return inventoryLines(facts).length > 0;
   if (id === "trust") return trustSources(facts).length > 0 || trustVerdict(facts).length > 0;
   if (id === "candidates") return candidateLines(facts).length > 0;
+  if (id === "forecast") return forecastLines(facts).length > 0;
   if (id === "gate") return gateLines(facts).length > 0;
   if (id === "choice") return choiceLines(facts).length > 0;
   return false;
@@ -83,6 +85,17 @@ export function StageLive({ id, facts }: StageLiveProps) {
     return (
       <div className="live">
         <p className="live__caption">Счётчики перебора, отметка сервера</p>
+        <FactGrid lines={lines} />
+      </div>
+    );
+  }
+
+  if (id === "forecast") {
+    const lines = forecastLines(facts);
+    if (lines.length === 0) return null;
+    return (
+      <div className="live">
+        <p className="live__caption">Расчёт за горизонтом, отметка сервера</p>
         <FactGrid lines={lines} />
       </div>
     );

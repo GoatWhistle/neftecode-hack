@@ -1,6 +1,5 @@
 import { isNumber, num, termLabel } from "../format";
 import type { SeverityFactors } from "../types";
-import { Note } from "./Primitives";
 
 interface Part {
   key: string;
@@ -25,6 +24,36 @@ function parts(factors: SeverityFactors): Part[] {
   });
 }
 
+function Row({ part, widest }: { part: Part; widest: number }) {
+  const zero = part.product === 0;
+  const width = widest === 0 ? 0 : (Math.abs(part.product) / widest) * 100;
+  return (
+    <li className={`severity__row${zero ? " severity__row--zero" : ""}`}>
+      <span className="severity__name">{part.label}</span>
+      <span className="severity__bar">
+        {zero ? (
+          <span className="severity__nil">ноль, полосы нет</span>
+        ) : (
+          <span className="severity__track">
+            <span className="severity__fill" style={{ width: `${width}%` }} />
+          </span>
+        )}
+      </span>
+      <span className="severity__value">
+        <span className="severity__factor">
+          <i>превышение</i> {num(part.term, 3)}
+        </span>
+        <span className="severity__factor">
+          <i>вес</i> {num(part.weight, 2)}
+        </span>
+        <span className="severity__factor severity__factor--product">
+          <i>слагаемое</i> <b>{num(part.product, 3)}</b>
+        </span>
+      </span>
+    </li>
+  );
+}
+
 export interface SeverityBarsProps {
   factors: SeverityFactors;
 }
@@ -40,55 +69,54 @@ export function SeverityBars({ factors }: SeverityBarsProps) {
 
   return (
     <div className="severity">
-      <p className="severity__head">
-        Из чего собрана тяжесть режима: {num(factors.index, 3)}
-      </p>
+      <div className="severity__top">
+        <h4 className="severity__head">Из чего собрана тяжесть режима</h4>
+        <p className="severity__index">
+          <span className="severity__index-value">{num(factors.index, 3)}</span>
+          <span className="severity__index-word">
+            {allZero ? "режим не превышает опорных значений" : "сумма слагаемых с их весами"}
+          </span>
+        </p>
+      </div>
+
       <ul className="severity__list">
         {list.map((part) => (
-          <li key={part.key} className="severity__row">
-            <span className="severity__name">{part.label}</span>
-            <span className="severity__bar">
-              <span className="severity__track">
-                <span
-                  className="severity__fill"
-                  style={{ width: allZero ? "0%" : `${(Math.abs(part.product) / widest) * 100}%` }}
-                />
-              </span>
-            </span>
-            <span className="severity__value">
-              {num(part.term, 3)} × {num(part.weight, 2)} = <b>{num(part.product, 3)}</b>
-            </span>
-          </li>
+          <Row key={part.key} part={part} widest={widest} />
         ))}
       </ul>
-      {allZero ? (
-        <p className="severity__zero">
-          Оба слагаемых нулевые, и сумма их весов ничего не прибавляет: индекс равен{" "}
-          {num(factors.index, 3)}. Режим не превышает опорных значений ни по температуре, ни по расходу,
-          поэтому полосы имеют нулевую длину. Это и есть результат расчёта: минимальной видимой длины
-          полосам здесь не выдано, иначе ноль выглядел бы как небольшая величина.
+
+      <div className="severity__prose">
+        {allZero ? (
+          <p className="severity__zero">
+            Оба слагаемых нулевые, и веса ничего не прибавляют: индекс равен {num(factors.index, 3)}.
+            Ни по температуре, ни по расходу режим не выходит за опорные значения. Полосы нулевой длины
+            не нарисованы вовсе: минимальной видимой длины нулю здесь не выдано, иначе ноль читался бы
+            как небольшая величина.
+          </p>
+        ) : (
+          <p className="severity__foot">
+            Длина полосы — это превышение, умноженное на свой вес; общая шкала здесь законна, потому что
+            обе величины безразмерны и складываются в индекс.
+            {matches
+              ? ` Их сумма ${num(sum, 3)} и есть показанный индекс.`
+              : ` Их сумма — ${num(sum, 3)}, и с показанным индексом она не сходится: расхождение считает сервер, здесь оно не сглажено.`}
+          </p>
+        )}
+        <p className="severity__refs">
+          Опорная температура <b>{num(factors.reference_temp_c, 1)} °C</b>, опорный расход{" "}
+          <b>{num(factors.reference_flow_m3h, 1)} м³/ч</b>
+          {factors.control_range_c ? (
+            <>
+              , диапазон уставки{" "}
+              <b>
+                {num(factors.control_range_c[0], 0)}–{num(factors.control_range_c[1], 0)} °C
+              </b>
+            </>
+          ) : null}
+          .
         </p>
-      ) : (
-        <p className="severity__foot">
-          Длина полосы — это слагаемое, умноженное на свой вес; общая шкала здесь законна, потому что обе
-          величины безразмерны и складываются в индекс.
-          {matches ? ` Их сумма ${num(sum, 3)} и есть показанный индекс.` : ` Их сумма — ${num(sum, 3)}, и с показанным индексом она не сходится: расхождение считает сервер, здесь оно не сглажено.`}
-        </p>
-      )}
-      <p className="severity__refs">
-        Опорная температура <b>{num(factors.reference_temp_c, 1)} °C</b>, опорный расход{" "}
-        <b>{num(factors.reference_flow_m3h, 1)} м³/ч</b>
-        {factors.control_range_c ? (
-          <>
-            , диапазон уставки{" "}
-            <b>
-              {num(factors.control_range_c[0], 0)}–{num(factors.control_range_c[1], 0)} °C
-            </b>
-          </>
-        ) : null}
-        .
-      </p>
-      {factors.scope ? <Note>{factors.scope}</Note> : null}
+        {factors.scope ? <p className="severity__scope">{factors.scope}</p> : null}
+      </div>
     </div>
   );
 }
