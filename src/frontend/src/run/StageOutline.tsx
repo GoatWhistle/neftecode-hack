@@ -2,14 +2,8 @@ import { visibleCount } from "./sequence";
 import { STAGES } from "../stages";
 import type { AgentEvent, StageFacts, StageState } from "./types";
 import { hasLiveFacts, StageLive } from "./StageLive";
+import { outlineStateWord } from "./railStatus";
 import { AgentDialogue } from "../ui/AgentDialogue";
-
-const STATE_TEXT: Record<StageState, string> = {
-  pending: "ожидает",
-  running: "идёт",
-  done: "готово",
-  failed: "отказ"
-};
 
 const WAITING: Record<string, string> = {
   forecast: "Прогноз в этом прогоне сервер отдельным событием не передавал: он раскроется вместе с полным решением.",
@@ -44,7 +38,9 @@ export function StageOutline({ stateOf, factsOf, agentEvents, stages, elapsedMs 
             <header className="stage__head stage__head--outline">
               <span className="stage__step">{position + 1}</span>
               <h2 className="stage__title">{stage.label}</h2>
-              <span className={`stage__state stage__state--${state}`}>{STATE_TEXT[state]}</span>
+              <span className={`stage__state stage__state--${state}`}>
+                {outlineStateWord(stage.id, state, facts, agentEvents.length)}
+              </span>
             </header>
             {stage.id === "agents" && state !== "pending" ? (
               <AgentDialogue

@@ -1,11 +1,11 @@
 import type { CheckStatus, GateCheck } from "../types";
 import { familyOf, isNumber, num } from "../format";
 
-const CELL = 20;
-const ROW = 17;
+const CELL = 24;
+const ROW = 21;
 const LABEL_MIN = 120;
-const LABEL_MAX = 300;
-const LABEL_CHAR = 5.4;
+const LABEL_MAX = 360;
+const LABEL_CHAR = 6.6;
 const LABEL_PAD = 18;
 const HEAD = 26;
 const OUTSIDE_GAP = 14;
@@ -91,7 +91,8 @@ export function GateMatrix({ checks }: GateMatrixProps) {
   let previous = "";
   return (
     <figure className="matrix">
-      <svg viewBox={`0 0 ${width} ${height}`} className="matrix__svg" role="img"
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height}
+        className="matrix__svg" role="img"
         aria-label={`Матрица проверок Gate: ${rows.length} ограничений на ${times.length} моментов времени`}>
         <defs>
           <pattern id="matrix-unknown" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
