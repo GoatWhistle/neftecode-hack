@@ -11,8 +11,52 @@ from neftecode.services.data_service import DataService
 from neftecode.services.model_service import ModelService
 from neftecode.services.decision_service import DecisionService
 from neftecode.infrastructure.live.advisor import load_response_model
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 
 ROOT = Path(__file__).parents[2]
+
+
+def test_http_decision_without_budget_uses_the_product_default():
+    from neftecode.services.common import Request
+
+    class CapturingDecisionService(DecisionService):
+        def _decision(self, raw, state, budget, trust_cfg=None, trust_origin=None, snapshot=None):
+            return {"budget": budget}
+
+    result = CapturingDecisionService().decide(Request("POST", "/v1/decisions", {}, {
+        "scenario": {}, "state": {},
+    }))
+    assert result == {"budget": DEFAULT_BUDGET}
+
+
+def test_decision_service_main_uses_the_normalized_default_root(monkeypatch):
+    from neftecode.services import decision_service as module
+
+    seen = {}
+    monkeypatch.delenv("NEFTECODE_ROOT", raising=False)
+    monkeypatch.setattr(module, "build_decision_factory",
+                        lambda dotenv_path: seen.setdefault("dotenv_path", dotenv_path))
+    monkeypatch.setattr(module, "load_response_model",
+                        lambda root, out: seen.update(model_root=root, model_artifacts=out))
+    monkeypatch.setattr(module, "serve", lambda *args: 0)
+
+    assert module.main([]) == 0
+    assert seen == {"dotenv_path": Path(".env"), "model_root": Path("."),
+                    "model_artifacts": Path("artifacts")}
+
+
+def test_decision_service_main_honours_a_separate_artifacts_directory(monkeypatch, tmp_path):
+    from neftecode.services import decision_service as module
+
+    root, artifacts = tmp_path / "project", tmp_path / "models"
+    seen = {}
+    monkeypatch.setattr(module, "build_decision_factory", lambda **kwargs: None)
+    monkeypatch.setattr(module, "load_response_model",
+                        lambda model_root, out: seen.update(root=model_root, artifacts=out))
+    monkeypatch.setattr(module, "serve", lambda *args: 0)
+
+    assert module.main(["--root", str(root), "--artifacts", str(artifacts)]) == 0
+    assert seen == {"root": root, "artifacts": artifacts}
 
 
 def start(service, name):
