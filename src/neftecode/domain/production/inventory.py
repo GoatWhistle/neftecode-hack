@@ -70,6 +70,10 @@ def draw_step(tanks: dict[str, TankState], recipe: dict[str, float], throughput_
             reasons.append(f"{tank_id}: требуется {mass:.2f} т, в наличии {tank.inventory_t:.2f} т")
             continue
         if tank.on_demand:
+            if mass > 1e-12 and tank.elapsed_hours < tank.production_lead_time_hours - 1e-9:
+                reasons.append(f"{tank_id}: отбор до готовности невозможен — сейчас {tank.elapsed_hours:g} ч, "
+                               f"подготовка {tank.production_lead_time_hours:g} ч")
+                continue
             until = tank.elapsed_hours + hours
             makeable = tank.makeable_by(until)
             wanted = tank.produced_t + mass

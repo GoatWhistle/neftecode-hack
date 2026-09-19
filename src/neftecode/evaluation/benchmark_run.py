@@ -64,7 +64,7 @@ class Benchmark:
                                                  operation.throughput.value),), 0,
                              "сохранение режима без изменений")
 
-    def threshold_plan(self) -> PlanCandidate:
+    def threshold_plan(self) -> PlanCandidate | None:
         planner = PlanOperation(self.scenario)
         operation = self.scenario.current_operation
         tanks = [t.tank_id for t in self.scenario.available_tanks()]
@@ -86,7 +86,7 @@ class Benchmark:
                 continue
             if evaluation.feasible:
                 return plan
-        return plan
+        return None
 
     def _advisor(self, raw: dict, transition: bool = True) -> tuple:
         if self.scenario_parser is None:
@@ -125,6 +125,10 @@ class Benchmark:
         results: dict[str, dict] = {}
 
         for name, plan in ((HOLD, self.hold_plan()), (THRESHOLD, self.threshold_plan())):
+            if plan is None:
+                results[name] = {"refused": True,
+                                 "reason": "Пороговое правило не нашло допустимого варианта"}
+                continue
             try:
                 evaluation = planner.evaluate(plan)
             except ValueError as exc:

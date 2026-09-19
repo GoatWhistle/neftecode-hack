@@ -91,11 +91,12 @@ def test_the_advisor_pays_for_compliance_with_production(report):
     assert hard[ADVISOR]["cost_per_tonne"] > hard[HOLD]["cost_per_tonne"]
 
 
-def test_where_nothing_is_feasible_the_advisor_refuses_and_the_simple_rules_violate(report):
+def test_where_nothing_is_feasible_the_advisor_and_threshold_refuse(report):
     impossible = strategies(report, "no_feasible")
     assert impossible[ADVISOR].get("refused") is True
     assert impossible[HOLD]["feasible"] is False
-    assert impossible[THRESHOLD]["feasible"] is False
+    assert impossible[THRESHOLD].get("refused") is True
+    assert impossible[THRESHOLD]["reason"] == "Пороговое правило не нашло допустимого варианта"
 
 
 def test_a_refusal_where_nothing_is_feasible_counts_as_a_correct_answer(report):
