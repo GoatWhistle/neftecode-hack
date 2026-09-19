@@ -158,7 +158,7 @@ class DataRejection:
 class DecisionCommand:
     state: Mapping[str, object] | None = None
     confirmed: Sequence[tuple[float, Mapping[str, float]]] = ()
-    budget: int = 600
+    budget: int = DEFAULT_BUDGET
     trust_cfg: Mapping[str, object] | None = None
     raw_scenario: Mapping[str, object] | None = None
     initial_tanks: Mapping[str, TankState] | None = None
@@ -169,7 +169,7 @@ class DecisionCommand:
 @dataclass(frozen=True)
 class PlanningCommand:
     confirmed: Sequence[tuple[float, Mapping[str, float]]] = ()
-    budget: int = 120
+    budget: int = DEFAULT_BUDGET
 
 
 @dataclass(frozen=True)

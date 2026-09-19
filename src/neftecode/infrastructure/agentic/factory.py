@@ -23,11 +23,14 @@ class DecisionFactory:
     configuration_error: str | None = None
     provider_description: dict = field(default_factory=dict)
 
-    def __call__(self, scenario, robustness_evaluator=None, live_context: dict | None = None):
+    def __call__(self, scenario, robustness_evaluator=None, live_context: dict | None = None,
+                tank_estimate_factory=None, scenario_parser=None):
         if not self.enabled:
-            return MakeDecision(scenario, robustness_evaluator=robustness_evaluator)
+            return MakeDecision(scenario, robustness_evaluator=robustness_evaluator,
+                                tank_estimate_factory=tank_estimate_factory, scenario_parser=scenario_parser)
         return AgenticMakeDecision(scenario, self.llm, settings=self.settings,
                                    robustness_evaluator=robustness_evaluator,
+                                   tank_estimate_factory=tank_estimate_factory, scenario_parser=scenario_parser,
                                    response_effect=DataResponseEffect(), live_context=live_context,
                                    configuration_error=self.configuration_error,
                                    provider_description=self.provider_description or None)

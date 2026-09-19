@@ -18,6 +18,8 @@ from neftecode.application.use_cases.get_live_advice import binding_summary, dec
 from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder, load_response_model
 from neftecode.infrastructure.live.snapshots import bind_snapshot
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, serve, clean
 
 
@@ -105,10 +107,15 @@ class DecisionService:
         if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
             raise ServiceError("budget должен быть положительным целым", 422, "invalid_budget")
         evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
-        maker = (MakeDecision(scenario, robustness_evaluator=evaluator) if self.decision_factory is None
-                 else self.decision_factory(scenario, evaluator) if snapshot is None
+        maker = (MakeDecision(scenario, robustness_evaluator=evaluator,
+                              tank_estimate_factory=default_tank_estimate_factory, scenario_parser=parse_scenario)
+                 if self.decision_factory is None
+                 else self.decision_factory(scenario, evaluator, tank_estimate_factory=default_tank_estimate_factory,
+                                            scenario_parser=parse_scenario) if snapshot is None
                  else self.decision_factory(scenario, evaluator,
-                                            decision_context(snapshot.get("at"), snapshot.get("forecast"), raw)))
+                                            decision_context(snapshot.get("at"), snapshot.get("forecast"), raw),
+                                            tank_estimate_factory=default_tank_estimate_factory,
+                                            scenario_parser=parse_scenario))
         decision = maker.decide(state=state or {}, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
         trust = DataTrustAgent(trust_cfg).assess(state or {})
         return {"decision": clean(decision), "explanation": clean(explain(decision, scenario, state)),
@@ -132,14 +139,14 @@ class DecisionService:
         snapshot = body.get("snapshot")
         if snapshot is not None and (not isinstance(snapshot, dict) or not isinstance(snapshot.get("forecast"), dict)):
             raise ServiceError("snapshot должен быть JSON-объектом среза с полем forecast", 400, "invalid_snapshot")
-        return self._decision(raw, state, body.get("budget", 400), trust_cfg, trust_origin, snapshot)
+        return self._decision(raw, state, body.get("budget", DEFAULT_BUDGET), trust_cfg, trust_origin, snapshot)
 
     def live(self, request: Request):
         body = self._body(request)
         at, scenario_id = body.get("at"), body.get("scenario_id")
         if not isinstance(at, str) or not at.strip() or not isinstance(scenario_id, str) or not scenario_id:
             raise ServiceError("Нужны at и scenario_id", 400, "invalid_live_request")
-        budget = body.get("budget", 400)
+        budget = body.get("budget", DEFAULT_BUDGET)
         headers = {"X-Request-ID": request.request_id or "unknown"}
         advice = GetLiveAdvice(
             scenarios=HTTPScenarioProvider(self.client, self.data_url, headers),
@@ -148,6 +155,8 @@ class DecisionService:
             binder=LocalForecastScenarioBinder(self.response_model),
             robustness_factory=lambda scenario, raw: RobustnessCheck(scenario, raw, scenario_parser=parse_scenario),
             decision_factory=self.decision_factory,
+            tank_estimate_factory=default_tank_estimate_factory,
+            scenario_parser=parse_scenario,
         )
         if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
             raise ServiceError("budget должен быть положительным целым", 422, "invalid_budget")
@@ -181,8 +190,10 @@ def main(argv=None):
     parser.add_argument("--host", default=None); parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--data-url", default=None); parser.add_argument("--model-url", default=None)
     parser.add_argument("--root", type=Path, default=None, help="Корень проекта с artifacts/response_model.json")
+    parser.add_argument("--artifacts", type=Path, default=None, help="Каталог артефактов (response_model.json)")
     args = parser.parse_args(argv)
     root = Path(args.root or os.getenv("NEFTECODE_ROOT", "."))
+    artifacts = args.artifacts if args.artifacts is not None else root / "artifacts"
     env = ServiceSettings.from_env("NEFTECODE_DECISION_", ServiceSettings(port=8768))
     settings = ServiceSettings(host=args.host or env.host, port=args.port or env.port,
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
@@ -190,8 +201,8 @@ def main(argv=None):
                                 max_response_bytes=env.max_response_bytes)
     service = DecisionService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                               args.model_url or os.getenv("NEFTECODE_MODEL_URL", "http://127.0.0.1:8767"),
-                              settings.request_timeout_s, decision_factory=build_decision_factory(dotenv_path=args.root / ".env"),
-                              response_model=load_response_model(root))
+                              settings.request_timeout_s, decision_factory=build_decision_factory(dotenv_path=root / ".env"),
+                              response_model=load_response_model(root, artifacts))
     return serve(service.routes(), settings, service.ready, "decision-service")
 
 

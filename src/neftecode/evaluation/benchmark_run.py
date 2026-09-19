@@ -7,6 +7,7 @@ from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCa
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.domain.production.scenario import Scenario
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 
 
 HOLD = "hold"
@@ -96,6 +97,8 @@ class Benchmark:
             robustness_evaluator=RobustnessCheck(
                 scenario, raw, scenario_parser=self.scenario_parser
             ),
+            scenario_parser=self.scenario_parser,
+            tank_estimate_factory=default_tank_estimate_factory,
         )
         if not transition:
             planner = orchestrator.planner

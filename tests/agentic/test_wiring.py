@@ -172,9 +172,9 @@ def test_live_use_case_passes_forecast_context_to_the_factory():
         def bind(self, raw_document, forecast, snapshot=None):
             return scenario, raw_document
 
-    def factory(current, evaluator, context):
+    def factory(current, evaluator, context, **kwargs):
         seen.update(context)
-        return MakeDecision(current, robustness_evaluator=evaluator)
+        return MakeDecision(current, robustness_evaluator=evaluator, **kwargs)
 
     result = GetLiveAdvice(Scenarios(), Snapshots(), Forecasts(), Binder(), decision_factory=factory).execute(
         LiveAdviceCommand(at="2026-01-05T08:00:00", scenario_id="baseline"))

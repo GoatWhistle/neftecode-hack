@@ -9,6 +9,7 @@ from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.advisory.entities import CheckResult, GateResult
 from neftecode.domain.shared.primitives import FAIL, HOLD, RECOMMEND_SCENARIO, REFUSE
 from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 from neftecode.infrastructure.config.scenario import parse_scenario
 
 SCENARIOS = Path("config/scenarios")
@@ -32,7 +33,9 @@ def raw(name: str) -> dict:
 def decision_maker(document: dict) -> MakeDecision:
     scenario = parse_scenario(document)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(scenario, document,
-                                                                       scenario_parser=parse_scenario))
+                                                                       scenario_parser=parse_scenario),
+                        scenario_parser=parse_scenario,
+                        tank_estimate_factory=default_tank_estimate_factory)
 
 
 def decide(name: str, **kwargs) -> dict:

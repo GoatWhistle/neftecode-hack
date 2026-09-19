@@ -4,6 +4,7 @@ import time
 
 from neftecode.application.contracts import DecisionCommand
 from neftecode.application.ports import LLMClient, ResponseEffectProvider, RobustnessEvaluator
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlannerError
 from neftecode.domain.production.scenario import Scenario
@@ -32,6 +33,8 @@ class AgenticMakeDecision:
     llm: LLMClient | None
     settings: AgentSettings = field(default_factory=AgentSettings)
     robustness_evaluator: RobustnessEvaluator | None = None
+    tank_estimate_factory: Callable | None = None
+    scenario_parser: Callable | None = None
     response_effect: ResponseEffectProvider | None = None
     live_context: dict | None = None
     configuration_error: str | None = None
@@ -41,7 +44,9 @@ class AgenticMakeDecision:
     maker: MakeDecision = field(init=False)
 
     def __post_init__(self):
-        self.maker = MakeDecision(self.scenario, robustness_evaluator=self.robustness_evaluator)
+        self.maker = MakeDecision(self.scenario, robustness_evaluator=self.robustness_evaluator,
+                                  tank_estimate_factory=self.tank_estimate_factory,
+                                  scenario_parser=self.scenario_parser)
         self.planner = self.maker.planner
 
     def execute(self, command: DecisionCommand) -> dict:
@@ -53,7 +58,8 @@ class AgenticMakeDecision:
                            initial_tanks=command.initial_tanks, current_operation=command.current_operation,
                            data_rejection=command.data_rejection)
 
-    def decide(self, state: dict | None = None, confirmed=(), budget: int = 600, trust_cfg: dict | None = None,
+    def decide(self, state: dict | None = None, confirmed=(), budget: int = DEFAULT_BUDGET,
+               trust_cfg: dict | None = None,
                raw_scenario: dict | None = None, initial_tanks=None, current_operation: dict | None = None,
                data_rejection=None) -> dict:
         request = dict(state=state, confirmed=confirmed, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw_scenario,

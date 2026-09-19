@@ -24,6 +24,8 @@ class GetLiveAdvice:
     binder: ForecastScenarioBinder
     robustness_factory: RobustnessFactory | None = None
     decision_factory: DecisionFactory | None = None
+    tank_estimate_factory: Callable | None = None
+    scenario_parser: Callable | None = None
 
     def execute(self, command: LiveAdviceCommand) -> LiveAdviceResult:
         if not isinstance(command, LiveAdviceCommand):
@@ -82,11 +84,15 @@ class GetLiveAdvice:
         evaluator = (self.robustness_factory(scenario, raw)
                      if self.robustness_factory and rejection is None else None)
         if self.decision_factory is None:
-            maker = MakeDecision(scenario, robustness_evaluator=evaluator)
+            maker = MakeDecision(scenario, robustness_evaluator=evaluator,
+                                 tank_estimate_factory=self.tank_estimate_factory,
+                                 scenario_parser=self.scenario_parser)
         else:
             context = decision_context(snapshot.at, forecast.to_dict() if forecast is not None else None,
                                        raw if rejection is None else None)
-            maker = self.decision_factory(scenario, evaluator, context)
+            maker = self.decision_factory(scenario, evaluator, context,
+                                          tank_estimate_factory=self.tank_estimate_factory,
+                                          scenario_parser=self.scenario_parser)
         return maker.decide(
             state=dict(snapshot.state), trust_cfg=dict(snapshot.trust_cfg or {}), budget=budget, raw_scenario=dict(raw), data_rejection=rejection)
 

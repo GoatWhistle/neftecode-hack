@@ -20,6 +20,7 @@ class SearchMixin:
         seen_content: set[str] = set()
         feasible, by_id = [], {}
         examined, examined_by_id = [], {}
+        computation_errors: list[dict] = []
         for round_number in range(1, self.max_rounds + 1):
             remaining = budget - evaluated_total
             if remaining <= 0:
@@ -52,16 +53,23 @@ class SearchMixin:
                     evaluation = self._evaluate_plan(
                         plan, confirmed, initial_tanks, current_operation
                     )
-                except (PlannerError, ValueError):
+                except (PlannerError, ValueError) as exc:
+                    computation_errors.append({"round": round_number, "plan_id": plan.plan_id,
+                                               "error": str(exc)})
                     continue
                 evaluations.append(evaluation)
                 by_id[plan.plan_id] = plan
                 examined.append(evaluation)
                 examined_by_id[plan.plan_id] = plan
             if not evaluations:
+                round_errors = [e for e in computation_errors if e["round"] == round_number]
+                if search_plans and round_errors:
+                    note = "Все кандидаты раунда упали с технической ошибкой вычисления"
+                else:
+                    note = "После запретов кандидатов не осталось"
                 rounds.append({"round": round_number, "proposed": 0, "feasible": 0,
                                "candidate_ids": [p.plan_id for p in search_plans[:20]],
-                               "note": "После запретов кандидатов не осталось"})
+                               "note": note})
                 break
 
             reviews_by_id = {e.candidate.candidate_id: self._review(e) for e in evaluations}
@@ -91,7 +99,7 @@ class SearchMixin:
         return SearchOutcome(selected=selected, selected_plan=selected_plan_obj, feasible=feasible, by_id=by_id,
                              rounds=rounds, evaluated=evaluated_total, last_result=last_result,
                              examined=examined, examined_by_id=examined_by_id, seen_content=seen_content,
-                             forbidden=frozenset(forbidden))
+                             forbidden=frozenset(forbidden), computation_errors=computation_errors)
 
     @staticmethod
     def _sample_plans(plans, count):

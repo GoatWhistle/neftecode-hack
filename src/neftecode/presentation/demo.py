@@ -101,7 +101,7 @@ class Demo:
     response_model: dict | None = None
 
     @classmethod
-    def from_path(cls, path, runner: DemoRunner, trust_cfg: dict, budget: int = 400,
+    def from_path(cls, path, runner: DemoRunner, trust_cfg: dict, budget: int = DEFAULT_BUDGET,
                   trust_origin: str | None = None, snapshots: list | None = None,
                   response_model: dict | None = None) -> "Demo":
         return cls(json.loads(Path(path).read_text(encoding="utf-8")), runner, trust_cfg, budget, trust_origin,

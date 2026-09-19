@@ -246,6 +246,37 @@ def test_the_final_plan_is_reviewed_again_by_both_agents():
 
 
 
+def test_all_candidates_failing_computation_is_reported_as_computation_error_not_no_feasible_plan():
+    o = orchestrator(SOUR)
+
+    def always_broken(plan, confirmed=(), initial_tanks=None, current_operation=None):
+        raise ValueError("расчёт кандидата сломан")
+
+    o.planner.evaluate = always_broken
+    decision = o.decide(budget=BUDGET)
+    assert decision["status"] == REFUSE
+    assert decision["refusal"]["kind"] == "computation_error"
+    assert decision["refusal"]["examples"]
+    assert "расчёт кандидата сломан" in decision["refusal"]["examples"][0]
+
+
+def test_partial_computation_failures_do_not_block_a_normal_decision():
+    o = orchestrator(SOUR)
+    original = o.planner.evaluate
+    calls = {"n": 0}
+
+    def fail_first_then_ok(plan, confirmed=(), initial_tanks=None, current_operation=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ValueError("первый кандидат сломан")
+        return original(plan, confirmed=confirmed, initial_tanks=initial_tanks,
+                        current_operation=current_operation)
+
+    o.planner.evaluate = fail_first_then_ok
+    decision = o.decide(budget=BUDGET)
+    assert decision["status"] != REFUSE or decision.get("refusal", {}).get("kind") != "computation_error"
+
+
 def test_an_optimizer_failure_raises_instead_of_returning_a_decision():
     o = orchestrator()
 

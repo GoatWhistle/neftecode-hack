@@ -1,7 +1,28 @@
 # Состояние проекта
 
-Обновлено: 2026-09-18. Текущая ветка `main`; пул готовности демо влит. Последующее состояние — ниже.
+Обновлено: 2026-09-19. Текущая ветка `main`; пул готовности демо влит. Последующее состояние — ниже.
 История этапов и их прежних результатов — backlog.md.
+
+## Исправления бэкенда decision-движка по код-ревью (2026-09-19)
+
+По просьбе пользователя устранены 4 из 6 подтверждённых дефектов кода (ревью — вставленный текст в сессии,
+план — `/Users/kaifarikman/.claude/plans/pasted-content-id-4ac9-wondrous-tide.md`):
+1. Унифицирован дефолт бюджета поиска (`DEFAULT_BUDGET=1200` из `domain/advisory/optimizer.py`) во всех точках
+   входа — было 4 разных литерала (600/400/120 плюс дублирующие дефолты в `contracts.py`/`presentation/demo.py`),
+   которые давали разный выбранный план на одном и том же запросе.
+2. `SearchMixin._search()` больше не маскирует техническую ошибку вычисления кандидата под «нет допустимого
+   плана»: `SearchOutcome.computation_errors` копит причины, `MakeDecision.decide()` возвращает отдельный
+   `kind: "computation_error"` с реальными сообщениями, если ни один кандидат физически не проверился.
+3. Убран `getattr(self.robustness_evaluator, "scenario_parser"/"tank_estimate_factory", None)` в
+   `make_decision.py` — зависимости теперь явные поля `MakeDecision`, прокинуты через всю цепочку
+   (`AgenticMakeDecision`, `DecisionFactory`, `GetLiveAdvice`, `ReplayDecisions`, листовые вызовы в
+   `composition/`, `evaluation/benchmark_run.py`, `services/decision_service.py`).
+5. `services/decision_service.py`: исправлен баг `args.root / ".env"` (падал `TypeError` без `--root`,
+   должен был использовать уже нормализованный `root`); добавлен `--artifacts` флаг симметрично остальным
+   сервисам, проброшен в `stack.py`.
+Пункт 4 (миксины `SearchMixin`/`LookaheadMixin` с неявными кросс-зависимостями через `self`) и пункт 6
+(типизация `DecisionResult`) сознательно отложены по решению пользователя — не рефакторить сверх заказанного.
+Полный прогон: **1308 passed**, регрессий нет. Push не выполнялся.
 
 ## Оценка решения по ТЗ 18.09
 

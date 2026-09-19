@@ -32,3 +32,4 @@ class SearchOutcome:
     examined_by_id: dict = field(default_factory=dict)
     seen_content: set[str] = field(default_factory=set)
     forbidden: frozenset[str] = frozenset()
+    computation_errors: list[dict] = field(default_factory=list)

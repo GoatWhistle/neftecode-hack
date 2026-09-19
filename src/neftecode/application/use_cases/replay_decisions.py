@@ -23,9 +23,13 @@ class ReplayDecisions:
     budget: int = DEFAULT_BUDGET
     orchestrator: MakeDecision = field(init=False)
     robustness_evaluator: RobustnessEvaluator | None = None
+    tank_estimate_factory: object | None = None
+    scenario_parser: object | None = None
 
     def __post_init__(self):
-        self.orchestrator = MakeDecision(self.scenario, robustness_evaluator=self.robustness_evaluator)
+        self.orchestrator = MakeDecision(self.scenario, robustness_evaluator=self.robustness_evaluator,
+                                         tank_estimate_factory=self.tank_estimate_factory,
+                                         scenario_parser=self.scenario_parser)
 
     def step(self, mode: str, state: dict | None = None, execution: ExecutionState | None = None,
              future_truth: dict | None = None) -> dict:
