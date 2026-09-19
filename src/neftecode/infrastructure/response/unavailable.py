@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-REASON = ("Модель отклика серы на температуру ГО (RESPONSE_MODEL_FINAL.md v3) не встроена: она построена на T11 "
+REASON = ("Модель отклика серы на температуру ГО (T11-версия) не встроена: она построена на T11 "
           "как температуре входа реактора и F26 как расходе сырья, а официальный справочник 16.09 называет T11 "
           "температурой на выходе Р-202, F26 — расходом гидроочищенного ДТ; вход реактора — T6, сырьё — F9/F15. "
           "Нужен пересчёт на T6 по решению пользователя.")
@@ -8,7 +8,7 @@ REASON = ("Модель отклика серы на температуру ГО
 
 class UnavailableResponseEffect:
 
-    spec = "RESPONSE_MODEL_FINAL.md v3"
+    spec = "response_effect_t11_superseded"
 
     def effect(self, context: Mapping[str, object], delta_t_c: float) -> Mapping[str, object]:
         return {"available": False, "reason": REASON, "spec": self.spec, "delta_t_c": delta_t_c}
