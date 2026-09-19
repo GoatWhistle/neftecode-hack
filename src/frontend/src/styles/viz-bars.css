@@ -1,0 +1,234 @@
+.robust__row {
+  display: grid;
+  grid-template-columns: minmax(18ch, 30ch) minmax(90px, 1fr) 7ch minmax(18ch, 2fr) minmax(12ch, 22ch);
+  gap: var(--space-3);
+  align-items: start;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.robust__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.robust__name {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.robust__sign {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+.robust__sign--pass circle {
+  fill: var(--pass);
+}
+
+.robust__sign--fail line {
+  stroke: var(--fail);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.robust__sign--muted circle {
+  stroke: var(--muted);
+  stroke-width: 1.6;
+}
+
+.robust__svg {
+  display: block;
+  width: 100%;
+  height: 18px;
+}
+
+.robust__axis {
+  stroke: var(--line-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.robust__zero {
+  stroke: var(--carbon);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.robust__reach {
+  stroke: var(--carbon);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.robust__dot {
+  fill: var(--carbon);
+}
+
+.robust__row--not_applicable .robust__reach,
+.robust__row--not_applicable .robust__dot {
+  opacity: 0.5;
+}
+
+.robust__factor,
+.robust__path code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.robust__outcome {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.robust__reason,
+.robust__cost {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.robust__path code {
+  font-size: 11px;
+}
+
+.funnel--compact {
+  border: none;
+  padding: 0;
+  background: none;
+}
+
+.funnel__round,
+.funnel__family {
+  display: grid;
+  grid-template-columns: minmax(10ch, 18ch) minmax(120px, 1fr) minmax(18ch, 30ch);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.funnel__label {
+  font-size: 14px;
+}
+
+.funnel__bar {
+  display: block;
+  min-width: 0;
+}
+
+.funnel__proposed {
+  display: block;
+  height: 14px;
+  border: 1px solid var(--carbon);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+
+.funnel__feasible {
+  display: block;
+  height: 100%;
+  background: var(--pass);
+  border-radius: calc(var(--radius-sm) - 1px);
+}
+
+.funnel__veto {
+  display: block;
+  height: 14px;
+  background: var(--unknown);
+  border-radius: var(--radius-sm);
+  min-width: 2px;
+}
+
+.funnel__counts {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.funnel__counts b {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.funnel__families {
+  margin-top: var(--space-2);
+}
+
+.funnel__rounds + .funnel__head {
+  margin-top: var(--space-4);
+}
+
+.funnel__warn {
+  color: var(--unknown);
+}
+
+.offspec__row,
+.ages__row {
+  display: grid;
+  grid-template-columns: minmax(12ch, 22ch) minmax(120px, 1fr) minmax(16ch, 30ch);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.offspec__label,
+.ages__name {
+  font-size: 14px;
+}
+
+.offspec__bar,
+.ages__bar {
+  display: block;
+  min-width: 0;
+}
+
+.offspec__fill {
+  display: block;
+  height: 14px;
+  background: var(--carbon);
+  border-radius: var(--radius-sm);
+  min-width: 2px;
+}
+
+.offspec__value,
+.ages__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.offspec__delta--flat {
+  color: var(--unknown);
+}
+
+.ages__track {
+  display: block;
+  height: 14px;
+  border: 1px solid var(--carbon);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+
+.ages__fill {
+  display: block;
+  height: 100%;
+  background: var(--carbon);
+  border-radius: calc(var(--radius-sm) - 1px);
+  min-width: 2px;
+}
+
+.ages__none {
+  color: var(--unknown);
+  font-size: 13px;
+}
+
+.ages__share {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+}

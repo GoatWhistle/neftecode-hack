@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import type { Conditions, RunOptions } from "./options";
 import { FAULT_LABELS } from "./options";
 import type { RunStatus } from "./types";
@@ -12,6 +13,8 @@ export interface ConfigStageProps {
   onScenario: (name: string) => void;
   onStart: () => void;
   onReset: () => void;
+  onRetry?: () => Promise<boolean>;
+  pending?: boolean;
 }
 
 export function ConfigStage({
@@ -22,9 +25,31 @@ export function ConfigStage({
   onChange,
   onScenario,
   onStart,
-  onReset
+  onReset,
+  onRetry,
+  pending
 }: ConfigStageProps) {
+  const [retrying, setRetrying] = useState(false);
+  const [retryFailed, setRetryFailed] = useState(false);
+  const retry = useCallback(() => {
+    if (!onRetry) return;
+    setRetrying(true);
+    setRetryFailed(false);
+    void onRetry().then((ok) => {
+      setRetrying(false);
+      setRetryFailed(!ok);
+    });
+  }, [onRetry]);
+
   const running = status === "running";
+  const waiting = running && pending === true;
+  const label = waiting
+    ? "Запускаю…"
+    : running
+      ? "Идёт расчёт…"
+      : status === "idle"
+        ? "Запустить"
+        : "Запустить заново";
   const tank = options?.defaults.tanks.find((item) => item.id === conditions.tank) ?? null;
 
   return (
@@ -39,9 +64,24 @@ export function ConfigStage({
       </header>
 
       {options === null ? (
-        <p className="config__offline">
-          Сервер условий недоступен: живой прогон возможен только из <code>neftecode serve</code>.
-        </p>
+        <div className="config__offline">
+          <p className="config__offline-text">
+            Условия прогона от сервера не получены: живой прогон возможен только из{" "}
+            <code>neftecode serve</code>.
+          </p>
+          {onRetry ? (
+            <p className="config__offline-actions">
+              <button type="button" className="config__ghost" disabled={retrying} onClick={retry}>
+                {retrying ? "Повторяю запрос…" : "Повторить запрос условий"}
+              </button>
+              {retryFailed ? (
+                <span className="config__offline-again" role="status">
+                  Сервер условий снова не ответил.
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
       ) : (
         <div className="config__grid">
           <label className="config__field">
@@ -82,7 +122,7 @@ export function ConfigStage({
             disabled={running} onChange={(value) => onChange({ product_t95_c: value })} />
           <NumberField label="Минимум цетанового числа" step="0.5" value={conditions.product_cetane_number}
             disabled={running} onChange={(value) => onChange({ product_cetane_number: value })} />
-          <NumberField label="Текущий выпуск, т/ч" step="1" value={conditions.throughput_tph}
+          <NumberField label="Производительность, т/ч" step="1" value={conditions.throughput_tph}
             disabled={running} onChange={(value) => onChange({ throughput_tph: value })} />
 
           <TankField conditions={conditions} tanks={options.defaults.tanks} tank={tank}
@@ -91,13 +131,17 @@ export function ConfigStage({
       )}
 
       <div className="config__actions">
-        <button type="button" className="config__start" disabled={running || options === null}
-          onClick={onStart}>
-          {running ? "Идёт расчёт…" : status === "idle" ? "Запустить" : "Запустить заново"}
+        <button
+          type="button"
+          className={`config__start ${waiting ? "config__start--waiting" : ""}`}
+          disabled={running || options === null}
+          onClick={onStart}
+        >
+          {label}
         </button>
-        {status !== "idle" && !running ? (
-          <button type="button" className="config__ghost" onClick={onReset}>
-            Убрать результат
+        {status !== "idle" ? (
+          <button type="button" className="config__ghost config__ghost--enter" onClick={onReset}>
+            {running ? "Остановить прогон" : "Убрать результат"}
           </button>
         ) : null}
       </div>

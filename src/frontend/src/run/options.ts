@@ -78,20 +78,37 @@ export async function fetchOptions(scenario?: string): Promise<RunOptions> {
   };
 }
 
-export function conditionsOf(options: RunOptions): Conditions {
+export interface ConditionsResult {
+  conditions: Conditions;
+  faultReset: boolean;
+  previousFault: string | null;
+}
+
+export function conditionsOf(options: RunOptions, previousFault?: string): Conditions {
+  return conditionsResultOf(options, previousFault).conditions;
+}
+
+export function conditionsResultOf(options: RunOptions, previousFault?: string): ConditionsResult {
   const tank = options.defaults.tanks[0];
+  const wanted = previousFault ?? "healthy";
+  const kept = options.faults.includes(wanted) ? wanted : "healthy";
+  const faultReset = wanted !== "healthy" && kept !== wanted;
   return {
-    scenario: options.scenario,
-    snapshot: options.snapshot,
-    fault: "healthy",
-    crude_sulfur_wt_pct: text(options.defaults.crude_sulfur_wt_pct),
-    product_sulfur_mgkg: text(options.defaults.product_sulfur_mgkg),
-    product_t95_c: text(options.defaults.product_t95_c),
-    product_cetane_number: text(options.defaults.product_cetane_number),
-    throughput_tph: text(options.defaults.throughput_tph),
-    tank: tank?.id ?? "",
-    tank_inventory: text(tank?.inventory ?? null),
-    tank_available: tank ? (tank.available ? "1" : "0") : ""
+    conditions: {
+      scenario: options.scenario,
+      snapshot: options.snapshot,
+      fault: kept,
+      crude_sulfur_wt_pct: text(options.defaults.crude_sulfur_wt_pct),
+      product_sulfur_mgkg: text(options.defaults.product_sulfur_mgkg),
+      product_t95_c: text(options.defaults.product_t95_c),
+      product_cetane_number: text(options.defaults.product_cetane_number),
+      throughput_tph: text(options.defaults.throughput_tph),
+      tank: tank?.id ?? "",
+      tank_inventory: text(tank?.inventory ?? null),
+      tank_available: tank ? (tank.available ? "1" : "0") : ""
+    },
+    faultReset,
+    previousFault: faultReset ? wanted : null
   };
 }
 

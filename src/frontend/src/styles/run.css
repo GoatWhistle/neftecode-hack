@@ -1,8 +1,4 @@
 .config {
-  background: var(--paper);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-card);
-  padding: var(--space-5) var(--space-4);
   scroll-margin-top: var(--space-4);
 }
 
@@ -89,14 +85,48 @@
   opacity: 0.55;
 }
 
-.config__hint,
-.config__offline {
-  margin: 0;
+.config__missing {
   align-self: end;
+  max-width: var(--measure);
+  margin: 0;
   font-size: 13px;
   line-height: 1.4;
   color: var(--muted);
+  border-left: 2px dashed var(--line);
+  padding-left: 9px;
+}
+
+.config__missing > span {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.config__hint,
+.config__offline {
+  align-self: end;
   max-width: var(--measure);
+}
+
+.config__offline-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.config__offline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+}
+
+.config__offline-again {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--fail);
 }
 
 .config__actions {
@@ -117,12 +147,23 @@
   border-radius: var(--radius-pill);
   padding: 13px 34px;
   cursor: pointer;
-  transition: opacity var(--motion-hover) var(--ease);
+  transition: opacity var(--motion-hover) var(--ease), transform 80ms var(--ease);
+}
+
+.config__start:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .config__start:disabled {
-  opacity: 0.45;
+  color: var(--muted);
+  background: var(--field);
+  border-color: var(--line-soft);
   cursor: default;
+}
+
+.config__start--waiting:disabled {
+  color: var(--carbon);
+  border-color: var(--muted);
 }
 
 .config__ghost {
@@ -136,6 +177,20 @@
   cursor: pointer;
 }
 
+.config__ghost--enter {
+  animation: enter-fade var(--motion-reveal) var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config__start:active:not(:disabled) {
+    transform: none;
+  }
+
+  .config__ghost--enter {
+    animation-duration: 0.01ms;
+  }
+}
+
 .config__start:focus-visible,
 .config__ghost:focus-visible {
   outline: 2px solid var(--carbon);
@@ -145,8 +200,10 @@
 .config__error {
   margin: var(--space-3) 0 0;
   font-size: 14px;
+  font-weight: 600;
   color: var(--fail);
-  border-left: 3px solid var(--fail);
-  padding-left: var(--space-3);
+  border: 2px solid var(--fail);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
   max-width: var(--measure);
 }

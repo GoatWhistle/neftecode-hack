@@ -1,6 +1,8 @@
+import { visibleCount } from "./sequence";
 import { STAGES } from "../stages";
-import type { AgentEvent, StageState } from "./types";
-import { AGENT_NAMES, KIND_TEXT, summarize } from "./agentEvents";
+import type { AgentEvent, StageFacts, StageState } from "./types";
+import { hasLiveFacts, StageLive } from "./StageLive";
+import { AgentDialogue } from "../ui/AgentDialogue";
 
 const STATE_TEXT: Record<StageState, string> = {
   pending: "ожидает",
@@ -9,34 +11,28 @@ const STATE_TEXT: Record<StageState, string> = {
   failed: "отказ"
 };
 
+const WAITING: Record<string, string> = {
+  forecast: "Прогноз в этом прогоне сервер отдельным событием не передавал: он раскроется вместе с полным решением.",
+  agents: "Оркестратор ещё не обращался к специалистам.",
+  decision: "Решение собирается после того, как агенты закончат."
+};
+
 export interface StageOutlineProps {
   stateOf: (id: string) => StageState;
+  factsOf: (id: string) => StageFacts | undefined;
   agentEvents: AgentEvent[];
+  stages: Record<string, StageState>;
+  elapsedMs: number;
 }
 
-function AgentFeed({ events }: { events: AgentEvent[] }) {
-  if (events.length === 0) {
-    return <p className="outline__hint">Оркестратор ещё не обращался к специалистам.</p>;
-  }
-  const recent = events.slice(-6);
-  return (
-    <ol className="outline__feed">
-      {recent.map((event) => (
-        <li key={event.seq} className="outline__event">
-          <span className="outline__who">{AGENT_NAMES[event.agent] ?? event.agent}</span>
-          <span className="outline__kind">{KIND_TEXT[event.kind] ?? event.kind}</span>
-          <span className="outline__what">{summarize(event)}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-export function StageOutline({ stateOf, agentEvents }: StageOutlineProps) {
+export function StageOutline({ stateOf, factsOf, agentEvents, stages, elapsedMs }: StageOutlineProps) {
+  const shown = visibleCount(stages);
   return (
     <>
-      {STAGES.map((stage, position) => {
+      {STAGES.slice(0, shown).map((stage, position) => {
         const state = stateOf(stage.id);
+        const facts = factsOf(stage.id);
+        const hasLive = hasLiveFacts(stage.id, facts);
         return (
           <section
             key={stage.id}
@@ -45,14 +41,33 @@ export function StageOutline({ stateOf, agentEvents }: StageOutlineProps) {
             data-band={position + 1}
             aria-busy={state === "running"}
           >
-            <header className="stage__head">
-              <span className="stage__index">{position + 1}</span>
+            <header className="stage__head stage__head--outline">
+              <span className="stage__step">{position + 1}</span>
               <h2 className="stage__title">{stage.label}</h2>
               <span className={`stage__state stage__state--${state}`}>{STATE_TEXT[state]}</span>
             </header>
-            {stage.id === "agents" && state !== "pending" ? <AgentFeed events={agentEvents} /> : null}
-            {state === "pending" ? (
-              <p className="outline__hint">Данные этого этапа ещё не передавались.</p>
+            {stage.id === "agents" && state !== "pending" ? (
+              <AgentDialogue
+                events={agentEvents}
+                running={state === "running"}
+                facts={facts}
+                agentic={null}
+                elapsedMs={elapsedMs}
+              />
+            ) : (
+              <StageLive id={stage.id} facts={facts} />
+            )}
+            {!hasLive && stage.id !== "agents" ? (
+              <p className="outline__hint">
+                {state === "pending"
+                  ? "Данные этого этапа ещё не передавались."
+                  : (WAITING[stage.id] ?? "Данные этого этапа ещё не передавались.")}
+              </p>
+            ) : null}
+            {hasLive ? (
+              <p className="outline__hint outline__hint--partial">
+                Это отметки сервера по ходу расчёта. Полные числа этапа раскроются, когда придёт решение.
+              </p>
             ) : null}
           </section>
         );

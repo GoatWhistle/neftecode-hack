@@ -1,8 +1,9 @@
 import type { SeverityFactors, TraceEvent } from "../types";
-import { isNumber, num, termLabel } from "../format";
+import { isNumber, num } from "../format";
 import type { Lamp } from "./Primitives";
 import { LampDot, Note, Tag } from "./Primitives";
 import { JsonPanel } from "./Json";
+import { SeverityBars } from "./SeverityBars";
 
 const TITLES: Record<string, string> = {
   data: "Агент данных",
@@ -61,46 +62,6 @@ function counters(event: TraceEvent): Array<[string, string]> {
   return out;
 }
 
-function Severity({ factors }: { factors: SeverityFactors }) {
-  return (
-    <div className="severity">
-      <table className="grid grid--tight">
-        <caption>Из чего собран индекс тяжести режима: {num(factors.index, 3)}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Слагаемое</th>
-            <th scope="col">Значение</th>
-            <th scope="col">Вес</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(factors.terms ?? {}).map(([key, value]) => (
-            <tr key={key}>
-              <th scope="row">{termLabel(key)}</th>
-              <td className="grid__num">{num(value, 3)}</td>
-              <td className="grid__num">{num(factors.weights?.[key], 2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="severity__refs">
-        Опорная температура <b>{num(factors.reference_temp_c, 1)} °C</b>, опорный расход{" "}
-        <b>{num(factors.reference_flow_m3h, 1)} м³/ч</b>
-        {factors.control_range_c ? (
-          <>
-            , диапазон уставки{" "}
-            <b>
-              {num(factors.control_range_c[0], 0)}–{num(factors.control_range_c[1], 0)} °C
-            </b>
-          </>
-        ) : null}
-        .
-      </p>
-      {factors.scope ? <Note>{factors.scope}</Note> : null}
-    </div>
-  );
-}
-
 export function AgentCard({ event }: { event: TraceEvent }) {
   const severity = event["severity_factors"] as SeverityFactors | undefined;
   const vetoes = (event["vetoes"] as string[] | undefined) ?? [];
@@ -131,21 +92,21 @@ export function AgentCard({ event }: { event: TraceEvent }) {
 
       {vetoes.length > 0 ? (
         <ul className="agent__list agent__list--veto">
-          {vetoes.map((reason) => (
-            <li key={reason}>{reason}</li>
+          {vetoes.map((reason, index) => (
+            <li key={`${index}-${reason}`}>{reason}</li>
           ))}
         </ul>
       ) : null}
 
       {unknown.length > 0 ? (
         <ul className="agent__list agent__list--unknown">
-          {unknown.map((reason) => (
-            <li key={reason}>{reason}</li>
+          {unknown.map((reason, index) => (
+            <li key={`${index}-${reason}`}>{reason}</li>
           ))}
         </ul>
       ) : null}
 
-      {severity ? <Severity factors={severity} /> : null}
+      {severity ? <SeverityBars factors={severity} /> : null}
       {scope ? <Note>{scope}</Note> : null}
 
       <JsonPanel title={`JSON агента «${event.agent}»`} value={event} openTo={2} />

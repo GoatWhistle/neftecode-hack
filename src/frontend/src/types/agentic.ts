@@ -36,6 +36,7 @@ export interface AgenticBudget {
   llm_calls_by_role?: Record<string, number>;
   replans?: number;
   consults?: Record<string, number>;
+  robustness_runs?: number;
   usage?: Record<string, number>;
 }
 
@@ -51,6 +52,8 @@ export interface Agentic {
   deterministic_policy?: boolean;
   provider_label?: string;
   opinions?: AgentOpinion[];
+  llm_choice_overridden?: boolean;
+  vetoed_candidates?: Record<string, string[]>;
   constraints_applied?: ProposedConstraint[];
   final?: AgenticFinal | null;
   budget?: AgenticBudget;

@@ -5,13 +5,18 @@ import { OriginBadge } from "../ui/Origin";
 import { onDemandIds } from "../provenance";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
+import { OffspecBlock } from "../ui/OffspecBlock";
+import { RobustnessMap } from "../ui/RobustnessMap";
+import { PlanDiff } from "../ui/PlanDiff";
 import type { StageProps } from "./StateStage";
 
-export function ChoiceStage({ payload, index, state, source }: StageProps) {
+export function ChoiceStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
   const plan = payload.decision.selected_plan;
-  const alternatives: Alternative[] =
+  const candidates = payload.decision.alternatives ?? [];
+  const setpointsOf = new Map(candidates.map((item) => [item.candidate_id, item]));
+  const alternatives: Alternative[] = (
     payload.explanation.alternatives ??
-    (payload.decision.alternatives ?? []).map((item) => ({
+    candidates.map<Alternative>((item) => ({
       candidate_id: item.candidate_id,
       production_t: item.production_t,
       cost_per_tonne: item.cost_per_tonne,
@@ -20,7 +25,20 @@ export function ChoiceStage({ payload, index, state, source }: StageProps) {
       why_not: item.rejection_reasons?.length
         ? `Не проходит жёсткие ограничения: ${item.rejection_reasons.slice(0, 2).join("; ")}`
         : "Сравнение с выбранным планом в payload не передавалось"
-    }));
+    }))
+  ).map((item) => {
+    const source = setpointsOf.get(item.candidate_id);
+    if (!source) return item;
+    return {
+      ...item,
+      controls: item.controls ?? source.controls,
+      recipe: item.recipe ?? source.recipe,
+      throughput_tph: item.throughput_tph ?? source.throughput_tph,
+      additive_dose: item.additive_dose ?? source.additive_dose
+    };
+  });
+  const baseline = plan?.steps?.[0] ?? payload.decision.immediate_action ?? null;
+  const withSetpoints = alternatives.filter((item) => item.controls || item.recipe).length;
   const rule = payload.explanation.comparison_rule;
   const names = payload.explanation.component_names ?? {};
   const demand = onDemandIds(payload);
@@ -34,15 +52,15 @@ export function ChoiceStage({ payload, index, state, source }: StageProps) {
       source={source}
       title="Выбор"
       lead="Какой план победил, и чем именно проигрывает каждый из остальных."
-      lamp={plan ? "pass" : "fail"}
-      lampTitle={plan ? `выбран ${plan.plan_id}` : "план не выбран"}
+      lamp={lamp}
+      lampTitle={lampTitle}
     >
       {plan ? (
         <>
           <div className="readouts">
             <Readout label="Выбранный план" value={plan.plan_id} hint={plan.intent} />
             <Readout
-              label="Выпуск"
+              label="Выпуск за горизонт"
               value={num(payload.decision.production_t, 1)}
               unit="т"
               tone="pass"
@@ -55,7 +73,7 @@ export function ChoiceStage({ payload, index, state, source }: StageProps) {
               badge={<OriginBadge origin="derived" />}
               hint="в условных единицах сценария"
             />
-            <Readout label="Тяжесть режима" value={num(payload.decision.severity_index, 3)} />
+            <Readout label="Тяжесть режима" value={num(payload.decision.severity_index, 3)} hint="сводный индекс" />
             <Readout label="Изменений уставок" value={num(plan.changes, 0)} hint="от текущего режима" />
           </div>
 
@@ -118,15 +136,20 @@ export function ChoiceStage({ payload, index, state, source }: StageProps) {
         <Scroller label="Ближайшие альтернативы">
           <table className="grid">
             <caption>
-              Почему не они: {alternatives.length} ближайших альтернатив. Payload несёт не более пяти — это
-              не полный список проверенных планов, их число показано на этапе «Кандидаты»
+              Почему не они. Ближайших альтернатив: {alternatives.length}. Payload несёт не более пяти — это
+              не полный список проверенных планов, их число показано на этапе «Кандидаты». Стоимость — в условных
+              единицах сценария, не в рублях. В колонке различий перечислены только те уставки и доли рецепта,
+              которые отличаются от выбранного плана; совпавшие не печатаются, поэтому пустая колонка значит
+              совпадение, а не отсутствие данных. Уставки переданы у {withSetpoints} альтернатив из{" "}
+              {alternatives.length}; сравнение идёт с первым шагом выбранного плана
             </caption>
             <thead>
               <tr>
                 <th scope="col">Кандидат</th>
-                <th scope="col">Выпуск, т</th>
+                <th scope="col">Выпуск за горизонт, т</th>
                 <th scope="col">Стоимость, у.е./т</th>
-                <th scope="col">Тяжесть</th>
+                <th scope="col">Тяжесть режима</th>
+                <th scope="col">Чем отличается от выбранного</th>
                 <th scope="col">Почему не выбран</th>
               </tr>
             </thead>
@@ -139,6 +162,9 @@ export function ChoiceStage({ payload, index, state, source }: StageProps) {
                   <td className="grid__num">{num(item.production_t, 1)}</td>
                   <td className="grid__num">{num(item.cost_per_tonne, 4)}</td>
                   <td className="grid__num">{num(item.severity_index, 3)}</td>
+                  <td className="grid__diff">
+                    <PlanDiff alternative={item} baseline={baseline} names={names} />
+                  </td>
                   <td className="grid__why">{item.why_not}</td>
                 </tr>
               ))}
@@ -153,6 +179,16 @@ export function ChoiceStage({ payload, index, state, source }: StageProps) {
       ) : (
         <Empty>Альтернатив в payload нет.</Empty>
       )}
+
+      {payload.decision.robustness ? (
+        <RobustnessMap robustness={payload.decision.robustness} />
+      ) : (
+        <Empty>Проверка устойчивости не проводилась или её результат не передавался.</Empty>
+      )}
+
+      {payload.decision.lookahead?.offspec ? (
+        <OffspecBlock offspec={payload.decision.lookahead.offspec} />
+      ) : null}
 
       <Fields>
         <Field label="Проекция за горизонт">

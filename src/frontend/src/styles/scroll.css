@@ -1,7 +1,6 @@
 html {
   scrollbar-width: thin;
   scrollbar-color: var(--carbon) var(--field);
-  scroll-behavior: smooth;
 }
 
 .scroller,
@@ -35,10 +34,4 @@ pre,
 
 *::-webkit-scrollbar-corner {
   background: var(--field);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
 }

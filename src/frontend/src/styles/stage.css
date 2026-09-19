@@ -1,7 +1,9 @@
 @import "./data.css";
 @import "./agents.css";
+@import "./veto.css";
 @import "./stage-state.css";
 @import "./bands.css";
+@import "./final.css";
 @import "./motion.css";
 
 .stages {
@@ -49,7 +51,7 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
-  max-width: 76ch;
+  max-width: var(--measure);
 }
 
 .stage__body {
@@ -118,7 +120,7 @@
 }
 
 .lamp--idle {
-  border-color: var(--mercury);
+  border-color: var(--muted);
   border-radius: 50%;
 }
 
@@ -159,7 +161,7 @@
 .readout__unit {
   font-size: 15px;
   color: var(--muted);
-  margin-left: 5px;
+  margin-left: 1px;
 }
 
 .readout__hint {
@@ -179,40 +181,4 @@
 
 .readout--unknown .readout__value {
   color: var(--unknown);
-}
-
-.verdict {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  padding: var(--space-4);
-  position: relative;
-}
-
-.verdict--refuse {
-  border-color: var(--fail);
-  border-width: 2px;
-}
-
-.verdict__label {
-  margin: 0;
-  font-size: 21px;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-}
-
-.verdict--refuse .verdict__label {
-  color: var(--fail);
-}
-
-.verdict__reason,
-.verdict__scope {
-  margin: var(--space-2) 0 0;
-  max-width: 78ch;
-  line-height: 1.4;
-}
-
-.verdict__scope {
-  color: var(--muted);
-  font-size: 14px;
 }

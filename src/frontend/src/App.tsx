@@ -7,7 +7,7 @@ import { RunStrip } from "./run/RunStrip";
 import { useRun } from "./run/useRun";
 import { stageStateOf } from "./run/types";
 import type { Conditions, RunOptions } from "./run/options";
-import { conditionsOf, fetchOptions, queryOf } from "./run/options";
+import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf } from "./run/options";
 import { Pipeline } from "./Pipeline";
 import { StageOutline } from "./run/StageOutline";
 import { Logo } from "./ui/Logo";
@@ -23,10 +23,22 @@ export function App() {
   const [options, setOptions] = useState<RunOptions | null>(null);
   const [conditions, setConditions] = useState<Conditions>(BLANK);
   const [optionsError, setOptionsError] = useState<string | null>(null);
-  const { run, start, stop } = useRun();
+  const { run, start, stop, pending, followsUser, resumeFollow } = useRun();
   const active = useActiveStage(run.status !== "idle");
   const payload = run.payload;
   useDocumentTitle(run);
+
+  const loadOptions = useCallback(async (): Promise<boolean> => {
+    setOptionsError(null);
+    try {
+      const next = await fetchOptions();
+      setOptions(next);
+      setConditions(conditionsOf(next));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -36,9 +48,7 @@ export function App() {
         setOptions(next);
         setConditions(conditionsOf(next));
       })
-      .catch((reason: unknown) => {
-        if (live) setOptionsError(`Условия прогона не получены: ${String(reason)}`);
-      });
+      .catch(() => undefined);
     return () => {
       live = false;
     };
@@ -48,9 +58,20 @@ export function App() {
     fetchOptions(name)
       .then((next) => {
         setOptions(next);
-        setConditions(conditionsOf(next));
+        setConditions((prev) => {
+          const result = conditionsResultOf(next, prev.fault);
+          if (result.faultReset && result.previousFault) {
+            const label = FAULT_LABELS[result.previousFault] ?? result.previousFault;
+            setOptionsError(
+              `Отказ «${label}» в этом сценарии недоступен — сброшен на «все источники исправны».`
+            );
+          } else {
+            setOptionsError(null);
+          }
+          return result.conditions;
+        });
       })
-      .catch((reason: unknown) => setOptionsError(`Сценарий не загружен: ${String(reason)}`));
+      .catch(() => setOptionsError("Сценарий не загружен: сервер условий не ответил."));
   }, []);
 
   const change = useCallback((patch: Partial<Conditions>) => {
@@ -95,9 +116,9 @@ export function App() {
         </dl>
       </header>
 
-      <div className="layout">
-        <Rail payload={payload} active={active} run={run} />
-        <main className="stages">
+      <div className={`layout ${run.status === "idle" ? "layout--solo" : "layout--railed"}`}>
+        {run.status === "idle" ? null : <Rail payload={payload} active={active} run={run} onNavigate={resumeFollow} />}
+        <main className="stages" aria-live="polite" aria-relevant="additions">
           <ConfigStage
             options={options}
             conditions={conditions}
@@ -107,12 +128,28 @@ export function App() {
             onScenario={pickScenario}
             onStart={launch}
             onReset={stop}
+            onRetry={loadOptions}
+            pending={pending}
           />
-          <RunStrip run={run} />
+          <RunStrip run={run} followsUser={followsUser} onResumeFollow={resumeFollow} />
           {payload ? (
-            <Pipeline payload={payload} stateOf={(id) => stageStateOf(run, id)} sources={run.stageSource} agentEvents={run.agentEvents} />
-          ) : run.status === "running" ? (
-            <StageOutline stateOf={(id) => stageStateOf(run, id)} agentEvents={run.agentEvents} />
+            <Pipeline
+              payload={payload}
+              stateOf={(id) => stageStateOf(run, id)}
+              sources={run.stageSource}
+              agentEvents={run.agentEvents}
+              stages={run.stages}
+              stageFacts={run.stageFacts}
+              elapsedMs={run.elapsedMs}
+            />
+          ) : run.status === "running" || run.status === "failed" ? (
+            <StageOutline
+              stages={run.stages}
+              stateOf={(id) => stageStateOf(run, id)}
+              factsOf={(id) => run.stageFacts[id]}
+              agentEvents={run.agentEvents}
+              elapsedMs={run.elapsedMs}
+            />
           ) : null}
         </main>
       </div>

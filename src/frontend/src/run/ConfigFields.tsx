@@ -9,7 +9,13 @@ export interface NumberFieldProps {
 }
 
 export function NumberField({ label, value, step, disabled, onChange }: NumberFieldProps) {
-  if (value === "") return null;
+  if (value === "") {
+    return (
+      <p className="config__missing">
+        <span>{label}</span>: сервер значения не передал, менять нечего.
+      </p>
+    );
+  }
   return (
     <label className="config__field">
       <span>{label}</span>

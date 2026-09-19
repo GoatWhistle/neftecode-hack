@@ -11,7 +11,7 @@ from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
 
 from .budget import AgentBudget
 from .contracts import AgentSettings, OrchestratorFinal
-from neftecode.application.progress import emit_agent_event
+from neftecode.application.progress import emit, emit_agent_event
 
 from .loop import AgentTrace
 from .orchestrator import OrchestratorAgent, opinion_summary
@@ -67,6 +67,8 @@ class AgenticMakeDecision:
         info["deterministic_policy"] = info["provider"] in DETERMINISTIC_PROVIDERS
         if info["deterministic_policy"]:
             info["provider_label"] = DETERMINISTIC_LABEL
+        emit("stage", stage="agents", state="running", provider=info["provider"], model=info["model"],
+             deterministic_policy=info["deterministic_policy"], budget_limits=self.settings.to_dict())
         if (legacy.get("refusal") or {}).get("kind") == "data":
             return self._with(legacy, info, "skipped", "data_refusal")
         if self.llm is None:

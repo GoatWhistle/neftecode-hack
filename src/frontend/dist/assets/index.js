@@ -6,9 +6,9 @@ function requireReactJsxRuntime_production() {
   hasRequiredReactJsxRuntime_production = 1;
   var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element"), REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
   function jsxProd(type, config, maybeKey) {
-    var key = null;
-    void 0 !== maybeKey && (key = "" + maybeKey);
-    void 0 !== config.key && (key = "" + config.key);
+    var key2 = null;
+    void 0 !== maybeKey && (key2 = "" + maybeKey);
+    void 0 !== config.key && (key2 = "" + config.key);
     if ("key" in config) {
       maybeKey = {};
       for (var propName in config)
@@ -18,7 +18,7 @@ function requireReactJsxRuntime_production() {
     return {
       $$typeof: REACT_ELEMENT_TYPE,
       type,
-      key,
+      key: key2,
       ref: void 0 !== config ? config : null,
       props: maybeKey
     };
@@ -95,12 +95,12 @@ function requireReact_production() {
   function noop() {
   }
   var ReactSharedInternals = { H: null, A: null, T: null, S: null }, hasOwnProperty = Object.prototype.hasOwnProperty;
-  function ReactElement(type, key, props) {
+  function ReactElement(type, key2, props) {
     var refProp = props.ref;
     return {
       $$typeof: REACT_ELEMENT_TYPE,
       type,
-      key,
+      key: key2,
       ref: void 0 !== refProp ? refProp : null,
       props
     };
@@ -111,9 +111,9 @@ function requireReact_production() {
   function isValidElement(object) {
     return "object" === typeof object && null !== object && object.$$typeof === REACT_ELEMENT_TYPE;
   }
-  function escape(key) {
+  function escape(key2) {
     var escaperLookup = { "=": "=0", ":": "=2" };
-    return "$" + key.replace(/[=:]/g, function(match) {
+    return "$" + key2.replace(/[=:]/g, function(match) {
       return escaperLookup[match];
     });
   }
@@ -341,9 +341,9 @@ function requireReact_production() {
       throw Error(
         "The argument must be a React element, but you passed " + element + "."
       );
-    var props = assign({}, element.props), key = element.key;
+    var props = assign({}, element.props), key2 = element.key;
     if (null != config)
-      for (propName in void 0 !== config.key && (key = "" + config.key), config)
+      for (propName in void 0 !== config.key && (key2 = "" + config.key), config)
         !hasOwnProperty.call(config, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config.ref || (props[propName] = config[propName]);
     var propName = arguments.length - 2;
     if (1 === propName) props.children = children;
@@ -352,7 +352,7 @@ function requireReact_production() {
         childArray[i] = arguments[i + 2];
       props.children = childArray;
     }
-    return ReactElement(element.type, key, props);
+    return ReactElement(element.type, key2, props);
   };
   react_production.createContext = function(defaultValue) {
     defaultValue = {
@@ -371,9 +371,9 @@ function requireReact_production() {
     return defaultValue;
   };
   react_production.createElement = function(type, config, children) {
-    var propName, props = {}, key = null;
+    var propName, props = {}, key2 = null;
     if (null != config)
-      for (propName in void 0 !== config.key && (key = "" + config.key), config)
+      for (propName in void 0 !== config.key && (key2 = "" + config.key), config)
         hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config[propName]);
     var childrenLength = arguments.length - 2;
     if (1 === childrenLength) props.children = children;
@@ -385,7 +385,7 @@ function requireReact_production() {
     if (type && type.defaultProps)
       for (propName in childrenLength = type.defaultProps, childrenLength)
         void 0 === props[propName] && (props[propName] = childrenLength[propName]);
-    return ReactElement(type, key, props);
+    return ReactElement(type, key2, props);
   };
   react_production.createRef = function() {
     return { current: null };
@@ -789,10 +789,10 @@ function requireReactDom_production() {
     findDOMNode: null
   }, REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal"), REACT_RECOVERABLE_TYPE = /* @__PURE__ */ Symbol.for("react.recoverable"), REACT_OPTIMISTIC_KEY = /* @__PURE__ */ Symbol.for("react.optimistic_key");
   function createPortal$1(children, containerInfo, implementation) {
-    var key = 3 < arguments.length && void 0 !== arguments[3] ? arguments[3] : null;
+    var key2 = 3 < arguments.length && void 0 !== arguments[3] ? arguments[3] : null;
     return {
       $$typeof: REACT_PORTAL_TYPE,
-      key: null == key ? null : key === REACT_OPTIMISTIC_KEY ? REACT_OPTIMISTIC_KEY : "" + key,
+      key: null == key2 ? null : key2 === REACT_OPTIMISTIC_KEY ? REACT_OPTIMISTIC_KEY : "" + key2,
       children,
       containerInfo,
       implementation
@@ -809,10 +809,10 @@ function requireReactDom_production() {
     return { $$typeof: REACT_RECOVERABLE_TYPE, _reason: reason };
   };
   reactDom_production.createPortal = function(children, container2) {
-    var key = 2 < arguments.length && void 0 !== arguments[2] ? arguments[2] : null;
+    var key2 = 2 < arguments.length && void 0 !== arguments[2] ? arguments[2] : null;
     if (!container2 || 1 !== container2.nodeType && 9 !== container2.nodeType && 11 !== container2.nodeType)
       throw Error(formatProdErrorMessage(299));
-    return createPortal$1(children, container2, null, key);
+    return createPortal$1(children, container2, null, key2);
   };
   reactDom_production.flushSync = function(fn) {
     var previousTransition = ReactSharedInternals.T, previousUpdatePriority = Internals.p;
@@ -2217,14 +2217,14 @@ function requireReactDomClient_production() {
     } catch (e) {
       passiveBrowserEventsSupported = false;
     }
-  var root = null, startText = null, fallbackText = null;
+  var root = null, startText = null, fallbackText2 = null;
   function getData() {
-    if (fallbackText) return fallbackText;
+    if (fallbackText2) return fallbackText2;
     var start, startValue = startText, startLength = startValue.length, end, endValue = "value" in root ? root.value : root.textContent, endLength = endValue.length;
     for (start = 0; start < startLength && startValue[start] === endValue[start]; start++) ;
     var minEnd = startLength - start;
     for (end = 1; end <= minEnd && startValue[startLength - end] === endValue[endLength - end]; end++) ;
-    return fallbackText = endValue.slice(start, 1 < end ? 1 - end : void 0);
+    return fallbackText2 = endValue.slice(start, 1 < end ? 1 - end : void 0);
   }
   function getEventCharCode(nativeEvent) {
     var keyCode = nativeEvent.keyCode;
@@ -2376,8 +2376,8 @@ function requireReactDomClient_production() {
   var KeyboardEventInterface = assign({}, UIEventInterface, {
     key: function(nativeEvent) {
       if (nativeEvent.key) {
-        var key = normalizeKey[nativeEvent.key] || nativeEvent.key;
-        if ("Unidentified" !== key) return key;
+        var key2 = normalizeKey[nativeEvent.key] || nativeEvent.key;
+        if ("Unidentified" !== key2) return key2;
       }
       return "keypress" === nativeEvent.type ? (nativeEvent = getEventCharCode(nativeEvent), 13 === nativeEvent ? "Enter" : String.fromCharCode(nativeEvent)) : "keydown" === nativeEvent.type || "keyup" === nativeEvent.type ? translateToKey[nativeEvent.keyCode] || "Unidentified" : "";
     },
@@ -2474,7 +2474,7 @@ function requireReactDomClient_production() {
   }
   function getFallbackBeforeInputChars(domEventName, nativeEvent) {
     if (isComposing)
-      return "compositionend" === domEventName || !canUseCompositionEvent && isFallbackCompositionEnd(domEventName, nativeEvent) ? (domEventName = getData(), fallbackText = startText = root = null, isComposing = false, domEventName) : null;
+      return "compositionend" === domEventName || !canUseCompositionEvent && isFallbackCompositionEnd(domEventName, nativeEvent) ? (domEventName = getData(), fallbackText2 = startText = root = null, isComposing = false, domEventName) : null;
     switch (domEventName) {
       case "paste":
         return null;
@@ -2796,9 +2796,9 @@ function requireReactDomClient_production() {
     return 3 === sourceFiber.tag ? sourceFiber.stateNode : null;
   }
   var emptyContextObject = {};
-  function FiberNode(tag, pendingProps, key, mode) {
+  function FiberNode(tag, pendingProps, key2, mode) {
     this.tag = tag;
-    this.key = key;
+    this.key = key2;
     this.sibling = this.child = this.return = this.stateNode = this.type = this.elementType = null;
     this.index = 0;
     this.refCleanup = this.ref = null;
@@ -2810,8 +2810,8 @@ function requireReactDomClient_production() {
     this.childLanes = this.lanes = 0;
     this.alternate = null;
   }
-  function createFiberImplClass(tag, pendingProps, key, mode) {
-    return new FiberNode(tag, pendingProps, key, mode);
+  function createFiberImplClass(tag, pendingProps, key2, mode) {
+    return new FiberNode(tag, pendingProps, key2, mode);
   }
   function shouldConstruct(Component) {
     Component = Component.prototype;
@@ -2849,7 +2849,7 @@ function requireReactDomClient_production() {
     });
     return workInProgress2;
   }
-  function createFiberFromTypeAndProps(type, key, pendingProps, owner, mode, lanes) {
+  function createFiberFromTypeAndProps(type, key2, pendingProps, owner, mode, lanes) {
     var fiberTag = 0;
     owner = type;
     if ("function" === typeof owner) shouldConstruct(owner) && (fiberTag = 1);
@@ -2862,22 +2862,22 @@ function requireReactDomClient_production() {
     else
       a: switch (owner) {
         case REACT_ACTIVITY_TYPE:
-          return type = createFiberImplClass(31, pendingProps, key, mode), type.elementType = REACT_ACTIVITY_TYPE, type.lanes = lanes, type;
+          return type = createFiberImplClass(31, pendingProps, key2, mode), type.elementType = REACT_ACTIVITY_TYPE, type.lanes = lanes, type;
         case REACT_FRAGMENT_TYPE:
-          return createFiberFromFragment(pendingProps.children, mode, lanes, key);
+          return createFiberFromFragment(pendingProps.children, mode, lanes, key2);
         case REACT_STRICT_MODE_TYPE:
           fiberTag = 8;
           mode |= 24;
           break;
         case REACT_PROFILER_TYPE:
-          return type = createFiberImplClass(12, pendingProps, key, mode | 2), type.elementType = REACT_PROFILER_TYPE, type.lanes = lanes, type;
+          return type = createFiberImplClass(12, pendingProps, key2, mode | 2), type.elementType = REACT_PROFILER_TYPE, type.lanes = lanes, type;
         case REACT_SUSPENSE_TYPE:
-          return type = createFiberImplClass(13, pendingProps, key, mode), type.elementType = REACT_SUSPENSE_TYPE, type.lanes = lanes, type;
+          return type = createFiberImplClass(13, pendingProps, key2, mode), type.elementType = REACT_SUSPENSE_TYPE, type.lanes = lanes, type;
         case REACT_SUSPENSE_LIST_TYPE:
-          return type = createFiberImplClass(19, pendingProps, key, mode), type.elementType = REACT_SUSPENSE_LIST_TYPE, type.lanes = lanes, type;
+          return type = createFiberImplClass(19, pendingProps, key2, mode), type.elementType = REACT_SUSPENSE_LIST_TYPE, type.lanes = lanes, type;
         case REACT_LEGACY_HIDDEN_TYPE:
         case REACT_VIEW_TRANSITION_TYPE:
-          return type = mode | 32, type = createFiberImplClass(30, pendingProps, key, type), type.elementType = REACT_VIEW_TRANSITION_TYPE, type.lanes = lanes, type.stateNode = {
+          return type = mode | 32, type = createFiberImplClass(30, pendingProps, key2, type), type.elementType = REACT_VIEW_TRANSITION_TYPE, type.lanes = lanes, type.stateNode = {
             autoName: null,
             paired: null,
             clones: null,
@@ -2909,14 +2909,14 @@ function requireReactDomClient_production() {
           );
           owner = null;
       }
-    key = createFiberImplClass(fiberTag, pendingProps, key, mode);
-    key.elementType = type;
-    key.type = owner;
-    key.lanes = lanes;
-    return key;
+    key2 = createFiberImplClass(fiberTag, pendingProps, key2, mode);
+    key2.elementType = type;
+    key2.type = owner;
+    key2.lanes = lanes;
+    return key2;
   }
-  function createFiberFromFragment(elements, mode, lanes, key) {
-    elements = createFiberImplClass(7, elements, key, mode);
+  function createFiberFromFragment(elements, mode, lanes, key2) {
+    elements = createFiberImplClass(7, elements, key2, mode);
     elements.lanes = lanes;
     return elements;
   }
@@ -3580,13 +3580,13 @@ function requireReactDomClient_production() {
       current.return = returnFiber;
       return current;
     }
-    function updateFragment(returnFiber, current, fragment, lanes, key) {
+    function updateFragment(returnFiber, current, fragment, lanes, key2) {
       if (null === current || 7 !== current.tag)
         return current = createFiberFromFragment(
           fragment,
           returnFiber.mode,
           lanes,
-          key
+          key2
         ), current.return = returnFiber, current;
       current = useFiber(current, fragment);
       current.return = returnFiber;
@@ -3639,20 +3639,20 @@ function requireReactDomClient_production() {
       return null;
     }
     function updateSlot(returnFiber, oldFiber, newChild, lanes) {
-      var key = null !== oldFiber ? oldFiber.key : null;
+      var key2 = null !== oldFiber ? oldFiber.key : null;
       if ("string" === typeof newChild && "" !== newChild || "number" === typeof newChild || "bigint" === typeof newChild)
-        return null !== key ? null : updateTextNode(returnFiber, oldFiber, "" + newChild, lanes);
+        return null !== key2 ? null : updateTextNode(returnFiber, oldFiber, "" + newChild, lanes);
       if ("object" === typeof newChild && null !== newChild) {
         switch (newChild.$$typeof) {
           case REACT_ELEMENT_TYPE:
-            return newChild.key === key ? updateElement(returnFiber, oldFiber, newChild, lanes) : null;
+            return newChild.key === key2 ? updateElement(returnFiber, oldFiber, newChild, lanes) : null;
           case REACT_PORTAL_TYPE:
-            return newChild.key === key ? updatePortal(returnFiber, oldFiber, newChild, lanes) : null;
+            return newChild.key === key2 ? updatePortal(returnFiber, oldFiber, newChild, lanes) : null;
           case REACT_LAZY_TYPE:
             return newChild = resolveLazy(newChild), updateSlot(returnFiber, oldFiber, newChild, lanes);
         }
         if (isArrayImpl(newChild) || getIteratorFn(newChild))
-          return null !== key ? null : updateFragment(returnFiber, oldFiber, newChild, lanes, null);
+          return null !== key2 ? null : updateFragment(returnFiber, oldFiber, newChild, lanes, null);
         if ("function" === typeof newChild.then)
           return updateSlot(
             returnFiber,
@@ -3803,10 +3803,10 @@ function requireReactDomClient_production() {
         switch (newChild.$$typeof) {
           case REACT_ELEMENT_TYPE:
             a: {
-              for (var key = newChild.key; null !== currentFirstChild; ) {
-                if (currentFirstChild.key === key) {
-                  key = newChild.type;
-                  if (key === REACT_FRAGMENT_TYPE) {
+              for (var key2 = newChild.key; null !== currentFirstChild; ) {
+                if (currentFirstChild.key === key2) {
+                  key2 = newChild.type;
+                  if (key2 === REACT_FRAGMENT_TYPE) {
                     if (7 === currentFirstChild.tag) {
                       deleteRemainingChildren(
                         returnFiber,
@@ -3821,7 +3821,7 @@ function requireReactDomClient_production() {
                       returnFiber = lanes;
                       break a;
                     }
-                  } else if (currentFirstChild.elementType === key || "object" === typeof key && null !== key && key.$$typeof === REACT_LAZY_TYPE && resolveLazy(key) === currentFirstChild.type) {
+                  } else if (currentFirstChild.elementType === key2 || "object" === typeof key2 && null !== key2 && key2.$$typeof === REACT_LAZY_TYPE && resolveLazy(key2) === currentFirstChild.type) {
                     deleteRemainingChildren(
                       returnFiber,
                       currentFirstChild.sibling
@@ -3854,8 +3854,8 @@ function requireReactDomClient_production() {
             return placeSingleChild(returnFiber);
           case REACT_PORTAL_TYPE:
             a: {
-              for (key = newChild.key; null !== currentFirstChild; ) {
-                if (currentFirstChild.key === key)
+              for (key2 = newChild.key; null !== currentFirstChild; ) {
+                if (currentFirstChild.key === key2)
                   if (4 === currentFirstChild.tag && currentFirstChild.stateNode.containerInfo === newChild.containerInfo && currentFirstChild.stateNode.implementation === newChild.implementation) {
                     deleteRemainingChildren(
                       returnFiber,
@@ -3893,9 +3893,9 @@ function requireReactDomClient_production() {
             lanes
           );
         if (getIteratorFn(newChild)) {
-          key = getIteratorFn(newChild);
-          if ("function" !== typeof key) throw Error(formatProdErrorMessage(150));
-          newChild = key.call(newChild);
+          key2 = getIteratorFn(newChild);
+          if ("function" !== typeof key2) throw Error(formatProdErrorMessage(150));
+          newChild = key2.call(newChild);
           return reconcileChildrenIterator(
             returnFiber,
             currentFirstChild,
@@ -4173,8 +4173,8 @@ function requireReactDomClient_production() {
     pop(suspenseHandlerStackCursor);
     shellBoundary === fiber && (shellBoundary = null);
   }
-  function findFirstSuspended(row) {
-    for (var node = row; null !== node; ) {
+  function findFirstSuspended(row2) {
+    for (var node = row2; null !== node; ) {
       if (13 === node.tag) {
         var state = node.memoizedState;
         if (null !== state && (state = state.dehydrated, null === state || isSuspenseInstancePending(state) || isSuspenseInstanceFallback(state)))
@@ -4186,9 +4186,9 @@ function requireReactDomClient_production() {
         node = node.child;
         continue;
       }
-      if (node === row) break;
+      if (node === row2) break;
       for (; null === node.sibling; ) {
-        if (null === node.return || node.return === row) return null;
+        if (null === node.return || node.return === row2) return null;
         node = node.return;
       }
       node.sibling.return = node.return;
@@ -5615,8 +5615,8 @@ function requireReactDomClient_production() {
     var ref = workInProgress2.ref;
     if ("ref" in nextProps) {
       var propsWithoutRef = {};
-      for (var key in nextProps)
-        "ref" !== key && (propsWithoutRef[key] = nextProps[key]);
+      for (var key2 in nextProps)
+        "ref" !== key2 && (propsWithoutRef[key2] = nextProps[key2]);
     } else propsWithoutRef = nextProps;
     prepareToReadContext(workInProgress2);
     nextProps = renderWithHooks(
@@ -5627,10 +5627,10 @@ function requireReactDomClient_production() {
       ref,
       renderLanes2
     );
-    key = checkDidRenderIdHook();
+    key2 = checkDidRenderIdHook();
     if (null !== current && !didReceiveUpdate)
       return bailoutHooks(current, workInProgress2, renderLanes2), bailoutOnAlreadyFinishedWork(current, workInProgress2, renderLanes2);
-    isHydrating && key && pushMaterializedTreeId(workInProgress2);
+    isHydrating && key2 && pushMaterializedTreeId(workInProgress2);
     workInProgress2.flags |= 1;
     reconcileChildren(current, workInProgress2, nextProps, renderLanes2);
     return workInProgress2.child;
@@ -6181,8 +6181,8 @@ function requireReactDomClient_production() {
     pushPrimaryTreeSuspenseHandler(workInProgress2);
     if (isSuspenseInstanceFallback(suspenseInstance)) {
       didPrimaryChildrenDefer = suspenseInstance.nextSibling && suspenseInstance.nextSibling.dataset;
-      if (didPrimaryChildrenDefer) var digest = didPrimaryChildrenDefer.dgst;
-      didPrimaryChildrenDefer = digest;
+      if (didPrimaryChildrenDefer) var digest2 = didPrimaryChildrenDefer.dgst;
+      didPrimaryChildrenDefer = digest2;
       "" !== didPrimaryChildrenDefer && (nextProps = Error(formatProdErrorMessage(419)), nextProps.stack = "", nextProps.digest = didPrimaryChildrenDefer, queueHydrationError({ value: nextProps, source: null, stack: null }));
       return retrySuspenseComponentWithoutHydrating(
         current,
@@ -6255,12 +6255,12 @@ function requireReactDomClient_production() {
     } : (renderState.isBackwards = isBackwards, renderState.rendering = null, renderState.renderingStartTime = 0, renderState.last = lastContentRow, renderState.tail = tail, renderState.tailMode = tailMode, renderState.treeForkCount = treeForkCount2);
   }
   function reverseChildren(fiber) {
-    var row = fiber.child;
-    for (fiber.child = null; null !== row; ) {
-      var nextRow = row.sibling;
-      row.sibling = fiber.child;
-      fiber.child = row;
-      row = nextRow;
+    var row2 = fiber.child;
+    for (fiber.child = null; null !== row2; ) {
+      var nextRow = row2.sibling;
+      row2.sibling = fiber.child;
+      fiber.child = row2;
+      row2 = nextRow;
     }
   }
   function updateSuspenseListComponent(current, workInProgress2, renderLanes2) {
@@ -11160,8 +11160,8 @@ function requireReactDomClient_production() {
     clientText = normalizeMarkupForTextOrAttribute(clientText);
     return normalizeMarkupForTextOrAttribute(serverText) === clientText ? true : false;
   }
-  function setProp(domElement, tag, key, value, props, prevValue) {
-    switch (key) {
+  function setProp(domElement, tag, key2, value, props, prevValue) {
+    switch (key2) {
       case "children":
         if ("string" === typeof value)
           "body" === tag || "textarea" === tag && "" === value || setTextContent(domElement, value);
@@ -11180,7 +11180,7 @@ function requireReactDomClient_production() {
       case "viewBox":
       case "width":
       case "height":
-        setValueForKnownAttribute(domElement, key, value);
+        setValueForKnownAttribute(domElement, key2, value);
         break;
       case "style":
         setValueForStyles(domElement, value, prevValue);
@@ -11192,27 +11192,27 @@ function requireReactDomClient_production() {
         }
       case "src":
       case "href":
-        if ("" === value && ("a" !== tag || "href" !== key)) {
-          domElement.removeAttribute(key);
+        if ("" === value && ("a" !== tag || "href" !== key2)) {
+          domElement.removeAttribute(key2);
           break;
         }
         if (null == value || "function" === typeof value || "symbol" === typeof value || "boolean" === typeof value) {
-          domElement.removeAttribute(key);
+          domElement.removeAttribute(key2);
           break;
         }
         value = sanitizeURL(value);
-        domElement.setAttribute(key, value);
+        domElement.setAttribute(key2, value);
         break;
       case "action":
       case "formAction":
         if ("function" === typeof value) {
           domElement.setAttribute(
-            key,
+            key2,
             "javascript:throw new Error('A React form was unexpectedly submitted. If you called form.submit() manually, consider using form.requestSubmit() instead. If you\\'re trying to use event.stopPropagation() in a submit event handler, consider also calling event.preventDefault().')"
           );
           break;
         } else
-          "function" === typeof prevValue && ("formAction" === key ? ("input" !== tag && setProp(domElement, tag, "name", props.name, props, null), setProp(
+          "function" === typeof prevValue && ("formAction" === key2 ? ("input" !== tag && setProp(domElement, tag, "name", props.name, props, null), setProp(
             domElement,
             tag,
             "formEncType",
@@ -11235,11 +11235,11 @@ function requireReactDomClient_production() {
             null
           )) : (setProp(domElement, tag, "encType", props.encType, props, null), setProp(domElement, tag, "method", props.method, props, null), setProp(domElement, tag, "target", props.target, props, null)));
         if (null == value || "symbol" === typeof value || "boolean" === typeof value) {
-          domElement.removeAttribute(key);
+          domElement.removeAttribute(key2);
           break;
         }
         value = sanitizeURL(value);
-        domElement.setAttribute(key, value);
+        domElement.setAttribute(key2, value);
         break;
       case "onClick":
         null != value && (domElement.onclick = noop$1);
@@ -11254,10 +11254,10 @@ function requireReactDomClient_production() {
         if (null != value) {
           if ("object" !== typeof value || !("__html" in value))
             throw Error(formatProdErrorMessage(61));
-          key = value.__html;
-          if (null != key) {
+          key2 = value.__html;
+          if (null != key2) {
             if (null != props.children) throw Error(formatProdErrorMessage(60));
-            (null != prevValue ? prevValue.__html : void 0) !== key && (domElement.innerHTML = key);
+            (null != prevValue ? prevValue.__html : void 0) !== key2 && (domElement.innerHTML = key2);
           }
         }
         break;
@@ -11281,11 +11281,11 @@ function requireReactDomClient_production() {
           domElement.removeAttribute("xlink:href");
           break;
         }
-        key = sanitizeURL(value);
+        key2 = sanitizeURL(value);
         domElement.setAttributeNS(
           "http://www.w3.org/1999/xlink",
           "xlink:href",
-          key
+          key2
         );
         break;
       case "contentEditable":
@@ -11296,7 +11296,7 @@ function requireReactDomClient_production() {
       case "externalResourcesRequired":
       case "focusable":
       case "preserveAlpha":
-        null != value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key, value) : domElement.removeAttribute(key);
+        null != value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key2, value) : domElement.removeAttribute(key2);
         break;
       case "inert":
       case "allowFullScreen":
@@ -11322,21 +11322,21 @@ function requireReactDomClient_production() {
       case "scoped":
       case "seamless":
       case "itemScope":
-        value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key, "") : domElement.removeAttribute(key);
+        value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key2, "") : domElement.removeAttribute(key2);
         break;
       case "capture":
       case "download":
-        true === value ? domElement.setAttribute(key, "") : false !== value && null != value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key, value) : domElement.removeAttribute(key);
+        true === value ? domElement.setAttribute(key2, "") : false !== value && null != value && "function" !== typeof value && "symbol" !== typeof value ? domElement.setAttribute(key2, value) : domElement.removeAttribute(key2);
         break;
       case "cols":
       case "rows":
       case "size":
       case "span":
-        null != value && "function" !== typeof value && "symbol" !== typeof value && !isNaN(value) && 1 <= value ? domElement.setAttribute(key, value) : domElement.removeAttribute(key);
+        null != value && "function" !== typeof value && "symbol" !== typeof value && !isNaN(value) && 1 <= value ? domElement.setAttribute(key2, value) : domElement.removeAttribute(key2);
         break;
       case "rowSpan":
       case "start":
-        null == value || "function" === typeof value || "symbol" === typeof value || isNaN(value) ? domElement.removeAttribute(key) : domElement.setAttribute(key, value);
+        null == value || "function" === typeof value || "symbol" === typeof value || isNaN(value) ? domElement.removeAttribute(key2) : domElement.setAttribute(key2, value);
         break;
       case "popover":
         listenToNonDelegatedEvent("beforetoggle", domElement);
@@ -11422,14 +11422,14 @@ function requireReactDomClient_production() {
       case "textContent":
         return;
       default:
-        if (!(2 < key.length) || "o" !== key[0] && "O" !== key[0] || "n" !== key[1] && "N" !== key[1])
-          key = aliases.get(key) || key, setValueForAttribute(domElement, key, value);
+        if (!(2 < key2.length) || "o" !== key2[0] && "O" !== key2[0] || "n" !== key2[1] && "N" !== key2[1])
+          key2 = aliases.get(key2) || key2, setValueForAttribute(domElement, key2, value);
         else return;
     }
     viewTransitionMutationContext = true;
   }
-  function setPropOnCustomElement(domElement, tag, key, value, props, prevValue) {
-    switch (key) {
+  function setPropOnCustomElement(domElement, tag, key2, value, props, prevValue) {
+    switch (key2) {
       case "style":
         setValueForStyles(domElement, value, prevValue);
         return;
@@ -11437,10 +11437,10 @@ function requireReactDomClient_production() {
         if (null != value) {
           if ("object" !== typeof value || !("__html" in value))
             throw Error(formatProdErrorMessage(61));
-          key = value.__html;
-          if (null != key) {
+          key2 = value.__html;
+          if (null != key2) {
             if (null != props.children) throw Error(formatProdErrorMessage(60));
-            (null != prevValue ? prevValue.__html : void 0) !== key && (domElement.innerHTML = key);
+            (null != prevValue ? prevValue.__html : void 0) !== key2 && (domElement.innerHTML = key2);
           }
         }
         break;
@@ -11468,15 +11468,15 @@ function requireReactDomClient_production() {
       case "textContent":
         return;
       default:
-        if (!registrationNameDependencies.hasOwnProperty(key))
+        if (!registrationNameDependencies.hasOwnProperty(key2))
           a: {
-            if ("o" === key[0] && "n" === key[1] && (props = key.endsWith("Capture"), prevValue = key.slice(2, props ? key.length - 7 : void 0), tag = domElement[internalPropsKey] || null, tag = null != tag ? tag[key] : null, "function" === typeof tag && domElement.removeEventListener(prevValue, tag, props), "function" === typeof value)) {
-              "function" !== typeof tag && null !== tag && (key in domElement ? domElement[key] = null : domElement.hasAttribute(key) && domElement.removeAttribute(key));
+            if ("o" === key2[0] && "n" === key2[1] && (props = key2.endsWith("Capture"), prevValue = key2.slice(2, props ? key2.length - 7 : void 0), tag = domElement[internalPropsKey] || null, tag = null != tag ? tag[key2] : null, "function" === typeof tag && domElement.removeEventListener(prevValue, tag, props), "function" === typeof value)) {
+              "function" !== typeof tag && null !== tag && (key2 in domElement ? domElement[key2] = null : domElement.hasAttribute(key2) && domElement.removeAttribute(key2));
               domElement.addEventListener(prevValue, value, props);
               break a;
             }
             viewTransitionMutationContext = true;
-            key in domElement ? domElement[key] = value : true === value ? domElement.setAttribute(key, "") : setValueForAttribute(domElement, key, value);
+            key2 in domElement ? domElement[key2] = value : true === value ? domElement.setAttribute(key2, "") : setValueForAttribute(domElement, key2, value);
           }
         return;
     }
@@ -13005,22 +13005,22 @@ function requireReactDomClient_production() {
       ) + '"]', "string" === typeof options2.imageSizes && (preloadSelector += '[imagesizes="' + escapeSelectorAttributeValueInsideDoubleQuotes(
         options2.imageSizes
       ) + '"]')) : preloadSelector += '[href="' + escapeSelectorAttributeValueInsideDoubleQuotes(href) + '"]' : preloadSelector += '[href="' + escapeSelectorAttributeValueInsideDoubleQuotes(href) + '"]';
-      var key = preloadSelector;
+      var key2 = preloadSelector;
       switch (as) {
         case "style":
-          key = getStyleKey(href);
+          key2 = getStyleKey(href);
           break;
         case "script":
-          key = getScriptKey(href);
+          key2 = getScriptKey(href);
       }
-      if (!(preloadPropsMap.has(key) || (href = assign(
+      if (!(preloadPropsMap.has(key2) || (href = assign(
         {
           rel: "preload",
           href: "image" === as && options2 && options2.imageSrcSet ? void 0 : href,
           as
         },
         options2
-      ), preloadPropsMap.set(key, href), null !== ownerDocument.querySelector(preloadSelector) || "style" === as && ownerDocument.querySelector(getStylesheetSelectorFromKey(key)) || "script" === as && ownerDocument.querySelector(getScriptSelectorFromKey(key))))) {
+      ), preloadPropsMap.set(key2, href), null !== ownerDocument.querySelector(preloadSelector) || "style" === as && ownerDocument.querySelector(getStylesheetSelectorFromKey(key2)) || "script" === as && ownerDocument.querySelector(getScriptSelectorFromKey(key2))))) {
         var instance = ownerDocument.createElement("link");
         setInitialProperties(instance, "link", href);
         "style" === as && (instance[internalLoadPendingKey] = true, instance.onload = instance.onerror = function() {
@@ -13035,7 +13035,7 @@ function requireReactDomClient_production() {
     previousDispatcher.m(href, options2);
     var ownerDocument = globalDocument;
     if (ownerDocument && href) {
-      var as = options2 && "string" === typeof options2.as ? options2.as : "script", preloadSelector = 'link[rel="modulepreload"][as="' + escapeSelectorAttributeValueInsideDoubleQuotes(as) + '"][href="' + escapeSelectorAttributeValueInsideDoubleQuotes(href) + '"]', key = preloadSelector;
+      var as = options2 && "string" === typeof options2.as ? options2.as : "script", preloadSelector = 'link[rel="modulepreload"][as="' + escapeSelectorAttributeValueInsideDoubleQuotes(as) + '"][href="' + escapeSelectorAttributeValueInsideDoubleQuotes(href) + '"]', key2 = preloadSelector;
       switch (as) {
         case "audioworklet":
         case "paintworklet":
@@ -13043,9 +13043,9 @@ function requireReactDomClient_production() {
         case "sharedworker":
         case "worker":
         case "script":
-          key = getScriptKey(href);
+          key2 = getScriptKey(href);
       }
-      if (!preloadPropsMap.has(key) && (href = assign({ rel: "modulepreload", href }, options2), preloadPropsMap.set(key, href), null === ownerDocument.querySelector(preloadSelector))) {
+      if (!preloadPropsMap.has(key2) && (href = assign({ rel: "modulepreload", href }, options2), preloadPropsMap.set(key2, href), null === ownerDocument.querySelector(preloadSelector))) {
         switch (as) {
           case "audioworklet":
           case "paintworklet":
@@ -13053,7 +13053,7 @@ function requireReactDomClient_production() {
           case "sharedworker":
           case "worker":
           case "script":
-            if (ownerDocument.querySelector(getScriptSelectorFromKey(key)))
+            if (ownerDocument.querySelector(getScriptSelectorFromKey(key2)))
               return;
         }
         as = ownerDocument.createElement("link");
@@ -13067,13 +13067,13 @@ function requireReactDomClient_production() {
     previousDispatcher.S(href, precedence, options2);
     var ownerDocument = globalDocument;
     if (ownerDocument && href) {
-      var styles = getResourcesFromRoot(ownerDocument).hoistableStyles, key = getStyleKey(href);
+      var styles = getResourcesFromRoot(ownerDocument).hoistableStyles, key2 = getStyleKey(href);
       precedence = precedence || "default";
-      var resource = styles.get(key);
+      var resource = styles.get(key2);
       if (!resource) {
         var state = { loading: 0, preload: null };
         if (resource = ownerDocument.querySelector(
-          getStylesheetSelectorFromKey(key)
+          getStylesheetSelectorFromKey(key2)
         ))
           state.loading = 5;
         else {
@@ -13081,7 +13081,7 @@ function requireReactDomClient_production() {
             { rel: "stylesheet", href, "data-precedence": precedence },
             options2
           );
-          (options2 = preloadPropsMap.get(key)) && adoptPreloadPropsForStylesheet(href, options2);
+          (options2 = preloadPropsMap.get(key2)) && adoptPreloadPropsForStylesheet(href, options2);
           var link = resource = ownerDocument.createElement("link");
           markNodeAsHoistable(link);
           setInitialProperties(link, "link", href);
@@ -13104,7 +13104,7 @@ function requireReactDomClient_production() {
           count: 1,
           state
         };
-        styles.set(key, resource);
+        styles.set(key2, resource);
       }
     }
   }
@@ -13112,26 +13112,26 @@ function requireReactDomClient_production() {
     previousDispatcher.X(src, options2);
     var ownerDocument = globalDocument;
     if (ownerDocument && src) {
-      var scripts = getResourcesFromRoot(ownerDocument).hoistableScripts, key = getScriptKey(src), resource = scripts.get(key);
-      resource || (resource = ownerDocument.querySelector(getScriptSelectorFromKey(key)), resource || (src = assign({ src, async: true }, options2), (options2 = preloadPropsMap.get(key)) && adoptPreloadPropsForScript(src, options2), resource = ownerDocument.createElement("script"), markNodeAsHoistable(resource), setInitialProperties(resource, "link", src), ownerDocument.head.appendChild(resource)), resource = {
+      var scripts = getResourcesFromRoot(ownerDocument).hoistableScripts, key2 = getScriptKey(src), resource = scripts.get(key2);
+      resource || (resource = ownerDocument.querySelector(getScriptSelectorFromKey(key2)), resource || (src = assign({ src, async: true }, options2), (options2 = preloadPropsMap.get(key2)) && adoptPreloadPropsForScript(src, options2), resource = ownerDocument.createElement("script"), markNodeAsHoistable(resource), setInitialProperties(resource, "link", src), ownerDocument.head.appendChild(resource)), resource = {
         type: "script",
         instance: resource,
         count: 1,
         state: null
-      }, scripts.set(key, resource));
+      }, scripts.set(key2, resource));
     }
   }
   function preinitModuleScript(src, options2) {
     previousDispatcher.M(src, options2);
     var ownerDocument = globalDocument;
     if (ownerDocument && src) {
-      var scripts = getResourcesFromRoot(ownerDocument).hoistableScripts, key = getScriptKey(src), resource = scripts.get(key);
-      resource || (resource = ownerDocument.querySelector(getScriptSelectorFromKey(key)), resource || (src = assign({ src, async: true, type: "module" }, options2), (options2 = preloadPropsMap.get(key)) && adoptPreloadPropsForScript(src, options2), resource = ownerDocument.createElement("script"), markNodeAsHoistable(resource), setInitialProperties(resource, "link", src), ownerDocument.head.appendChild(resource)), resource = {
+      var scripts = getResourcesFromRoot(ownerDocument).hoistableScripts, key2 = getScriptKey(src), resource = scripts.get(key2);
+      resource || (resource = ownerDocument.querySelector(getScriptSelectorFromKey(key2)), resource || (src = assign({ src, async: true, type: "module" }, options2), (options2 = preloadPropsMap.get(key2)) && adoptPreloadPropsForScript(src, options2), resource = ownerDocument.createElement("script"), markNodeAsHoistable(resource), setInitialProperties(resource, "link", src), ownerDocument.head.appendChild(resource)), resource = {
         type: "script",
         instance: resource,
         count: 1,
         state: null
-      }, scripts.set(key, resource));
+      }, scripts.set(key2, resource));
     }
   }
   function getResource(type, currentProps, pendingProps, currentResource) {
@@ -13201,8 +13201,8 @@ function requireReactDomClient_production() {
   function getStyleKey(href) {
     return 'href="' + escapeSelectorAttributeValueInsideDoubleQuotes(href) + '"';
   }
-  function getStylesheetSelectorFromKey(key) {
-    return 'link[rel="stylesheet"][' + key + "]";
+  function getStylesheetSelectorFromKey(key2) {
+    return 'link[rel="stylesheet"][' + key2 + "]";
   }
   function stylesheetPropsFromRawProps(rawProps) {
     return assign({}, rawProps, {
@@ -13210,29 +13210,29 @@ function requireReactDomClient_production() {
       precedence: null
     });
   }
-  function preloadStylesheet(ownerDocument, key, preloadProps, state) {
-    if (key = ownerDocument.querySelector(
-      'link[rel="preload"][as="style"][' + key + "]"
+  function preloadStylesheet(ownerDocument, key2, preloadProps, state) {
+    if (key2 = ownerDocument.querySelector(
+      'link[rel="preload"][as="style"][' + key2 + "]"
     )) {
-      if (true !== key[internalLoadPendingKey]) {
+      if (true !== key2[internalLoadPendingKey]) {
         state.loading = 1;
         return;
       }
     } else
-      key = ownerDocument.createElement("link"), key[internalLoadPendingKey] = true, key.onload = key.onerror = clearPendingLoadOnNode.bind(null, key), setInitialProperties(key, "link", preloadProps), markNodeAsHoistable(key), ownerDocument.head.appendChild(key);
-    state.preload = key;
-    key.addEventListener("load", function() {
+      key2 = ownerDocument.createElement("link"), key2[internalLoadPendingKey] = true, key2.onload = key2.onerror = clearPendingLoadOnNode.bind(null, key2), setInitialProperties(key2, "link", preloadProps), markNodeAsHoistable(key2), ownerDocument.head.appendChild(key2);
+    state.preload = key2;
+    key2.addEventListener("load", function() {
       return state.loading |= 1;
     });
-    key.addEventListener("error", function() {
+    key2.addEventListener("error", function() {
       return state.loading |= 2;
     });
   }
   function getScriptKey(src) {
     return '[src="' + escapeSelectorAttributeValueInsideDoubleQuotes(src) + '"]';
   }
-  function getScriptSelectorFromKey(key) {
-    return "script[async]" + key;
+  function getScriptSelectorFromKey(key2) {
+    return "script[async]" + key2;
   }
   function acquireResource(hoistableRoot, resource, props) {
     resource.count++;
@@ -13390,8 +13390,8 @@ function requireReactDomClient_production() {
   function suspendResource(state, hoistableRoot, resource, props) {
     if ("stylesheet" === resource.type && ("string" !== typeof props.media || false !== matchMedia(props.media).matches) && 0 === (resource.state.loading & 4)) {
       if (null === resource.instance) {
-        var key = getStyleKey(props.href), instance = hoistableRoot.querySelector(
-          getStylesheetSelectorFromKey(key)
+        var key2 = getStyleKey(props.href), instance = hoistableRoot.querySelector(
+          getStylesheetSelectorFromKey(key2)
         );
         if (instance) {
           hoistableRoot = instance._p;
@@ -13403,7 +13403,7 @@ function requireReactDomClient_production() {
         }
         instance = hoistableRoot.ownerDocument || hoistableRoot;
         props = stylesheetPropsFromRawProps(props);
-        (key = preloadPropsMap.get(key)) && adoptPreloadPropsForStylesheet(props, key);
+        (key2 = preloadPropsMap.get(key2)) && adoptPreloadPropsForStylesheet(props, key2);
         instance = instance.createElement("link");
         markNodeAsHoistable(instance);
         var linkInstance = instance;
@@ -13962,8 +13962,8 @@ function requireReactDomClient_production() {
     }
     return true;
   }
-  function attemptReplayContinuousQueuedEventInMap(queuedEvent, key, map) {
-    attemptReplayContinuousQueuedEvent(queuedEvent) && map.delete(key);
+  function attemptReplayContinuousQueuedEventInMap(queuedEvent, key2, map) {
+    attemptReplayContinuousQueuedEvent(queuedEvent) && map.delete(key2);
   }
   function replayUnblockedEvents() {
     hasScheduledReplayAttempt = false;
@@ -14250,7 +14250,10 @@ const FAMILY_LABELS = {
   outflow: "Отгрузка",
   control: "Уставки",
   additive: "Присадка",
-  plan: "План"
+  plan: "План",
+  recipe: "Рецепт",
+  throughput: "Производительность",
+  model: "Применимость модели"
 };
 const TERM_LABELS = {
   temperature_above_reference: "Превышение температуры над опорной",
@@ -14277,18 +14280,18 @@ function hours(value) {
   if (!isNumber(value)) return "—";
   return `${num(value, 2)} ч`;
 }
-function controlLabel(key) {
-  return CONTROL_LABELS[key] ?? key;
+function controlLabel(key2) {
+  return CONTROL_LABELS[key2] ?? key2;
 }
-function controlUnit(key) {
-  return CONTROL_UNITS[key] ?? "";
+function controlUnit(key2) {
+  return CONTROL_UNITS[key2] ?? "";
 }
 function familyOf(constraintId) {
   const head = constraintId.split(".")[0] ?? constraintId;
   return FAMILY_LABELS[head] ?? head;
 }
-function termLabel(key) {
-  return TERM_LABELS[key] ?? key;
+function termLabel(key2) {
+  return TERM_LABELS[key2] ?? key2;
 }
 function moment(value) {
   if (!value) return MISSING;
@@ -14302,55 +14305,89 @@ function moment(value) {
     minute: "2-digit"
   });
 }
+const SULFUR = "quality.sulfur_mgkg";
 function trustLamp(payload) {
   const event = (payload.decision.trace ?? []).find((item) => item.agent === "data");
-  if (!event) return payload.sources?.length ? "pass" : "unknown";
-  return event["usable"] === true ? "pass" : "fail";
+  const report = event?.["report"];
+  const trust = report && typeof report === "object" ? report : null;
+  const sources = trust?.sources ? Object.values(trust.sources) : payload.sources ?? [];
+  const usable = trust ? trust.usable : sources.some((item) => item.usable);
+  if (sources.length === 0) return { lamp: "unknown", title: "источники не передавались" };
+  return usable ? { lamp: "pass", title: "источник качества найден" } : { lamp: "fail", title: "достоверного источника нет" };
 }
 function gateLamp(payload) {
   const checks = payload.decision.gate?.checks ?? [];
-  if (checks.length === 0) return "unknown";
-  if (checks.some((check) => check.status === "fail")) return "fail";
-  if (checks.some((check) => check.status === "unknown")) return "unknown";
-  return "pass";
+  if (checks.length === 0) return { lamp: "unknown", title: "проверки не передавались" };
+  const title = payload.decision.gate?.feasible ? "план проходит" : "план не проходит";
+  if (checks.some((check) => check.status === "fail")) return { lamp: "fail", title };
+  if (checks.some((check) => check.status === "unknown")) return { lamp: "unknown", title };
+  return { lamp: "pass", title };
 }
 function candidatesLamp(payload) {
   const event = (payload.decision.trace ?? []).find((item) => item.agent === "optimizer");
-  if (!event) return "unknown";
-  return payload.decision.selected_plan ? "pass" : "fail";
+  const rounds = event?.["rounds"] ?? [];
+  if (rounds.length === 0) return { lamp: "unknown", title: "раунды поиска не передавались" };
+  const feasible = rounds.reduce((acc, round) => acc + (round.feasible ?? 0), 0);
+  return feasible > 0 ? { lamp: "pass", title: "допустимые планы есть" } : { lamp: "fail", title: "допустимых планов не нашлось" };
 }
 function agentsLamp(payload) {
   const trace = payload.decision.trace ?? [];
-  if (trace.length === 0) return "unknown";
+  if (trace.length === 0) return { lamp: "unknown", title: "трасса участников пуста" };
   const vetoed = trace.some((event) => (event["vetoes"]?.length ?? 0) > 0);
-  return vetoed ? "fail" : "pass";
+  return { lamp: vetoed ? "fail" : "pass", title: `участников: ${trace.length}` };
+}
+function sulfurPoints(payload) {
+  return (payload.decision.gate?.checks ?? []).filter(
+    (check) => check.constraint_id === SULFUR && isNumber(check.observed) && isNumber(check.time_hours)
+  );
 }
 function forecastLamp(payload) {
-  const checks = (payload.decision.gate?.checks ?? []).filter(
-    (check) => check.constraint_id === "quality.sulfur_mgkg"
-  );
-  if (checks.length === 0) return "unknown";
-  return checks.some((check) => check.status !== "pass") ? "fail" : "pass";
+  const points = sulfurPoints(payload);
+  if (points.length === 0) return { lamp: "unknown", title: "траектория не передавалась" };
+  return points.some((check) => check.status !== "pass") ? { lamp: "fail", title: "сера против предела" } : { lamp: "pass", title: "сера против предела" };
 }
 function decisionLamp(payload) {
-  if (payload.decision.status === "refuse") return "fail";
-  return (payload.explanation.warnings?.length ?? 0) > 0 ? "unknown" : "pass";
+  const title = payload.status_label;
+  if (payload.decision.status === "refuse") return { lamp: "fail", title };
+  return (payload.explanation.warnings?.length ?? 0) > 0 ? { lamp: "unknown", title } : { lamp: "pass", title };
+}
+function stateLamp(payload) {
+  return payload.explanation.current_operation ? { lamp: "pass", title: "режим передан" } : { lamp: "unknown", title: "режим не передавался" };
+}
+function choiceLamp(payload) {
+  const plan = payload.decision.selected_plan;
+  return plan ? { lamp: "pass", title: `выбран ${plan.plan_id}` } : { lamp: "fail", title: "план не выбран" };
+}
+const LAMPS = {
+  state: stateLamp,
+  trust: trustLamp,
+  forecast: forecastLamp,
+  candidates: candidatesLamp,
+  gate: gateLamp,
+  agents: agentsLamp,
+  choice: choiceLamp,
+  decision: decisionLamp
+};
+function lampOf$1(id, payload) {
+  const fn = LAMPS[id];
+  return fn ? fn(payload) : { lamp: "unknown", title: "этап неизвестен" };
 }
 const STAGES = [
-  { id: "state", label: "Состояние", lamp: (p) => p.explanation.current_operation ? "pass" : "unknown" },
-  { id: "trust", label: "Доверие к данным", lamp: trustLamp },
-  { id: "forecast", label: "Прогноз", lamp: forecastLamp },
-  { id: "candidates", label: "Кандидаты", lamp: candidatesLamp },
-  { id: "gate", label: "Gate", lamp: gateLamp },
-  { id: "agents", label: "Агенты", lamp: agentsLamp },
-  { id: "choice", label: "Выбор", lamp: (p) => p.decision.selected_plan ? "pass" : "fail" },
-  { id: "decision", label: "Решение", lamp: decisionLamp }
+  { id: "state", label: "Состояние" },
+  { id: "trust", label: "Доверие к данным" },
+  { id: "forecast", label: "Прогноз" },
+  { id: "candidates", label: "Кандидаты" },
+  { id: "gate", label: "Gate" },
+  { id: "agents", label: "Агенты" },
+  { id: "choice", label: "Выбор" },
+  { id: "decision", label: "Решение" }
 ];
 const EMPTY_RUN = {
   status: "idle",
   phases: [],
   stages: {},
   stageSource: {},
+  stageFacts: {},
   agentEvents: [],
   payload: null,
   elapsedMs: 0,
@@ -14361,145 +14398,197 @@ const EMPTY_RUN = {
 function stageStateOf(run, id) {
   return run.stages[id] ?? "pending";
 }
-function keyNumbers(payload) {
-  if (!payload) return [];
-  const decision = payload.decision;
-  const gate = decision.gate?.checks ?? [];
-  const failed = gate.filter((check) => check.status === "fail").length;
-  const unknown = gate.filter((check) => check.status === "unknown").length;
-  const out = [
-    {
-      label: "Вердикт",
-      value: payload.status_label,
-      tone: decision.status === "refuse" ? "fail" : "pass"
-    }
-  ];
-  if (isNumber(decision.production_t)) {
-    out.push({ label: "Выпуск", value: `${num(decision.production_t, 1)} т`, tone: "idle" });
+const ORDER$1 = ["state", "trust", "forecast", "candidates", "gate", "agents", "choice", "decision"];
+function visibleCount(stages) {
+  let shown = 0;
+  for (const id of ORDER$1) {
+    const state = stages[id];
+    shown += 1;
+    if (state === void 0 || state === "pending") break;
   }
-  if (isNumber(decision.cost_per_tonne)) {
-    out.push({ label: "Стоимость", value: `${num(decision.cost_per_tonne, 2)} /т`, tone: "idle" });
+  return shown;
+}
+function advanceTo(current, id, state) {
+  const next = { ...current };
+  const target = ORDER$1.indexOf(id);
+  if (target === -1) return { ...next, [id]: state };
+  for (const earlier of ORDER$1.slice(0, target)) {
+    const state2 = next[earlier];
+    if (state2 === void 0 || state2 === "pending" || state2 === "running") next[earlier] = "done";
   }
-  if (isNumber(decision.severity_index)) {
-    out.push({ label: "Тяжесть режима", value: num(decision.severity_index, 3), tone: "idle" });
+  next[id] = state;
+  return next;
+}
+function chainTo(current, id) {
+  const target = ORDER$1.indexOf(id);
+  if (target === -1) return [id];
+  const out = [];
+  for (const earlier of ORDER$1.slice(0, target)) {
+    const state = current[earlier];
+    if (state === void 0 || state === "pending") out.push(earlier);
   }
-  if (gate.length > 0) {
-    out.push({
-      label: "Нарушения Gate",
-      value: failed === 0 && unknown === 0 ? `нет, проверок ${gate.length}` : `${failed} нарушено, ${unknown} неизвестно`,
-      tone: failed > 0 ? "fail" : unknown > 0 ? "unknown" : "pass"
-    });
-  }
-  const warnings = payload.explanation.warnings?.length ?? 0;
-  if (warnings > 0) {
-    out.push({ label: "Предупреждения", value: String(warnings), tone: "unknown" });
-  }
+  out.push(id);
   return out;
 }
-function sourceLines(payload) {
-  if (!payload) return [];
-  return (payload.sources ?? []).map((source) => ({
-    name: source.name,
-    usable: source.usable,
-    age: isNumber(source.age_hours) ? `${num(source.age_hours, 1)} ч` : "возраст не передан"
-  }));
+const LATE_STAGES = ["candidates", "gate", "choice", "decision"];
+function mergeFacts(current, id, facts) {
+  if (Object.keys(facts).length === 0) return current;
+  return { ...current, [id]: { ...current[id] ?? {}, ...facts } };
 }
-function agentCounters(payload) {
-  if (!payload) return [];
-  const trace = payload.decision.trace ?? [];
-  if (trace.length === 0) return [];
-  const vetoes = trace.reduce(
-    (acc, event) => acc + (event["vetoes"]?.length ?? 0),
-    0
-  );
-  const agentic = payload.decision.agentic;
-  const provider = agentic === null || agentic === void 0 ? "режим не передавался" : agentic.mode === "scripted" ? "детерминированная политика, не LLM" : agentic.outcome === "ok" ? `живая модель: ${agentic.model ?? "имя не передано"}` : "откат на детерминированный путь";
-  return [
-    { label: "Участников", value: String(trace.length), tone: "idle" },
-    { label: "Вето", value: String(vetoes), tone: vetoes > 0 ? "fail" : "pass" },
-    {
-      label: "Провайдер",
-      value: provider,
-      tone: agentic?.mode === "scripted" ? "unknown" : agentic?.outcome === "ok" ? "pass" : "unknown"
-    }
-  ];
+function mergePhase(phases, event) {
+  const next = {
+    key: event.key,
+    label: event.label,
+    detail: event.detail,
+    state: event.state ?? "done",
+    elapsedMs: Number.isFinite(event.elapsed_ms) ? event.elapsed_ms : 0
+  };
+  const at = phases.findIndex((item) => item.key === event.key);
+  if (at === -1) return [...phases, next];
+  const copy = [...phases];
+  copy[at] = next;
+  return copy;
 }
-function RailGroup({ title, children }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "rail__group", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "rail__title", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__tick", "aria-hidden": "true" }),
-      title
-    ] }),
-    children
-  ] });
+const KEYS = /* @__PURE__ */ new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "PageUp",
+  "PageDown",
+  "Home",
+  "End",
+  " ",
+  "Spacebar"
+]);
+const VISIBLE_SHARE = 0.6;
+let taken = false;
+let listening = false;
+let notify = null;
+function take() {
+  if (taken) return;
+  taken = true;
+  notify?.(true);
 }
-function RailLines({ lines }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("dl", { className: "rail__lines", children: lines.map((line) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `rail__line rail__line--${line.tone}`, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("dt", { children: line.label }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("dd", { children: line.value })
-  ] }, line.label)) });
+function onWheel() {
+  take();
 }
-const DURATION = 520;
-function parse(value) {
-  const match = /^(\D*?)(-?\d[\d  ]*(?:[.,]\d+)?)(.*)$/s.exec(value);
-  const digits = match?.[2];
-  if (!match || digits === void 0) return null;
-  const raw = digits.replace(/[  ]/g, "").replace(",", ".");
-  const target = Number(raw);
-  if (!Number.isFinite(target)) return null;
-  const dot = raw.indexOf(".");
-  return {
-    prefix: match[1] ?? "",
-    target,
-    suffix: match[3] ?? "",
-    decimals: dot === -1 ? 0 : raw.length - dot - 1
+function onTouch() {
+  take();
+}
+function onKey(event) {
+  const node = event.target;
+  const tag = node?.tagName;
+  if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+  if (KEYS.has(event.key)) take();
+}
+function watchTakeover(onChange) {
+  notify = onChange;
+  if (!listening) {
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouch, { passive: true });
+    window.addEventListener("keydown", onKey, { passive: true });
+    listening = true;
+  }
+  return () => {
+    if (!listening) return;
+    window.removeEventListener("wheel", onWheel);
+    window.removeEventListener("touchstart", onTouch);
+    window.removeEventListener("keydown", onKey);
+    listening = false;
+    notify = null;
   };
 }
-function still() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function releaseTakeover() {
+  if (!taken) return;
+  taken = false;
+  notify?.(false);
 }
-function frameOf(parsed, eased) {
-  return `${parsed.prefix}${(parsed.target * eased).toFixed(parsed.decimals)}${parsed.suffix}`;
+function alreadyInView(node) {
+  const top = node.getBoundingClientRect().top;
+  return top >= 0 && top <= window.innerHeight * VISIBLE_SHARE;
 }
-function animates(parsed) {
-  return parsed !== null && parsed.target !== 0 && !still();
+function scrollTo(id, reduced) {
+  if (taken) return;
+  const node = document.getElementById(id);
+  if (!node) return;
+  if (alreadyInView(node)) return;
+  node.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
 }
-function useCountUp(value) {
-  const [shown, setShown] = reactExports.useState(() => {
-    const parsed = parse(value);
-    return animates(parsed) ? frameOf(parsed, 0) : value;
-  });
-  const played = reactExports.useRef(null);
-  reactExports.useEffect(() => {
-    const parsed = parse(value);
-    if (played.current === value || !animates(parsed)) {
-      setShown(value);
-      return;
+function scrollToDirect(id, behavior) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.scrollIntoView({ behavior, block: "start" });
+}
+const RUNNING = { lamp: "idle", note: "идёт", live: true };
+const PENDING = { lamp: "idle", note: "ждёт", live: false };
+const FAILED = { lamp: "fail", note: "отказ", live: true };
+const SILENT = { lamp: "idle", note: "без отметок", live: false };
+function factSignal(id, facts) {
+  if (!facts) return null;
+  if (id === "trust") {
+    if (typeof facts.usable === "boolean") {
+      return facts.usable ? { lamp: "pass", note: "источник годен", live: true } : { lamp: "fail", note: "источника нет", live: true };
     }
-    played.current = value;
-    const start = performance.now();
-    let frame = requestAnimationFrame(function step(now) {
-      const progress = Math.min(1, Math.max(0, (now - start) / DURATION));
-      setShown(progress < 1 ? frameOf(parsed, 1 - Math.pow(1 - progress, 3)) : value);
-      if (progress < 1) frame = requestAnimationFrame(step);
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-      played.current = null;
-    };
-  }, [value]);
-  return shown;
+    return null;
+  }
+  if (id === "candidates") {
+    if (typeof facts.feasible === "number") {
+      return facts.feasible > 0 ? { lamp: "pass", note: `допустимых ${facts.feasible}`, live: true } : { lamp: "fail", note: "допустимых нет", live: true };
+    }
+    return null;
+  }
+  if (id === "gate") {
+    if (typeof facts.feasible === "boolean") {
+      return facts.feasible ? { lamp: "pass", note: "проверки пройдены", live: true } : { lamp: "fail", note: "проверки не пройдены", live: true };
+    }
+    return null;
+  }
+  if (id === "choice") {
+    if (typeof facts.plan_id === "string") {
+      return { lamp: "pass", note: `план ${facts.plan_id}`, live: true };
+    }
+    return null;
+  }
+  if (id === "state") {
+    const stock = facts.inventories;
+    if (stock && Object.keys(stock).length > 0) {
+      return { lamp: "pass", note: "запасы приняты", live: true };
+    }
+    return null;
+  }
+  return null;
+}
+function railSignal(run, payload, id) {
+  const state = run.stages[id] ?? "pending";
+  if (state === "failed") return FAILED;
+  if (state === "pending") return PENDING;
+  const live = factSignal(id, run.stageFacts[id]);
+  if (state === "running") {
+    if (live) return live;
+    if (id === "agents" && run.agentEvents.length > 0) {
+      return { lamp: "idle", note: `идёт, событий ${run.agentEvents.length}`, live: true };
+    }
+    return RUNNING;
+  }
+  if (payload) {
+    const { lamp } = lampOf$1(id, payload);
+    if (lamp === "fail") return { lamp, note: "не прошёл", live: true };
+    if (lamp === "unknown") return { lamp, note: "неполно", live: true };
+    return { lamp, note: "пройден", live: true };
+  }
+  return live ?? SILENT;
 }
 function LampDot({ state, title }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `lamp lamp--${state}`, title, "aria-hidden": "true" });
 }
 function Readout({ label, value, unit, hint, tone, badge }) {
-  const shown = useCountUp(value);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `readout ${tone ? `readout--${tone}` : ""}`, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "readout__label", children: label }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "readout__value", children: [
-      shown,
-      unit ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "readout__unit", children: unit }) : null
+      value,
+      unit ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        " ",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "readout__unit", children: unit })
+      ] }) : null
     ] }),
     badge ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "readout__badge", children: badge }) : null,
     hint ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "readout__hint", children: hint }) : null
@@ -14526,49 +14615,122 @@ function Tag({ children, tone = "idle" }) {
 function Scroller({ label, children }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "scroller", tabIndex: 0, role: "group", "aria-label": label, children });
 }
-const STATE_MARK = {
-  pending: "·",
-  running: "→",
-  done: "✓",
-  failed: "×"
+const STATE_TITLE = {
+  pending: "не начат",
+  running: "идёт сейчас",
+  done: "пройден",
+  failed: "отказ"
 };
-function Rail({ payload, active, run }) {
-  const numbers = keyNumbers(payload);
-  const sources = sourceLines(payload);
-  const agents = agentCounters(payload);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "rail", "aria-label": "Ход прогона", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(RailGroup, { title: "Этапы", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { className: "rail__list", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("li", { className: `rail__item ${active === "config" ? "rail__item--active" : ""}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("a", { className: "rail__link", href: "#config", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__order", children: "0" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__mark", "aria-hidden": "true", children: "✓" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__label", children: "Условия" })
-      ] }) }),
-      STAGES.map((stage, position) => {
+function RailOrder({ value, state }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__order", "data-state": state, children: value }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sr-only", children: STATE_TITLE[state] })
+  ] });
+}
+const FAR_GAP = 3;
+function seconds$2(ms) {
+  if (!Number.isFinite(ms)) return "—";
+  return `${(ms / 1e3).toFixed(1).replace(".", ",")} с`;
+}
+function indexOf(id) {
+  return id === "config" ? -1 : ORDER$1.indexOf(id);
+}
+function Rail({ payload, active, run, onNavigate }) {
+  const listRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    if (list.scrollWidth <= list.clientWidth + 1) return;
+    const current = list.querySelector("[aria-current]");
+    if (!current) return;
+    const target = current.offsetLeft - (list.clientWidth - current.offsetWidth) / 2;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    list.scrollTo({ left: Math.max(0, target), behavior: reduced ? "auto" : "smooth" });
+  }, [active]);
+  const jump = reactExports.useCallback(
+    (event, id) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+      event.preventDefault();
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const far = Math.abs(indexOf(id) - indexOf(active)) > FAR_GAP;
+      scrollToDirect(id, reduced || far ? "auto" : "smooth");
+      onNavigate?.();
+    },
+    [active, onNavigate]
+  );
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "rail rail--enter", "aria-label": "Ход прогона", children: [
+    run.status === "running" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "rail__clock", "aria-hidden": "true", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__clock-word", children: "идёт" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__clock-value", children: seconds$2(run.elapsedMs) })
+    ] }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { className: "rail__list", ref: listRef, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("li", { className: `rail__item rail__item--done ${active === "config" ? "rail__item--active" : ""}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "a",
+        {
+          className: "rail__link",
+          href: "#config",
+          "aria-current": active === "config" ? "step" : void 0,
+          onClick: (event) => jump(event, "config"),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__cursor", "aria-hidden": "true" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(RailOrder, { value: 0, state: "done" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "rail__label", children: [
+              "Условия",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__note", children: "приняты" })
+            ] })
+          ]
+        }
+      ) }),
+      STAGES.map((stage, position2) => {
         const state = stageStateOf(run, stage.id);
+        const isActive = active === stage.id;
+        const signal = railSignal(run, payload, stage.id);
         return /* @__PURE__ */ jsxRuntimeExports.jsx(
           "li",
           {
-            className: `rail__item rail__item--${state} ${active === stage.id ? "rail__item--active" : ""}`,
-            "data-band": position + 1,
-            children: /* @__PURE__ */ jsxRuntimeExports.jsxs("a", { className: "rail__link", href: `#${stage.id}`, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__order", children: position + 1 }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__mark", "aria-hidden": "true", children: STATE_MARK[state] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__label", children: stage.label }),
-              payload && state === "done" ? /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: stage.lamp(payload) }) : null
-            ] })
+            className: `rail__item rail__item--${state} ${isActive ? "rail__item--active" : ""}`,
+            "data-band": position2 + 1,
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "a",
+              {
+                className: "rail__link",
+                href: `#${stage.id}`,
+                "aria-current": isActive ? "step" : void 0,
+                onClick: (event) => jump(event, stage.id),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__cursor", "aria-hidden": "true" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RailOrder, { value: position2 + 1, state }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "rail__label", children: [
+                    stage.label,
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `rail__note rail__note--${signal.lamp}`, children: signal.note })
+                  ] }),
+                  signal.live ? /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: signal.lamp }) : null
+                ]
+              }
+            )
           },
           stage.id
         );
       })
-    ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(RailGroup, { title: "Ключевые числа", children: numbers.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(RailLines, { lines: numbers }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rail__empty", children: "появятся по ходу прогона" }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(RailGroup, { title: "Источники", children: sources.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "rail__sources", children: sources.map((source) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "rail__source", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: source.usable ? "pass" : "fail" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__source-name", children: source.name }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "rail__source-age", children: source.age })
-    ] }, source.name)) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rail__empty", children: "вердикты по источникам не передавались" }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(RailGroup, { title: "Агенты", children: agents.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(RailLines, { lines: agents }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rail__empty", children: "трасса ещё не пришла" }) })
+    ] })
   ] });
+}
+const IDS = ["config", ...STAGES.map((stage) => stage.id)];
+function currentId() {
+  const view = window.innerHeight;
+  const line = view * 0.25;
+  const bottom = window.scrollY + view >= document.documentElement.scrollHeight - 2;
+  let above = null;
+  let seen = null;
+  for (const id of IDS) {
+    const node = document.getElementById(id);
+    if (!node) continue;
+    const box = node.getBoundingClientRect();
+    if (box.top <= line) above = id;
+    if (box.top < view && box.bottom > 0) seen = id;
+  }
+  if (bottom && seen) return seen;
+  return above ?? seen;
 }
 function useActiveStage(enabled) {
   const [active, setActive] = reactExports.useState("config");
@@ -14577,24 +14739,32 @@ function useActiveStage(enabled) {
       setActive("config");
       return;
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setActive(visible.target.id);
-      },
-      { rootMargin: "-20% 0px -60% 0px", threshold: 0 }
-    );
-    const ids = ["config", ...STAGES.map((stage) => stage.id)];
+    let frame = 0;
+    const sync = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const id = currentId();
+        if (id) setActive(id);
+      });
+    };
+    const observer = new IntersectionObserver(sync, { threshold: 0 });
     const attach = () => {
-      for (const id of ids) {
+      for (const id of IDS) {
         const node = document.getElementById(id);
         if (node) observer.observe(node);
       }
+      sync();
     };
     attach();
     const retry = window.setTimeout(attach, 600);
+    window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
     return () => {
       window.clearTimeout(retry);
+      window.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
     };
   }, [enabled]);
@@ -14632,31 +14802,46 @@ async function fetchOptions(scenario) {
     defaults: { ...EMPTY_DEFAULTS, ...data.defaults ?? {}, tanks: data.defaults?.tanks ?? [] }
   };
 }
-function conditionsOf(options) {
+function conditionsOf(options, previousFault) {
+  return conditionsResultOf(options, previousFault).conditions;
+}
+function conditionsResultOf(options, previousFault) {
   const tank = options.defaults.tanks[0];
+  const wanted = previousFault ?? "healthy";
+  const kept = options.faults.includes(wanted) ? wanted : "healthy";
+  const faultReset = wanted !== "healthy" && kept !== wanted;
   return {
-    scenario: options.scenario,
-    snapshot: options.snapshot,
-    fault: "healthy",
-    crude_sulfur_wt_pct: text(options.defaults.crude_sulfur_wt_pct),
-    product_sulfur_mgkg: text(options.defaults.product_sulfur_mgkg),
-    product_t95_c: text(options.defaults.product_t95_c),
-    product_cetane_number: text(options.defaults.product_cetane_number),
-    throughput_tph: text(options.defaults.throughput_tph),
-    tank: tank?.id ?? "",
-    tank_inventory: text(tank?.inventory ?? null),
-    tank_available: tank ? tank.available ? "1" : "0" : ""
+    conditions: {
+      scenario: options.scenario,
+      snapshot: options.snapshot,
+      fault: kept,
+      crude_sulfur_wt_pct: text(options.defaults.crude_sulfur_wt_pct),
+      product_sulfur_mgkg: text(options.defaults.product_sulfur_mgkg),
+      product_t95_c: text(options.defaults.product_t95_c),
+      product_cetane_number: text(options.defaults.product_cetane_number),
+      throughput_tph: text(options.defaults.throughput_tph),
+      tank: tank?.id ?? "",
+      tank_inventory: text(tank?.inventory ?? null),
+      tank_available: tank ? tank.available ? "1" : "0" : ""
+    },
+    faultReset,
+    previousFault: faultReset ? wanted : null
   };
 }
 function queryOf(conditions) {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(conditions)) {
-    if (value !== "") params.set(key, value);
+  for (const [key2, value] of Object.entries(conditions)) {
+    if (value !== "") params.set(key2, value);
   }
   return `?${params.toString()}`;
 }
 function NumberField({ label, value, step, disabled, onChange }) {
-  if (value === "") return null;
+  if (value === "") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "config__missing", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: label }),
+      ": сервер значения не передал, менять нечего."
+    ] });
+  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "config__field", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: label }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -14728,9 +14913,24 @@ function ConfigStage({
   onChange,
   onScenario,
   onStart,
-  onReset
+  onReset,
+  onRetry,
+  pending
 }) {
+  const [retrying, setRetrying] = reactExports.useState(false);
+  const [retryFailed, setRetryFailed] = reactExports.useState(false);
+  const retry = reactExports.useCallback(() => {
+    if (!onRetry) return;
+    setRetrying(true);
+    setRetryFailed(false);
+    void onRetry().then((ok) => {
+      setRetrying(false);
+      setRetryFailed(!ok);
+    });
+  }, [onRetry]);
   const running = status === "running";
+  const waiting = running && pending === true;
+  const label = waiting ? "Запускаю…" : running ? "Идёт расчёт…" : status === "idle" ? "Запустить" : "Запустить заново";
   const tank = options?.defaults.tanks.find((item) => item.id === conditions.tank) ?? null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { id: "config", className: "config", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "config__head", children: [
@@ -14738,10 +14938,17 @@ function ConfigStage({
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "config__title", children: "Условия прогона" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "config__lead", children: "Соберите условия и запустите расчёт. Остальные восемь этапов появятся по мере того, как сервер их отдаст: пока запуска не было, показывать там нечего." })
     ] }),
-    options === null ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "config__offline", children: [
-      "Сервер условий недоступен: живой прогон возможен только из ",
-      /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "neftecode serve" }),
-      "."
+    options === null ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "config__offline", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "config__offline-text", children: [
+        "Условия прогона от сервера не получены: живой прогон возможен только из",
+        " ",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "neftecode serve" }),
+        "."
+      ] }),
+      onRetry ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "config__offline-actions", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "config__ghost", disabled: retrying, onClick: retry, children: retrying ? "Повторяю запрос…" : "Повторить запрос условий" }),
+        retryFailed ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "config__offline-again", role: "status", children: "Сервер условий снова не ответил." }) : null
+      ] }) : null
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "config__grid", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "config__field", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Сценарий" }),
@@ -14822,7 +15029,7 @@ function ConfigStage({
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         NumberField,
         {
-          label: "Текущий выпуск, т/ч",
+          label: "Производительность, т/ч",
           step: "1",
           value: conditions.throughput_tph,
           disabled: running,
@@ -14845,47 +15052,58 @@ function ConfigStage({
         "button",
         {
           type: "button",
-          className: "config__start",
+          className: `config__start ${waiting ? "config__start--waiting" : ""}`,
           disabled: running || options === null,
           onClick: onStart,
-          children: running ? "Идёт расчёт…" : status === "idle" ? "Запустить" : "Запустить заново"
+          children: label
         }
       ),
-      status !== "idle" && !running ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "config__ghost", onClick: onReset, children: "Убрать результат" }) : null
+      status !== "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "config__ghost config__ghost--enter", onClick: onReset, children: running ? "Остановить прогон" : "Убрать результат" }) : null
     ] }),
     error ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "config__error", role: "alert", children: error }) : null
   ] });
 }
-function seconds(ms) {
-  return `${(ms / 1e3).toFixed(1)} с`;
+function seconds$1(ms) {
+  if (!Number.isFinite(ms)) return "—";
+  return `${(ms / 1e3).toFixed(1).replace(".", ",")} с`;
 }
-function RunStrip({ run }) {
+function RunStrip({ run, followsUser, onResumeFollow }) {
   if (run.status === "idle") return null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "strip", "aria-label": "Ход расчёта на сервере", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "strip__head", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "strip__title", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__tick", "aria-hidden": "true" }),
-        "Что сейчас делает сервер"
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "strip__clock", role: "status", children: [
-        run.status === "running" ? "идёт " : "заняло ",
-        seconds(run.serverMs ?? run.elapsedMs)
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { className: "strip__phases", children: [
-      run.phases.map((phase) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `strip__phase strip__phase--${phase.state}`, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__label", children: phase.label }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__detail", children: phase.detail }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__at", children: seconds(phase.elapsedMs) })
-      ] }, phase.key)),
-      run.status === "failed" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "strip__phase strip__phase--failed", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__label", children: "Расчёт прерван" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__detail", children: run.error }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__at", children: seconds(run.elapsedMs) })
-      ] }) : null
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "strip__honest", children: "Полоса выше — настоящие отметки времени сервера: приём условий, загрузка сценария, работа ядра решения и выдача payload. Ядро решения считает всё за один вызов, поэтому этапы 1–8 ниже раскрываются из уже посчитанного payload по мере прихода, а не считаются по одному. Задержка между ними — раскрытие результата, а не длительность расчёта." })
-  ] });
+  const done = run.status === "done";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "section",
+    {
+      className: `strip ${done ? "strip--done" : ""}`,
+      "aria-label": "Ход расчёта на сервере",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "strip__head", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "strip__title", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__tick", "aria-hidden": "true" }),
+            done ? "Сервер закончил" : "Что сейчас делает сервер"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "strip__aside", children: [
+            followsUser && run.status === "running" ? /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "strip__follow", onClick: onResumeFollow, children: "Следить за этапами" }) : null,
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "strip__clock", role: "status", children: [
+              run.status === "running" ? "идёт " : "заняло ",
+              seconds$1(run.serverMs ?? run.elapsedMs)
+            ] })
+          ] })
+        ] }),
+        run.phases.length === 0 && run.status !== "failed" ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "strip__waiting", children: "Ответа сервера ещё не было: показывать здесь нечего." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { className: "strip__phases", children: [
+          run.phases.map((phase) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `strip__phase strip__phase--${phase.state}`, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__label", children: phase.label }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__detail", children: phase.detail }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__at", children: seconds$1(phase.elapsedMs) })
+          ] }, phase.key)),
+          run.status === "failed" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "strip__phase strip__phase--failed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__label", children: "Расчёт прерван" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__detail", children: run.error }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "strip__at", children: seconds$1(run.elapsedMs) })
+          ] }) : null
+        ] })
+      ]
+    }
+  );
 }
 function isError(payload) {
   return payload.state === "error";
@@ -14910,42 +15128,48 @@ function parseFrame(block) {
 function dispatch(event, data, handlers) {
   if (event === "phase") {
     handlers.onPhase(data);
-    return;
+    return false;
   }
   if (event === "tick") {
     handlers.onTick(Number(data["elapsed_ms"] ?? 0));
-    return;
+    return false;
   }
   if (event === "agent") {
     const raw = data["event"];
     if (raw) handlers.onAgent({ ...raw, elapsedMs: Number(data["elapsed_ms"] ?? 0) });
-    return;
+    return false;
   }
   if (event === "stage") {
+    const facts = {};
+    for (const [key2, value] of Object.entries(data)) {
+      if (key2 !== "stage" && key2 !== "state" && key2 !== "elapsed_ms") facts[key2] = value;
+    }
     handlers.onStage(
       String(data["stage"] ?? ""),
       Number(data["elapsed_ms"] ?? 0),
-      data["state"] === void 0 ? void 0 : String(data["state"])
+      data["state"] === void 0 ? void 0 : String(data["state"]),
+      facts
     );
-    return;
+    return false;
   }
   if (event === "failed") {
     handlers.onFailed(String(data["message"] ?? "сервер прервал расчёт"));
-    return;
+    return true;
   }
   if (event === "screen") {
     const payload = data["payload"];
     if (payload && isError(payload)) {
       handlers.onFailed(String(payload.message ?? "сервер вернул ошибку"));
-      return;
+      return true;
     }
     if (payload && isScreen(payload)) {
       handlers.onScreen(payload, Number(data["elapsed_ms"] ?? 0));
-      return;
+      return true;
     }
     handlers.onFailed("сервер вернул payload неизвестной формы");
-    return;
+    return true;
   }
+  return false;
 }
 async function streamDecision(query, handlers, signal) {
   const response = await fetch(`/api/stream${query}`, { signal });
@@ -14953,137 +15177,216 @@ async function streamDecision(query, handlers, signal) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  for (; ; ) {
-    const chunk = await reader.read();
-    if (chunk.done) break;
-    buffer += decoder.decode(chunk.value, { stream: true });
-    let cut = buffer.indexOf("\n\n");
-    while (cut !== -1) {
-      const frame = parseFrame(buffer.slice(0, cut));
-      buffer = buffer.slice(cut + 2);
-      if (frame) dispatch(frame.event, frame.data, handlers);
-      cut = buffer.indexOf("\n\n");
+  let settled = false;
+  try {
+    for (; ; ) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      let cut = buffer.indexOf("\n\n");
+      while (cut !== -1) {
+        const frame = parseFrame(buffer.slice(0, cut));
+        buffer = buffer.slice(cut + 2);
+        if (frame && dispatch(frame.event, frame.data, handlers)) settled = true;
+        cut = buffer.indexOf("\n\n");
+      }
     }
+    if (!settled && !signal.aborted) {
+      handlers.onFailed("поток оборвался: решение от сервера не получено");
+    }
+  } catch (reason) {
+    if (signal.aborted) return;
+    throw reason;
+  } finally {
+    reader.cancel().catch(() => void 0);
   }
 }
-const ORDER$1 = ["state", "trust", "forecast", "candidates", "gate", "agents", "choice", "decision"];
-function advanceTo(current, id, state) {
-  const next = { ...current };
-  const target = ORDER$1.indexOf(id);
-  if (target === -1) return { ...next, [id]: state };
-  for (const earlier of ORDER$1.slice(0, target)) {
-    const state2 = next[earlier];
-    if (state2 === void 0 || state2 === "pending" || state2 === "running") next[earlier] = "done";
-  }
-  next[id] = state;
-  return next;
+const REVEAL_GAP_MS = 260;
+function reducedMotion$1() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
-const LATE_STAGES = ["candidates", "gate", "choice", "decision"];
-function mergePhase(phases, event) {
-  const next = {
-    key: event.key,
-    label: event.label,
-    detail: event.detail,
-    state: event.state ?? "done",
-    elapsedMs: event.elapsed_ms
+function createRevealQueue(emit) {
+  const pending = [];
+  let timer = null;
+  let lastAt = 0;
+  let drained = null;
+  const settle = () => {
+    if (pending.length > 0 || timer !== null) return;
+    const done = drained;
+    drained = null;
+    done?.();
   };
-  const at = phases.findIndex((item) => item.key === event.key);
-  if (at === -1) return [...phases, next];
-  const copy = [...phases];
-  copy[at] = next;
-  return copy;
+  const release = () => {
+    timer = null;
+    const id = pending.shift();
+    if (id === void 0) {
+      settle();
+      return;
+    }
+    lastAt = performance.now();
+    emit(id);
+    schedule();
+    settle();
+  };
+  const schedule = () => {
+    if (timer !== null || pending.length === 0) return;
+    const gap = reducedMotion$1() ? 0 : REVEAL_GAP_MS;
+    const wait = Math.max(0, gap - (performance.now() - lastAt));
+    if (wait === 0) {
+      release();
+      return;
+    }
+    timer = window.setTimeout(release, wait);
+  };
+  const clear = () => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = null;
+    pending.length = 0;
+    lastAt = 0;
+    drained = null;
+  };
+  return {
+    push: (id) => {
+      if (pending.includes(id)) return;
+      pending.push(id);
+      schedule();
+    },
+    flush: () => {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      const rest = pending.splice(0, pending.length);
+      for (const id of rest) emit(id);
+      lastAt = performance.now();
+      settle();
+    },
+    clear,
+    onDrained: (run) => {
+      drained = run;
+      settle();
+    }
+  };
 }
-function scrollTo(id, reduced) {
-  const node = document.getElementById(id);
-  if (!node) return;
-  node.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+function readable(reason) {
+  if (reason instanceof DOMException && reason.name === "AbortError") return "прогон остановлен";
+  if (reason instanceof TypeError) return "сервер недоступен, проверьте, что бэкенд запущен";
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
 }
-function settled() {
-  const out = {};
-  for (const stage of STAGES) out[stage.id] = "done";
-  return out;
+function reducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
-const UNPACK_MS = 520;
 function useRun() {
   const [run, setRun] = reactExports.useState(EMPTY_RUN);
+  const [pending, setPending] = reactExports.useState(false);
+  const [followsUser, setFollowsUser] = reactExports.useState(false);
   const abort = reactExports.useRef(null);
-  const timers = reactExports.useRef([]);
-  const clearTimers = reactExports.useCallback(() => {
-    for (const id of timers.current) window.clearTimeout(id);
-    timers.current = [];
-  }, []);
+  const states = reactExports.useRef({});
+  const queued = reactExports.useRef({});
+  const reveal = reactExports.useMemo(
+    () => createRevealQueue((id) => {
+      const state = states.current[id] ?? "done";
+      setRun((prev) => ({ ...prev, stages: advanceTo(prev.stages, id, state) }));
+      scrollTo(id, reducedMotion());
+    }),
+    []
+  );
   reactExports.useEffect(() => {
+    const drop = watchTakeover((taken2) => setFollowsUser(taken2));
     return () => {
       abort.current?.abort();
-      for (const id of timers.current) window.clearTimeout(id);
+      reveal.clear();
+      drop();
     };
+  }, [reveal]);
+  const resumeFollow = reactExports.useCallback(() => {
+    releaseTakeover();
+    setFollowsUser(false);
   }, []);
-  const unpack = reactExports.useCallback((payload) => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const step = reduced ? 0 : UNPACK_MS;
-    setRun((prev) => ({ ...prev, payload, stages: { ...prev.stages, agents: "done" } }));
-    LATE_STAGES.forEach((id, position) => {
-      const at = window.setTimeout(() => {
-        setRun((prev) => ({
-          ...prev,
-          stages: { ...prev.stages, [id]: "done" },
-          status: position === LATE_STAGES.length - 1 ? "done" : prev.status
-        }));
-        scrollTo(id, reduced);
-      }, step * (position + 1));
-      timers.current.push(at);
-    });
-  }, []);
-  const skip = reactExports.useCallback(() => {
-    clearTimers();
-    setRun(
-      (prev) => prev.payload === null ? prev : { ...prev, stages: settled(), status: "done" }
-    );
-  }, [clearTimers]);
+  const enqueue = reactExports.useCallback(
+    (id, state) => {
+      for (const step of chainTo(queued.current, id)) {
+        const next = step === id ? state : "done";
+        const held = queued.current[step];
+        if (held === next) continue;
+        if (held === "done" && next !== "done") continue;
+        states.current[step] = next;
+        queued.current[step] = next;
+        reveal.push(step);
+      }
+    },
+    [reveal]
+  );
+  const unpack = reactExports.useCallback(
+    (payload) => {
+      setRun((prev) => {
+        const sources = { ...prev.stageSource };
+        for (const id of ["agents", ...LATE_STAGES]) {
+          if (sources[id] === void 0) sources[id] = "payload";
+        }
+        return { ...prev, payload, stageSource: sources };
+      });
+      enqueue("agents", "done");
+      for (const id of LATE_STAGES) enqueue(id, "done");
+      reveal.onDrained(
+        () => setRun((prev) => prev.status === "running" ? { ...prev, status: "done" } : prev)
+      );
+    },
+    [enqueue, reveal]
+  );
   const start = reactExports.useCallback(
     (query) => {
       abort.current?.abort();
-      clearTimers();
+      reveal.clear();
+      states.current = {};
+      queued.current = {};
+      releaseTakeover();
+      setFollowsUser(false);
+      setPending(true);
       const controller = new AbortController();
       abort.current = controller;
       setRun({ ...EMPTY_RUN, status: "running" });
-      const fail = (message) => setRun((prev) => ({
-        ...prev,
-        status: "failed",
-        error: message,
-        stages: { ...prev.stages, agents: "failed" }
-      }));
+      const fail = (message) => {
+        reveal.clear();
+        setPending(false);
+        setRun((prev) => ({
+          ...prev,
+          status: "failed",
+          error: message,
+          stages: { ...prev.stages, agents: "failed" }
+        }));
+      };
       streamDecision(
         query,
         {
-          onPhase: (event) => setRun((prev) => {
-            const phases = mergePhase(prev.phases, event);
-            return { ...prev, phases, elapsedMs: event.elapsed_ms };
-          }),
+          onPhase: (event) => {
+            setPending(false);
+            setRun((prev) => {
+              const phases = mergePhase(prev.phases, event);
+              return { ...prev, phases, elapsedMs: event.elapsed_ms };
+            });
+          },
           onTick: (elapsedMs) => setRun((prev) => ({ ...prev, elapsedMs })),
-          onStage: (stage, elapsedMs, state) => {
-            const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          onStage: (stage, elapsedMs, state, facts) => {
+            setPending(false);
             setRun((prev) => ({
               ...prev,
               elapsedMs,
-              stages: advanceTo(prev.stages, stage, state ?? "done")
+              stageFacts: mergeFacts(prev.stageFacts, stage, facts),
+              stageSource: { ...prev.stageSource, [stage]: "server" }
             }));
-            scrollTo(stage, reduced);
+            enqueue(stage, state ?? "done");
           },
-          onAgent: (event) => setRun((prev) => {
-            const first = prev.agentEvents.length === 0;
-            if (first) {
-              const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-              window.setTimeout(() => scrollTo("agents", reduced), 0);
-            }
-            return {
+          onAgent: (event) => {
+            setPending(false);
+            setRun((prev) => ({
               ...prev,
               agentEvents: [...prev.agentEvents, event],
-              elapsedMs: event.elapsedMs,
-              stages: advanceTo(prev.stages, "agents", "running")
-            };
-          }),
+              elapsedMs: event.elapsedMs
+            }));
+            enqueue("agents", "running");
+          },
           onScreen: (payload, elapsedMs) => {
+            setPending(false);
             setRun((prev) => ({ ...prev, serverMs: elapsedMs, elapsedMs }));
             unpack(payload);
           },
@@ -15092,18 +15395,23 @@ function useRun() {
         },
         controller.signal
       ).catch((reason) => {
-        if (controller.signal.aborted) return;
-        fail(String(reason));
+        if (controller.signal.aborted || abort.current !== controller) return;
+        fail(readable(reason));
       });
     },
-    [clearTimers, unpack]
+    [enqueue, reveal, unpack]
   );
   const stop = reactExports.useCallback(() => {
     abort.current?.abort();
-    clearTimers();
+    reveal.clear();
+    states.current = {};
+    queued.current = {};
+    releaseTakeover();
+    setFollowsUser(false);
+    setPending(false);
     setRun(EMPTY_RUN);
-  }, [clearTimers]);
-  return { run, start, stop, skip };
+  }, [reveal]);
+  return { run, start, stop, pending, followsUser, resumeFollow };
 }
 const STATE_TEXT$1 = {
   pending: "ещё не начат",
@@ -15120,13 +15428,14 @@ function Section({
   lampTitle,
   state = "done",
   source,
+  final = false,
   children
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "section",
     {
       id,
-      className: `stage stage--${state}`,
+      className: `stage stage--${state} ${final ? "stage--final" : ""}`,
       "data-stage-state": state,
       "data-band": index,
       children: [
@@ -15135,6 +15444,7 @@ function Section({
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "stage__title", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: lamp, title: lampTitle }),
             title,
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sr-only", children: ", " }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "stage__state", children: STATE_TEXT$1[state] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "stage__lead", children: lead }),
@@ -15189,7 +15499,7 @@ function JsonNode({ name, value, depth, openTo }) {
         ]
       }
     ),
-    open ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "json__children", children: entries.map(([key, item]) => /* @__PURE__ */ jsxRuntimeExports.jsx(JsonNode, { name: key, value: item, depth: depth + 1, openTo }, key)) }) : null
+    open ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "json__children", children: entries.map(([key2, item]) => /* @__PURE__ */ jsxRuntimeExports.jsx(JsonNode, { name: key2, value: item, depth: depth + 1, openTo }, key2)) }) : null
   ] });
 }
 function JsonView({ value, openTo = 1 }) {
@@ -15278,11 +15588,11 @@ function OriginBadge({ origin, label }) {
       MISSING
     ] });
   }
-  const key = isOriginKey(origin) ? origin : "open";
+  const key2 = isOriginKey(origin) ? origin : "open";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "span",
     {
-      className: `origin origin--${key}`,
+      className: `origin origin--${key2}`,
       role: "note",
       title: meta.full,
       "aria-label": `${label ? `${label}: ` : ""}${meta.full}`,
@@ -15308,7 +15618,7 @@ function OriginLegend() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "origin-legend__text", children: "не определено" })
   ] });
 }
-function StateStage({ payload, index, state, source }) {
+function StateStage({ payload, index, state, source, lamp, lampTitle }) {
   const operation = payload.explanation.current_operation ?? payload.decision.current_operation;
   const origin = payload.explanation.current_operation?.origin ?? null;
   const names = payload.explanation.component_names ?? {};
@@ -15324,8 +15634,8 @@ function StateStage({ payload, index, state, source }) {
       source,
       title: "Состояние",
       lead: "Режим на момент решения: уставки, рецепт смешения, запасы компонентов.",
-      lamp: operation ? "pass" : "unknown",
-      lampTitle: operation ? "режим передан" : "режим не передавался",
+      lamp,
+      lampTitle,
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Момент решения", children: moment(payload.decision_time) }),
@@ -15335,21 +15645,21 @@ function StateStage({ payload, index, state, source }) {
         ] }),
         operation ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(OriginLegend, {}),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "readouts", children: Object.entries(operation.controls ?? {}).map(([key, value]) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "readouts", children: Object.entries(operation.controls ?? {}).map(([key2, value]) => /* @__PURE__ */ jsxRuntimeExports.jsx(
             Readout,
             {
-              label: controlLabel(key),
+              label: controlLabel(key2),
               value: num(value, 2),
-              unit: controlUnit(key),
-              badge: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: origin?.controls?.[key] })
+              unit: controlUnit(key2),
+              badge: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: origin?.controls?.[key2] })
             },
-            key
+            key2
           )) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Readout,
               {
-                label: "Производительность блендинга",
+                label: "Производительность",
                 value: num(operation.throughput_tph, 2),
                 unit: "т/ч",
                 badge: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: origin?.throughput_tph })
@@ -15375,11 +15685,11 @@ function StateStage({ payload, index, state, source }) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Доля в смеси" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Остаток на момент решения" })
             ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: Object.keys({ ...names, ...operation.recipe, ...inventories }).map((key) => {
-              const line = stockLine(payload, key);
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: Object.keys({ ...names, ...operation.recipe, ...inventories }).map((key2) => {
+              const line = stockLine(payload, key2);
               return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "row", children: names[key] ?? key }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: withUnit(operation.recipe?.[key], "", 3) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "row", children: names[key2] ?? key2 }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: withUnit(operation.recipe?.[key2], "", 3) }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `stock ${line.onDemand ? "stock--demand" : ""}`, children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: line.origin }),
@@ -15387,7 +15697,7 @@ function StateStage({ payload, index, state, source }) {
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "stock__hint", children: line.hint })
                 ] })
-              ] }, key);
+              ] }, key2);
             }) })
           ] }) }),
           demand.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Note, { children: [
@@ -15408,6 +15718,47 @@ function StateStage({ payload, index, state, source }) {
     }
   );
 }
+function Row$2({ source }) {
+  const age = source.age_hours;
+  const max = source.max_age_hours;
+  const measurable = isNumber(age) && isNumber(max) && max > 0;
+  const ratio = measurable ? age / max * 100 : 0;
+  const over = measurable && ratio > 100;
+  const times = measurable ? age / max : 0;
+  const share = Math.min(100, ratio);
+  const overText = over ? times >= 2 ? `просрочен в ${num(times, 1)} раза: старше предела на ${num(age - max, 2)} ч` : `просрочен: старше предела на ${num(age - max, 2)} ч` : "";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `ages__row ${over ? "ages__row--over" : ""}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ages__name", children: source.name }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ages__bar", children: measurable ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "span",
+      {
+        className: "ages__track",
+        role: "img",
+        "aria-label": `${source.name}: возраст ${num(age, 2)} ч из ${num(max, 2)} ч предела${over ? `, ${overText}` : ""}`,
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ages__fill ${over ? "ages__fill--over" : ""}`, style: { width: `${share}%` } }),
+          over ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ages__overflow", "aria-hidden": "true" }) : null
+        ]
+      }
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ages__none", children: "предел возраста не передавался" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ages__value", children: measurable ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      num(age, 2),
+      " ч из ",
+      num(max, 2),
+      " ч",
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ages__share ${over ? "ages__share--over" : ""}`, children: over ? `${num(ratio, 0)} % предела — ${overText}` : `${num(ratio, 0)} % предела` })
+    ] }) : isNumber(age) ? `${num(age, 2)} ч, предел неизвестен` : "возраст не передавался" })
+  ] });
+}
+function AgeBars({ sources }) {
+  if (sources.length === 0) return null;
+  const scaled = sources.filter((item) => isNumber(item.age_hours) && isNumber(item.max_age_hours));
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ages", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ages__head", children: "Возраст замера против своего предела годности" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "ages__list", children: sources.map((source) => /* @__PURE__ */ jsxRuntimeExports.jsx(Row$2, { source }, source.name)) }),
+    scaled.length > 1 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ages__foot", children: "Каждая полоса нормирована по собственному пределу, а не по общей оси времени: у источников пределы различаются в десятки раз, и на единой оси короткий предел схлопнулся бы в точку. Сравнивать здесь надо доли, а не длины в часах. Полоса упирается в предел и дальше не растёт, поэтому у просроченного замера длина полосы ничего не говорит о величине просрочки — её называет подпись: сколько процентов предела и во сколько раз он превышен." }) : null
+  ] });
+}
 function reportOf(trace) {
   const event = trace.find((item) => item.agent === "data");
   const report = event?.["report"];
@@ -15417,12 +15768,11 @@ function verdicts(report, fallback) {
   if (report && report.sources) return Object.values(report.sources);
   return fallback ?? [];
 }
-function TrustStage({ payload, index, state, source }) {
+function TrustStage({ payload, index, state, source, lamp, lampTitle }) {
   const report = reportOf(payload.decision.trace ?? []);
   const sources = verdicts(report, payload.sources);
   const missing = report?.telemetry_missing_fraction ?? null;
   const suspects = report?.suspect_values ?? [];
-  const usable = report ? report.usable : sources.some((s) => s.usable);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Section,
     {
@@ -15432,10 +15782,11 @@ function TrustStage({ payload, index, state, source }) {
       source,
       title: "Доверие к данным",
       lead: "Агент данных решает, какому источнику можно верить: возраст замера, пригодность, пропуски телеметрии.",
-      lamp: sources.length === 0 ? "unknown" : usable ? "pass" : "fail",
-      lampTitle: usable ? "источник качества найден" : "достоверного источника нет",
+      lamp,
+      lampTitle,
       children: [
         sources.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Состояние источников не передавалось: в этом пути расчёта блок «доверие к данным» пуст. Пустое поле здесь означает отсутствие данных, а не их благополучие." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(AgeBars, { sources }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Источники качества", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("caption", { children: "Источники качества" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
@@ -15528,13 +15879,138 @@ function TrustStage({ payload, index, state, source }) {
     }
   );
 }
+const SPECS = [
+  { topic: "sulfur_mgkg", label: "Сера", unit: "мг/кг", direction: "below", digits: 2 },
+  { topic: "t95_c", label: "T95", unit: "°C", direction: "below", digits: 1 },
+  { topic: "cetane_number", label: "Цетановое число", unit: "", direction: "above", digits: 2 },
+  { topic: "density_kgm3", label: "Плотность", unit: "кг/м³", direction: "between", digits: 1 }
+];
+function limitOf(statement) {
+  if (!statement) return null;
+  const scenario = statement.evidence.find((item) => item.kind === "scenario");
+  return isNumber(scenario?.value) ? scenario.value : null;
+}
+function buildRows(statements) {
+  const byTopic = new Map(statements.map((item) => [item.topic, item]));
+  const rows = [];
+  for (const spec of SPECS) {
+    if (spec.direction === "between") {
+      const lowStatement = byTopic.get("density_min_kgm3");
+      const highStatement = byTopic.get("density_max_kgm3");
+      const low = limitOf(lowStatement);
+      const high = limitOf(highStatement);
+      const value = lowStatement?.value ?? highStatement?.value ?? null;
+      if (!isNumber(value) || low === null && high === null) continue;
+      rows.push({ spec, value, low, high, detail: lowStatement?.text ?? highStatement?.text ?? "" });
+      continue;
+    }
+    const statement = byTopic.get(spec.topic);
+    const limit = limitOf(statement);
+    if (!statement || !isNumber(statement.value) || limit === null) continue;
+    rows.push({
+      spec,
+      value: statement.value,
+      low: spec.direction === "above" ? limit : null,
+      high: spec.direction === "below" ? limit : null,
+      detail: statement.text
+    });
+  }
+  return rows;
+}
+const TRACK$1 = 100;
+function window$1(value, low, high) {
+  const points = [value, low, high].filter(isNumber);
+  const lo = Math.min(...points);
+  const hi = Math.max(...points);
+  const pad = Math.max((hi - lo) * 0.45, Math.abs(hi) * 0.02, 1e-6);
+  return [lo - pad, hi + pad];
+}
+function position(value, from, to) {
+  const span = to - from || 1;
+  return Math.max(0, Math.min(TRACK$1, (value - from) / span * TRACK$1));
+}
+function Bar({ row: row2 }) {
+  const { spec, value, low, high } = row2;
+  const [from, to] = window$1(value, low, high);
+  const mark = position(value, from, to);
+  const lowMark = low === null ? null : position(low, from, to);
+  const highMark = high === null ? null : position(high, from, to);
+  const ok = (low === null || value >= low) && (high === null || value <= high);
+  const caption = spec.direction === "between" ? `${num(value, spec.digits)} между ${num(low, spec.digits)} и ${num(high, spec.digits)}` : spec.direction === "below" ? `${num(value, spec.digits)} из ${num(high, spec.digits)}` : `${num(value, spec.digits)} при не ниже ${num(low, spec.digits)}`;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "margins__row", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "margins__name", children: [
+      spec.label,
+      spec.unit ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "margins__unit", children: spec.unit }) : null
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "margins__track", role: "img", "aria-label": `${spec.label}: ${caption}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: `0 0 ${TRACK$1} 22`, preserveAspectRatio: "none", className: "margins__svg", "aria-hidden": "true", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "margins__axis", x1: "0", x2: TRACK$1, y1: "16", y2: "16" }),
+      lowMark === null ? null : /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "margins__bound", x1: lowMark, x2: lowMark, y1: "4", y2: "20" }),
+      highMark === null ? null : /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "margins__bound", x1: highMark, x2: highMark, y1: "4", y2: "20" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "line",
+        {
+          className: `margins__span ${ok ? "" : "margins__span--fail"}`,
+          x1: Math.min(mark, spec.direction === "above" ? lowMark ?? 0 : highMark ?? TRACK$1),
+          x2: Math.max(mark, spec.direction === "above" ? lowMark ?? 0 : highMark ?? TRACK$1),
+          y1: "16",
+          y2: "16"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "polygon",
+        {
+          className: `margins__mark ${ok ? "" : "margins__mark--fail"}`,
+          points: spec.direction === "above" ? `${mark - 3},4 ${mark + 3},4 ${mark},12` : `${mark - 3},12 ${mark + 3},12 ${mark},4`
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: row2.detail })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "margins__value", children: caption })
+  ] });
+}
+function MarginBars({ statements }) {
+  const rows = buildRows(statements);
+  if (rows.length === 0) return null;
+  const shownTopics = /* @__PURE__ */ new Set(["density_min_kgm3", "density_max_kgm3"]);
+  for (const spec of SPECS) shownTopics.add(spec.topic);
+  const rest = statements.filter((item) => !shownTopics.has(item.topic));
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "margins", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "margins__head", children: "Запасы по свойствам качества" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "margins__list", children: rows.map((row2) => /* @__PURE__ */ jsxRuntimeExports.jsx(Bar, { row: row2 }, row2.spec.topic)) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "margins__foot", children: "Каждая полоса построена в своих единицах и в своём окне значений, поэтому длина отрезка сравнима только внутри строки: зрительно сопоставлять запас по сере с запасом по T95 нельзя, у них разные шкалы. Отрезок — это сам запас, от значения до предела; пунктир — предел. Направление острия показывает, в какую сторону лежит предел: вверх — «не выше», вниз — «не ниже». В единый процент «здоровья плана» свести это нельзя: единицы разные — мг/кг, °C, безразмерное цетановое число, кг/м³, — такого числа никто не считал, и оно скрыло бы, по какому свойству запас тоньше." }),
+    rest.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "margins__rest", children: [
+      "Здесь показаны запасы только по свойствам продукта — их ",
+      rows.length,
+      ". Расчёт передал ещё",
+      " ",
+      rest.length,
+      " утверждений другого рода, и в эти полосы они не попали: запасы по уставкам оборудования, производительность, выпуск, стоимость, тяжесть режима, запаздывание отклика, проекция за горизонт. Их темы: ",
+      rest.map((item) => item.topic).join(", "),
+      ". Полностью они лежат в JSON ниже, а запасы по уставкам и отгрузке показаны отдельными полосами на этапе «Gate»."
+    ] }) : null
+  ] });
+}
 const W = 720;
 const H = 240;
 const PAD_L = 56;
 const PAD_R = 16;
 const PAD_T = 16;
 const PAD_B = 34;
-function Trajectory({ points, limit, unit, label }) {
+function stepPath(points, x, y) {
+  const parts2 = [];
+  points.forEach((point, index) => {
+    const px = x(point.time).toFixed(1);
+    const py = y(point.value).toFixed(1);
+    if (index === 0) {
+      parts2.push(`M${px},${py}`);
+      return;
+    }
+    parts2.push(`H${px}`);
+    parts2.push(`V${py}`);
+  });
+  return parts2.join(" ");
+}
+function Trajectory({ points, limit, unit, label, digits = 3 }) {
   if (points.length === 0) return null;
   const times = points.map((p) => p.time);
   const values = points.map((p) => p.value);
@@ -15547,15 +16023,20 @@ function Trajectory({ points, limit, unit, label }) {
   const spanV = vMax - vMin || 1;
   const x = (t) => PAD_L + (t - tMin) / spanT * (W - PAD_L - PAD_R);
   const y = (v) => PAD_T + (1 - (v - vMin) / spanV) * (H - PAD_T - PAD_B);
-  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.time).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+  const path = stepPath(points, x, y);
+  const last = points[points.length - 1];
   const area = `${path} L${x(tMax).toFixed(1)},${y(vMin).toFixed(1)} L${x(tMin).toFixed(1)},${y(vMin).toFixed(1)} Z`;
   const ticks = [vMin, vMin + spanV / 2, vMax];
+  const shown = values.map((value) => num(value, digits));
+  const flatShown = points.length > 1 && shown.every((text2) => text2 === shown[0]);
+  const spread = Math.max(...values) - Math.min(...values);
+  const flatExactly = points.length > 1 && spread === 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("figure", { className: "chart", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": label, className: "chart__svg", children: [
-      ticks.map((tick) => /* @__PURE__ */ jsxRuntimeExports.jsxs("g", { children: [
+      ticks.map((tick, index) => /* @__PURE__ */ jsxRuntimeExports.jsxs("g", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "chart__grid", x1: PAD_L, x2: W - PAD_R, y1: y(tick), y2: y(tick) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("text", { className: "chart__tick", x: PAD_L - 8, y: y(tick) + 4, textAnchor: "end", children: num(tick, 1) })
-      ] }, tick)),
+      ] }, `g-${index}-${tick}`)),
       limit === null ? null : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "chart__limit", x1: PAD_L, x2: W - PAD_R, y1: y(limit), y2: y(limit) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("text", { className: "chart__limit-text", x: W - PAD_R, y: y(limit) - 7, textAnchor: "end", children: [
@@ -15567,15 +16048,27 @@ function Trajectory({ points, limit, unit, label }) {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("path", { className: "chart__area", d: area }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("path", { className: "chart__line", d: path, pathLength: 1 }),
-      points.map((p) => /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { className: "chart__dot", cx: x(p.time), cy: y(p.value), r: 3.5 }, `${p.time}-${p.value}`)),
-      points.map((p) => /* @__PURE__ */ jsxRuntimeExports.jsx("text", { className: "chart__tick", x: x(p.time), y: H - 12, textAnchor: "middle", children: num(p.time, 1) }, `t-${p.time}`))
+      points.map((p, index) => /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { className: "chart__dot", cx: x(p.time), cy: y(p.value), r: 3.5 }, `d-${index}-${p.time}-${p.value}`)),
+      points.map((p, index) => /* @__PURE__ */ jsxRuntimeExports.jsx("text", { className: "chart__tick", x: x(p.time), y: H - 12, textAnchor: "middle", children: num(p.time, 1) }, `t-${index}-${p.time}`))
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("figcaption", { className: "chart__caption", children: [
       label,
       ", ",
       unit,
-      "; по горизонтали — часы от момента решения"
-    ] })
+      "; по горизонтали — часы от момента решения. Считано ",
+      points.length,
+      " точек с шагом",
+      " ",
+      num(spanT / Math.max(points.length - 1, 1), 2),
+      " ч. Линия идёт ступенями намеренно: между соседними точками расчёта промежуточных значений никто не считал, и наклонный отрезок утверждал бы их. Ступень держит последнее посчитанное значение до следующей точки и ничего не додумывает; на деле переход между точками не мгновенный — отклик гидроочистки объявлен с запаздыванием, и его форму этот расчёт не описывает."
+    ] }),
+    flatShown ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "chart__degenerate", children: [
+      flatExactly ? `За горизонт значение не меняется: во всех ${points.length} точках ровно ${shown[0]} ${unit}. Плоская линия — это результат расчёта, а не ошибка отрисовки.` : `За горизонт значение не меняется на показанной точности: во всех ${points.length} точках ${shown[0]} ${unit}, а полный разброс между ними — ${spread.toExponential(1)} ${unit}, то есть он есть, но лежит за пределом отображаемых знаков. Плоская линия — это результат расчёта, а не ошибка отрисовки; шкала не растянута, чтобы этот разброс не выглядел значимым.`,
+      " ",
+      "Последняя точка — ",
+      num(last.time, 1),
+      " ч."
+    ] }) : null
   ] });
 }
 const TRACKED = "quality.sulfur_mgkg";
@@ -15585,7 +16078,7 @@ function series(checks) {
 function sulfurStatement(statements) {
   return statements.find((item) => item.topic === "sulfur_mgkg");
 }
-function ForecastStage({ payload, index, state, source }) {
+function ForecastStage({ payload, index, state, source, lamp, lampTitle }) {
   const checks = payload.decision.gate?.checks ?? [];
   const points = series(checks);
   const limit = points.find((check) => isNumber(check.limit))?.limit ?? null;
@@ -15594,7 +16087,9 @@ function ForecastStage({ payload, index, state, source }) {
     null
   );
   const margin = isNumber(limit) && worst && isNumber(worst.observed) ? limit - worst.observed : null;
-  const statement = sulfurStatement(payload.explanation.statements ?? []);
+  const statements = payload.explanation.statements ?? [];
+  const statement = sulfurStatement(statements);
+  const marginRows = buildRows(statements);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Section,
     {
@@ -15603,16 +16098,17 @@ function ForecastStage({ payload, index, state, source }) {
       state,
       source,
       title: "Прогноз",
-      lead: "Траектория серы по горизонту плана: расчётные точки против предела.",
-      lamp: points.length === 0 ? "unknown" : margin !== null && margin > 0 ? "pass" : "fail",
-      lampTitle: points.length === 0 ? "траектория не передавалась" : "сера против предела",
+      lead: "Запасы по всем нормируемым свойствам продукта и траектория серы по горизонту плана.",
+      lamp,
+      lampTitle,
       children: [
-        payload.forecast === null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Note, { children: [
+        payload.forecast === null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Empty, { children: [
           "Отдельного блока прогноза с интервалом неопределённости в этом решении нет: поле",
           " ",
           /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "forecast" }),
           " пустое, и подставлять сюда интервал было бы выдумкой. Ниже — расчётная траектория серы, которую проверял Gate: это точки плана, а не измерения."
         ] }) : null,
+        marginRows.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(MarginBars, { statements }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Утверждений о свойствах качества в payload не передавалось, поэтому запасы по пределам показать не из чего. Пустой блок означает отсутствие утверждений, а не отсутствие рисков." }),
         points.length === 0 ? payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Траектории серы здесь нет: её строят по проверкам выбранного плана, а плана нет. Пустой график означает отсутствие расчёта, а не благополучие по сере — уровень серы остаётся тем же, из-за которого план не нашёлся." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Точек по сере в проверках нет." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -15658,7 +16154,8 @@ function ForecastStage({ payload, index, state, source }) {
               })),
               limit,
               unit: "мг/кг",
-              label: "Сера в товарном дизеле по времени"
+              label: "Сера в товарном дизеле по времени",
+              digits: 3
             }
           ),
           statement ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
@@ -15678,14 +16175,94 @@ function ForecastStage({ payload, index, state, source }) {
           JsonPanel,
           {
             title: "JSON: прогноз и траектория серы",
-            value: { forecast: payload.forecast, forecast_used: payload.forecast_used, sulfur_checks: points }
+            value: {
+              forecast: payload.forecast,
+              forecast_used: payload.forecast_used,
+              sulfur_checks: points,
+              statements
+            }
           }
         )
       ]
     }
   );
 }
-function CandidatesStage({ payload, index, state, source }) {
+function familyTotals(rounds) {
+  const totals = /* @__PURE__ */ new Map();
+  for (const round of rounds) {
+    for (const [family, count2] of Object.entries(round.veto_families ?? {})) {
+      const label = familyOf(family);
+      totals.set(label, (totals.get(label) ?? 0) + count2);
+    }
+  }
+  return [...totals.entries()].sort((a, b) => b[1] - a[1]);
+}
+function RoundBar({ round }) {
+  const proposed = round.proposed ?? 0;
+  const feasible = round.feasible ?? 0;
+  const share = proposed > 0 ? feasible / proposed * 100 : 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "funnel__round", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "funnel__label", children: [
+      "Раунд ",
+      round.round
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "span",
+      {
+        className: "funnel__bar",
+        role: "img",
+        "aria-label": `Раунд ${round.round}: предложено ${proposed}, допустимо ${feasible}`,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "funnel__proposed", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "funnel__feasible", style: { width: `${share}%` } }) })
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "funnel__counts", children: [
+      "допустимо ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(feasible, 0) }),
+      " из ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(proposed, 0) }),
+      " предложенных"
+    ] })
+  ] });
+}
+function VetoFunnel({ rounds, compact = false }) {
+  if (rounds.length === 0) return null;
+  const families = familyTotals(rounds);
+  const vetoTotal = families.reduce((acc, [, count2]) => acc + count2, 0);
+  const proposedTotal = rounds.reduce((acc, round) => acc + (round.proposed ?? 0), 0);
+  const widest = families.length > 0 ? Math.max(...families.map(([, count2]) => count2)) : 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `funnel ${compact ? "funnel--compact" : ""}`, children: [
+    compact ? null : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "funnel__head", children: rounds.length > 1 ? "Отсев планов по раундам" : "Отсев планов: раунд один" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "funnel__rounds", children: rounds.map((round) => /* @__PURE__ */ jsxRuntimeExports.jsx(RoundBar, { round }, round.round)) }),
+      rounds.length === 1 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "funnel__single", children: "Раунд один: сужения поиска не потребовалось. Воронки из одной ступени не бывает — второй ступени здесь нет не потому, что её обрезали, а потому, что допустимые планы нашлись сразу и оптимизатор не добавлял ограничений к следующему проходу." }) : null
+    ] }),
+    families.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "funnel__head", children: "Вето проверок по семействам ограничений" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "funnel__families", children: families.map(([family, count2]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "funnel__family", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "funnel__label", children: family }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "funnel__bar", role: "img", "aria-label": `${family}: ${count2} вето проверок`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: "funnel__veto",
+            style: { width: widest > 0 ? `${count2 / widest * 100}%` : "0%" }
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "funnel__counts", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(count2, 0) }),
+          " вето проверок"
+        ] })
+      ] }, family)) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "funnel__warn", children: [
+        "Эти полосы нормированы отдельно от полос планов выше и в одну шкалу с ними не сводятся. Семейства насчитали ",
+        num(vetoTotal, 0),
+        " вето при ",
+        num(proposedTotal, 0),
+        " предложенных планах, потому что здесь считаются отклонённые проверки, а не планы: один план нарушает сразу несколько ограничений в нескольких точках горизонта."
+      ] })
+    ] }) : null
+  ] });
+}
+function CandidatesStage({ payload, index, state, source, lamp, lampTitle }) {
   const trace = (payload.decision.trace ?? []).find((item) => item.agent === "optimizer");
   const rounds = trace?.rounds ?? [];
   const evaluated = trace?.evaluated ?? null;
@@ -15700,8 +16277,8 @@ function CandidatesStage({ payload, index, state, source }) {
       source,
       title: "Кандидаты",
       lead: "Сколько планов оптимизатор построил и проверил, и по каким семействам ограничений они отсеялись.",
-      lamp: rounds.length === 0 ? "unknown" : feasible > 0 ? "pass" : "fail",
-      lampTitle: feasible > 0 ? "допустимые планы есть" : "допустимых планов не нашлось",
+      lamp,
+      lampTitle,
       children: [
         rounds.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Трасса оптимизатора не передавалась." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
@@ -15718,6 +16295,7 @@ function CandidatesStage({ payload, index, state, source }) {
             /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Раундов поиска", value: `${rounds.length} из ${num(trace?.max_rounds, 0)}` }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Показано альтернатив", value: String(alternatives.length), hint: "до пяти в payload" })
           ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(VetoFunnel, { rounds }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Отсев по раундам", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("caption", { children: "Отсев по раундам: сколько запретов дало каждое семейство ограничений" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
@@ -15734,8 +16312,8 @@ function CandidatesStage({ payload, index, state, source }) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(round.feasible, 0) }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(round.quality_vetoed, 0) }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(round.reliability_vetoed, 0) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: Object.entries(round.veto_families ?? {}).map(([family, count2]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
-                family,
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: Object.entries(round.veto_families ?? {}).map(([family, count2]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", title: family, children: [
+                familyOf(family),
                 " ",
                 /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(count2, 0) })
               ] }, family)) })
@@ -15749,24 +16327,217 @@ function CandidatesStage({ payload, index, state, source }) {
     }
   );
 }
+const CELL = 20;
+const ROW = 17;
+const LABEL_MIN = 120;
+const LABEL_MAX = 300;
+const LABEL_CHAR = 5.4;
+const LABEL_PAD = 18;
+const HEAD = 26;
+const OUTSIDE_GAP = 14;
+function key(time) {
+  return time.toFixed(2);
+}
+function layout(checks) {
+  const times = [...new Set(checks.filter((c) => isNumber(c.time_hours)).map((c) => c.time_hours))].sort(
+    (a, b) => a - b
+  );
+  const map = /* @__PURE__ */ new Map();
+  for (const check of checks) {
+    const row2 = map.get(check.constraint_id) ?? { id: check.constraint_id, family: familyOf(check.constraint_id), cells: /* @__PURE__ */ new Map(), outside: null };
+    if (isNumber(check.time_hours)) row2.cells.set(key(check.time_hours), check);
+    else row2.outside = check;
+    map.set(check.constraint_id, row2);
+  }
+  const rows = [...map.values()];
+  const hasOutside = rows.some((row2) => row2.outside !== null);
+  return { rows, times, hasOutside };
+}
+function tip(check) {
+  const head = `${check.constraint_id}: ${check.status === "pass" ? "пройдено" : check.status === "fail" ? "нарушено" : "не проверено"}`;
+  const nums = isNumber(check.observed) || isNumber(check.limit) ? ` — наблюдалось ${num(check.observed, 3)}, предел ${num(check.limit, 3)}` : "";
+  const when = isNumber(check.time_hours) ? `, момент ${num(check.time_hours, 1)} ч` : ", вне горизонта";
+  return `${head}${nums}${when}${check.reason ? `. ${check.reason}` : ""}`;
+}
+function Cell({ check, x, y }) {
+  if (!check) return null;
+  const status = check.status;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("g", { className: `matrix__cell matrix__cell--${status}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "rect",
+      {
+        x: x + 2,
+        y: y + 2,
+        width: CELL - 4,
+        height: ROW - 4,
+        rx: "1.5",
+        fill: status === "fail" ? "var(--fail)" : status === "unknown" ? "url(#matrix-unknown)" : "none"
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("title", { children: tip(check) })
+  ] });
+}
+function labelWidth(rows) {
+  const longest = rows.reduce((acc, row2) => Math.max(acc, row2.id.length), 0);
+  return Math.min(LABEL_MAX, Math.max(LABEL_MIN, Math.ceil(longest * LABEL_CHAR) + LABEL_PAD));
+}
+function GateMatrix({ checks }) {
+  const { rows, times, hasOutside } = layout(checks);
+  if (rows.length === 0) return null;
+  const labelW = labelWidth(rows);
+  const gridW = times.length * CELL;
+  const outsideX = labelW + gridW + OUTSIDE_GAP;
+  const width = outsideX + (hasOutside ? CELL : 0) + 4;
+  const height = HEAD + rows.length * ROW + 6;
+  let previous = "";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("figure", { className: "matrix", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        viewBox: `0 0 ${width} ${height}`,
+        className: "matrix__svg",
+        role: "img",
+        "aria-label": `Матрица проверок Gate: ${rows.length} ограничений на ${times.length} моментов времени`,
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("defs", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("pattern", { id: "matrix-unknown", width: "4", height: "4", patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)", children: /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "0", y1: "0", x2: "0", y2: "4", stroke: "var(--unknown)", strokeWidth: "1.6" }) }) }),
+          times.map((time, column) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "text",
+            {
+              className: "matrix__axis",
+              x: labelW + column * CELL + CELL / 2,
+              y: HEAD - 10,
+              textAnchor: "middle",
+              children: num(time, 1)
+            },
+            time
+          )),
+          hasOutside ? /* @__PURE__ */ jsxRuntimeExports.jsx("text", { className: "matrix__axis matrix__axis--outside", x: outsideX + CELL / 2, y: HEAD - 10, textAnchor: "middle", children: "вне" }) : null,
+          rows.map((row2, line) => {
+            const y = HEAD + line * ROW;
+            const seam = previous !== "" && row2.family !== previous;
+            previous = row2.family;
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs("g", { children: [
+              seam ? /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "matrix__seam", x1: "6", x2: width - 4, y1: y, y2: y }) : null,
+              /* @__PURE__ */ jsxRuntimeExports.jsx("text", { className: "matrix__label", x: labelW - 10, y: y + ROW / 2 + 4, textAnchor: "end", children: row2.id }),
+              times.map((time, column) => /* @__PURE__ */ jsxRuntimeExports.jsx(Cell, { check: row2.cells.get(key(time)), x: labelW + column * CELL, y }, time)),
+              row2.outside ? /* @__PURE__ */ jsxRuntimeExports.jsx(Cell, { check: row2.outside, x: outsideX, y }) : null
+            ] }, row2.id);
+          })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("figcaption", { className: "matrix__caption", children: "Строка — ограничение, колонка — момент горизонта в часах. Тонкая рамка — пройдено, сплошная заливка — нарушено, штриховка — не проверено. Колонка «вне» держит проверки, у которых момента времени нет вовсе: они относятся к плану целиком, а не к шагу, и размазывать их по часам было бы выдумкой." })
+  ] });
+}
+const TRACK = 100;
+const FAMILIES = ["control", "outflow"];
+function labelOf(id) {
+  const [head, ...rest] = id.split(".");
+  const key2 = rest.join(".");
+  if (head === "control") return controlLabel(key2);
+  return `${familyOf(id)}: ${key2}`;
+}
+function unitOf(id) {
+  const [head, ...rest] = id.split(".");
+  if (head === "control") return controlUnit(rest.join("."));
+  return "т/ч";
+}
+function buildHeadroom(checks) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const check of checks) {
+    const head = check.constraint_id.split(".")[0] ?? "";
+    if (!FAMILIES.includes(head)) continue;
+    if (!isNumber(check.observed) || !isNumber(check.limit)) continue;
+    const list = groups.get(check.constraint_id) ?? [];
+    list.push(check);
+    groups.set(check.constraint_id, list);
+  }
+  const rows = [];
+  for (const [id, list] of groups) {
+    const values = list.map((check) => check.observed);
+    const limit = Math.max(...list.map((check) => check.limit));
+    const worstCheck = list.reduce(
+      (acc, check) => check.observed > acc.observed ? check : acc
+    );
+    const spread = Math.max(...values) - Math.min(...values);
+    const digits = Math.abs(limit) >= 100 ? 1 : 2;
+    rows.push({
+      id,
+      label: labelOf(id),
+      unit: unitOf(id),
+      limit,
+      worst: worstCheck.observed,
+      worstAt: worstCheck.time_hours,
+      constant: spread === 0,
+      moments: list.length,
+      digits
+    });
+  }
+  return rows.sort((a, b) => b.worst / (b.limit || 1) - a.worst / (a.limit || 1));
+}
+function Row$1({ row: row2 }) {
+  const share = row2.limit > 0 ? Math.min(TRACK, Math.max(0, row2.worst / row2.limit * TRACK)) : 0;
+  const over = row2.worst > row2.limit;
+  const headroom = row2.limit - row2.worst;
+  const caption = `${num(row2.worst, row2.digits)} из ${num(row2.limit, row2.digits)}${row2.unit ? ` ${row2.unit}` : ""}, запас ${num(headroom, row2.digits)}`;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "headroom__row", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "headroom__name", children: row2.label }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "headroom__bar", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "span",
+      {
+        className: "headroom__track",
+        role: "img",
+        "aria-label": `${row2.label}: ${caption} до верхнего предела`,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: `headroom__fill ${over ? "headroom__fill--over" : ""}`,
+            style: { width: `${share}%` }
+          }
+        )
+      }
+    ) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "headroom__value", children: [
+      caption,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "headroom__when", children: row2.constant ? `за горизонт не меняется, одно значение на все ${row2.moments} моментов` : `худший из ${row2.moments} моментов${row2.worstAt === null ? "" : `, на ${num(row2.worstAt, 1)} ч`}` })
+    ] })
+  ] });
+}
+function HeadroomBars({ checks }) {
+  const rows = buildHeadroom(checks);
+  if (rows.length === 0) return null;
+  const constant = rows.filter((row2) => row2.constant).length;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "headroom", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "headroom__head", children: "Сколько свободы до предела оборудования и отгрузки" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "headroom__list", children: rows.map((row2) => /* @__PURE__ */ jsxRuntimeExports.jsx(Row$1, { row: row2 }, row2.id)) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "headroom__foot", children: [
+      "Полоса односторонняя, и это не упрощение: в payload у этих ограничений передан только верхний предел. Нижней границы тут нет, поэтому коридор «от и до» не нарисован — его никто не задавал, и симметричная вилка была бы выдумкой. Ноль полосы — это ноль величины, а правый край — предел; закрашенная часть показывает, насколько близко подошло значение, незакрашенная — запас.",
+      constant > 0 ? ` У ${constant} из ${rows.length} ограничений значение одинаково во всех точках горизонта, поэтому показано одно значение, а не семь одинаковых полос.` : "",
+      " ",
+      "Каждая полоса нормирована своим пределом, и длины между строками сравнивать нельзя: единицы разные. Полная раскладка по каждому моменту — в матрице проверок выше."
+    ] })
+  ] });
+}
 function byFamily(checks) {
   const map = /* @__PURE__ */ new Map();
   for (const check of checks) {
     const family = familyOf(check.constraint_id);
-    const row = map.get(family) ?? { family, pass: 0, fail: 0, unknown: 0 };
-    row[check.status] += 1;
-    map.set(family, row);
+    const row2 = map.get(family) ?? { family, pass: 0, fail: 0, unknown: 0 };
+    row2[check.status] += 1;
+    map.set(family, row2);
   }
   return [...map.values()].sort((a, b) => b.fail - a.fail || b.unknown - a.unknown || a.family.localeCompare(b.family));
 }
 function count(checks, status) {
   return checks.filter((check) => check.status === status).length;
 }
-function GateStage({ payload, index, state, source }) {
+function GateStage({ payload, index, state, source, lamp, lampTitle }) {
   const gate = payload.decision.gate;
   const checks = gate?.checks ?? [];
   const failed = checks.filter((check) => check.status === "fail");
   const unknown = checks.filter((check) => check.status === "unknown");
+  const broken = [...failed, ...unknown];
+  const shownBroken = broken.slice(0, 25);
   const families = byFamily(checks);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Section,
@@ -15777,8 +16548,8 @@ function GateStage({ payload, index, state, source }) {
       source,
       title: "Gate",
       lead: "Жёсткая проверка выбранного плана: каждое ограничение в каждый момент горизонта.",
-      lamp: checks.length === 0 ? "unknown" : failed.length > 0 ? "fail" : unknown.length > 0 ? "unknown" : "pass",
-      lampTitle: gate?.feasible ? "план проходит" : "план не проходит",
+      lamp,
+      lampTitle,
       children: [
         checks.length === 0 ? payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Отдельного протокола Gate здесь нет, и это не пропуск: проверять было нечего — ни один план не дожил до финальной проверки. Что именно отсеяло варианты, показано на этапе «Решение» и в трассе оптимизатора на этапе «Кандидаты»." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Проверки Gate не передавались." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
@@ -15802,6 +16573,8 @@ function GateStage({ payload, index, state, source }) {
               }
             )
           ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Матрица проверок Gate", children: /* @__PURE__ */ jsxRuntimeExports.jsx(GateMatrix, { checks }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(HeadroomBars, { checks }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Проверки по семействам ограничений", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("caption", { children: "Проверки по семействам ограничений" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
@@ -15810,17 +16583,17 @@ function GateStage({ payload, index, state, source }) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Нарушено" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Неизвестно" })
             ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: families.map((row) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: families.map((row2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("th", { scope: "row", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: row.fail > 0 ? "fail" : row.unknown > 0 ? "unknown" : "pass" }),
-                row.family
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: row2.fail > 0 ? "fail" : row2.unknown > 0 ? "unknown" : "pass" }),
+                row2.family
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: row.pass }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: row.fail }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: row.unknown })
-            ] }, row.family)) })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: row2.pass }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: row2.fail }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: row2.unknown })
+            ] }, row2.family)) })
           ] }) }),
-          failed.length + unknown.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Что именно не прошло", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
+          broken.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Что именно не прошло", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("caption", { children: "Что именно не прошло" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Ограничение" }),
@@ -15829,7 +16602,7 @@ function GateStage({ payload, index, state, source }) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Момент" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Причина" })
             ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: [...failed, ...unknown].slice(0, 25).map((check, position) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: shownBroken.map((check, position2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("th", { scope: "row", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: check.status === "fail" ? "fail" : "unknown" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: check.constraint_id })
@@ -15838,18 +16611,105 @@ function GateStage({ payload, index, state, source }) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(check.limit, 3) }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: hours(check.time_hours) }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: check.reason || "—" })
-            ] }, `${check.constraint_id}-${check.time_hours}-${position}`)) })
+            ] }, `${check.constraint_id}-${check.time_hours}-${position2}`)) })
           ] }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: "Ни одно жёсткое ограничение не нарушено и ни одно не осталось непроверенным." }),
+          broken.length > shownBroken.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Note, { children: [
+            "Показаны первые ",
+            shownBroken.length,
+            " из ",
+            broken.length,
+            "; остальные — в JSON ниже."
+          ] }) : null,
           /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "План допустим", children: gate?.feasible ? "да" : "нет" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Первое нарушение", children: gate?.first_violation ? /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: gate.first_violation.constraint_id }) : "нет" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Непроверенные требования", children: gate?.unknown_requirements?.length ? gate.unknown_requirements.join("; ") : "нет" })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: `JSON: Gate, ${checks.length} проверок`, value: gate })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: `JSON: Gate. Проверок: ${checks.length}`, value: gate })
       ]
     }
   );
+}
+function parts(factors) {
+  return Object.entries(factors.terms ?? {}).map(([key2, term]) => {
+    const weight = factors.weights?.[key2];
+    const safeTerm = isNumber(term) ? term : 0;
+    const safeWeight = isNumber(weight) ? weight : 0;
+    return {
+      key: key2,
+      label: termLabel(key2),
+      term: safeTerm,
+      weight: safeWeight,
+      product: safeTerm * safeWeight
+    };
+  });
+}
+function SeverityBars({ factors }) {
+  const list = parts(factors);
+  if (list.length === 0) return null;
+  const sum = list.reduce((acc, part) => acc + part.product, 0);
+  const widest = Math.max(...list.map((part) => Math.abs(part.product)));
+  const allZero = widest === 0;
+  const index = isNumber(factors.index) ? factors.index : null;
+  const matches = index === null || Math.abs(sum - index) < 1e-9;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "severity", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "severity__head", children: [
+      "Из чего собрана тяжесть режима: ",
+      num(factors.index, 3)
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "severity__list", children: list.map((part) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "severity__row", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "severity__name", children: part.label }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "severity__bar", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "severity__track", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "span",
+        {
+          className: "severity__fill",
+          style: { width: allZero ? "0%" : `${Math.abs(part.product) / widest * 100}%` }
+        }
+      ) }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "severity__value", children: [
+        num(part.term, 3),
+        " × ",
+        num(part.weight, 2),
+        " = ",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(part.product, 3) })
+      ] })
+    ] }, part.key)) }),
+    allZero ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "severity__zero", children: [
+      "Оба слагаемых нулевые, и сумма их весов ничего не прибавляет: индекс равен",
+      " ",
+      num(factors.index, 3),
+      ". Режим не превышает опорных значений ни по температуре, ни по расходу, поэтому полосы имеют нулевую длину. Это и есть результат расчёта: минимальной видимой длины полосам здесь не выдано, иначе ноль выглядел бы как небольшая величина."
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "severity__foot", children: [
+      "Длина полосы — это слагаемое, умноженное на свой вес; общая шкала здесь законна, потому что обе величины безразмерны и складываются в индекс.",
+      matches ? ` Их сумма ${num(sum, 3)} и есть показанный индекс.` : ` Их сумма — ${num(sum, 3)}, и с показанным индексом она не сходится: расхождение считает сервер, здесь оно не сглажено.`
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "severity__refs", children: [
+      "Опорная температура ",
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("b", { children: [
+        num(factors.reference_temp_c, 1),
+        " °C"
+      ] }),
+      ", опорный расход",
+      " ",
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("b", { children: [
+        num(factors.reference_flow_m3h, 1),
+        " м³/ч"
+      ] }),
+      factors.control_range_c ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        ", диапазон уставки",
+        " ",
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("b", { children: [
+          num(factors.control_range_c[0], 0),
+          "–",
+          num(factors.control_range_c[1], 0),
+          " °C"
+        ] })
+      ] }) : null,
+      "."
+    ] }),
+    factors.scope ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: factors.scope }) : null
+  ] });
 }
 const TITLES = {
   data: "Агент данных",
@@ -15903,51 +16763,6 @@ function counters(event) {
   if (isNumber(event["severity_index"])) out.push(["тяжесть режима", num(event["severity_index"], 3)]);
   return out;
 }
-function Severity({ factors }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "severity", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid grid--tight", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("caption", { children: [
-        "Из чего собран индекс тяжести режима: ",
-        num(factors.index, 3)
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Слагаемое" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Значение" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Вес" })
-      ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: Object.entries(factors.terms ?? {}).map(([key, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "row", children: termLabel(key) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(value, 3) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(factors.weights?.[key], 2) })
-      ] }, key)) })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "severity__refs", children: [
-      "Опорная температура ",
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("b", { children: [
-        num(factors.reference_temp_c, 1),
-        " °C"
-      ] }),
-      ", опорный расход",
-      " ",
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("b", { children: [
-        num(factors.reference_flow_m3h, 1),
-        " м³/ч"
-      ] }),
-      factors.control_range_c ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        ", диапазон уставки",
-        " ",
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("b", { children: [
-          num(factors.control_range_c[0], 0),
-          "–",
-          num(factors.control_range_c[1], 0),
-          " °C"
-        ] })
-      ] }) : null,
-      "."
-    ] }),
-    factors.scope ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: factors.scope }) : null
-  ] });
-}
 function AgentCard({ event }) {
   const severity = event["severity_factors"];
   const vetoes = event["vetoes"] ?? [];
@@ -15966,9 +16781,9 @@ function AgentCard({ event }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx("dt", { children: label }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("dd", { children: value })
     ] }, label)) }) : null,
-    vetoes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "agent__list agent__list--veto", children: vetoes.map((reason) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: reason }, reason)) }) : null,
-    unknown.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "agent__list agent__list--unknown", children: unknown.map((reason) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: reason }, reason)) }) : null,
-    severity ? /* @__PURE__ */ jsxRuntimeExports.jsx(Severity, { factors: severity }) : null,
+    vetoes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "agent__list agent__list--veto", children: vetoes.map((reason, index) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: reason }, `${index}-${reason}`)) }) : null,
+    unknown.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "agent__list agent__list--unknown", children: unknown.map((reason, index) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: reason }, `${index}-${reason}`)) }) : null,
+    severity ? /* @__PURE__ */ jsxRuntimeExports.jsx(SeverityBars, { factors: severity }) : null,
     scope ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: scope }) : null,
     /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: `JSON агента «${event.agent}»`, value: event, openTo: 2 })
   ] });
@@ -16011,12 +16826,430 @@ function AgenticMode({ agentic }) {
     agentic.note ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: agentic.note }) : null
   ] });
 }
+const CONSTRAINT_VOCABULARY = [
+  "min_quality_margin",
+  "max_changes",
+  "forbid_additive",
+  "max_outflow_utilization",
+  "constant_plans_only",
+  "min_hours_to_violation",
+  "require_not_fragile"
+];
+const CONSTRAINT_TEXT = {
+  min_quality_margin: "запас по качеству",
+  max_changes: "предел числа переключений",
+  forbid_additive: "запрет присадки",
+  max_outflow_utilization: "потолок загрузки отбора",
+  constant_plans_only: "только постоянные планы",
+  min_hours_to_violation: "часы до нарушения",
+  require_not_fragile: "требовать нехрупкий план"
+};
+const RESOLUTION_TEXT = {
+  rank_overrides_choice: "код выбрал другой план, чем назвал оркестратор",
+  legacy_excluded: "план базового расчёта исключён агентами",
+  selection_not_allowed: "названный план вне списка допущенных",
+  refuse_ignored: "отказ отклонён: ни одно мнение его не подтвердило",
+  extra_tool_calls_dropped: "лишние вызовы инструментов отброшены"
+};
+const FINISH_TEXT = {
+  tool_calls: "модель сама вызвала инструмент",
+  stop: "модель договорила",
+  length: "модель упёрлась в предел длины ответа",
+  content_filter: "ответ обрезан фильтром провайдера"
+};
+function resolutionText(decision) {
+  if (!decision) return "решение без пометки";
+  return RESOLUTION_TEXT[decision] ?? decision;
+}
+function finishText(decision) {
+  if (!decision) return "причина остановки не передана провайдером";
+  return FINISH_TEXT[decision] ?? decision;
+}
+function roleOf(event) {
+  return event.tool_name === "ask_reliability_agent" ? "reliability" : "quality";
+}
+function readFocus(summary2) {
+  if (!summary2) return null;
+  try {
+    const parsed = JSON.parse(summary2);
+    const focus = parsed["focus"];
+    return typeof focus === "string" && focus.length > 0 ? focus : null;
+  } catch {
+    const match = /"focus"\s*:\s*"([^"]*)/.exec(summary2);
+    const found = match?.[1];
+    return found !== void 0 && found.length > 0 ? found : null;
+  }
+}
+function digest(event) {
+  if (!event) return null;
+  const raw = event.tool_result_summary;
+  if (!raw) return {
+    verdict: null,
+    riskLevel: null,
+    confidence: null,
+    confidenceSent: false,
+    constraints: [],
+    preferred: [],
+    candidateVerdicts: {},
+    truncated: false
+  };
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
+  }
+  if (parsed === null) {
+    const verdict = event.decision ? event.decision.split(":")[1] ?? null : null;
+    return {
+      verdict,
+      riskLevel: null,
+      confidence: null,
+      confidenceSent: false,
+      constraints: [],
+      preferred: [],
+      candidateVerdicts: {},
+      truncated: true
+    };
+  }
+  const confidence = parsed["confidence"];
+  const constraints = Array.isArray(parsed["proposed_constraints"]) ? parsed["proposed_constraints"].map((item) => ({
+    type: String(item["type"] ?? ""),
+    limit: typeof item["limit"] === "string" ? item["limit"] : null,
+    value: typeof item["value"] === "number" ? item["value"] : null
+  })) : [];
+  const preferred = Array.isArray(parsed["preferred_candidates"]) ? parsed["preferred_candidates"].map((item) => String(item)) : [];
+  const verdicts2 = {};
+  const rawVerdicts = parsed["candidate_verdicts"];
+  if (rawVerdicts && typeof rawVerdicts === "object") {
+    for (const [id, value] of Object.entries(rawVerdicts)) {
+      verdicts2[id] = String(value);
+    }
+  }
+  return {
+    verdict: typeof parsed["verdict"] === "string" ? parsed["verdict"] : null,
+    riskLevel: typeof parsed["risk_level"] === "string" ? parsed["risk_level"] : null,
+    confidence: typeof confidence === "number" ? confidence : null,
+    confidenceSent: typeof confidence === "number",
+    constraints,
+    preferred,
+    candidateVerdicts: verdicts2,
+    truncated: false
+  };
+}
+function buildActs(events) {
+  const acts = [];
+  let consult = null;
+  let consults = 0;
+  const close = () => {
+    consult = null;
+  };
+  for (const event of events) {
+    if (event.kind === "guard" || event.kind === "fallback") {
+      if (event.kind === "fallback") close();
+      acts.push({
+        kind: event.kind,
+        key: `${event.kind}-${event.seq}`,
+        seq: event.seq,
+        event,
+        elapsedMs: event.elapsedMs
+      });
+      continue;
+    }
+    if (event.kind === "consult") {
+      consults += 1;
+      consult = {
+        kind: "consult",
+        key: `consult-${event.seq}`,
+        seq: event.seq,
+        role: roleOf(event),
+        index: consults,
+        candidateIds: event.candidate_ids ?? [],
+        focus: readFocus(event.tool_input_summary),
+        inputRaw: event.tool_input_summary ?? null,
+        tools: [],
+        llmCalls: [],
+        finals: [],
+        resolution: null,
+        opinion: null,
+        vetoed: [],
+        reasonCodes: [],
+        elapsedMs: event.elapsedMs
+      };
+      acts.push(consult);
+      continue;
+    }
+    if (consult === null && event.kind === "resolution" && event.decision === "rank_overrides_choice") {
+      acts.push({
+        kind: "override",
+        key: `override-${event.seq}`,
+        seq: event.seq,
+        event,
+        elapsedMs: event.elapsedMs
+      });
+      continue;
+    }
+    if (consult !== null && event.kind === "resolution") {
+      consult.resolution = event;
+      consult.opinion = digest(event);
+      consult.vetoed = event.candidate_ids ?? [];
+      consult.reasonCodes = event.reason_codes ?? [];
+      close();
+      continue;
+    }
+    if (consult !== null && event.agent === consult.role) {
+      if (event.kind === "tool") consult.tools.push(event);
+      else if (event.kind === "llm_call") consult.llmCalls.push(event);
+      else if (event.kind === "final") consult.finals.push(event);
+      continue;
+    }
+    if (consult !== null && event.agent === "orchestrator") close();
+    const last = acts[acts.length - 1];
+    if (last && last.kind === "orchestrator" && last.agent === event.agent) {
+      last.events.push(event);
+      continue;
+    }
+    acts.push({
+      kind: "orchestrator",
+      key: `act-${event.seq}`,
+      seq: event.seq,
+      agent: event.agent,
+      events: [event],
+      elapsedMs: event.elapsedMs
+    });
+  }
+  return acts;
+}
+function constraintPicks(proposed) {
+  const byType = /* @__PURE__ */ new Map();
+  for (const item of proposed) byType.set(item.type, { limit: item.limit, value: item.value });
+  return CONSTRAINT_VOCABULARY.map((type) => {
+    const hit = byType.get(type);
+    const parts2 = [];
+    if (hit?.limit) parts2.push(hit.limit);
+    if (hit && hit.value !== null) parts2.push(String(hit.value));
+    return {
+      type,
+      label: CONSTRAINT_TEXT[type] ?? type,
+      proposed: hit !== void 0,
+      value: parts2.length > 0 ? parts2.join(" ") : null
+    };
+  });
+}
+function toolSteps(act) {
+  const order = [];
+  const byStep = /* @__PURE__ */ new Map();
+  const take2 = (event) => {
+    const step = typeof event.step === "number" ? event.step : 0;
+    let hit = byStep.get(step);
+    if (hit === void 0) {
+      hit = { step, tools: [], llmCalls: [] };
+      byStep.set(step, hit);
+      order.push(step);
+    }
+    return hit;
+  };
+  for (const call of act.llmCalls) take2(call).llmCalls.push(call);
+  for (const tool of act.tools) take2(tool).tools.push(tool);
+  return order.sort((a, b) => a - b).map((step) => byStep.get(step));
+}
+const FALLBACK_TEXT = {
+  "budget:llm_calls": "Лимит обращений к модели исчерпан",
+  "budget:timeout": "Истекло время, отведённое агентам"
+};
+const ROLE_TEXT = {
+  orchestrator: "оркестратор",
+  quality: "агент качества",
+  reliability: "агент надёжности"
+};
+const BUDGET_CELL_MAX = 20;
+function fallbackText(decision) {
+  if (!decision) return "Откат без пометки причины";
+  if (FALLBACK_TEXT[decision]) return FALLBACK_TEXT[decision];
+  if (decision.startsWith("llm_error")) return "Модель не ответила";
+  return `Откат: ${decision}`;
+}
+function providerBand(facts, agentic) {
+  const provider = facts?.provider ?? agentic?.provider ?? null;
+  const model = facts?.model ?? agentic?.model ?? null;
+  const flag = facts?.deterministic_policy ?? agentic?.deterministic_policy;
+  if (provider === null && model === null && flag === void 0) return null;
+  const deterministic = flag === true || provider === "scripted";
+  return {
+    provider: provider ?? "провайдер не передан",
+    model: model ?? "модель не передана",
+    deterministic,
+    known: provider !== null || model !== null
+  };
+}
+function seconds(ms) {
+  if (ms < 1e3) return `${ms} мс`;
+  return `${(ms / 1e3).toFixed(1).replace(".", ",")} с`;
+}
+function tokens(total) {
+  return `${total.toLocaleString("ru-RU")} ток.`;
+}
+function callMeter(event, deterministic) {
+  const latency = event.latency_ms;
+  const total = event.usage?.["total_tokens"];
+  const measured = typeof latency === "number" && latency > 0;
+  if (deterministic || latency === 0 && (total === 0 || total === void 0)) {
+    return { latency: "политика, без вызова модели", usage: "", finish: "", measured: false };
+  }
+  return {
+    latency: measured ? seconds(latency) : "длительность не передана",
+    usage: typeof total === "number" && total > 0 ? tokens(total) : "токенов не передано",
+    finish: finishText(event.decision),
+    measured
+  };
+}
+function budgetRows(events, facts, budget) {
+  const sent = facts?.budget_limits ?? {};
+  const byRole = budget?.llm_calls_by_role;
+  const live = {};
+  for (const event of events) {
+    if (event.kind !== "llm_call") continue;
+    live[event.agent] = (live[event.agent] ?? 0) + 1;
+  }
+  const roles = Object.keys(ROLE_TEXT).filter((role) => live[role] !== void 0 || byRole && byRole[role] !== void 0);
+  return roles.map((role) => {
+    const exact = byRole !== void 0 && byRole[role] !== void 0;
+    const limitKey = role === "orchestrator" ? "max_steps" : "specialist_max_calls";
+    const sentLimit = sent[limitKey] ?? sent[role];
+    const used = exact ? byRole?.[role] ?? 0 : live[role] ?? 0;
+    const limit = typeof sentLimit === "number" ? sentLimit : null;
+    return {
+      role,
+      label: ROLE_TEXT[role] ?? role,
+      used,
+      limit,
+      exact,
+      spent: limit !== null && used >= limit
+    };
+  });
+}
+function row(role, label, used, limit, exact) {
+  if (used === void 0) return null;
+  const bound = typeof limit === "number" ? limit : null;
+  return { role, label, used, limit: bound, exact, spent: bound !== null && used >= bound };
+}
+function spendRows(facts, budget) {
+  if (budget === void 0) return [];
+  const sent = facts?.budget_limits ?? {};
+  const consults = budget.consults;
+  const consultsUsed = consults === void 0 ? void 0 : Object.values(consults).reduce((sum, value) => sum + value, 0);
+  const rows = [
+    row("consults", "консультаций специалистов", consultsUsed, sent["max_specialist_consults"], true),
+    row("replans", "повторных поисков", budget.replans, sent["max_replans"], true),
+    row("robustness", "проверок устойчивости", budget.robustness_runs, sent["max_robustness_runs"], true)
+  ];
+  return rows.filter((item) => item !== null);
+}
+function totalCalls(events, budget) {
+  const declared = budget?.max_llm_calls;
+  const exact = typeof budget?.llm_calls === "number";
+  const used = exact ? budget?.llm_calls ?? 0 : events.filter((e) => e.kind === "llm_call").length;
+  if (used === 0 && !exact) return null;
+  const limit = typeof declared === "number" ? declared : null;
+  return {
+    role: "all",
+    label: "всего обращений",
+    used,
+    limit,
+    exact,
+    spent: limit !== null && used >= limit
+  };
+}
+function ProviderStrip({ band, label }) {
+  if (band === null) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "provider provider--unknown", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "provider__mark", "aria-hidden": "true" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "provider__name", children: "провайдер не передавался" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "provider__status", children: "источник решения неизвестен" })
+    ] });
+  }
+  const mode = band.deterministic ? "scripted" : "live";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: `provider provider--${mode}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "provider__mark", "aria-hidden": "true" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "provider__name", children: [
+      band.provider,
+      " · ",
+      band.model
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "provider__status", children: band.deterministic ? "детерминированная политика" : "живая модель" }),
+    label ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "provider__label", children: label }) : null
+  ] });
+}
+function Segments({ row: row2 }) {
+  if (row2.limit === null) return null;
+  const total = Math.max(row2.limit, row2.used);
+  if (total > BUDGET_CELL_MAX) return null;
+  const cells = Array.from({ length: total }, (_, index) => index < row2.used);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "budget__bar", "aria-hidden": "true", children: cells.map((filled, index) => /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `budget__cell${filled ? " budget__cell--used" : ""}` }, index)) });
+}
+function originText(row2) {
+  const counter = row2.exact ? "счётчик сервера" : "подсчёт по событиям";
+  if (row2.limit === null) return `${counter}, предел не передавался`;
+  return `${counter}, предел от сервера`;
+}
+function Rows({ rows }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "budget__rows", children: rows.map((row2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `budget__row${row2.spent ? " budget__row--spent" : ""}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "budget__label", children: [
+      row2.label,
+      " ",
+      row2.limit === null ? row2.used : `${row2.used}/${row2.limit}`
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Segments, { row: row2 }),
+    row2.spent ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "budget__spent", children: "исчерпано" }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "budget__origin", children: originText(row2) })
+  ] }, row2.role)) });
+}
+function BudgetMeter({ rows, total, spend }) {
+  const calls = total === null ? rows : [...rows, total];
+  if (calls.length === 0 && spend.length === 0) return null;
+  const exhausted = [...calls, ...spend].some((row2) => row2.spent);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "budget", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "budget__caption", children: "Потолок ходов: сколько обращений к модели уже потрачено из отведённых" }),
+    calls.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Rows, { rows: calls }) : null,
+    spend.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "budget__caption", children: "Прочие лимиты поиска: консультации, повторные поиски, прогоны устойчивости" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Rows, { rows: spend })
+    ] }) : null,
+    exhausted ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "budget__note", children: "Исчерпанный счётчик объясняет, почему агент перестал искать дальше." }) : null
+  ] });
+}
+function ConstraintVocabulary({ picks, note }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "vocab", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "vocab__caption", children: "словарь ограничений: агент выбирает из семи типов" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "vocab__list", children: picks.map((pick) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "li",
+      {
+        className: `vocab__pill${pick.proposed ? " vocab__pill--picked" : ""}`,
+        title: pick.type,
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "vocab__name", children: pick.label }),
+          pick.value ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "vocab__value", children: pick.value }) : null
+        ]
+      },
+      pick.type
+    )) }),
+    note ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "vocab__note", children: note }) : null
+  ] });
+}
+function WaitingCounter({ elapsedMs, sinceMs }) {
+  const held = Math.max(0, Math.floor((elapsedMs - sinceMs) / 1e3));
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "waiting", role: "status", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "waiting__mark", "aria-hidden": "true" }),
+    "ждём ответа модели, ",
+    held,
+    " с"
+  ] });
+}
 const AGENT_NAMES = {
   orchestrator: "оркестратор",
   quality: "агент качества",
   reliability: "агент надёжности",
-  system: "детерминированный код",
-  data: "агент данных"
+  system: "детерминированный код"
 };
 const KIND_TEXT$1 = {
   llm_call: "обращение к модели",
@@ -16024,97 +17257,293 @@ const KIND_TEXT$1 = {
   tool: "вызов инструмента",
   final: "ответ агента",
   resolution: "мнение оформлено",
-  guard: "перепроверка кодом"
+  guard: "перепроверка кодом",
+  fallback: "откат на детерминированную политику"
 };
-function groupEvents(events) {
-  const groups = [];
-  let current = null;
-  for (const event of events) {
-    if (event.kind === "consult") {
-      current = {
-        key: `consult-${event.seq}`,
-        agent: event.tool_name === "ask_reliability_agent" ? "reliability" : "quality",
-        title: `Оркестратор спрашивает: ${event.tool_name ?? "специалиста"}`,
-        events: [event]
-      };
-      groups.push(current);
-      continue;
-    }
-    if (event.agent === "orchestrator" && current !== null && event.kind !== "llm_call") {
-      current = null;
-    }
-    if (current !== null && (event.agent === current.agent || event.agent === "system")) {
-      current.events.push(event);
-      if (event.kind === "resolution") current = null;
-      continue;
-    }
-    const last = groups[groups.length - 1];
-    if (last && last.key.startsWith("orchestrator") && last.agent === event.agent) {
-      last.events.push(event);
-      continue;
-    }
-    groups.push({
-      key: `orchestrator-${event.seq}`,
-      agent: event.agent,
-      title: `${AGENT_NAMES[event.agent] ?? event.agent} работает`,
-      events: [event]
-    });
-  }
-  return groups;
+const VERDICT_TEXT = {
+  ACCEPT: "план разумен",
+  REVISE: "допустим, но стоит ужесточить поиск",
+  REJECT: "не прошёл",
+  UNKNOWN: "данных не хватило"
+};
+const RISK_TEXT = {
+  low: "риск низкий",
+  medium: "риск средний",
+  high: "риск высокий"
+};
+function StepRow({ step, deterministic }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "consult__tools", children: [
+    step.llmCalls.map((call) => {
+      const meter = callMeter(call, deterministic);
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "li",
+        {
+          className: `consult__tool consult__tool--call${meter.measured ? "" : " consult__tool--unmeasured"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__tool-name", children: "обращение к модели" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__tool-state", children: [meter.latency, meter.usage, meter.finish].filter((part) => part !== "").join(" · ") })
+          ]
+        },
+        `llm-${call.seq}`
+      );
+    }),
+    step.tools.map((tool) => {
+      const failed = tool.decision === "error";
+      const codes = tool.reason_codes ?? [];
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `consult__tool${failed ? " consult__tool--failed" : ""}`, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__tool-name", children: tool.tool_name ?? "инструмент не назван" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__tool-state", children: failed ? "вызов отклонён" : "вернул результат" }),
+        failed && codes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "consult__tool-why", children: [
+          "причина: ",
+          codes.join(", ")
+        ] }) : null,
+        failed && tool.tool_result_summary ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__tool-why", children: tool.tool_result_summary }) : null
+      ] }, tool.seq);
+    })
+  ] });
 }
-function summarize(event) {
-  if (event.kind === "llm_call") {
-    const usage = event.usage?.["total_tokens"];
-    const latency = event.latency_ms;
-    const parts = [];
-    if (typeof latency === "number" && latency > 0) parts.push(`${latency} мс`);
-    if (typeof usage === "number" && usage > 0) parts.push(`${usage} токенов`);
-    return parts.length > 0 ? parts.join(", ") : "счётчиков не передано";
+function Steps({ act, limit, deterministic }) {
+  const steps = toolSteps(act);
+  if (steps.length === 0) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "consult__none", children: "ни одного шага специалист не сделал" });
   }
-  if (event.kind === "consult") return event.tool_input_summary ?? "запрос без сводки";
-  if (event.kind === "tool") return event.tool_name ?? "инструмент не назван";
-  if (event.kind === "final") return event.decision ?? "ответ без пометки";
-  if (event.kind === "guard") return `перепроверка: ${event.decision ?? "без пометки"}`;
-  return event.decision ?? "";
-}
-function Event({ event }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `dialogue__event dialogue__event--${event.kind}`, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dialogue__seq", children: event.seq }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dialogue__line", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "dialogue__kind", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: AGENT_NAMES[event.agent] ?? event.agent }),
-        " — ",
-        KIND_TEXT$1[event.kind] ?? event.kind
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "consult__steps", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "consult__steps-head", children: [
+      "итераций специалиста: ",
+      limit === null ? steps.length : `${steps.length} из ${limit}`
+    ] }),
+    steps.map((step, index) => /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "consult__step", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("h6", { className: "consult__step-title", children: [
+        "шаг ",
+        index + 1
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "dialogue__summary", children: summarize(event) }),
-      event.tool_input_summary && event.kind === "tool" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "dialogue__args", children: [
-        "аргументы: ",
-        /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: event.tool_input_summary })
-      ] }) : null,
-      event.reason_codes && event.reason_codes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "dialogue__codes", children: [
-        "коды причин: ",
-        event.reason_codes.join(", ")
-      ] }) : null,
-      event.tool_result_summary ? /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: "что вернул инструмент", value: event.tool_result_summary, openTo: 1 }) : null
+      /* @__PURE__ */ jsxRuntimeExports.jsx(StepRow, { step, deterministic })
+    ] }, step.step))
+  ] });
+}
+function Confidence({ act }) {
+  const opinion = act.opinion;
+  if (!opinion || !opinion.confidenceSent || opinion.confidence === null) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "consult__confidence consult__confidence--absent", children: "уверенность не передана" });
+  }
+  const steps = Math.round(Math.min(1, Math.max(0, opinion.confidence)) * 10);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "consult__confidence", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__conf-bar", "aria-hidden": "true", children: Array.from({ length: 10 }, (_, index) => /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `consult__conf-cell${index < steps ? " consult__conf-cell--on" : ""}` }, index)) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "consult__conf-text", children: [
+      "уверенность ",
+      steps,
+      " из 10, как передал агент"
     ] })
   ] });
 }
-function AgentDialogue({ events, running }) {
-  if (events.length === 0) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "dialogue__empty", children: running ? "Ждём первых событий от агентов: модель уже вызвана." : "События агентов по этому прогону не передавались." });
-  }
-  const groups = groupEvents(events);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dialogue", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "dialogue__counter", role: "status", children: [
-      "Событий получено: ",
-      events.length,
-      running ? ", поток продолжается" : ", поток закрыт"
+function breakReason(event) {
+  if (event === null) return null;
+  const summary2 = event.tool_result_summary;
+  if (summary2) return summary2;
+  if (event.reason_codes && event.reason_codes.length > 0) return event.reason_codes.join(", ");
+  return event.decision ?? null;
+}
+function ConsultCard({ act, deterministic, closed, facts, breakEvent }) {
+  const opinion = act.opinion;
+  const verdict = opinion?.verdict ?? null;
+  const broken = act.resolution === null && breakEvent !== null;
+  const state = act.resolution === null ? broken ? "оборвана откатом" : closed ? "оборвана" : "идёт" : "завершена";
+  const why = broken ? breakReason(breakEvent) : null;
+  const limit = facts?.budget_limits?.["specialist_max_calls"] ?? null;
+  const picks = constraintPicks(opinion?.constraints ?? []);
+  const note = opinion?.truncated ? "сводка мнения обрезана сервером до 300 символов, разобрать предложенные ограничения не удалось" : null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("article", { className: `consult consult--${act.role}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "consult__head", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "consult__index", children: [
+        "консультация ",
+        act.index
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "consult__title", children: [
+        "Оркестратор → ",
+        AGENT_NAMES[act.role] ?? act.role,
+        act.candidateIds.length > 0 ? `, планы ${act.candidateIds.join(", ")}` : ", планы не названы"
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__state", children: state })
     ] }),
-    groups.map((group) => /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: `dialogue__group dialogue__group--${group.agent}`, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "dialogue__title", children: group.title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("ol", { className: "dialogue__events", children: group.events.map((event) => /* @__PURE__ */ jsxRuntimeExports.jsx(Event, { event }, event.seq)) })
-    ] }, group.key)),
-    running ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "dialogue__waiting", children: "ждём следующего события…" }) : null
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "consult__body", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "consult__part", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h5", { className: "consult__label", children: "о чём спросил" }),
+        act.focus !== null ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "consult__focus", children: act.focus }) : act.candidateIds.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "consult__focus", children: [
+          "фокус запроса не передан; спросили про планы ",
+          act.candidateIds.join(", ")
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "consult__none", children: "ни фокуса, ни списка планов в запросе не передавалось" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "consult__part", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h5", { className: "consult__label", children: "что делал специалист" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Steps,
+          {
+            act,
+            limit: typeof limit === "number" ? limit : null,
+            deterministic
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "consult__part", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h5", { className: "consult__label", children: "вердикт" }),
+        verdict === null ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "consult__none", children: act.resolution === null ? "вердикт ещё не оформлен" : "вердикт не передан" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: `consult__verdict consult__verdict--${verdict.toLowerCase()}`, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "consult__verdict-code", children: verdict }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__verdict-text", children: VERDICT_TEXT[verdict] ?? "смысл вердикта не описан" }),
+          opinion?.riskLevel ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "consult__risk", children: RISK_TEXT[opinion.riskLevel] ?? opinion.riskLevel }) : null
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Confidence, { act }),
+        act.vetoed.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "consult__veto", children: [
+          "вето наложено на планы: ",
+          act.vetoed.join(", ")
+        ] }) : null,
+        act.reasonCodes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "consult__codes", children: [
+          "коды причин: ",
+          act.reasonCodes.join(", ")
+        ] }) : null,
+        broken ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "consult__broken", children: [
+          "консультацию оборвал откат",
+          why !== null ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            ": ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: why })
+          ] }) : "; причину сервер не передал"
+        ] }) : null
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ConstraintVocabulary, { picks, note })
+    ] })
+  ] });
+}
+function GuardPlate({ act }) {
+  const event = act.event;
+  const passed = event.decision === "pass";
+  const plans = event.candidate_ids ?? [];
+  const named = plans.length > 0 ? `план ${plans.join(", ")}` : "выбранный план";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: `plate plate--${passed ? "pass" : "fail"}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "plate__line", children: [
+      "Перепроверка кодом: ",
+      named,
+      " ",
+      passed ? "прошёл повторный Gate" : "повторный Gate не прошёл"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "plate__note", children: "агенты к этой проверке отношения не имеют" }),
+    !passed && event.reason_codes && event.reason_codes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "plate__codes", children: [
+      "коды: ",
+      event.reason_codes.join(", ")
+    ] }) : null
+  ] });
+}
+function FallbackPlate({ act }) {
+  const event = act.event;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "plate plate--fallback", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "plate__line", children: fallbackText(event.decision) }),
+    event.tool_result_summary ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "plate__detail", children: /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: event.tool_result_summary }) }) : null,
+    event.reason_codes && event.reason_codes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "plate__codes", children: [
+      "коды: ",
+      event.reason_codes.join(", ")
+    ] }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "plate__note", children: "дальше решение принимает детерминированный код" })
+  ] });
+}
+function OverridePlate({ act }) {
+  const ids = act.event.candidate_ids ?? [];
+  const named = ids[0] ?? null;
+  const chosen = ids[1] ?? null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "plate plate--override", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "plate__line", children: named !== null && chosen !== null ? `Оркестратор назвал план ${named} → детерминированное ранжирование выбрало план ${chosen}` : "Выбор оркестратора переписан детерминированным ранжированием; пара планов не передана" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "plate__note", children: "модель здесь не главная: её выбор перепроверяется кодом и может быть заменён" }),
+    act.event.reason_codes && act.event.reason_codes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "plate__codes", children: [
+      "коды: ",
+      act.event.reason_codes.join(", ")
+    ] }) : null
+  ] });
+}
+function ChoiceAgreement({ overridden }) {
+  if (overridden === void 0) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "agree agree--absent", children: "Сервер не сообщил, сверялся ли выбор оркестратора с детерминированным ранжированием." });
+  }
+  if (overridden) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "agree", children: "Выбор оркестратора совпал с детерминированным ранжированием: переписывать было нечего." });
+}
+const FINAL_TEXT = {
+  accepted: "ответ принят по схеме",
+  accepted_from_text: "ответ принят из текста, схему агент не вызвал",
+  invalid_final: "ответ не прошёл контракт",
+  no_known_candidates: "агент назвал планы, которых нет среди рассмотренных"
+};
+function ActRow({ act, deterministic }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: `act act--${act.agent}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "act__title", children: [
+      AGENT_NAMES[act.agent] ?? act.agent,
+      " работает"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ol", { className: "act__events", children: act.events.map((event) => {
+      const meter = event.kind === "llm_call" ? callMeter(event, deterministic) : null;
+      const unmeasured = meter !== null && !meter.measured;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `act__event${unmeasured ? " act__event--unmeasured" : ""}`, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "act__seq", children: event.seq }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "act__line", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "act__kind", children: KIND_TEXT$1[event.kind] ?? event.kind }),
+          meter ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "act__meter", children: [meter.latency, meter.usage, meter.finish].filter((part) => part !== "").join(" · ") }) : null,
+          event.kind === "tool" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "act__meter", children: [
+            event.tool_name ?? resolutionText(event.decision),
+            event.decision === "error" ? " — вызов отклонён" : ""
+          ] }) : null,
+          event.kind === "resolution" ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "act__meter", children: resolutionText(event.decision) }) : null,
+          event.kind === "final" ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "act__meter", children: FINAL_TEXT[event.decision ?? ""] ?? event.decision ?? "без пометки" }) : null,
+          event.reason_codes && event.reason_codes.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "act__codes", children: [
+            "коды причин: ",
+            event.reason_codes.join(", ")
+          ] }) : null,
+          event.kind !== "llm_call" && event.tool_result_summary ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "act__detail", children: /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: event.tool_result_summary }) }) : null
+        ] })
+      ] }, event.seq);
+    }) })
+  ] });
+}
+function AgentDialogue({ events, running, facts, agentic, elapsedMs }) {
+  const band = providerBand(facts, agentic);
+  const deterministic = band?.deterministic === true;
+  const acts = buildActs(events);
+  const rows = budgetRows(events, facts, agentic?.budget);
+  const total = totalCalls(events, agentic?.budget);
+  const spend = spendRows(facts, agentic?.budget);
+  const lastMs = events[events.length - 1]?.elapsedMs ?? 0;
+  const overridden = agentic?.llm_choice_overridden;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dialogue", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ProviderStrip, { band, label: agentic?.provider_label }),
+    events.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: running ? "Событий от агентов ещё не приходило." : "События агентов по этому прогону не передавались." }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "dialogue__counter", role: "status", children: [
+        "Событий получено: ",
+        events.length,
+        running ? ", поток продолжается" : ", поток закрыт"
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dialogue__acts", children: acts.map((act, index) => {
+        if (act.kind === "consult") {
+          const next = acts[index + 1];
+          const broke = next && next.kind === "fallback" ? next.event : null;
+          return /* @__PURE__ */ jsxRuntimeExports.jsx(
+            ConsultCard,
+            {
+              act,
+              deterministic,
+              closed: !running,
+              facts,
+              breakEvent: broke
+            },
+            act.key
+          );
+        }
+        if (act.kind === "guard") return /* @__PURE__ */ jsxRuntimeExports.jsx(GuardPlate, { act }, act.key);
+        if (act.kind === "override") return /* @__PURE__ */ jsxRuntimeExports.jsx(OverridePlate, { act }, act.key);
+        if (act.kind === "fallback") return /* @__PURE__ */ jsxRuntimeExports.jsx(FallbackPlate, { act }, act.key);
+        if (act.kind === "orchestrator") {
+          return /* @__PURE__ */ jsxRuntimeExports.jsx(ActRow, { act, deterministic }, act.key);
+        }
+        return null;
+      }) })
+    ] }),
+    running ? null : /* @__PURE__ */ jsxRuntimeExports.jsx(ChoiceAgreement, { overridden }),
+    running && !deterministic ? /* @__PURE__ */ jsxRuntimeExports.jsx(WaitingCounter, { elapsedMs, sinceMs: lastMs }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsx(BudgetMeter, { rows, total, spend })
   ] });
 }
 const ROLES = {
@@ -16191,6 +17620,23 @@ const ACTIONS = {
   refuse: "отказаться от рекомендации",
   hold: "сохранить режим"
 };
+function VetoMap({ vetoes }) {
+  if (vetoes === void 0) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "veto", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h5", { className: "veto__title", children: "Вето агентов" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "veto__none", children: "Карта вето сервером не передавалась." })
+    ] });
+  }
+  const entries = Object.entries(vetoes);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "veto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h5", { className: "veto__title", children: "Вето агентов" }),
+    entries.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "veto__none", children: "Вето ни на один план не накладывалось." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "veto__rows", children: entries.map(([plan, roles]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "veto__row", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "veto__plan", children: plan }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "veto__arrow", "aria-hidden": "true", children: "→" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "veto__roles", children: roles.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "veto__none", children: "роли не названы" }) : roles.map((role) => /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "veto__pill", children: ROLE_TEXT[role] ?? role }, role)) })
+    ] }, plan)) })
+  ] });
+}
 function AgentFinal({ agentic }) {
   const final = agentic?.final ?? null;
   const budget = agentic?.budget ?? null;
@@ -16209,6 +17655,7 @@ function AgentFinal({ agentic }) {
         final.evidence_refs.map((ref) => /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ref }, ref))
       ] }) : null
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Итог диалога оркестратора не передавался." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(VetoMap, { vetoes: agentic?.vetoed_candidates }),
     constraints.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "final__constraints", children: [
       "Ограничения, наложенные агентами по ходу поиска:",
       " ",
@@ -16228,9 +17675,16 @@ function AgentFinal({ agentic }) {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "По ролям", children: Object.entries(budget.llm_calls_by_role ?? {}).map(([role, count2]) => `${role}: ${count2}`).join(", ") || "не передавались" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Токены", children: budget.usage && (budget.usage["total_tokens"] ?? 0) > 0 ? `${num(budget.usage["prompt_tokens"], 0)} на запрос, ${num(budget.usage["completion_tokens"], 0)} на ответ, всего ${num(budget.usage["total_tokens"], 0)}` : "ноль: живая модель не вызывалась" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Повторных поисков", children: num(budget.replans, 0) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Повторных поисков", children: num(budget.replans, 0) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Консультаций специалистов", children: Object.entries(budget.consults ?? {}).map(([role, count2]) => `${ROLE_TEXT[role] ?? role}: ${count2}`).join(", ") || "не передавались" })
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: "Счётчики вызовов не передавались." }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: "JSON: итог и бюджет агентного слоя", value: { final, budget, constraints }, openTo: 1 })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: "JSON: итог и бюджет агентного слоя", value: {
+      final,
+      budget,
+      constraints,
+      vetoed_candidates: agentic?.vetoed_candidates,
+      llm_choice_overridden: agentic?.llm_choice_overridden
+    }, openTo: 1 })
   ] });
 }
 const ORDER = ["data", "optimizer", "lookahead", "quality", "reliability", "robustness"];
@@ -16241,10 +17695,9 @@ function ordered(trace) {
     return (left === -1 ? ORDER.length : left) - (right === -1 ? ORDER.length : right);
   });
 }
-function AgentsStage({ payload, index, state, source, events }) {
+function AgentsStage({ payload, index, state, source, lamp, lampTitle, events, facts, elapsedMs }) {
   const agentic = payload.decision.agentic;
   const trace = ordered(payload.decision.trace ?? []);
-  const vetoes = trace.reduce((acc, event) => acc + (event["vetoes"]?.length ?? 0), 0);
   const running = state === "running";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Section,
@@ -16255,11 +17708,11 @@ function AgentsStage({ payload, index, state, source, events }) {
       source,
       title: "Агенты",
       lead: "Диалог оркестратора со специалистами по мере его хода: кто кого спросил, какой инструмент выбрал сам агент, что вернулось, какой вердикт и почему.",
-      lamp: running ? "idle" : trace.length === 0 ? "unknown" : vetoes > 0 ? "fail" : "pass",
-      lampTitle: `участников: ${trace.length}`,
+      lamp: running ? "idle" : lamp,
+      lampTitle,
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(AgenticMode, { agentic }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(AgentDialogue, { events, running }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(AgentDialogue, { events, running, facts, agentic, elapsedMs }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "agents__heading", children: "Ответы агентов" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Opinions, { agentic }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(AgentFinal, { agentic }),
@@ -16271,7 +17724,7 @@ function AgentsStage({ payload, index, state, source, events }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           JsonPanel,
           {
-            title: `JSON: полная трасса агентного слоя, ${events.length} событий`,
+            title: `JSON: полная трасса агентного слоя. Событий: ${events.length}`,
             value: agentic?.trace ?? payload.decision.trace,
             openTo: 1
           }
@@ -16280,16 +17733,246 @@ function AgentsStage({ payload, index, state, source, events }) {
     }
   );
 }
-function ChoiceStage({ payload, index, state, source }) {
+function CostBar({ label, value, span }) {
+  const share = span > 0 ? value / span * 100 : 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "offspec__row", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "offspec__label", children: label }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "offspec__bar", role: "img", "aria-label": `${label}: ${num(value, 4)} у.е. за тонну`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "offspec__fill", style: { width: `${share}%` } }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "offspec__value", children: [
+      num(value, 4),
+      " у.е./т"
+    ] })
+  ] });
+}
+function OffspecBlock({ offspec }) {
+  const hold = offspec.hold_cost_per_tonne;
+  const plan = offspec.plan_cost_per_tonne;
+  const delta2 = offspec.delta_cost_per_tonne;
+  const pair = [hold, plan].filter(isNumber);
+  const span = pair.length > 0 ? Math.max(...pair) * 1.1 : 0;
+  const same = isNumber(delta2) && Math.abs(delta2) < 1e-9;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "offspec", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "offspec__head", children: "Некондиция: сохранение режима против выбранного плана" }),
+    pair.length === 2 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "offspec__list", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CostBar, { label: "Сохранить режим", value: hold, span }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CostBar, { label: "Выбранный план", value: plan, span })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "offspec__degenerate", children: "Стоимости для сравнения не переданы обе, полос нет." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: `offspec__delta ${same ? "offspec__delta--flat" : ""}`, children: same ? "Разницы в стоимости нет: обе величины совпадают до последнего знака, поэтому полосы равны. Масштаб не подобран так, чтобы разница казалась заметной — её нет." : `Разница: ${num(delta2, 4)} у.е. за тонну, всего ${num(offspec.plan_extra_cost, 3)} у.е. за горизонт.` }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Field, { label: "Доля некондиции", children: [
+        isNumber(offspec.share) ? percent(offspec.share) : "не передавалась",
+        offspec.share_source ? ` (источник: ${offspec.share_source})` : ""
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Field, { label: "Запас основного компонента", children: [
+        isNumber(offspec.main_stock_t) ? `${num(offspec.main_stock_t, 1)} т` : "не передавался",
+        offspec.main_tank ? /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: offspec.main_tank }) : null
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Цена основного компонента", children: isNumber(offspec.main_price_per_t) ? `${num(offspec.main_price_per_t, 3)} у.е./т` : "не передавалась" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Стоимость переработки", children: isNumber(offspec.rework_cost) ? `${num(offspec.rework_cost, 1)} у.е.` : "не передавалась" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Выпуск за горизонт", children: isNumber(offspec.production_t) ? `${num(offspec.production_t, 1)} т` : "не передавался" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Сохранение режима допустимо", children: offspec.hold_feasible === null || offspec.hold_feasible === void 0 ? "не передавалось" : offspec.hold_feasible ? "да" : "нет" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Влияет на допустимость", children: offspec.affects_admissibility ? "да" : "нет — допустимость решает проверка пределов продукта" })
+    ] }),
+    offspec.note ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: offspec.note }) : null
+  ] });
+}
+const SPAN = 100;
+function deviation(factor) {
+  return isNumber(factor) ? factor - 1 : null;
+}
+function reach(results) {
+  const spread = results.filter((item) => item.outcome !== "not_applicable").map((item) => deviation(item.factor)).filter(isNumber).map(Math.abs);
+  return spread.length === 0 ? 0.5 : Math.max(...spread) * 1.25;
+}
+function signText(outcome) {
+  if (outcome === "holds") return "выдержал";
+  if (outcome === "violates") return "нарушил";
+  return "неприменимо";
+}
+function Sign({ outcome }) {
+  if (outcome === "violates") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 14 14", className: "robust__sign robust__sign--fail", "aria-hidden": "true", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "3", y1: "3", x2: "11", y2: "11" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "11", y1: "3", x2: "3", y2: "11" })
+    ] });
+  }
+  if (outcome === "holds") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { viewBox: "0 0 14 14", className: "robust__sign robust__sign--pass", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "7", cy: "7", r: "4.5" }) });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { viewBox: "0 0 14 14", className: "robust__sign robust__sign--muted", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "7", cy: "7", r: "4", fill: "none" }) });
+}
+function Row({ item, limit }) {
+  const offset = deviation(item.factor);
+  const centre = SPAN / 2;
+  const applied = item.outcome !== "not_applicable";
+  const mark = offset === null ? null : centre + offset / limit * (SPAN / 2);
+  const label = offset === null ? "коэффициент не передавался" : `${offset > 0 ? "+" : ""}${num(offset * 100, 0)} %`;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: `robust__row robust__row--${item.outcome}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "robust__name", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Sign, { outcome: item.outcome }),
+      item.perturbation
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "robust__scale", children: applied ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        viewBox: `0 0 ${SPAN} 18`,
+        preserveAspectRatio: "none",
+        className: "robust__svg",
+        role: "img",
+        "aria-label": `${item.perturbation}: отклонение ${label}, ${signText(item.outcome)}`,
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "robust__axis", x1: "0", x2: SPAN, y1: "9", y2: "9" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "robust__zero", x1: centre, x2: centre, y1: "2", y2: "16" }),
+          mark === null ? null : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("line", { className: "robust__reach", x1: centre, x2: mark, y1: "9", y2: "9" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { className: "robust__dot", cx: mark, cy: "9", r: "2.6" })
+          ] })
+        ]
+      }
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "robust__noscale", children: "к плану не применялось" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "robust__factor", children: applied ? label : `объявлено ${label}` }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "robust__outcome", children: [
+      signText(item.outcome),
+      item.reason ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "robust__reason", children: item.reason }) : null,
+      isNumber(item.cost_per_tonne) ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "robust__cost", children: [
+        "стоимость тонны ",
+        num(item.cost_per_tonne, 4)
+      ] }) : null
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "robust__path", children: /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: item.path }) })
+  ] });
+}
+function RobustnessMap({ robustness }) {
+  const results = robustness.results ?? [];
+  if (results.length === 0) return null;
+  const limit = reach(results);
+  const skipped = results.filter((item) => item.outcome === "not_applicable").length;
+  const costs = results.map((item) => item.cost_per_tonne).filter(isNumber);
+  const flat = costs.length > 1 && Math.max(...costs) - Math.min(...costs) < 1e-9;
+  const production = results.map((item) => item.production_t).filter(isNumber);
+  const flatProduction = production.length > 1 && Math.max(...production) - Math.min(...production) < 1e-9;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "robust", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "robust__head", children: [
+      "Возмущения поимённо: ",
+      results.length,
+      " объявлено, ",
+      robustness.perturbations_evaluated,
+      " оценено"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "robust__list", children: results.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx(Row, { item, limit }, `${item.perturbation}-${item.path}`)) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "robust__scalehint", children: [
+      "Вертикаль в середине каждой шкалы — исходное значение без возмущения; отметка показывает, насколько параметр сдвинут относительно него.",
+      skipped > 0 ? ` У ${skipped} возмущений шкалы нет вовсе: они к плану не применялись, оценки отклонения по ним никто не получал, и отметка на шкале выдала бы их за проверенные. Объявленный коэффициент назван словами, причина — в строке рядом.` : ""
+    ] }),
+    flatProduction ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "robust__degenerate", children: [
+      "Выпуск во всех оценённых возмущениях один и тот же — ",
+      num(production[0], 1),
+      " т. Разброса нет, и растягивать шкалу, чтобы он казался заметным, здесь нечего."
+    ] }) : null,
+    flat ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "robust__degenerate", children: "Стоимость тонны совпадает в части возмущений до последнего знака: это совпадение расчёта, а не сглаживание отображения." }) : null,
+    robustness.limits?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "limits", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "limits__head", children: "Чего эта проверка не утверждает" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "limits__list", children: robustness.limits.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: item }, item)) })
+    ] }) : null
+  ] });
+}
+function delta(value, digits) {
+  const text2 = num(Math.abs(value), digits);
+  return `${value > 0 ? "+" : "−"}${text2}`;
+}
+function collect(base, other, label, unit, digits, prefix) {
+  const keys = /* @__PURE__ */ new Set([...Object.keys(base ?? {}), ...Object.keys(other ?? {})]);
+  const out = [];
+  for (const key2 of [...keys].sort()) {
+    const from = base?.[key2];
+    const to = other?.[key2];
+    if (!isNumber(from) || !isNumber(to)) continue;
+    if (Number(from.toFixed(digits)) === Number(to.toFixed(digits))) continue;
+    out.push({ key: `${prefix}${key2}`, label: label(key2), unit: unit(key2), from, to, digits });
+  }
+  return out;
+}
+function planDiff(alternative, baseline, names) {
+  if (!baseline) return [];
+  const entries = [
+    ...collect(baseline.controls, alternative.controls, controlLabel, controlUnit, 1, "c."),
+    ...collect(
+      baseline.recipe,
+      alternative.recipe,
+      (key2) => names[key2] ?? key2,
+      () => "доля",
+      3,
+      "r."
+    )
+  ];
+  if (isNumber(baseline.throughput_tph) && isNumber(alternative.throughput_tph) && Number(baseline.throughput_tph.toFixed(1)) !== Number(alternative.throughput_tph.toFixed(1))) {
+    entries.push({
+      key: "throughput",
+      label: "Производительность",
+      unit: "т/ч",
+      from: baseline.throughput_tph,
+      to: alternative.throughput_tph,
+      digits: 1
+    });
+  }
+  if (isNumber(baseline.additive_dose) && isNumber(alternative.additive_dose) && Number(baseline.additive_dose.toFixed(3)) !== Number(alternative.additive_dose.toFixed(3))) {
+    entries.push({
+      key: "additive",
+      label: "Доза присадки",
+      unit: "кг/т",
+      from: baseline.additive_dose,
+      to: alternative.additive_dose,
+      digits: 3
+    });
+  }
+  return entries;
+}
+function PlanDiff({ alternative, baseline, names }) {
+  if (!alternative.controls && !alternative.recipe) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "diff__none", children: "уставки этого кандидата в payload не передавались" });
+  }
+  if (!baseline) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "diff__none", children: "сравнивать не с чем: уставок выбранного плана в payload нет" });
+  }
+  const entries = planDiff(alternative, baseline, names);
+  if (entries.length === 0) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "diff__same", children: "уставки и рецепт совпадают с выбранным планом" });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "diff", children: entries.map((entry) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "diff__chip", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "diff__label", children: entry.label }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "diff__delta", children: delta(entry.to - entry.from, entry.digits) }),
+    entry.unit ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "diff__unit", children: entry.unit }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "diff__pair", children: [
+      num(entry.from, entry.digits),
+      " → ",
+      num(entry.to, entry.digits)
+    ] })
+  ] }, entry.key)) });
+}
+function ChoiceStage({ payload, index, state, source, lamp, lampTitle }) {
   const plan = payload.decision.selected_plan;
-  const alternatives = payload.explanation.alternatives ?? (payload.decision.alternatives ?? []).map((item) => ({
+  const candidates = payload.decision.alternatives ?? [];
+  const setpointsOf = new Map(candidates.map((item) => [item.candidate_id, item]));
+  const alternatives = (payload.explanation.alternatives ?? candidates.map((item) => ({
     candidate_id: item.candidate_id,
     production_t: item.production_t,
     cost_per_tonne: item.cost_per_tonne,
     severity_index: item.severity_index,
     changes: item.changes,
     why_not: item.rejection_reasons?.length ? `Не проходит жёсткие ограничения: ${item.rejection_reasons.slice(0, 2).join("; ")}` : "Сравнение с выбранным планом в payload не передавалось"
-  }));
+  }))).map((item) => {
+    const source2 = setpointsOf.get(item.candidate_id);
+    if (!source2) return item;
+    return {
+      ...item,
+      controls: item.controls ?? source2.controls,
+      recipe: item.recipe ?? source2.recipe,
+      throughput_tph: item.throughput_tph ?? source2.throughput_tph,
+      additive_dose: item.additive_dose ?? source2.additive_dose
+    };
+  });
+  const baseline = plan?.steps?.[0] ?? payload.decision.immediate_action ?? null;
+  const withSetpoints = alternatives.filter((item) => item.controls || item.recipe).length;
   const rule = payload.explanation.comparison_rule;
   const names = payload.explanation.component_names ?? {};
   const demand = onDemandIds(payload);
@@ -16303,8 +17986,8 @@ function ChoiceStage({ payload, index, state, source }) {
       source,
       title: "Выбор",
       lead: "Какой план победил, и чем именно проигрывает каждый из остальных.",
-      lamp: plan ? "pass" : "fail",
-      lampTitle: plan ? `выбран ${plan.plan_id}` : "план не выбран",
+      lamp,
+      lampTitle,
       children: [
         plan ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
@@ -16312,7 +17995,7 @@ function ChoiceStage({ payload, index, state, source }) {
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Readout,
               {
-                label: "Выпуск",
+                label: "Выпуск за горизонт",
                 value: num(payload.decision.production_t, 1),
                 unit: "т",
                 tone: "pass",
@@ -16329,7 +18012,7 @@ function ChoiceStage({ payload, index, state, source }) {
                 hint: "в условных единицах сценария"
               }
             ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Тяжесть режима", value: num(payload.decision.severity_index, 3) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Тяжесть режима", value: num(payload.decision.severity_index, 3), hint: "сводный индекс" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Изменений уставок", value: num(plan.changes, 0), hint: "от текущего режима" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Шаги плана по времени", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
@@ -16342,18 +18025,18 @@ function ChoiceStage({ payload, index, state, source }) {
             ] }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: plan.steps.map((step) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "row", className: "grid__num", children: hours(step.time_hours) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: Object.entries(step.controls ?? {}).map(([key, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
-                controlLabel(key),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: Object.entries(step.controls ?? {}).map(([key2, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
+                controlLabel(key2),
                 " ",
                 /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(value, 1) }),
                 " ",
-                controlUnit(key)
-              ] }, key)) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: Object.entries(step.recipe ?? {}).map(([key, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
-                names[key] ?? key,
+                controlUnit(key2)
+              ] }, key2)) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: Object.entries(step.recipe ?? {}).map(([key2, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
+                names[key2] ?? key2,
                 " ",
                 /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(value, 3) })
-              ] }, key)) }),
+              ] }, key2)) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "grid__num", children: [
                 num(step.throughput_tph, 1),
                 " т/ч"
@@ -16365,15 +18048,21 @@ function ChoiceStage({ payload, index, state, source }) {
         usesDemand ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: "В рецепте выбранного плана есть компонент, который нарабатывают по необходимости: разбавление им оплачивается более глубокой очисткой, и эта надбавка уже входит в стоимость тонны выше. Ограничением служит темп наработки, а не остаток на складе — остатка у этого компонента нет." }) : null,
         alternatives.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Scroller, { label: "Ближайшие альтернативы", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("caption", { children: [
-            "Почему не они: ",
+            "Почему не они. Ближайших альтернатив: ",
             alternatives.length,
-            " ближайших альтернатив. Payload несёт не более пяти — это не полный список проверенных планов, их число показано на этапе «Кандидаты»"
+            ". Payload несёт не более пяти — это не полный список проверенных планов, их число показано на этапе «Кандидаты». Стоимость — в условных единицах сценария, не в рублях. В колонке различий перечислены только те уставки и доли рецепта, которые отличаются от выбранного плана; совпавшие не печатаются, поэтому пустая колонка значит совпадение, а не отсутствие данных. Уставки переданы у ",
+            withSetpoints,
+            " альтернатив из",
+            " ",
+            alternatives.length,
+            "; сравнение идёт с первым шагом выбранного плана"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Кандидат" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Выпуск, т" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Выпуск за горизонт, т" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Стоимость, у.е./т" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Тяжесть" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Тяжесть режима" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Чем отличается от выбранного" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Почему не выбран" })
           ] }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: alternatives.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
@@ -16381,9 +18070,12 @@ function ChoiceStage({ payload, index, state, source }) {
             /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(item.production_t, 1) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(item.cost_per_tonne, 4) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(item.severity_index, 3) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__diff", children: /* @__PURE__ */ jsxRuntimeExports.jsx(PlanDiff, { alternative: item, baseline, names }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__why", children: item.why_not })
           ] }, item.candidate_id)) })
         ] }) }) : payload.decision.status === "refuse" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Списка альтернатив нет: он строится из допустимых планов, а их не нашлось. Отклонённые варианты с причинами отсева показаны на этапе «Кандидаты»." }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Альтернатив в payload нет." }),
+        payload.decision.robustness ? /* @__PURE__ */ jsxRuntimeExports.jsx(RobustnessMap, { robustness: payload.decision.robustness }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Проверка устойчивости не проводилась или её результат не передавался." }),
+        payload.decision.lookahead?.offspec ? /* @__PURE__ */ jsxRuntimeExports.jsx(OffspecBlock, { offspec: payload.decision.lookahead.offspec }) : null,
         /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Проекция за горизонт", children: payload.decision.lookahead?.available ? `${hours(payload.decision.lookahead.lookahead_hours)}; смена плана: ${payload.decision.lookahead.switched ? "да" : "не потребовалась"}` : "недоступна" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Устойчивость", children: payload.decision.robustness ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -16426,15 +18118,6 @@ function optimizerOf(trace) {
   const event = trace.find((item) => item.agent === "optimizer");
   return event ? event : null;
 }
-function familyTotals(rounds) {
-  const totals = /* @__PURE__ */ new Map();
-  for (const round of rounds) {
-    for (const [family, count2] of Object.entries(round.veto_families ?? {})) {
-      totals.set(family, (totals.get(family) ?? 0) + count2);
-    }
-  }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1]);
-}
 function RefusalPanel({ payload }) {
   const decision = payload.decision;
   const explanation = payload.explanation;
@@ -16444,7 +18127,6 @@ function RefusalPanel({ payload }) {
   const examples = decision.refusal?.examples ?? [];
   const optimizer = optimizerOf(decision.trace ?? []);
   const rounds = optimizer?.rounds ?? [];
-  const families = familyTotals(rounds);
   const measurements = steps.filter((step) => step.kind === "measurement");
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "refusal", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
@@ -16475,18 +18157,7 @@ function RefusalPanel({ payload }) {
           }
         )
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "grid grid--tight", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("caption", { children: "Что именно не сошлось: суммарные вето по семействам ограничений" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Семейство ограничений" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Вето за все раунды" })
-        ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: families.map(([family, count2]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "row", children: family }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: num(count2, 0) })
-        ] }, family)) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: "Семейство с наибольшим числом вето — то, из-за которого совет невозможен. Числа в этой таблице считают отклонённые проверки внутри перебора, а не измерения установки." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(VetoFunnel, { rounds, compact: true })
     ] }) : null,
     missing.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "limits", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "limits__head", children: "Чего не хватило по данным" }),
@@ -16499,17 +18170,78 @@ function RefusalPanel({ payload }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Тип" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("th", { scope: "col", children: "Когда будет" })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: steps.map((step, position) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: steps.map((step, position2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { children: [
           step.need,
           step.caveat ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "refusal__caveat", children: step.caveat }) : null
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { tone: "unknown", children: STEP_KIND_TEXT[step.kind] ?? step.kind }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "grid__num", children: isNumber(step.available_in_hours) ? `до ${hours(step.available_in_hours)}` : "срок не передавался" })
-      ] }, `${step.need}-${position}`)) })
+      ] }, `${step.need}-${position2}`)) })
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Список недостающих условий не передавался." }),
     examples.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { tone: "warn", children: "Строки выше — примеры нарушений внутри перебора планов: это расчётные исходы проверенных вариантов, а не измерения установки. Ни одно из чисел в них не снято с приборов." }) : null,
     measurements.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { tone: "warn", children: "Пока перечисленные измерения не получены, любой совет опирался бы на непроверенное значение. Отказ снимается измерением, а не ослаблением предела." }) : null
+  ] });
+}
+function VerdictHead({ payload, refused }) {
+  const decision = payload.decision;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `final__verdict ${refused ? "final__verdict--refuse" : "final__verdict--ok"}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__kicker", children: "Вердикт советчика" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__label", children: payload.status_label }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__reason", children: decision.reason }),
+    decision.scope ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__scope", children: decision.scope }) : null
+  ] });
+}
+function ActionBlock({ payload, action }) {
+  const names = payload.explanation.component_names ?? {};
+  const controls = Object.entries(action.controls ?? {});
+  const recipe = Object.entries(action.recipe ?? {});
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__action", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__kicker", children: "Что сделать прямо сейчас" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "final__when", children: [
+      "Момент действия ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: hours(action.time_hours) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("dl", { className: "final__controls", children: [
+      controls.map(([key2, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__control", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("dt", { children: controlLabel(key2) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("dd", { children: [
+          num(value, 1),
+          " ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__unit", children: controlUnit(key2) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__origin", children: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: "derived" }) })
+      ] }, key2)),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__control", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("dt", { children: "Производительность" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("dd", { children: [
+          num(action.throughput_tph, 1),
+          " ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__unit", children: "т/ч" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__origin", children: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: "derived" }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__control", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("dt", { children: "Доза присадки" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("dd", { children: [
+          num(action.additive_dose, 3),
+          " ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__unit", children: "кг/т" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__origin", children: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: "derived" }) })
+      ] })
+    ] }),
+    recipe.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__recipe", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__kicker", children: "Рецепт смешения и откуда берут компоненты" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "final__blend", children: recipe.map(([key2, value]) => {
+        const line = stockLine(payload, key2);
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "final__blend-row", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__blend-name", children: names[key2] ?? key2 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__blend-share", children: num(value, 3) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "final__blend-stock", children: line.text })
+        ] }, key2);
+      }) })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Рецепт смешения не передавался." })
   ] });
 }
 const RISK_TONE = {
@@ -16518,14 +18250,14 @@ const RISK_TONE = {
   medium: "unknown",
   high: "fail"
 };
-function DecisionStage({ payload, index, state, source }) {
+function DecisionStage({ payload, index, state, source, lamp, lampTitle }) {
   const decision = payload.decision;
   const explanation = payload.explanation;
   const refused = decision.status === "refuse";
   const action = decision.immediate_action;
   const warnings = explanation.warnings ?? [];
   const risk = explanation.risk;
-  const names = explanation.component_names ?? {};
+  const limits = explanation.limits ?? [];
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Section,
     {
@@ -16535,152 +18267,310 @@ function DecisionStage({ payload, index, state, source }) {
       source,
       title: "Решение",
       lead: refused ? "Отказ — это результат расчёта, а не сбой: ниже сказано, чего именно недостаёт." : "Что оператору сделать прямо сейчас, с чем считаться и чего расчёт не покрывает.",
-      lamp: refused ? "fail" : warnings.length > 0 ? "unknown" : "pass",
-      lampTitle: payload.status_label,
+      lamp,
+      lampTitle,
+      final: true,
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `verdict verdict--${refused ? "refuse" : "ok"}`, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "verdict__label", children: payload.status_label }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "verdict__reason", children: decision.reason }),
-          decision.scope ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "verdict__scope", children: decision.scope }) : null
-        ] }),
-        refused ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefusalPanel, { payload }) : action ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts readouts--action", children: [
-            Object.entries(action.controls ?? {}).map(([key, value]) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Readout,
-              {
-                label: controlLabel(key),
-                value: num(value, 1),
-                unit: controlUnit(key),
-                badge: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: "derived" })
-              },
-              key
-            )),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(VerdictHead, { payload, refused }),
+        refused ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefusalPanel, { payload }) : action ? /* @__PURE__ */ jsxRuntimeExports.jsx(ActionBlock, { payload, action }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Немедленное действие не передавалось: советовать нечего." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__ledger", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__kicker", children: "Чего это стоит" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Readout,
               {
-                label: "Производительность",
-                value: num(action.throughput_tph, 1),
-                unit: "т/ч",
-                badge: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: "derived" })
+                label: "Проверок пройдено",
+                value: explanation.checks_passed !== void 0 && explanation.checks_total !== void 0 ? `${explanation.checks_passed} из ${explanation.checks_total}` : "не передавалось",
+                tone: explanation.checks_passed === explanation.checks_total ? "pass" : "unknown"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Readout, { label: "Выпуск за горизонт", value: num(decision.production_t, 1), unit: "т" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Readout,
+              {
+                label: "Стоимость тонны",
+                value: num(decision.cost_per_tonne, 4),
+                unit: "у.е./т",
+                hint: "в условных единицах сценария"
               }
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Readout,
               {
-                label: "Доза присадки",
-                value: num(action.additive_dose, 3),
-                unit: "кг/т",
-                badge: /* @__PURE__ */ jsxRuntimeExports.jsx(OriginBadge, { origin: "derived" })
+                label: "Товарный выпуск",
+                value: decision.commercial_release_allowed ? "разрешён" : "не разрешён",
+                tone: decision.commercial_release_allowed ? "pass" : "fail"
               }
             )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(Fields, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Момент действия", children: hours(action.time_hours) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Рецепт смешения", children: Object.entries(action.recipe ?? {}).map(([key, value]) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
-              names[key] ?? key,
-              " ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: num(value, 3) })
-            ] }, key)) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Откуда берут компоненты", children: Object.keys(action.recipe ?? {}).map((key) => {
-              const line = stockLine(payload, key);
-              return /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "chip", children: [
-                names[key] ?? key,
-                " ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: line.text })
-              ] }, key);
-            }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(Field, { label: "Проверок пройдено", children: [
-              explanation.checks_passed ?? "—",
-              " из ",
-              explanation.checks_total ?? "—"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Field, { label: "Товарный выпуск разрешён", children: decision.commercial_release_allowed ? "да" : "нет" })
           ] })
-        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Немедленное действие не передавалось." }),
-        risk ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "risk", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "risk__head", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: RISK_TONE[risk.level] ?? "unknown" }),
-            "Риск: ",
-            risk.level
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "risk__headline", children: risk.headline }),
-          risk.items.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "risk__items", children: risk.items.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { tone: RISK_TONE[item.level] ?? "unknown", children: item.level }),
-            " ",
-            item.text,
-            item.missing?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "refusal__sub", children: [
-              "Не получено: ",
-              item.missing.join("; ")
-            ] }) : null,
-            item.sources?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "refusal__sub", children: [
-              "Источники вне доверия: ",
-              item.sources.join(", ")
-            ] }) : null,
-            item.perturbations?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "refusal__sub", children: [
-              "Отклонения: ",
-              item.perturbations.join("; ")
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "final__why", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "final__kicker", children: "Почему так, и чего расчёт не утверждает" }),
+          risk ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "risk", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "risk__head", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: RISK_TONE[risk.level] ?? "unknown" }),
+              "Риск: ",
+              risk.level
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "risk__headline", children: risk.headline }),
+            risk.items.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "risk__items", children: risk.items.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { tone: RISK_TONE[item.level] ?? "unknown", children: item.level }),
+              " ",
+              item.text,
+              item.missing?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "refusal__sub", children: [
+                "Не получено: ",
+                item.missing.join("; ")
+              ] }) : null,
+              item.sources?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "refusal__sub", children: [
+                "Источники вне доверия: ",
+                item.sources.join(", ")
+              ] }) : null,
+              item.perturbations?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "refusal__sub", children: [
+                "Отклонения: ",
+                item.perturbations.join("; ")
+              ] }) : null
+            ] }, item.kind)) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Перечня отдельных рисков не передавали." }),
+            risk.scope ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: risk.scope }) : null
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Оценка риска не передавалась — это не значит, что риска нет." }),
+          warnings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "warnings", children: warnings.map((warning) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "warnings__item", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "warnings__text", children: warning.text }),
+            warning.observed_margin_mgkg !== void 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Readout,
+                {
+                  label: "Фактический запас",
+                  value: num(warning.observed_margin_mgkg, 3),
+                  unit: "мг/кг",
+                  tone: "unknown"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Readout,
+                {
+                  label: "Технологический запас",
+                  value: num(warning.operating_margin_mgkg, 2),
+                  unit: "мг/кг",
+                  hint: "держат на установке"
+                }
+              )
             ] }) : null
-          ] }, item.kind)) }) : null,
-          risk.scope ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: risk.scope }) : null
-        ] }) : null,
-        warnings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "warnings", children: warnings.map((warning) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "warnings__item", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "warnings__text", children: warning.text }),
-          warning.observed_margin_mgkg !== void 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "readouts", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Readout,
-              {
-                label: "Фактический запас",
-                value: num(warning.observed_margin_mgkg, 3),
-                unit: "мг/кг",
-                tone: "unknown"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Readout,
-              {
-                label: "Технологический запас",
-                value: num(warning.operating_margin_mgkg, 2),
-                unit: "мг/кг",
-                hint: "держат на установке"
-              }
-            )
-          ] }) : null
-        ] }, warning.kind)) }) : null,
-        explanation.limits?.length ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "limits", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "limits__head", children: "Чего расчёт не утверждает" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "limits__list", children: explanation.limits.map((limit) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: limit }, limit)) })
-        ] }) : null,
-        decision.note ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: decision.note }) : null,
+          ] }, warning.kind)) }) : null,
+          limits.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "limits", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "limits__head", children: "Чего расчёт не утверждает" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "limits__list", children: limits.map((limit) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: limit }, limit)) })
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Empty, { children: "Перечень оговорок расчёта не передавался." }),
+          decision.note ? /* @__PURE__ */ jsxRuntimeExports.jsx(Note, { children: decision.note }) : null
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(JsonPanel, { title: "JSON: решение и объяснение оператору", value: { decision, explanation } })
       ]
     }
   );
 }
 const SOURCE_TEXT = {
-  server: "отметка сервера: этот блок собран при разборе условий",
+  server: "отметка сервера по ходу расчёта",
   payload: "раскрыт из уже посчитанного payload — это не длительность расчёта этапа"
 };
-function Pipeline({ payload, stateOf, sources, agentEvents }) {
+function Pipeline({ payload, stateOf, sources, agentEvents, stages, stageFacts, elapsedMs }) {
+  const shown = visibleCount(stages);
   const label = (id) => {
     const source = sources[id];
     if (!source || stateOf(id) !== "done") return void 0;
     return SOURCE_TEXT[source];
   };
-  const common = (id) => ({
-    payload,
-    state: stateOf(id),
-    source: label(id)
-  });
+  const common = (id) => {
+    const signal = lampOf$1(id, payload);
+    return {
+      payload,
+      state: stateOf(id),
+      source: label(id),
+      lamp: signal.lamp,
+      lampTitle: signal.title
+    };
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(StateStage, { ...common("state"), index: 1 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(TrustStage, { ...common("trust"), index: 2 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ForecastStage, { ...common("forecast"), index: 3 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(CandidatesStage, { ...common("candidates"), index: 4 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(GateStage, { ...common("gate"), index: 5 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(AgentsStage, { ...common("agents"), index: 6, events: agentEvents }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ChoiceStage, { ...common("choice"), index: 7 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(DecisionStage, { ...common("decision"), index: 8 })
+    shown >= 1 ? /* @__PURE__ */ jsxRuntimeExports.jsx(StateStage, { ...common("state"), index: 1 }) : null,
+    shown >= 2 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TrustStage, { ...common("trust"), index: 2 }) : null,
+    shown >= 3 ? /* @__PURE__ */ jsxRuntimeExports.jsx(ForecastStage, { ...common("forecast"), index: 3 }) : null,
+    shown >= 4 ? /* @__PURE__ */ jsxRuntimeExports.jsx(CandidatesStage, { ...common("candidates"), index: 4 }) : null,
+    shown >= 5 ? /* @__PURE__ */ jsxRuntimeExports.jsx(GateStage, { ...common("gate"), index: 5 }) : null,
+    shown >= 6 ? /* @__PURE__ */ jsxRuntimeExports.jsx(AgentsStage, { ...common("agents"), index: 6, events: agentEvents, facts: stageFacts["agents"], elapsedMs }) : null,
+    shown >= 7 ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChoiceStage, { ...common("choice"), index: 7 }) : null,
+    shown >= 8 ? /* @__PURE__ */ jsxRuntimeExports.jsx(DecisionStage, { ...common("decision"), index: 8 }) : null
   ] });
+}
+const NOT_SENT = "не передавалось";
+function plural(count2, one, few, many) {
+  const tail = count2 % 100;
+  if (tail >= 11 && tail <= 14) return many;
+  const last = count2 % 10;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
+}
+function inventoryLines(facts) {
+  const stock = facts?.inventories;
+  if (!stock) return [];
+  return Object.entries(stock).map(([key2, value]) => ({
+    label: key2,
+    value: `${num(value, 1)} т`,
+    tone: value > 0 ? "idle" : "unknown"
+  }));
+}
+function trustSources(facts) {
+  const list = facts?.sources;
+  if (!Array.isArray(list)) return [];
+  return list.map((item) => {
+    const age = item["age_hours"];
+    const value = item["value"];
+    return {
+      name: String(item["name"] ?? "источник без имени"),
+      value: typeof value === "number" ? `${num(value, 2)} мг/кг` : NOT_SENT,
+      age: typeof age === "number" ? `${num(age, 1)} ч` : "возраст не передан",
+      usable: item["usable"] === true,
+      status: String(item["status"] ?? "")
+    };
+  });
+}
+function candidateLines(facts) {
+  if (!facts) return [];
+  const out = [];
+  if (typeof facts.evaluated === "number") {
+    out.push({ label: "Планов просчитано", value: String(facts.evaluated), tone: "idle" });
+  }
+  if (typeof facts.rounds === "number") {
+    out.push({
+      label: "Раундов отбора",
+      value: `${facts.rounds} ${plural(facts.rounds, "раунд", "раунда", "раундов")}`,
+      tone: "idle"
+    });
+  }
+  if (typeof facts.feasible === "number") {
+    out.push({
+      label: "Прошли ограничения",
+      value: String(facts.feasible),
+      tone: facts.feasible > 0 ? "pass" : "fail"
+    });
+  }
+  return out;
+}
+function gateLines(facts) {
+  if (!facts) return [];
+  const out = [];
+  if (typeof facts.checks === "number") {
+    out.push({
+      label: "Проверок выполнено",
+      value: `${facts.checks} ${plural(facts.checks, "проверка", "проверки", "проверок")}`,
+      tone: "idle"
+    });
+  }
+  if (typeof facts.feasible === "boolean") {
+    out.push({
+      label: "Выбранный план",
+      value: facts.feasible ? "проверки пройдены" : "проверки не пройдены",
+      tone: facts.feasible ? "pass" : "fail"
+    });
+  }
+  if (typeof facts.plan_id === "string") {
+    out.push({ label: "План", value: facts.plan_id, tone: "idle" });
+  }
+  return out;
+}
+function choiceLines(facts) {
+  if (!facts) return [];
+  const out = [];
+  if (typeof facts.plan_id === "string") {
+    out.push({ label: "Выбран план", value: facts.plan_id, tone: "idle" });
+  }
+  if (typeof facts.alternatives === "number") {
+    out.push({
+      label: "Альтернатив рядом",
+      value: String(facts.alternatives),
+      tone: "idle"
+    });
+  }
+  return out;
+}
+function trustVerdict(facts) {
+  if (!facts) return [];
+  const out = [];
+  if (typeof facts.usable === "boolean") {
+    out.push({
+      label: "Пригодный источник",
+      value: facts.usable ? "найден" : "не найден",
+      tone: facts.usable ? "pass" : "fail"
+    });
+  }
+  if (typeof facts.primary === "string") {
+    out.push({ label: "Основной источник", value: facts.primary, tone: "idle" });
+  }
+  return out;
+}
+function FactGrid({ lines }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("dl", { className: "live__grid", children: lines.map((line) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `live__cell live__cell--${line.tone}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("dt", { children: line.label }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("dd", { children: line.value })
+  ] }, line.label)) });
+}
+function SourceList({ sources }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "live__sources", children: sources.map((source) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "live__source", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(LampDot, { state: source.usable ? "pass" : "fail" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "live__source-name", children: source.name }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "live__source-value", children: source.value }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "live__source-age", children: source.age })
+  ] }, source.name)) });
+}
+function hasLiveFacts(id, facts) {
+  if (id === "state") return inventoryLines(facts).length > 0;
+  if (id === "trust") return trustSources(facts).length > 0 || trustVerdict(facts).length > 0;
+  if (id === "candidates") return candidateLines(facts).length > 0;
+  if (id === "gate") return gateLines(facts).length > 0;
+  if (id === "choice") return choiceLines(facts).length > 0;
+  return false;
+}
+function StageLive({ id, facts }) {
+  if (id === "state") {
+    const lines = inventoryLines(facts);
+    if (lines.length === 0) return null;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "live", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "live__caption", children: "Запасы компонентов на момент решения, отметка сервера" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(FactGrid, { lines })
+    ] });
+  }
+  if (id === "trust") {
+    const sources = trustSources(facts);
+    const verdict = trustVerdict(facts);
+    if (sources.length === 0 && verdict.length === 0) return null;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "live", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "live__caption", children: "Вердикты по источникам, отметка сервера" }),
+      sources.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(SourceList, { sources }) : null,
+      verdict.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(FactGrid, { lines: verdict }) : null
+    ] });
+  }
+  if (id === "candidates") {
+    const lines = candidateLines(facts);
+    if (lines.length === 0) return null;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "live", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "live__caption", children: "Счётчики перебора, отметка сервера" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(FactGrid, { lines })
+    ] });
+  }
+  if (id === "gate") {
+    const lines = gateLines(facts);
+    if (lines.length === 0) return null;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "live", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "live__caption", children: "Жёсткие проверки, отметка сервера" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(FactGrid, { lines })
+    ] });
+  }
+  if (id === "choice") {
+    const lines = choiceLines(facts);
+    if (lines.length === 0) return null;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "live", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "live__caption", children: "Итог сравнения планов, отметка сервера" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(FactGrid, { lines })
+    ] });
+  }
+  return null;
 }
 const STATE_TEXT = {
   pending: "ожидает",
@@ -16688,35 +18578,42 @@ const STATE_TEXT = {
   done: "готово",
   failed: "отказ"
 };
-function AgentFeed({ events }) {
-  if (events.length === 0) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "outline__hint", children: "Оркестратор ещё не обращался к специалистам." });
-  }
-  const recent = events.slice(-6);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("ol", { className: "outline__feed", children: recent.map((event) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "outline__event", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "outline__who", children: AGENT_NAMES[event.agent] ?? event.agent }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "outline__kind", children: KIND_TEXT$1[event.kind] ?? event.kind }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "outline__what", children: summarize(event) })
-  ] }, event.seq)) });
-}
-function StageOutline({ stateOf, agentEvents }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: STAGES.map((stage, position) => {
+const WAITING = {
+  forecast: "Прогноз в этом прогоне сервер отдельным событием не передавал: он раскроется вместе с полным решением.",
+  agents: "Оркестратор ещё не обращался к специалистам.",
+  decision: "Решение собирается после того, как агенты закончат."
+};
+function StageOutline({ stateOf, factsOf, agentEvents, stages, elapsedMs }) {
+  const shown = visibleCount(stages);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: STAGES.slice(0, shown).map((stage, position2) => {
     const state = stateOf(stage.id);
+    const facts = factsOf(stage.id);
+    const hasLive = hasLiveFacts(stage.id, facts);
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "section",
       {
         id: stage.id,
         className: `stage stage--outline stage--${state}`,
-        "data-band": position + 1,
+        "data-band": position2 + 1,
         "aria-busy": state === "running",
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "stage__head", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "stage__index", children: position + 1 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "stage__head stage__head--outline", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "stage__step", children: position2 + 1 }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "stage__title", children: stage.label }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `stage__state stage__state--${state}`, children: STATE_TEXT[state] })
           ] }),
-          stage.id === "agents" && state !== "pending" ? /* @__PURE__ */ jsxRuntimeExports.jsx(AgentFeed, { events: agentEvents }) : null,
-          state === "pending" ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "outline__hint", children: "Данные этого этапа ещё не передавались." }) : null
+          stage.id === "agents" && state !== "pending" ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            AgentDialogue,
+            {
+              events: agentEvents,
+              running: state === "running",
+              facts,
+              agentic: null,
+              elapsedMs
+            }
+          ) : /* @__PURE__ */ jsxRuntimeExports.jsx(StageLive, { id: stage.id, facts }),
+          !hasLive && stage.id !== "agents" ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "outline__hint", children: state === "pending" ? "Данные этого этапа ещё не передавались." : WAITING[stage.id] ?? "Данные этого этапа ещё не передавались." }) : null,
+          hasLive ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "outline__hint outline__hint--partial", children: "Это отметки сервера по ходу расчёта. Полные числа этапа раскроются, когда придёт решение." }) : null
         ]
       },
       stage.id
@@ -16778,9 +18675,10 @@ function titleOf(run) {
   return `${payload.status_label} — ${BRAND}`;
 }
 function useDocumentTitle(run) {
+  const title = reactExports.useMemo(() => titleOf(run), [run]);
   reactExports.useEffect(() => {
-    document.title = titleOf(run);
-  }, [run]);
+    document.title = title;
+  }, [title]);
 }
 const BLANK = {
   scenario: "",
@@ -16799,19 +18697,28 @@ function App() {
   const [options, setOptions] = reactExports.useState(null);
   const [conditions, setConditions] = reactExports.useState(BLANK);
   const [optionsError, setOptionsError] = reactExports.useState(null);
-  const { run, start, stop } = useRun();
+  const { run, start, stop, pending, followsUser, resumeFollow } = useRun();
   const active = useActiveStage(run.status !== "idle");
   const payload = run.payload;
   useDocumentTitle(run);
+  const loadOptions = reactExports.useCallback(async () => {
+    setOptionsError(null);
+    try {
+      const next = await fetchOptions();
+      setOptions(next);
+      setConditions(conditionsOf(next));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
   reactExports.useEffect(() => {
     let live = true;
     fetchOptions().then((next) => {
       if (!live) return;
       setOptions(next);
       setConditions(conditionsOf(next));
-    }).catch((reason) => {
-      if (live) setOptionsError(`Условия прогона не получены: ${String(reason)}`);
-    });
+    }).catch(() => void 0);
     return () => {
       live = false;
     };
@@ -16819,8 +18726,19 @@ function App() {
   const pickScenario = reactExports.useCallback((name) => {
     fetchOptions(name).then((next) => {
       setOptions(next);
-      setConditions(conditionsOf(next));
-    }).catch((reason) => setOptionsError(`Сценарий не загружен: ${String(reason)}`));
+      setConditions((prev) => {
+        const result = conditionsResultOf(next, prev.fault);
+        if (result.faultReset && result.previousFault) {
+          const label = FAULT_LABELS[result.previousFault] ?? result.previousFault;
+          setOptionsError(
+            `Отказ «${label}» в этом сценарии недоступен — сброшен на «все источники исправны».`
+          );
+        } else {
+          setOptionsError(null);
+        }
+        return result.conditions;
+      });
+    }).catch(() => setOptionsError("Сценарий не загружен: сервер условий не ответил."));
   }, []);
   const change = reactExports.useCallback((patch) => {
     setConditions((prev) => ({ ...prev, ...patch }));
@@ -16855,9 +18773,9 @@ function App() {
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "layout", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Rail, { payload, active, run }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "stages", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `layout ${run.status === "idle" ? "layout--solo" : "layout--railed"}`, children: [
+      run.status === "idle" ? null : /* @__PURE__ */ jsxRuntimeExports.jsx(Rail, { payload, active, run, onNavigate: resumeFollow }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "stages", "aria-live": "polite", "aria-relevant": "additions", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           ConfigStage,
           {
@@ -16868,11 +18786,33 @@ function App() {
             onChange: change,
             onScenario: pickScenario,
             onStart: launch,
-            onReset: stop
+            onReset: stop,
+            onRetry: loadOptions,
+            pending
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(RunStrip, { run }),
-        payload ? /* @__PURE__ */ jsxRuntimeExports.jsx(Pipeline, { payload, stateOf: (id) => stageStateOf(run, id), sources: run.stageSource, agentEvents: run.agentEvents }) : run.status === "running" ? /* @__PURE__ */ jsxRuntimeExports.jsx(StageOutline, { stateOf: (id) => stageStateOf(run, id), agentEvents: run.agentEvents }) : null
+        /* @__PURE__ */ jsxRuntimeExports.jsx(RunStrip, { run, followsUser, onResumeFollow: resumeFollow }),
+        payload ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Pipeline,
+          {
+            payload,
+            stateOf: (id) => stageStateOf(run, id),
+            sources: run.stageSource,
+            agentEvents: run.agentEvents,
+            stages: run.stages,
+            stageFacts: run.stageFacts,
+            elapsedMs: run.elapsedMs
+          }
+        ) : run.status === "running" || run.status === "failed" ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+          StageOutline,
+          {
+            stages: run.stages,
+            stateOf: (id) => stageStateOf(run, id),
+            factsOf: (id) => run.stageFacts[id],
+            agentEvents: run.agentEvents,
+            elapsedMs: run.elapsedMs
+          }
+        ) : null
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("footer", { className: "foot", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Все числа на странице взяты из payload решения без пересчёта. Пустой блок означает, что данных не передавали, а не что всё в порядке." }) })

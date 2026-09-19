@@ -4,6 +4,7 @@ import { Empty, Field, Fields, Note, Readout } from "../ui/Primitives";
 import { OriginBadge } from "../ui/Origin";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
+import { MarginBars, buildRows } from "../ui/MarginBars";
 import { Trajectory } from "../ui/Trajectory";
 import type { StageProps } from "./StateStage";
 
@@ -19,7 +20,7 @@ function sulfurStatement(statements: Statement[]): Statement | undefined {
   return statements.find((item) => item.topic === "sulfur_mgkg");
 }
 
-export function ForecastStage({ payload, index, state, source }: StageProps) {
+export function ForecastStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
   const checks = payload.decision.gate?.checks ?? [];
   const points = series(checks);
   const limit = points.find((check) => isNumber(check.limit))?.limit ?? null;
@@ -28,7 +29,9 @@ export function ForecastStage({ payload, index, state, source }: StageProps) {
     null
   );
   const margin = isNumber(limit) && worst && isNumber(worst.observed) ? limit - worst.observed : null;
-  const statement = sulfurStatement(payload.explanation.statements ?? []);
+  const statements = payload.explanation.statements ?? [];
+  const statement = sulfurStatement(statements);
+  const marginRows = buildRows(statements);
 
   return (
     <Section
@@ -37,17 +40,26 @@ export function ForecastStage({ payload, index, state, source }: StageProps) {
       state={state}
       source={source}
       title="Прогноз"
-      lead="Траектория серы по горизонту плана: расчётные точки против предела."
-      lamp={points.length === 0 ? "unknown" : margin !== null && margin > 0 ? "pass" : "fail"}
-      lampTitle={points.length === 0 ? "траектория не передавалась" : "сера против предела"}
+      lead="Запасы по всем нормируемым свойствам продукта и траектория серы по горизонту плана."
+      lamp={lamp}
+      lampTitle={lampTitle}
     >
       {payload.forecast === null ? (
-        <Note>
+        <Empty>
           Отдельного блока прогноза с интервалом неопределённости в этом решении нет: поле{" "}
           <code>forecast</code> пустое, и подставлять сюда интервал было бы выдумкой. Ниже — расчётная
           траектория серы, которую проверял Gate: это точки плана, а не измерения.
-        </Note>
+        </Empty>
       ) : null}
+
+      {marginRows.length > 0 ? (
+        <MarginBars statements={statements} />
+      ) : (
+        <Empty>
+          Утверждений о свойствах качества в payload не передавалось, поэтому запасы по пределам
+          показать не из чего. Пустой блок означает отсутствие утверждений, а не отсутствие рисков.
+        </Empty>
+      )}
 
       {points.length === 0 ? (
         payload.decision.status === "refuse" ? (
@@ -96,6 +108,7 @@ export function ForecastStage({ payload, index, state, source }: StageProps) {
             limit={limit}
             unit="мг/кг"
             label="Сера в товарном дизеле по времени"
+            digits={3}
           />
 
           {statement ? (
@@ -119,7 +132,12 @@ export function ForecastStage({ payload, index, state, source }: StageProps) {
 
       <JsonPanel
         title="JSON: прогноз и траектория серы"
-        value={{ forecast: payload.forecast, forecast_used: payload.forecast_used, sulfur_checks: points }}
+        value={{
+          forecast: payload.forecast,
+          forecast_used: payload.forecast_used,
+          sulfur_checks: points,
+          statements
+        }}
       />
     </Section>
   );

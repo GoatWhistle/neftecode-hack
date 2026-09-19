@@ -1,8 +1,9 @@
 import type { OptimizerRound, TraceEvent } from "../types";
-import { num } from "../format";
+import { familyOf, num } from "../format";
 import { Empty, Note, Readout, Scroller } from "../ui/Primitives";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
+import { VetoFunnel } from "../ui/VetoFunnel";
 import type { StageProps } from "./StateStage";
 
 interface OptimizerTrace extends TraceEvent {
@@ -12,7 +13,7 @@ interface OptimizerTrace extends TraceEvent {
   note?: string;
 }
 
-export function CandidatesStage({ payload, index, state, source }: StageProps) {
+export function CandidatesStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
   const trace = (payload.decision.trace ?? []).find((item) => item.agent === "optimizer") as
     | OptimizerTrace
     | undefined;
@@ -29,8 +30,8 @@ export function CandidatesStage({ payload, index, state, source }: StageProps) {
       source={source}
       title="Кандидаты"
       lead="Сколько планов оптимизатор построил и проверил, и по каким семействам ограничений они отсеялись."
-      lamp={rounds.length === 0 ? "unknown" : feasible > 0 ? "pass" : "fail"}
-      lampTitle={feasible > 0 ? "допустимые планы есть" : "допустимых планов не нашлось"}
+      lamp={lamp}
+      lampTitle={lampTitle}
     >
       {rounds.length === 0 ? (
         <Empty>Трасса оптимизатора не передавалась.</Empty>
@@ -47,6 +48,8 @@ export function CandidatesStage({ payload, index, state, source }: StageProps) {
             <Readout label="Раундов поиска" value={`${rounds.length} из ${num(trace?.max_rounds, 0)}`} />
             <Readout label="Показано альтернатив" value={String(alternatives.length)} hint="до пяти в payload" />
           </div>
+
+          <VetoFunnel rounds={rounds} />
 
           <Scroller label="Отсев по раундам">
             <table className="grid">
@@ -71,8 +74,8 @@ export function CandidatesStage({ payload, index, state, source }: StageProps) {
                     <td className="grid__num">{num(round.reliability_vetoed, 0)}</td>
                     <td>
                       {Object.entries(round.veto_families ?? {}).map(([family, count]) => (
-                        <span key={family} className="chip">
-                          {family} <b>{num(count, 0)}</b>
+                        <span key={family} className="chip" title={family}>
+                          {familyOf(family)} <b>{num(count, 0)}</b>
                         </span>
                       ))}
                     </td>

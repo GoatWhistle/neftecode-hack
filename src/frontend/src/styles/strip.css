@@ -3,6 +3,11 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-card);
   padding: var(--space-4);
+  transition: border-color var(--motion-panel) var(--ease);
+}
+
+.strip--done {
+  border-color: var(--pass);
 }
 
 .strip__head {
@@ -29,6 +34,39 @@
   height: 4px;
   background: var(--carbon);
   display: inline-block;
+}
+
+.strip__aside {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.strip__follow {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-pill);
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: border-color var(--motion-hover) var(--ease);
+}
+
+.strip__follow:hover {
+  border-color: var(--carbon);
+}
+
+.strip__follow:focus-visible {
+  outline: 2px solid var(--carbon);
+  outline-offset: 2px;
+}
+
+.strip__waiting {
+  margin: var(--space-3) 0 0;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .strip__clock {
@@ -58,32 +96,47 @@
   background: var(--field);
   font-size: 14px;
   position: relative;
-  overflow: hidden;
+  border: 1px solid transparent;
+  transition: border-color var(--motion-panel) var(--ease), background-color var(--motion-hover) var(--ease);
 }
 
-.strip__phase--running {
-  background: var(--vellum);
-  border: 1px solid var(--line);
-}
+@media (hover: hover) and (pointer: fine) {
+  .strip__phase:hover {
+    background: var(--row-hover);
+  }
 
-.strip__phase--running::after {
-  content: "";
-  position: absolute;
-  inset: 0 auto auto 0;
-  height: 2px;
-  width: 32%;
-  background: var(--carbon);
-  animation: strip-sweep 1400ms var(--ease) infinite;
-}
-
-.strip__phase--failed {
-  background: var(--vellum);
-  border-left: 3px solid var(--fail);
-  color: var(--fail);
+  .strip__phase--running:hover,
+  .strip__phase--failed:hover {
+    background: var(--band-hover-0);
+  }
 }
 
 .strip__label {
   font-weight: 400;
+}
+
+.strip__phase--running {
+  background: var(--vellum);
+  border-color: var(--carbon);
+}
+
+.strip__phase--running .strip__label {
+  font-weight: 600;
+}
+
+.strip__phase--failed {
+  background: var(--vellum);
+  border-color: var(--fail);
+  border-style: double;
+  border-width: 3px;
+  color: var(--fail);
+}
+
+.strip__phase--failed .strip__label {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .strip__detail {
@@ -98,25 +151,9 @@
   color: var(--muted);
 }
 
-.strip__honest {
-  margin: var(--space-3) 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-  border-left: 3px solid var(--line-soft);
-  padding-left: var(--space-3);
-  max-width: var(--measure);
-}
-
-@keyframes strip-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(320%); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .strip__phase--running::after {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-    width: 100%;
+  .strip,
+  .strip__follow {
+    transition-duration: 0.01ms;
   }
 }
