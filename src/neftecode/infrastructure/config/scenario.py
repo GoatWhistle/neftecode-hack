@@ -18,6 +18,39 @@ from .scenario_parts import (CONTROL_KINDS, CRUDE_KINDS, ECONOMICS_KINDS, PRODUC
 __all__ = ["CONTROL_KINDS", "CRUDE_KINDS", "ECONOMICS_KINDS", "FileScenarioRepository", "PRODUCT_KINDS",
            "QUALITIES", "QUALITY_KINDS", "ScenarioError", "describe", "load_scenario", "parse_scenario"]
 
+_REQUIRED_DEPLOYMENT_INPUTS = {"tank_farm", "deep_treatment_capacity"}
+
+
+def _validate_deployment_inputs(policy: dict) -> None:
+    inputs = policy.get("deployment_inputs")
+    if not isinstance(inputs, list):
+        raise ScenarioError("policy.deployment_inputs: нужен список внешних параметров промышленного применения")
+    ids = set()
+    for index, item in enumerate(inputs):
+        where = f"policy.deployment_inputs[{index}]"
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not item["id"].strip():
+            raise ScenarioError(f"{where}.id: обязателен непустой идентификатор")
+        if item["id"] in ids:
+            raise ScenarioError(f"{where}.id: идентификатор {item['id']} повторяется")
+        ids.add(item["id"])
+        if item.get("status") not in {"open", "given"}:
+            raise ScenarioError(f"{where}.status: ожидается open или given")
+        if not isinstance(item.get("label"), str) or not item["label"].strip():
+            raise ScenarioError(f"{where}.label: нужно понятное название внешнего параметра")
+        if not isinstance(item.get("required_values"), list) or not item["required_values"]:
+            raise ScenarioError(f"{where}.required_values: перечислите значения, которые должен дать завод")
+        if not isinstance(item.get("scenario_assumptions"), dict):
+            raise ScenarioError(f"{where}.scenario_assumptions: явно отделите расчётные допущения")
+        if item["status"] == "given":
+            values = item.get("values")
+            missing_values = set(item["required_values"]) - set(values or {})
+            if not isinstance(values, dict) or missing_values:
+                raise ScenarioError(f"{where}.values: для status=given нужны все required_values")
+    missing = _REQUIRED_DEPLOYMENT_INPUTS - ids
+    if missing:
+        raise ScenarioError("policy.deployment_inputs: отсутствуют обязательные внешние входы "
+                            + ", ".join(sorted(missing)))
+
 
 def parse_scenario(raw: dict) -> Scenario:
     if raw.get("schema") != SCHEMA:
@@ -107,12 +140,17 @@ def parse_scenario(raw: dict) -> Scenario:
                  for name, kind_ in ECONOMICS_KINDS.items()}
     tanks = [_price_on_demand(tank, economics) for tank in tanks]
 
+    policy = raw.get("policy", {})
+    if not isinstance(policy, dict):
+        raise ScenarioError("policy: ожидается объект")
+    _validate_deployment_inputs(policy)
+
     assumptions = tuple(raw.get("assumptions", ()))
     if not assumptions:
         raise ScenarioError("assumptions: сценарий обязан перечислить свои допущения явным текстом")
 
     return Scenario(raw["id"], raw["title"], raw["description"], kind, horizon, crude, stages,
-                    product, tanks, current_operation, additive, economics, raw.get("policy", {}),
+                    product, tanks, current_operation, additive, economics, policy,
                     assumptions, raw.get("expected", {}))
 
 
@@ -143,6 +181,7 @@ def describe(scenario: Scenario) -> dict:
         "total_inventory_t": sum(t.inventory.value for t in scenario.available_tanks()),
         "unknown_product_limits": scenario.product.unknown_limits(),
         "tanks_with_unknown_properties": missing,
+        "deployment_inputs": list(scenario.policy.get("deployment_inputs", ())),
         "assumptions": list(scenario.assumptions),
         "scope": "Все параметры смешения, резервуаров, цен и откликов заданы для эксперимента "
                  "и не получены из данных завода.",

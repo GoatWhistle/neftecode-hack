@@ -62,6 +62,11 @@ def validate_forecast_selection(cfg: dict) -> dict | None:
 
 def causal_pak_lab_bias(times, lab: pd.DataFrame, online: pd.DataFrame,
                         delay_hours: float, window: int = 20, min_pairs: int = 5) -> np.ndarray:
+    """Оценивает причинную поправку прогноза ЛИМС по прошлым парам ЛИМС–ПАК.
+
+    Это не приведение заводского ПАК к шкале ЛИМС. Часть разности может быть вызвана тем,
+    что истинный момент отбора лабораторной пробы отличается от регламентного (ответ 18.09.2026).
+    """
     if not isinstance(window, int) or not isinstance(min_pairs, int) \
             or min_pairs < 1 or window < min_pairs:
         raise ValueError("Окно поправки должно быть целым и не меньше минимального числа пар")

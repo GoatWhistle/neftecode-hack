@@ -20,6 +20,8 @@ def test_all_shipped_scenarios_load():
         assert isinstance(scenario, Scenario)
         assert scenario.kind == "synthetic_blending_scenario"
         assert scenario.assumptions, f"{path}: сценарий без явных допущений"
+        assert {item["id"] for item in scenario.policy["deployment_inputs"]} == \
+               {"tank_farm", "deep_treatment_capacity"}
 
 
 def test_scenarios_cover_normal_problem_and_no_solution():
@@ -211,6 +213,22 @@ def test_scenario_without_assumptions_is_rejected():
     data["assumptions"] = []
     with pytest.raises(ScenarioError, match="допущения"):
         parse_scenario(data)
+
+
+def test_scenario_without_required_external_plant_input_is_rejected():
+    data = raw()
+    data["policy"]["deployment_inputs"] = [data["policy"]["deployment_inputs"][0]]
+    with pytest.raises(ScenarioError, match="deep_treatment_capacity"):
+        parse_scenario(data)
+
+
+def test_supplied_external_plant_inputs_close_deployment_contract():
+    data = raw()
+    for item in data["policy"]["deployment_inputs"]:
+        item["status"] = "given"
+        item["values"] = {name: 1.0 for name in item["required_values"]}
+    scenario = parse_scenario(data)
+    assert all(item["status"] == "given" for item in scenario.policy["deployment_inputs"])
 
 
 def test_negative_inventory_is_rejected():

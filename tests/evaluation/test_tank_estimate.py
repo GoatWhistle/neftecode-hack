@@ -137,7 +137,7 @@ def test_the_check_is_attached_to_every_decision_that_carries_a_robustness_check
 
 def test_the_limits_of_the_check_are_stated_next_to_its_verdict():
     limits = decide(BASELINE)["tank_estimate"]["limits"]
-    assert any("прямыми пробами" in text for text in limits)
+    assert any("нет прямой пробы" in text and "паспортизации" in text for text in limits)
     assert any("не доверительный интервал" in text for text in limits)
 
 

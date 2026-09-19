@@ -91,8 +91,9 @@
 ## 6. Файл контракта
 
 С T112 (17.09) разделены политика и оценка. `config/response_model.json` (schema v1, в git) — только объявленная
-политика: tag `ht.T6`, flow_tag `ht.F9`, window_months 12, envelope_dt_c 2.0, `response_onset_hours` 3,
-`horizon_response_share` 0.66, flow_beta null. Оценки β по сетке τ (1 января / 1 июля, плюс `train_end` и конец
+политика: tag `ht.T6`, flow_tag `ht.F9`, window_months 12, envelope_dt_c 2.0, `response_onset_hours` 2,
+`observed_plateau_window_hours` 3–8, `horizon_response_share` 0.66, flow_beta null. Оценки β по сетке τ
+(1 января / 1 июля, плюс `train_end` и конец
 данных) пишет `train` в `artifacts/response_model.json` тем же ARX (`src/neftecode/infrastructure/response/estimate.py`):
 для каждого τ окно 12 мес. до τ − 6 ч, порог F9 = q01 по «горячим» строкам не позже τ − 6 ч, дрейф по полугодиям
 на строках основной оценки (`train_end`), `model_fingerprint` из `artifacts/manifest.json`. Живое решение берёт

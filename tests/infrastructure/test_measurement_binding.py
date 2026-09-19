@@ -151,7 +151,8 @@ def test_a_broken_response_file_is_an_error_not_a_silent_fallback(tmp_path):
 def test_the_declared_policy_file_carries_no_hand_written_estimate():
     declared = json.loads(Path("config/response_model.json").read_text(encoding="utf-8"))
     assert declared["tag"] == "ht.T6" and declared["envelope_dt_c"] == 2.0
-    assert declared["response_onset_hours"] == 3.0 and declared["horizon_response_share"] == 0.66
+    assert declared["response_onset_hours"] == 2.0 and declared["horizon_response_share"] == 0.66
+    assert declared["observed_plateau_window_hours"] == [3.0, 8.0]
     assert "beta_mgkg_per_c" not in declared and "weak_strong" not in declared, "β теперь оценивает train"
 
 
@@ -171,7 +172,7 @@ def test_the_trained_response_artifact_reproduces_the_study_at_tau_2026():
     assert at_2026["f9_range_tph"] == pytest.approx([149.8, 256.7], abs=0.15)
     assert at_2026["feed_floor_tph"] == pytest.approx(133.457, abs=5e-4)
     assert pd.Timestamp(at_2026["feed_floor_until"]) == pd.Timestamp("2025-12-31T18:00:00")
-    assert model["horizon_response_share"] == 0.66 and model["response_onset_hours"] == 3.0
+    assert model["horizon_response_share"] == 0.66 and model["response_onset_hours"] == 2.0
 
 
 def test_the_live_binding_takes_the_estimate_made_strictly_before_the_moment():
@@ -300,11 +301,11 @@ def test_the_inflow_note_states_the_actual_coverage_when_known():
 
 
 def test_the_bound_lag_is_the_research_onset_and_the_scenario_files_keep_their_own():
-    bound = bind_measurements(raw(), measured(), DENSITY, response(response_onset_hours=3.0, horizon_response_share=0.66),
+    bound = bind_measurements(raw(), measured(), DENSITY, response(response_onset_hours=2.0, horizon_response_share=0.66),
                               forecast())
     lag = ht(bound)["response_lag_hours"]
-    assert (lag["value"], lag["source"]) == (3.0, "derived")
-    assert "3–8 ч" in lag["note"] and "2 ч заменено" in lag["note"]
+    assert (lag["value"], lag["source"]) == (2.0, "derived")
+    assert "0,5–2 ч" in lag["note"] and "3–8 ч" in lag["note"]
     assert ht(bound)["model"]["horizon_response_share"] == pytest.approx(0.66)
     assert ht(bound)["model"]["horizon_response_until_hours"] == pytest.approx(3.0)
     assert ht(raw())["response_lag_hours"]["value"] == 2.0, "сценарный файл не меняется"
@@ -313,9 +314,9 @@ def test_the_bound_lag_is_the_research_onset_and_the_scenario_files_keep_their_o
     assert ht(outside)["response_lag_hours"]["source"] == "scenario"
 
 
-def test_without_the_declared_fields_the_onset_is_three_hours_and_the_full_move_counts():
+def test_without_the_declared_fields_the_onset_is_two_hours_and_the_full_move_counts():
     bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast())
-    assert ht(bound)["response_lag_hours"]["value"] == 3.0
+    assert ht(bound)["response_lag_hours"]["value"] == 2.0
     assert ht(bound)["model"]["horizon_response_share"] == 1.0
 
 
@@ -329,14 +330,15 @@ def test_declared_lag_fields_are_validated(field, value):
 
 def test_no_effect_before_the_onset_and_only_the_declared_share_within_the_horizon():
     bound = bind_forecast(bind_measurements(raw(), measured(), DENSITY,
-                                            response(response_onset_hours=3.0, horizon_response_share=0.66),
+                                            response(response_onset_hours=2.0, horizon_response_share=0.66),
                                             forecast(value=6.0, upper=9.0)), forecast(value=6.0, upper=9.0))
     plan = PlanOperation(parse_scenario(bound))
     move = ((0.0, {"ht_reactor_inlet_temp_c": 368.8}),)
-    idle = {t: plan.inflow_properties(t, ())["main"]["sulfur_mgkg"] for t in (2.5, 3.0, 3.5)}
-    warm = {t: plan.inflow_properties(t, move)["main"]["sulfur_mgkg"] for t in (2.5, 3.0, 3.5)}
-    assert warm[2.5] == pytest.approx(idle[2.5]), "до 3 ч эффекта нет"
+    idle = {t: plan.inflow_properties(t, ())["main"]["sulfur_mgkg"] for t in (1.5, 2.0, 3.0, 3.5)}
+    warm = {t: plan.inflow_properties(t, move)["main"]["sulfur_mgkg"] for t in (1.5, 2.0, 3.0, 3.5)}
+    assert warm[1.5] == pytest.approx(idle[1.5]), "до 2 ч эффекта нет"
     k = 0.4332 / 9.0
+    assert warm[2.0] == pytest.approx(9.0 * math.exp(-k * 0.66)), "на 2 ч начинается частичный эффект"
     assert warm[3.0] == pytest.approx(9.0 * math.exp(-k * 0.66)), "на 3 ч — 66 % хода"
     assert warm[3.5] == pytest.approx(9.0 * math.exp(-k * 1.0)), "за горизонтом — весь ход"
     chain = plan.chain.hydrotreating
@@ -349,10 +351,10 @@ def test_the_explanation_names_the_derived_delay_and_the_share():
     from neftecode.application.services.explain import explain
     from neftecode.application.use_cases.make_decision import MakeDecision
     bound = bind_forecast(bind_measurements(raw(), measured(), DENSITY,
-                                            response(response_onset_hours=3.0, horizon_response_share=0.66),
+                                            response(response_onset_hours=2.0, horizon_response_share=0.66),
                                             forecast()), forecast())
     scenario = parse_scenario(bound)
     decision = MakeDecision(scenario).decide(budget=100, raw_scenario=bound)
     delay = next(s for s in explain(decision, scenario)["statements"] if s["topic"] == "delay")
-    assert delay["value"] == 3.0 and "66%" in delay["text"]
+    assert delay["value"] == 2.0 and "66%" in delay["text"]
     assert delay["evidence"][0]["kind"] == "model"

@@ -9,12 +9,12 @@
     "tracked": false
   },
   "scenario_sha256": {
-    "ample_reserve": "757f16387b449249f1e30216e4b17e9880f11e757327afc60d5679b82ff39b6e",
-    "baseline": "59fdb655e015208a0237656aa5340e9b314f238ebb006fe86e9b771c6feb394b",
-    "light_component": "5431baca36496d7a210cc8407b9dbbe1937656a403765b69f5076ab04441278b",
-    "no_feasible": "b4d9c58d2749c685ba561ed0f93224afe0c85cfacc3a5a960acae51ed29d39eb",
-    "sour_crude": "6fa51de6eb232b574334948cf1efe1ec766600966a1f68125db10cbe8eb634a7",
-    "winter_grade": "cf547703d75a5e1a99b39aeccd47772ca13957ba1786617545d9a1a1ba539793"
+    "ample_reserve": "273b88eba0c13a5421bda6d3c8c1ba7e478a365a9d182016de77f0aec1714556",
+    "baseline": "f9ccb45dfe492e9d051c2caeab3f628f4d5666c7110089fbad4563d4fd5566a9",
+    "light_component": "4a44120ac5a5bfdb84c42357157dce7f08b3596cfa4ca8e6fd45cc9da7e99b76",
+    "no_feasible": "ea13937cb355508abdd23e9ed95ab42edcc3abbf04e7adf8c990a2c3d1f2b0e4",
+    "sour_crude": "10142b0edb9be19c05310fd27bd04be52ebe6e91437dafc262321f8346c0bf9e",
+    "winter_grade": "5a29eff2a4790596ba5e5cf180775e155bc19c3309d310e707eac9b9a0f6df76"
   },
   "wins": 6,
   "losses": 6,

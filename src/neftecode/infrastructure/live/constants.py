@@ -3,7 +3,7 @@ import math
 MEASURED_TAGS = ("ht.T6", "ht.F9", "ht.F26")
 RESPONSE_SCHEMA_VERSION = "v1"
 RESPONSE_FILE = "artifacts/response_model.json"
-DEFAULT_ONSET_HOURS = 3.0
+DEFAULT_ONSET_HOURS = 2.0
 DEFAULT_HORIZON_SHARE = 1.0
 CASE_MAX_LAG_HOURS = 3.0
 
