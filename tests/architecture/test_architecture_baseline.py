@@ -18,10 +18,10 @@ from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 ROOT = Path(".")
 SCENARIOS = ROOT / "config/scenarios"
 EXPECTED = {
-    "ample_reserve": ("recommend_scenario", 300.0, "710fa97196b5419ef5c099efcfa16a4394ede0cae8a2f0a148ce37cb24110947"),
-    "baseline": ("hold", 300.0, "b12683209dffa41ce3ee394128848a1d1268a4ff2e3380fce253a5d204408619"),
+    "ample_reserve": ("recommend_scenario", 300.0, "98fb835c118a9986db8b945df2526cfc6f324a25c1b752378800008e281fe82f"),
+    "baseline": ("hold", 300.0, "a3095f22a452e2257443c06a2e81c925ba62f39f727fe041dc1d6228013de226"),
     "no_feasible": ("refuse", None, "f63b66cc6d47ad6b88bdd456731587596db52e48bd92ca2bb57bbf0d367b2582"),
-    "sour_crude": ("recommend_scenario", 300.0, "3c6cb70acaf45550016dc0caa94bda49fed976c40e20333859c8ba82b243229b"),
+    "sour_crude": ("recommend_scenario", 300.0, "d1410fd31a0029ce7be76c3bf083278f4b24dbcb95325c14cbad0b4da6db3ed4"),
 }
 DECISION_KEYS = {
     "alternatives", "commercial_release_allowed", "cost_per_tonne", "current_operation", "lookahead",
