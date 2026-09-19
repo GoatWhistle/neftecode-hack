@@ -312,6 +312,13 @@ def test_nothing_can_be_drawn_before_the_preparation_time_has_passed():
     assert "подготовка 2 ч" in result.reasons[0]
 
 
+def test_a_step_cannot_borrow_component_produced_after_its_start():
+    result = draw_step(prepared(lead_hours=0.25), {"reserve": 1.0},
+                       throughput_tph=10.0, hours=0.5)
+    assert result.feasible is False
+    assert "сейчас 0 ч, подготовка 0.25 ч" in result.reasons[0]
+
+
 def test_the_component_becomes_available_once_preparation_is_over():
     state = prepared(lead_hours=1.0, rate_tph=30.0)
     first = draw_step(state, {"main": 1.0}, throughput_tph=100.0, hours=1.0)
