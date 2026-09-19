@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import json
+import threading
 
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.application.use_cases.make_decision import MakeDecision, SearchOutcome
@@ -41,6 +42,7 @@ class DecisionSession(SessionMetricsMixin, SessionContextMixin):
     _lookahead: dict = field(init=False, default_factory=dict)
     _robustness: dict = field(init=False, default_factory=dict)
     _margins: dict = field(init=False, default_factory=dict)
+    _veto_lock: threading.Lock = field(init=False, default_factory=threading.Lock, repr=False, compare=False)
 
     def __post_init__(self):
         self.scenario = self.maker.scenario
@@ -88,10 +90,11 @@ class DecisionSession(SessionMetricsMixin, SessionContextMixin):
 
     def veto(self, candidate_ids, role: str) -> list[str]:
         added = []
-        for cid in candidate_ids:
-            if cid in self.evaluations:
-                self.vetoes.setdefault(cid, set()).add(role)
-                added.append(cid)
+        with self._veto_lock:
+            for cid in candidate_ids:
+                if cid in self.evaluations:
+                    self.vetoes.setdefault(cid, set()).add(role)
+                    added.append(cid)
         return added
 
     def _satisfies(self, candidate_id: str, constraint: AgentConstraint) -> bool:

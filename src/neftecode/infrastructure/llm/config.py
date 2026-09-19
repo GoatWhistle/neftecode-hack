@@ -116,7 +116,7 @@ class LLMSettings:
     request_timeout_s: float = 120.0
     max_retries: int = 1
     max_tokens: int = 6144
-    temperature: float = 0.2
+    temperature: float = 0.0
     allow_general_endpoint: bool = False
 
     def describe(self) -> dict:
@@ -152,7 +152,7 @@ def llm_settings_from_env(env: Mapping[str, str]) -> LLMSettings:
         request_timeout_s=_number(env, "LLM_REQUEST_TIMEOUT_SECONDS", 120.0, float),
         max_retries=_number(env, "LLM_MAX_RETRIES", 1, int, strict=False),
         max_tokens=_number(env, "LLM_MAX_TOKENS", 6144, int),
-        temperature=_number(env, "LLM_TEMPERATURE", 0.2, float, strict=False),
+        temperature=_number(env, "LLM_TEMPERATURE", 0.0, float, strict=False),
     )
     key = next((value for name in KEY_VARIABLES.get(provider, ()) if (value := _raw(env, name))), "")
     if provider == "zai":

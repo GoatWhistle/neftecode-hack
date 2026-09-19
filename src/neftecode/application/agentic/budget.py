@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import threading
 import time
 from typing import Callable
 
@@ -24,6 +25,7 @@ class AgentBudget:
     robustness_runs: int = field(init=False, default=0)
     usage: dict = field(init=False, default_factory=lambda: {"prompt_tokens": 0, "completion_tokens": 0,
                                                              "total_tokens": 0})
+    _lock: threading.Lock = field(init=False, default_factory=threading.Lock, repr=False, compare=False)
 
     def __post_init__(self):
         self.started = self.clock()
@@ -39,36 +41,41 @@ class AgentBudget:
         return max(0.0, self.settings.timeout_s - self.elapsed())
 
     def take_call(self, role: str) -> None:
-        self.check_deadline()
-        if self.calls >= self.settings.max_llm_calls:
-            raise BudgetExhausted("llm_calls")
-        self.calls += 1
-        self.calls_by_role[role] = self.calls_by_role.get(role, 0) + 1
+        with self._lock:
+            self.check_deadline()
+            if self.calls >= self.settings.max_llm_calls:
+                raise BudgetExhausted("llm_calls")
+            self.calls += 1
+            self.calls_by_role[role] = self.calls_by_role.get(role, 0) + 1
 
     def add_usage(self, usage: dict) -> None:
-        for key in self.usage:
-            value = usage.get(key, 0)
-            if isinstance(value, int) and not isinstance(value, bool) and value > 0:
-                self.usage[key] += value
+        with self._lock:
+            for key in self.usage:
+                value = usage.get(key, 0)
+                if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+                    self.usage[key] += value
 
     def take_replan(self) -> bool:
-        if self.replans >= self.settings.max_replans:
-            return False
-        self.replans += 1
-        return True
+        with self._lock:
+            if self.replans >= self.settings.max_replans:
+                return False
+            self.replans += 1
+            return True
 
     def take_consult(self, role: str) -> bool:
-        used = self.consults.get(role, 0)
-        if used >= self.settings.max_specialist_consults:
-            return False
-        self.consults[role] = used + 1
-        return True
+        with self._lock:
+            used = self.consults.get(role, 0)
+            if used >= self.settings.max_specialist_consults:
+                return False
+            self.consults[role] = used + 1
+            return True
 
     def take_robustness(self) -> bool:
-        if self.robustness_runs >= self.settings.max_robustness_runs:
-            return False
-        self.robustness_runs += 1
-        return True
+        with self._lock:
+            if self.robustness_runs >= self.settings.max_robustness_runs:
+                return False
+            self.robustness_runs += 1
+            return True
 
     def to_dict(self) -> dict:
         return {"llm_calls": self.calls, "llm_calls_by_role": dict(sorted(self.calls_by_role.items())),
