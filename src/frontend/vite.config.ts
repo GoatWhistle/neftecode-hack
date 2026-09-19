@@ -11,7 +11,7 @@ export const config = defineConfig({
     modulePreload: { polyfill: false },
     target: "es2022",
     sourcemap: false,
-    minify: false,
+    minify: "esbuild",
     rollupOptions: {
       output: {
         entryFileNames: "assets/[name].js",

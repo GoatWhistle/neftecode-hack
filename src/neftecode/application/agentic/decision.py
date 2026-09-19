@@ -73,12 +73,12 @@ class AgenticMakeDecision:
         info["deterministic_policy"] = info["provider"] in DETERMINISTIC_PROVIDERS
         if info["deterministic_policy"]:
             info["provider_label"] = DETERMINISTIC_LABEL
-        emit("stage", stage="agents", state="running", provider=info["provider"], model=info["model"],
-             deterministic_policy=info["deterministic_policy"], budget_limits=self.settings.to_dict())
         if (legacy.get("refusal") or {}).get("kind") == "data":
             return self._with(legacy, info, "skipped", "data_refusal")
         if self.llm is None:
             return self._with(legacy, info, "fallback", self.configuration_error or "llm_not_configured")
+        emit("stage", stage="agents", state="running", provider=info["provider"], model=info["model"],
+             deterministic_policy=info["deterministic_policy"], budget_limits=self.settings.to_dict())
         trace = AgentTrace(sink=emit_agent_event)
         agent_budget = AgentBudget(self.settings, clock=self.clock)
         try:

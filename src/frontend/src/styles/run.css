@@ -39,8 +39,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: var(--space-3);
-  max-width: var(--dense-max);
-  margin-top: var(--space-4);
 }
 
 .config__field {
