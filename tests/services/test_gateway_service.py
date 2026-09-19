@@ -9,6 +9,7 @@ from neftecode.services.common import ServiceHTTPServer, make_handler
 from neftecode.services.data_service import DataService
 from neftecode.services.decision_service import DecisionService
 from neftecode.services.gateway_service import GatewayService, make_gateway_handler
+from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 
 ROOT = Path(__file__).parents[2]
 
@@ -48,7 +49,8 @@ def test_gateway_legacy_decide_matches_local_decision():
                                    "lab_age_hours": 5.0, "lab_usable": True, "pak_value": 8.4,
                                    "pak_age_minutes": 10.0, "pak_usable": True, "pak_frozen": False,
                                    "pak_conflict": False, "telemetry_missing_fraction": 0.0,
-                                   "origin": "synthetic_scenario_state"}, 400, gateway_service.trust_cfg)
+                                   "origin": "synthetic_scenario_state"}, DEFAULT_BUDGET,
+                                  gateway_service.trust_cfg)
         assert payload["decision"]["decision_id"] == local["decision"]["decision_id"]
         assert payload["rule_origin"] == gateway_service.trust_origin
         assert payload["state_origin"].startswith("синтетическое состояние")
