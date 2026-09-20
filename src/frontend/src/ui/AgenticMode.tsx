@@ -1,5 +1,6 @@
 import type { Agentic } from "../types";
 import { ROLE_TEXT } from "../run/agentMeters";
+import { STATUS_TEXT as LEGACY_STATUS } from "../run/orchRead";
 import { Empty, Field, Fields, Note } from "./Primitives";
 
 // Реальные значения agentic.outcome (AgenticMakeDecision._with в decision.py):
@@ -25,12 +26,8 @@ const MODES: Record<string, string> = {
 };
 
 // legacy_status — код итога детерминированного ядра (domain/shared/primitives.py: HOLD, RECOMMEND_SCENARIO,
-// REFUSE). Человеческая подпись здесь, код — в JSON ниже по странице.
-const LEGACY_STATUS: Record<string, string> = {
-  hold: "сохранить режим",
-  recommend_scenario: "изменить режим",
-  refuse: "отказ"
-};
+// REFUSE). Человеческая подпись — общий словарь STATUS_TEXT (run/orchRead.ts), код — в JSON ниже по
+// странице.
 
 // Backend всегда шлёт agentic.mode = "agentic" (см. AgenticMakeDecision.decide) — mode никогда не
 // становится "scripted", реальный признак детерминированного пути — отдельный флаг

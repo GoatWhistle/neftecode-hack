@@ -4,6 +4,7 @@ import { useRun } from "./run/useRun";
 import { reachedState } from "./run/sequence";
 import type { Conditions, RunOptions } from "./run/options";
 import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf } from "./run/options";
+import { SCENARIO_LABEL } from "./run/orchRead";
 import { PipelineMap } from "./map/PipelineMap";
 import { Summary } from "./map/Summary";
 import { StatusBar } from "./map/StatusBar";
@@ -84,7 +85,8 @@ export function App() {
     if (!conditions.scenario) return "условия не загружены";
     const snapshot = options?.snapshots.find((item) => item.key === conditions.snapshot);
     const fault = FAULT_LABELS[conditions.fault] ?? conditions.fault;
-    return `${conditions.scenario} · ${snapshot?.title ?? conditions.snapshot} · ${fault}`;
+    const scenario = SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario;
+    return `${scenario} · ${snapshot?.title ?? conditions.snapshot} · ${fault}`;
   })();
 
   useEffect(() => {

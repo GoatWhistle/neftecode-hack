@@ -5,6 +5,7 @@ import type { RunStatus } from "./types";
 import { NumberField, TankField } from "./ConfigFields";
 import { ConfigBrief } from "./ConfigBrief";
 import { Select } from "../ui/Select";
+import { SCENARIO_LABEL } from "./orchRead";
 
 export interface ConfigStageProps {
   options: RunOptions | null;
@@ -102,7 +103,10 @@ export function ConfigStage({
                     <div className="config__grid">
                       <Select label="Сценарий" value={conditions.scenario} disabled={running}
                         onChange={onScenario}
-                        options={options.scenarios.map((name) => ({ value: name, label: name }))} />
+                        options={options.scenarios.map((name) => ({
+                          value: name,
+                          label: SCENARIO_LABEL[name] ?? name
+                        }))} />
 
                       <Select label="Момент решения" value={conditions.snapshot} disabled={running}
                         onChange={(value) => onChange({ snapshot: value })}
