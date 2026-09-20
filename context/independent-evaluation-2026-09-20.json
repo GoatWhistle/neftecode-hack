@@ -1,0 +1,32 @@
+{
+  "schema_version": "fixed-hidden-environment-summary-v1",
+  "generated_at": "2026-09-20",
+  "scenario": "sour_crude",
+  "budget": 400,
+  "protocol": "fixed_hidden_environment_v1",
+  "environments": {
+    "nominal": {
+      "hold": {"feasible": false, "violations": 7, "production_t": 300.0, "cost_per_tonne": 1.086, "changes": 0},
+      "threshold": {"feasible": true, "violations": 0, "production_t": 300.0, "cost_per_tonne": 1.122, "changes": 1},
+      "advisor": {"feasible": true, "violations": 0, "production_t": 300.0, "cost_per_tonne": 1.14, "changes": 1}
+    },
+    "slow_weak_response": {
+      "parameters": {"response_factor": 0.75, "lag_factor": 1.75, "main_sulfur_factor": 1.05, "reserve_sulfur_factor": 1.0},
+      "hold": {"feasible": false, "violations": 7, "production_t": 300.0, "cost_per_tonne": 1.086, "changes": 0},
+      "threshold": {"feasible": false, "violations": 7, "production_t": 300.0, "cost_per_tonne": 1.122, "changes": 1},
+      "advisor": {"feasible": true, "violations": 0, "production_t": 300.0, "cost_per_tonne": 1.14, "changes": 1}
+    },
+    "nonideal_mixing": {
+      "parameters": {"response_factor": 0.9, "lag_factor": 1.25, "main_sulfur_factor": 1.1, "reserve_sulfur_factor": 1.15},
+      "hold": {"feasible": false, "violations": 7, "production_t": 300.0, "cost_per_tonne": 1.08249, "changes": 0},
+      "threshold": {"feasible": false, "violations": 7, "production_t": 300.0, "cost_per_tonne": 1.11498, "changes": 1},
+      "advisor": {"feasible": false, "violations": 4, "production_t": 300.0, "cost_per_tonne": 1.131225, "changes": 1}
+    }
+  },
+  "conclusion": "Советчик выигрывает у порогового правила в среде slow_weak_response, но проигрывает проверку nonideal_mixing. Это сценарный результат и не промышленное доказательство.",
+  "limits": [
+    "Среды зафиксированы в коде до просмотра результата текущего прогона.",
+    "Параметры стрессов заданы командой и не являются вероятностными диапазонами завода.",
+    "Провал nonideal_mixing требует отказа или расширения обязательного диапазона, а не настройки по этому результату."
+  ]
+}

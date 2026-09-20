@@ -77,20 +77,27 @@ def normalise(text: str) -> str:
     return out
 
 
-def _balance(text: str) -> str:
+def _require_balanced(text: str) -> str:
+    """Скобки не чинятся молча: неразобранная формула обязана получить объявленное исправление.
+
+    Ошибка в выданном тексте — это неизвестная расстановка операций, а не повод выбрать
+    правдоподобный вариант. Пока исправление с источником не внесено в CORRECTED или
+    PUBLISHED_2026_09_16, формула считается непригодной к расчёту.
+    """
     depth = 0
-    kept = []
     for ch in text:
         if ch == "(":
             depth += 1
         elif ch == ")":
-            if depth == 0:
-                continue
             depth -= 1
-        kept.append(ch)
+            if depth < 0:
+                raise VakError(
+                    f"Лишняя закрывающая скобка в формуле: {text}. Расстановка операций "
+                    f"неизвестна; нужен опубликованный вариант с источником, "
+                    f"догадка вместо него не допускается")
     if depth:
         raise VakError(f"Незакрытые скобки в формуле: {text}")
-    return "".join(kept)
+    return text
 
 
 @dataclass(frozen=True)
@@ -136,7 +143,7 @@ def _ratios(expression: str) -> tuple[str, ...]:
 def parse_formula(name: str, text: str, group: str) -> Formula:
     corrected = name in CORRECTED or name in PUBLISHED_2026_09_16
     source = PUBLISHED_2026_09_16.get(name, CORRECTED.get(name, text))
-    expression = _balance(normalise(source))
+    expression = _require_balanced(normalise(source))
     try:
         tree = ast.parse(expression, mode="eval")
     except SyntaxError as exc:
@@ -148,12 +155,26 @@ def parse_formula(name: str, text: str, group: str) -> Formula:
     return Formula(name, group, str(text), expression, inputs, unbound, corrected, _ratios(expression))
 
 
-def evaluate(formula: Formula, frame: pd.DataFrame, *, prefix: str | None = None) -> np.ndarray:
-    if not formula.computable:
+def evaluate(formula: Formula, frame: pd.DataFrame, *, prefix: str | None = None,
+             lab_values: dict[str, float] | None = None) -> np.ndarray:
+    """Считает формулу по телеметрии.
+
+    `lab_values` — значения непривязанных лабораторных входов, которые вызывающий код задаёт
+    явно и под свою ответственность (например, контрольный пример организаторов). Привязку
+    к лабораторной точке это не устанавливает: `formula.computable` остаётся прежним, и
+    источником качества такая формула не становится.
+    """
+    lab_values = dict(lab_values or {})
+    unknown = sorted(set(lab_values) - set(UNBOUND_LAB_INPUTS))
+    if unknown:
+        raise VakError(f"{formula.name}: lab_values принимает только непривязанные "
+                       f"лабораторные входы, получено {', '.join(unknown)}")
+    unresolved = [u for u in formula.unbound if u not in lab_values]
+    if unresolved:
         raise VakError(f"{formula.name}: не вычисляется, не привязаны входы "
-                       f"{', '.join(UNBOUND_LAB_INPUTS[u] for u in formula.unbound)}")
+                       f"{', '.join(UNBOUND_LAB_INPUTS[u] for u in unresolved)}")
     prefix = prefix or telemetry_prefix(formula.name)
-    values = {}
+    values = {name: np.full(len(frame), float(value)) for name, value in lab_values.items()}
     missing = []
     for tag in formula.inputs:
         column = f"{prefix}.{tag}"

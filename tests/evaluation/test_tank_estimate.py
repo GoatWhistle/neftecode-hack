@@ -90,7 +90,7 @@ def test_a_stable_decision_is_reported_as_stable_with_every_perturbation_named()
 def test_a_sensitive_decision_names_the_perturbations_that_move_it():
     decision = decide(SOUR)
     report = decision["tank_estimate"]
-    assert report["sensitive"] is True and report["changed"] == 2
+    assert report["sensitive"] is True and report["changed"] == 1
     moved = [r for r in report["results"] if r["outcome"] == "changed"]
     assert {r["field"] for r in moved} == {"sulfur_mgkg"}
     for entry in moved:

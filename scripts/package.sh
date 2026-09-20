@@ -36,7 +36,14 @@ MISSING_TRACKED=0
 INCOMPLETE_ARTIFACTS=0
 UNTRACKED_COPIED=0
 for required in README.md pyproject.toml uv.lock .python-version \
-                src/frontend/dist/index.html; do
+                src/frontend/dist/index.html \
+                src/neftecode/evaluation/independent.py \
+                src/neftecode/evaluation/agent_value.py \
+                tests/evaluation/test_independent.py \
+                tests/evaluation/test_agent_value.py \
+                context/independent-evaluation-2026-09-20.json \
+                context/agent-value-evaluation-2026-09-20.json \
+                context/organizer-clarifications.md; do
   if [ -e "$STAGE/$required" ]; then
     continue
   fi
@@ -66,8 +73,8 @@ fi
 
 echo "Копирование результатов прогона"
 mkdir -p "$STAGE/artifacts"
-REQUIRED_ARTIFACTS="report.md metrics.json benchmark.json scenes.json manifest.json response_model.json model.pkl screen.json scenes"
-OPTIONAL_ARTIFACTS="risk_metrics.json vak_check.json episodes.json source_rules.json snapshots tank_level_check.json agent-demo.json agent-demo.md expert_grid.json"
+REQUIRED_ARTIFACTS="report.md metrics.json benchmark.json scenes.json manifest.json response_model.json model.pkl screen.json scenes agent-demo.json agent-demo.md"
+OPTIONAL_ARTIFACTS="risk_metrics.json vak_check.json episodes.json source_rules.json snapshots tank_level_check.json expert_grid.json agent-live-full-20260917.json agent-live-smoke.json agent-live-specialists-20260917.json audit.jsonl demo.json predictions.csv replay.csv risk_predictions.csv screen.html"
 MISSING_REQUIRED=0
 for item in $REQUIRED_ARTIFACTS; do
   if [ -e "artifacts/$item" ]; then

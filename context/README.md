@@ -24,6 +24,10 @@
 - `data-flow.html` — страница пути данных: от источников до решения.
 - `defence.md` — материалы защиты: решение, архитектура, сквозной сценарий, сравнение, честные ограничения, ответы на ожидаемые вопросы.
 - `benchmark-audit-2026-09-19.json` — зафиксированные хеши сценариев и агрегаты бенчмарка; используется тестом `tests/evaluation/test_benchmark.py`, не удалять.
+- `independent-evaluation-2026-09-20.json` — результаты советчика и простых стратегий в фиксированных
+  альтернативных средах отклика, задержки и смешения, скрытых от оптимизатора.
+- `agent-value-evaluation-2026-09-20.json` — same-input сравнение детерминированного ядра, простого правила
+  и scripted-агентов на норме, границе качества, хрупком плане и отказе провайдера.
 - `task-review/` — исходное ТЗ и разбор данных.
 - `forecast-research/` — прогноз серы: протокол, rolling-складки, кандидаты; `tests/evaluation/test_forecast_rolling_research.py` и `tests/infrastructure/test_forecast.py` читают файлы отсюда напрямую — не удалять.
 - `response-research/t6/` — код и журнал модели отклика T6/F9, на которые ссылаются `RESPONSE_MODEL_T6.md` и `src/neftecode/infrastructure/response/estimate.py`.

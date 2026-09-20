@@ -51,6 +51,10 @@ def ht(bound):
 
 def test_measured_temperature_becomes_the_current_setpoint_with_the_research_envelope():
     bound = bind_measurements(raw(), measured(), DENSITY, response(), forecast())
+    assert set(bound["policy"]["disabled_control_moves"]) >= {
+        "crude_feed_rate_tph", "avt_furnace_outlet_temp_c"
+    }
+    assert "промежуточные ёмкости" in bound["policy"]["disabled_control_moves_note"]
     temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
     assert temp["current"]["value"] == pytest.approx(367.8)
     assert temp["current"]["source"] == "measured"

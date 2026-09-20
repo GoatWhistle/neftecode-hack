@@ -135,8 +135,14 @@ def input_locations(formula: Formula, tag_map: dict[str, dict]) -> dict:
 def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame,
               tag_map: dict[str, dict] | None = None,
               avt_lab: dict[str, dict[str, pd.DataFrame]] | None = None) -> dict:
-    formulas = {name: parse_formula(name, source, group)
-                for name, source, group in formula_rows}
+    formulas, unparsed = {}, {}
+    for name, source, group in formula_rows:
+        try:
+            formulas[name] = parse_formula(name, source, group)
+        except VakError as exc:
+            # Выданный текст не разбирается однозначно. Формула объявляется непригодной
+            # с причиной; выбирать за организаторов один из вариантов прочтения нельзя.
+            unparsed[name] = str(exc)
     described = {name: f.to_dict() for name, f in formulas.items()}
     if tag_map is not None:
         for name, formula in formulas.items():
@@ -155,6 +161,9 @@ def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame,
         else:
             check = check_formula(formula, signals, None)
         checks.append(check.to_dict())
+    for name, reason in unparsed.items():
+        checks.append(FormulaCheck(name, "unparsed", reason=reason,
+                                   limitations=(CAUSALITY_NOTE,)).to_dict())
     by_status: dict[str, int] = {}
     for check in checks:
         by_status[check["status"]] = by_status.get(check["status"], 0) + 1
@@ -162,6 +171,7 @@ def check_all(formula_rows, lab: dict[str, pd.DataFrame], signals: pd.DataFrame,
                        if c["status"] == "checked" and (c["correlation"] or 0) >= 0.5]
     return {
         "formulas": described,
+        "unparsed": unparsed,
         "checks": checks,
         "summary": by_status,
         "passed_correlation_threshold": above_threshold,

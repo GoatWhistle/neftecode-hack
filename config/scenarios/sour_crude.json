@@ -475,6 +475,12 @@
     "max_changes_per_plan": 2,
     "note": "Правила выбора и ограничения переключений — наша политика сценария. Эксперт указал, что ограничения скорости изменения для кейса не заданы. Изменение предлагается только при выигрыше не меньше min_useful_gain: иначе режим сохраняется. Выпуск советчик может только снижать ради качества, наращивание выпуска в его задачу не входит.",
     "min_useful_gain": 0.05,
+    "severity_cost_tolerance_fraction": 0.03,
+    "max_severity_index": 0.75,
+    "mandatory_robustness_paths": [
+      "tank.main.sulfur_mgkg",
+      "hydrotreating.response_stress"
+    ],
     "min_throughput_fraction": 0.5,
     "relief_step": 0.1,
     "tank_level_window_hours": 18.81,

@@ -112,6 +112,13 @@ class LookaheadMixin:
             "severity_index": evaluation.severity_index if evaluation is not None else None,
             "alternatives": (ranking or {}).get("alternatives", []),
             "rejected": (ranking or {}).get("rejected", []),
+            "selection_policy": {
+                "ranking": (ranking or {}).get("ranking"),
+                "severity_cost_tolerance_fraction": (ranking or {}).get(
+                    "severity_cost_tolerance_fraction", 0.0),
+                "max_severity_index": (ranking or {}).get("max_severity_index"),
+                "reliability_tradeoff": (ranking or {}).get("reliability_tradeoff"),
+            } if ranking is not None else None,
             "refusal": refusal,
             "robustness": robustness,
             "tank_estimate": tank_estimate,

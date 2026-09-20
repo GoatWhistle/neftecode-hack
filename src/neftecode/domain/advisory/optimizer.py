@@ -71,11 +71,14 @@ class CandidateGenerator:
     def _control_options(self) -> list[dict[str, float]]:
         base = {}
         moves = []
+        disabled = set(self.scenario.policy.get("disabled_control_moves") or ())
         for stage in self.scenario.stages.values():
             for name, spec in sorted(stage.controls.items()):
                 base[name] = spec["current"].value
         for stage in self.scenario.stages.values():
             for name, spec in sorted(stage.controls.items()):
+                if name in disabled:
+                    continue
                 step = spec["step"].value if spec.get("step") else 0.0
                 low, high = spec["min"].value, spec["max"].value
                 if step <= 0:
@@ -195,17 +198,67 @@ class Evaluation:
                 "rejection_reasons": list(self.gate.rejection_reasons())}
 
 
-def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0) -> dict:
+def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0,
+         severity_cost_tolerance_fraction: float = 0.0,
+         max_severity_index: float | None = None) -> dict:
+    if not _finite(severity_cost_tolerance_fraction) or severity_cost_tolerance_fraction < 0:
+        raise ValueError("severity_cost_tolerance_fraction должен быть конечным и неотрицательным")
+    if max_severity_index is not None and (not _finite(max_severity_index) or max_severity_index < 0):
+        raise ValueError("max_severity_index должен быть конечным и неотрицательным")
     feasible = [e for e in evaluations if e.feasible]
     rejected = [e for e in evaluations if not e.feasible]
+    policy_rejected = []
+    if max_severity_index is not None:
+        eligible = []
+        for evaluation in feasible:
+            if _finite(evaluation.severity_index) and evaluation.severity_index <= max_severity_index + 1e-9:
+                eligible.append(evaluation)
+                continue
+            item = evaluation.to_dict()
+            item["feasible"] = False
+            item["rejection_reasons"] = [
+                (f"Тяжесть режима {evaluation.severity_index:.4g} выше сценарного предела "
+                 f"{max_severity_index:.4g}")
+                if _finite(evaluation.severity_index) else
+                "Тяжесть режима неизвестна при заданном сценарном пределе"
+            ]
+            policy_rejected.append(item)
+        feasible = eligible
     if not feasible:
-        return {"selected": None, "alternatives": [], "rejected": [e.to_dict() for e in rejected],
+        return {"selected": None, "alternatives": [],
+                "rejected": [e.to_dict() for e in rejected] + policy_rejected,
                 "reason": "Ни один вариант не прошёл обязательные проверки"}
     ordered = sorted(feasible, key=lambda e: e.key())
-    best = ordered[0]
+    cheapest_best = ordered[0]
+    best = cheapest_best
+    severity_tradeoff = False
+    reliability_tradeoff = None
+    if severity_cost_tolerance_fraction > 0 and _finite(best.cost_per_tonne):
+        same_output = [e for e in feasible if abs(e.production_t - best.production_t) <= 1e-9]
+        cost_cap = best.cost_per_tonne * (1.0 + severity_cost_tolerance_fraction)
+        near_cost = [e for e in same_output
+                     if _finite(e.cost_per_tonne) and e.cost_per_tonne <= cost_cap + 1e-9]
+        if near_cost:
+            safer = min(near_cost, key=lambda e: (e.severity_index if _finite(e.severity_index) else math.inf,
+                                                   e.candidate.changes, e.candidate.candidate_id))
+            if safer is not best:
+                best = safer
+                severity_tradeoff = True
+                reliability_tradeoff = {
+                    "cost_premium_fraction": (
+                        (best.cost_per_tonne - cheapest_best.cost_per_tonne) / cheapest_best.cost_per_tonne
+                        if cheapest_best.cost_per_tonne > 0 else None),
+                    "severity_reduction": (
+                        cheapest_best.severity_index - best.severity_index
+                        if _finite(cheapest_best.severity_index) and _finite(best.severity_index) else None),
+                    "changes_reduction": cheapest_best.candidate.changes - best.candidate.changes,
+                    "compared_with": cheapest_best.candidate.candidate_id,
+                }
     hold = next((e for e in feasible if e.candidate.candidate_id == hold_id), None)
-    reason = "Лучший из допустимых по правилу: выпуск, затем стоимость, затем тяжесть режима"
-    if hold is not None and best.candidate.candidate_id != hold_id:
+    reason = ("Выпуск сохранён; среди вариантов в пределах допустимой разницы стоимости выбран "
+              "режим с меньшей тяжестью или меньшим числом изменений" if severity_tradeoff else
+              "Лучший из допустимых по правилу: выпуск, затем стоимость, затем тяжесть режима")
+    if hold is not None and best.candidate.candidate_id != hold_id and not severity_tradeoff:
         same_production = best.production_t <= hold.production_t + 1e-9
         hold_cost = hold.cost_per_tonne
         gain = 0.0
@@ -213,13 +266,19 @@ def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0) -> di
             gain = (hold_cost - best.cost_per_tonne) / hold_cost
         if same_production and gain < min_useful_gain:
             best = hold
+            severity_tradeoff = False
+            reliability_tradeoff = None
             reason = (f"Выигрыш изменения {gain:.2%} меньше минимального полезного "
                       f"{min_useful_gain:.0%} при том же выпуске: режим сохраняется")
     return {
         "selected": best.to_dict(),
         "alternatives": [e.to_dict() for e in ordered if e is not best][:5],
-        "rejected": [e.to_dict() for e in rejected][:20],
+        "rejected": ([e.to_dict() for e in rejected] + policy_rejected)[:20],
         "ranking": list(RANKING),
+        "severity_tradeoff": severity_tradeoff,
+        "reliability_tradeoff": reliability_tradeoff,
+        "severity_cost_tolerance_fraction": severity_cost_tolerance_fraction,
+        "max_severity_index": max_severity_index,
         "reason": reason,
         "claim": "Сравниваются только варианты, прошедшие обязательные проверки. "
                  "Недопустимый вариант не может выиграть никакими весами.",

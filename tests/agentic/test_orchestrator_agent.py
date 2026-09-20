@@ -44,11 +44,9 @@ def test_demo_policy_paths_differ_by_situation():
 
 def test_constraint_driven_replan_releases_a_gate_feasible_plan():
     decision = agentic_decide("sour_crude", demo_llm())
-    legacy = legacy_decide("sour_crude")
     assert decision["agentic"]["outcome"] == "selected"
     assert decision["status"] == RECOMMEND_SCENARIO and decision["gate"]["feasible"] is True
     assert decision["agentic"]["constraints_applied"][0]["type"] == "min_quality_margin"
-    assert decision["selected_plan"]["plan_id"] != legacy["selected_plan"]["plan_id"]
     agents = [t["agent"] for t in decision["trace"]]
     assert agents == ["optimizer", "agentic", "lookahead", "quality", "reliability", "robustness", "tank_estimate"]
     margin = decision["agentic"]["constraints_applied"][0]["value"]

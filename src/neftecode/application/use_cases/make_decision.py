@@ -126,7 +126,9 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                 vetoed = chosen.plan_id
                 remaining = [e for e in feasible if e.candidate.candidate_id != vetoed]
                 remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed}
-                ranked = rank(remaining, hold_id="hold", min_useful_gain=self._min_useful_gain()) if remaining else None
+                ranked = rank(remaining, hold_id="hold", min_useful_gain=self._min_useful_gain(),
+                              severity_cost_tolerance_fraction=self._severity_cost_tolerance(),
+                              max_severity_index=self._max_severity_index()) if remaining else None
                 if ranked is not None and ranked.get("selected") is not None:
                     next_id = ranked["selected"]["candidate_id"]
                     return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
@@ -147,7 +149,28 @@ class MakeDecision(SearchMixin, LookaheadMixin):
             trace.append({"agent": "robustness", "held": robustness["held"],
                           "evaluated": robustness["perturbations_evaluated"],
                           "not_applicable": robustness.get("not_applicable", 0),
-                          "fragile": robustness["fragile"]})
+                          "fragile": robustness["fragile"],
+                          "mandatory_failed": robustness.get("mandatory_failed", 0)})
+            if robustness.get("mandatory_failed", 0):
+                vetoed = chosen.plan_id
+                remaining = [e for e in feasible if e.candidate.candidate_id != vetoed]
+                remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed}
+                ranked = rank(remaining, hold_id="hold", min_useful_gain=self._min_useful_gain(),
+                              severity_cost_tolerance_fraction=self._severity_cost_tolerance(),
+                              max_severity_index=self._max_severity_index()) if remaining else None
+                if ranked is not None and ranked.get("selected") is not None:
+                    next_id = ranked["selected"]["candidate_id"]
+                    return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
+                                        confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
+                                        initial_tanks=initial_tanks, current_operation=current_operation)
+                return self._finish(
+                    REFUSE,
+                    "Ни один допустимый план не выдерживает обязательный диапазон устойчивости: решение не выдаётся",
+                    trace, None, None,
+                    {"kind": "mandatory_robustness_failed", "plan_id": vetoed,
+                     "examples": list(robustness.get("mandatory_failure_names", ()))[:5]},
+                    current_operation=current_operation,
+                )
 
         status = HOLD if chosen.changes == 0 else RECOMMEND_SCENARIO
         tank_estimate = self._tank_estimate(raw_scenario, status, chosen.plan_id, budget, confirmed,
@@ -204,6 +227,13 @@ class MakeDecision(SearchMixin, LookaheadMixin):
 
     def _min_useful_gain(self) -> float:
         return float(self.scenario.policy.get("min_useful_gain", 0.0))
+
+    def _severity_cost_tolerance(self) -> float:
+        return float(self.scenario.policy.get("severity_cost_tolerance_fraction", 0.0))
+
+    def _max_severity_index(self) -> float | None:
+        value = self.scenario.policy.get("max_severity_index")
+        return None if value is None else float(value)
 
     def _weak_response_guard(self, plan, confirmed, raw_scenario, initial_tanks, current_operation,
                              lookahead: dict | None = None) -> dict | None:

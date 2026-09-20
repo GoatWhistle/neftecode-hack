@@ -8,7 +8,7 @@ from neftecode.application.use_cases.plan_operation import PlanCandidate
 from neftecode.domain.advisory.entities import PlanStep
 from neftecode.domain.advisory.response_guard import (moves_hydrotreating, moves_temperature, weak_response_factor,
                                                       weak_response_raw)
-from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.evaluation.robustness import DEFAULT_PERTURBATIONS, RobustnessCheck
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.live.advisor import bind_forecast, bind_measurements
 
@@ -56,10 +56,15 @@ def knife_edge(light: bool = False, tank_sulfur: float = 9.34, upper: float = 10
     return bind_forecast(bound, forecast(upper))
 
 
+# Тест про response guard: обязательный совместный стресс здесь отключён, иначе он
+# отсекает план «на лезвии» раньше guard'а и не даёт проверить сам guard.
+DIAGNOSTIC_ONLY = tuple(p for p in DEFAULT_PERTURBATIONS if not p.get("mandatory"))
+
+
 def decide(bound: dict) -> dict:
     scenario = parse_scenario(bound)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
-        scenario, bound, scenario_parser=parse_scenario),
+        scenario, bound, perturbations=DIAGNOSTIC_ONLY, scenario_parser=parse_scenario),
         scenario_parser=parse_scenario).decide(budget=800, raw_scenario=bound)
 
 

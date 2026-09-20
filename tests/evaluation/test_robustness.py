@@ -7,7 +7,7 @@ import pytest
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.evaluation.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck,
-                                             RobustnessError, choose_robust, perturb)
+                                             COMBINED_RESPONSE_STRESS, RobustnessError, choose_robust, perturb)
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -113,7 +113,8 @@ def test_a_plan_that_breaks_under_an_allowed_deviation_is_called_fragile():
     check = checker(scenario, raw(SOUR)).run(plan)
     assert check["violated"] > 0, "нужен пример плана, теряющего допустимость при отклонении"
     assert check["fragile"] is True
-    assert "как надёжный не выдаётся" in check["verdict"]
+    assert ("рекомендация блокируется" in check["verdict"]
+            if check["mandatory_failed"] else "как надёжный не выдаётся" in check["verdict"])
 
 
 def test_the_broken_perturbations_are_named_with_their_first_violation():
@@ -126,10 +127,14 @@ def test_the_broken_perturbations_are_named_with_their_first_violation():
         assert result["first_violation"]["reason"]
 
 
-def test_a_fragile_plan_is_released_with_a_warning_not_as_reliable():
+def test_a_fragile_plan_is_released_only_when_failures_are_diagnostic():
     scenario = load_scenario(SOUR)
     document = raw(SOUR)
-    decision = MakeDecision(scenario, robustness_evaluator=checker(scenario, document)).decide(
+    diagnostic = tuple({k: v for k, v in p.items() if k != "mandatory"}
+                       for p in DEFAULT_PERTURBATIONS
+                       if p["path"] != "hydrotreating.response_stress")
+    decision = MakeDecision(scenario, robustness_evaluator=checker(
+        scenario, document, diagnostic)).decide(
         budget=BUDGET, raw_scenario=document)
     assert decision["robustness"]["fragile"] is True
     assert "надёжным не считается" in decision["reason"]
@@ -185,6 +190,50 @@ def test_a_custom_perturbation_set_is_honoured():
     check = checker(scenario, raw(BASELINE), single).run(plan)
     assert check["perturbations_declared"] == 1
     assert check["results"][0]["perturbation"] == "только сера сырья"
+
+
+def test_combined_response_stress_can_be_enabled_explicitly():
+    scenario, _, warmer, _ = _hold_and_moves(BASELINE)
+    check = checker(scenario, raw(BASELINE), (COMBINED_RESPONSE_STRESS,)).run(warmer)
+    assert check["perturbations_declared"] == 1
+    assert check["perturbations_evaluated"] == 1
+    assert check["results"][0]["path"] == "hydrotreating.response_stress"
+    assert check["results"][0]["mandatory"] is True
+
+
+def test_mandatory_response_stress_is_part_of_the_shipped_check():
+    shipped = [item for item in DEFAULT_PERTURBATIONS
+               if item["path"] == COMBINED_RESPONSE_STRESS["path"]]
+    assert shipped == [COMBINED_RESPONSE_STRESS]
+    assert shipped[0]["mandatory"] is True
+
+
+def test_the_shipped_combined_stress_is_mandatory_without_scenario_policy():
+    """Обязательность не зависит от того, перечислил ли сценарий путь в policy."""
+    scenario, _, warmer, _ = _hold_and_moves(BASELINE)
+    document = raw(BASELINE)
+    assert not (document.get("policy") or {}).get("mandatory_robustness_paths")
+    check = checker(scenario, document).run(warmer)
+    combined = [r for r in check["results"] if r["path"] == COMBINED_RESPONSE_STRESS["path"]]
+    assert len(combined) == 1 and combined[0]["mandatory"] is True
+    assert check["mandatory_declared"] >= 1
+
+
+def test_a_plan_failing_a_mandatory_range_is_replanned_before_release():
+    document = raw(SOUR)
+    document["policy"].pop("severity_cost_tolerance_fraction", None)
+    scenario = parse_scenario(document)
+    unguarded = MakeDecision(scenario).decide(budget=BUDGET)
+    decision = MakeDecision(
+        scenario,
+        robustness_evaluator=checker(scenario, document),
+        scenario_parser=parse_scenario,
+    ).decide(budget=BUDGET, raw_scenario=document)
+    assert decision["status"] != "refuse"
+    assert decision["selected_plan"]["plan_id"] != unguarded["selected_plan"]["plan_id"]
+    assert decision["robustness"]["mandatory_failed"] == 0
+    robustness_steps = [entry for entry in decision["trace"] if entry.get("agent") == "robustness"]
+    assert any(entry["mandatory_failed"] > 0 for entry in robustness_steps[:-1])
 
 
 def test_the_check_is_reproducible():
@@ -243,11 +292,12 @@ def test_response_and_lag_perturbations_do_not_count_for_a_hold():
     for plan in (hold, blend_only):
         check = checker(scenario, raw(BASELINE)).run(plan)
         skipped = {r["perturbation"]: r for r in check["results"] if r["outcome"] == "not_applicable"}
-        assert set(skipped) == {"отклик ГО слабее на 20%", "запаздывание отклика +50%"}
+        assert set(skipped) == {"отклик ГО слабее на 20%", "запаздывание отклика +50%",
+                                "слабый отклик ГО и задержка +50% одновременно"}
         assert all("не действует" in r["reason"] for r in skipped.values())
-        assert check["not_applicable"] == 2
+        assert check["not_applicable"] == 3
         assert check["perturbations_declared"] == len(DEFAULT_PERTURBATIONS)
-        assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS) - 2
+        assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS) - 3
         assert check["held"] + check["violated"] == check["perturbations_evaluated"]
         assert check["share_holding"] == pytest.approx(check["held"] / check["perturbations_evaluated"])
     assert any("неприменимо" in limit for limit in check["limits"])
@@ -282,5 +332,5 @@ def test_data_driven_edges_are_inapplicable_to_a_hold_on_a_bound_scenario():
     hold = next(p for p in PlanOperation(scenario).build_plans(BUDGET)[0] if p.plan_id == "hold")
     check = checker(scenario, bound).run(hold)
     assert check["perturbations_declared"] == len(DEFAULT_PERTURBATIONS) + 2
-    assert check["not_applicable"] == 4
-    assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS) - 2
+    assert check["not_applicable"] == 5
+    assert check["perturbations_evaluated"] == len(DEFAULT_PERTURBATIONS) - 3

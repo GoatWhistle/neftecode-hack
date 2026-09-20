@@ -1,0 +1,68 @@
+{
+  "schema_version": "same-input-agent-value-summary-v1",
+  "generated_at": "2026-09-20",
+  "budget": 400,
+  "repeats": 2,
+  "provider": "scripted",
+  "cases": {
+    "normal": {
+      "core": ["hold", "hold", null],
+      "agentic": ["hold", "hold", null],
+      "changed_selection": false,
+      "needless_refusal": false,
+      "stable": true,
+      "core_cost_per_tonne": 1.086,
+      "agentic_cost_per_tonne": 1.086,
+      "core_sulfur_margin_mgkg": 2.6,
+      "agentic_sulfur_margin_mgkg": 2.6,
+      "core_latency_seconds": 0.1041,
+      "agentic_latency_seconds": [0.2066, 0.2065]
+    },
+    "boundary_quality": {
+      "core": ["recommend_scenario", "c0036", null],
+      "agentic": ["recommend_scenario", "c0036", null],
+      "changed_selection": false,
+      "needless_refusal": false,
+      "stable": true,
+      "core_cost_per_tonne": 1.14,
+      "agentic_cost_per_tonne": 1.14,
+      "core_sulfur_margin_mgkg": 0.8693004648,
+      "agentic_sulfur_margin_mgkg": 0.8693004648,
+      "core_latency_seconds": 0.1089,
+      "agentic_latency_seconds": [0.3224, 0.3242]
+    },
+    "fragile_plan": {
+      "core": ["recommend_scenario", "c0160", null],
+      "agentic": ["recommend_scenario", "c0030", null],
+      "changed_selection": true,
+      "needless_refusal": false,
+      "stable": true,
+      "core_cost_per_tonne": 1.122,
+      "agentic_cost_per_tonne": 1.122,
+      "core_sulfur_margin_mgkg": 0.3675975553,
+      "agentic_sulfur_margin_mgkg": 0.3939090124,
+      "core_latency_seconds": 0.1129,
+      "agentic_latency_seconds": [0.3188, 0.3336]
+    },
+    "provider_failure": {
+      "core": ["hold", "hold", null],
+      "agentic": ["hold", "hold", null],
+      "changed_selection": false,
+      "needless_refusal": false,
+      "stable": true,
+      "core_cost_per_tonne": 1.086,
+      "agentic_cost_per_tonne": 1.086,
+      "core_sulfur_margin_mgkg": 2.6,
+      "agentic_sulfur_margin_mgkg": 2.6,
+      "core_latency_seconds": 0.1051,
+      "agentic_latency_seconds": [0.2094, 0.2109]
+    }
+  },
+  "conclusion": "Scripted-агенты не меняют нормальный и пограничный случаи, устойчиво переживают отказ провайдера и в одном хрупком случае увеличивают запас по сере на 0.0263 мг/кг без изменения стоимости. Это проверка протокола, не доказательство пользы LLM.",
+  "limits": [
+    "Scripted provider следует заранее написанной политике и не является языковой моделью.",
+    "Два повтора проверяют детерминизм протокола, но не статистическую устойчивость live-провайдера.",
+    "Время измерено локально для scripted-политики и характеризует только накладные расходы протокола.",
+    "На достаточной одинаковой выборке преимущество реального LLM по-прежнему не доказано."
+  ]
+}

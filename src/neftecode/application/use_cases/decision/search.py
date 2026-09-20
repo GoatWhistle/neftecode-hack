@@ -85,7 +85,9 @@ class SearchMixin:
                 "reliability_vetoed": sum(1 for r in reviews if r["reliability"]["verdict"] == "fail"),
                 "candidate_ids": [p.plan_id for p in search_plans[:20]],
             })
-            last_result = rank(feasible or evaluations, hold_id="hold", min_useful_gain=self._min_useful_gain())
+            last_result = rank(feasible or evaluations, hold_id="hold", min_useful_gain=self._min_useful_gain(),
+                               severity_cost_tolerance_fraction=self._severity_cost_tolerance(),
+                               max_severity_index=self._max_severity_index())
             if feasible:
                 selected = last_result
                 selected_plan_obj = by_id.get(selected.get("selected", {}).get("candidate_id"))

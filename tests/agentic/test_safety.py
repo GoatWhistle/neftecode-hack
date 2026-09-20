@@ -97,6 +97,42 @@ def test_unexpected_exceptions_fall_back():
     assert without_agentic(decision) == legacy_decide("baseline")
 
 
+def test_orchestrator_failure_preserves_confirmed_veto():
+    class FailingAfterVeto:
+        def run(self, *, session, **kwargs):
+            session.veto(["hold"], "quality")
+            raise RuntimeError("provider crashed")
+
+    maker = agentic_for("baseline", ScriptedLLM([]))
+    maker.orchestrator = FailingAfterVeto()
+    decision = maker.decide(budget=400, raw_scenario=raw("baseline"))
+    assert decision["agentic"]["fallback_reason"] == "orchestrator_error:RuntimeError"
+    assert decision["agentic"]["outcome"] == "selected"
+    assert decision["selected_plan"]["plan_id"] != "hold"
+    assert decision["agentic"]["vetoed_candidates"] == {"hold": ["quality"]}
+    assert_released_plan_passes_the_gate(decision)
+
+
+def test_invalid_orchestrator_selection_does_not_restore_a_vetoed_legacy_plan():
+    class InvalidSelectionAfterVeto:
+        def run(self, *, session, **kwargs):
+            session.veto(["hold"], "quality")
+            return type("Run", (), {
+                "opinions": [],
+                "final": decision_module.OrchestratorFinal(
+                    action="select", candidate_id="c9999", reason_codes=("invalid",),
+                    summary="invalid", evidence_refs=()),
+            })()
+
+    maker = agentic_for("baseline", ScriptedLLM([]))
+    maker.orchestrator = InvalidSelectionAfterVeto()
+    decision = maker.decide(budget=400, raw_scenario=raw("baseline"))
+    assert decision["agentic"]["fallback_reason"] == "selection_not_allowed"
+    assert decision["selected_plan"]["plan_id"] != "hold"
+    assert decision["agentic"]["vetoed_candidates"] == {"hold": ["quality"]}
+    assert_released_plan_passes_the_gate(decision)
+
+
 def test_specialist_failure_does_not_fail_the_decision():
     def policy(role, messages, tools):
         if role == "quality":
