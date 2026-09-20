@@ -97,15 +97,29 @@ class AgenticMakeDecision:
                                   raw_scenario=request["raw_scenario"], state=request["state"],
                                   trust_cfg=request["trust_cfg"], live_context=self.live_context,
                                   response_effect=self.response_effect)
-        run = self.orchestrator.run(llm=self.llm, session=session, budget=agent_budget, settings=self.settings,
-                                    trace=trace)
+        try:
+            run = self.orchestrator.run(llm=self.llm, session=session, budget=agent_budget, settings=self.settings,
+                                        trace=trace)
+        except Exception as exc:
+            info.update(opinions=[], constraints_applied=[c.to_dict() for c in session.constraints],
+                        vetoed_candidates={cid: sorted(roles) for cid, roles in sorted(session.vetoes.items())},
+                        llm_choice_overridden=False)
+            error_reason = (f"orchestrator_error:{type(exc).__name__}"
+                            if session.constraints or session.vetoes
+                            else f"unexpected_error:{type(exc).__name__}")
+            result, outcome_name, reason = self._recover_after_agent_failure(
+                session, legacy, request, trace, error_reason)
+            info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
+            return self._with(result, info, outcome_name, reason)
         info.update(opinions=[opinion_summary(o) for o in run.opinions],
                     constraints_applied=[c.to_dict() for c in session.constraints],
                     vetoed_candidates={cid: sorted(roles) for cid, roles in sorted(session.vetoes.items())},
                     llm_choice_overridden=False)
         if run.final is None:
+            result, outcome_name, reason = self._recover_after_agent_failure(
+                session, legacy, request, trace, f"orchestrator_no_final:{run.stop_reason}")
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
-            return self._with(legacy, info, "fallback", f"orchestrator_no_final:{run.stop_reason}")
+            return self._with(result, info, outcome_name, reason)
         info["final"] = run.final.to_dict()
         result, outcome_name, reason = self._resolve(run.final, run.opinions, session, legacy, request, info, trace)
         info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
@@ -120,6 +134,9 @@ class AgenticMakeDecision:
                            for o in opinions)
             if not grounded:
                 trace.add("system", 0, "resolution", decision="refuse_ignored", reason_codes=("refuse_without_evidence",))
+                if session.constraints or session.vetoes:
+                    return self._recover_after_agent_failure(
+                        session, legacy, request, trace, "refuse_without_evidence")
                 return legacy, "fallback", "refuse_without_evidence"
             if legacy["status"] == REFUSE:
                 return legacy, "confirmed_legacy", None
@@ -132,6 +149,9 @@ class AgenticMakeDecision:
         elif final.action == "select" and final.candidate_id not in allowed:
             trace.add("system", 0, "resolution", decision="selection_not_allowed",
                       candidate_ids=(final.candidate_id,), reason_codes=("selection_not_allowed",))
+            if session.constraints or session.vetoes:
+                return self._recover_after_agent_failure(
+                    session, legacy, request, trace, "selection_not_allowed")
             return legacy, "fallback", "selection_not_allowed"
         if not allowed:
             return self._refuse(final, session, legacy, request, trace), "refused", None
@@ -153,6 +173,37 @@ class AgenticMakeDecision:
         result = self._guard(result, session, request, trace)
         name = "selected" if result["status"] != REFUSE else "refused"
         return result, name, None
+
+    def _recover_after_agent_failure(self, session: DecisionSession, legacy: dict, request: dict,
+                                     trace: AgentTrace, reason: str) -> tuple[dict, str, str]:
+        """Preserve confirmed agent restrictions when the loop stops early."""
+        if not session.constraints and not session.vetoes:
+            return legacy, "fallback", reason
+        allowed = session.allowed_ids()
+        if not allowed:
+            trace.add("system", 0, "resolution", decision="agent_failure_refuse",
+                      reason_codes=("no_allowed_candidates",))
+            final = OrchestratorFinal(action="refuse", candidate_id=None,
+                                      reason_codes=("agent_failure", "no_allowed_candidates"),
+                                      summary="После сбоя агентов допустимых планов не осталось",
+                                      evidence_refs=())
+            return self._refuse(final, session, legacy, request, trace), "refused", reason
+        ranked = session.rank_allowed()["_result"]
+        chosen = ranked["selected"]["candidate_id"]
+        trace.add("system", 0, "resolution", decision="agent_failure_constrained_recovery",
+                  candidate_ids=(chosen,), reason_codes=("agent_constraints_preserved",))
+        by_id = {cid: session.plans[cid] for cid in allowed}
+        feasible = [session.evaluations[cid] for cid in allowed]
+        entries = self._core_trace(legacy) + [{"agent": "agentic", "action": "recovered",
+                  "selected": chosen, "constraints": [c.to_dict() for c in session.constraints],
+                  "vetoed": sorted(session.vetoes), "allowed": len(allowed),
+                  "reason_codes": ["agent_constraints_preserved"]}]
+        result = self.maker.release(ranked, by_id[chosen], feasible, by_id, entries,
+                                    confirmed=request["confirmed"], budget=request["budget"],
+                                    raw_scenario=request["raw_scenario"], initial_tanks=request["initial_tanks"],
+                                    current_operation=request["current_operation"])
+        result = self._guard(result, session, request, trace)
+        return result, ("selected" if result["status"] != REFUSE else "refused"), reason
 
     def _guard(self, result: dict, session: DecisionSession, request: dict, trace: AgentTrace) -> dict:
         if result["status"] not in (HOLD, RECOMMEND_SCENARIO):

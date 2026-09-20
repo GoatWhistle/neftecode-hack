@@ -5,6 +5,7 @@ const EXIT_BY_KIND: Record<string, string> = {
   no_feasible_plan: "candidates",
   computation_error: "candidates",
   final_recheck_failed: "gate",
+  mandatory_robustness_failed: "gate",
   agent_rejected: "agents",
   weak_response_failed: "agents"
 };

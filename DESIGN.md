@@ -5,7 +5,7 @@
 **Theme:** light
 
 **Источник:** https://styles.refero.design/style/e79b761d-f476-4c5d-8943-e31a58664e4d
-Приложен пользователем 19.09.2026 как визуальная система лендинга (дорожка V в `TODO.md`).
+Приложен пользователем 19.09.2026 как визуальная система лендинга.
 
 T1 Energy speaks the visual language of precision manufacturing: a warm cream canvas, charcoal typography rendered in whisper-light weight, and rounded geometry that softens industrial subject matter. The interface is nearly colorless by design — every element earns its presence through scale, spacing, and shape rather than hue. Navigation floats as a dark pill against the pale surface, imagery uses dramatically rounded 80px corners that echo engineered curves, and content sections breathe with generous 48px gaps. The overall feel is that of a technical specification sheet rendered as a website — precise, confident, and unadorned.
 

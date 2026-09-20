@@ -60,6 +60,14 @@ def _control_missing_note(tag: str) -> str:
 def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict | None, forecast: dict,
                       tank_id: str = "main", at=None) -> dict:
     out = copy.deepcopy(raw)
+    policy = out.setdefault("policy", {})
+    disabled = set(policy.get("disabled_control_moves") or ())
+    disabled.update(("crude_feed_rate_tph", "avt_furnace_outlet_temp_c"))
+    policy["disabled_control_moves"] = sorted(disabled)
+    policy["disabled_control_moves_note"] = (
+        "В live-контуре ходы АВТ не предлагаются: время прохождения через промежуточные ёмкости и "
+        "измеренный отклик товарного качества на эти ходы не подтверждены."
+    )
     density = derived["density_kgm3"]
     if not _finite_number(density) or density <= 0:
         raise LiveError("Плотность для пересчёта расходов должна быть положительным числом")

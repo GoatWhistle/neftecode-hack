@@ -175,7 +175,11 @@ class DecisionSession(SessionMetricsMixin, SessionContextMixin):
 
     def rank_allowed(self) -> dict:
         allowed = [self.evaluations[cid] for cid in self.allowed_ids()]
-        result = rank(allowed, hold_id="hold", min_useful_gain=float(self.scenario.policy.get("min_useful_gain", 0.0)))
+        result = rank(allowed, hold_id="hold", min_useful_gain=float(self.scenario.policy.get("min_useful_gain", 0.0)),
+                      severity_cost_tolerance_fraction=float(
+                          self.scenario.policy.get("severity_cost_tolerance_fraction", 0.0)),
+                      max_severity_index=(float(self.scenario.policy["max_severity_index"])
+                                          if self.scenario.policy.get("max_severity_index") is not None else None))
         selected = (result.get("selected") or {}).get("candidate_id")
         return {"selected": selected, "reason": result.get("reason"),
                 "alternatives": [a["candidate_id"] for a in result.get("alternatives", [])[:3]],

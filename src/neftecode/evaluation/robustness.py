@@ -8,6 +8,16 @@ from neftecode.domain.advisory.response_guard import moves_hydrotreating, moves_
 from neftecode.domain.production.scenario import Scenario
 from neftecode.evaluation.tank_estimate import TankEstimateCheck, default_tank_estimate_factory
 
+# Совместный стресс отклика обязателен во всех сценариях, а не только там, где сценарий
+# перечислил его в policy.mandatory_robustness_paths. План, который держится лишь при
+# номинальном отклике и номинальной задержке, как надёжный не выдаётся: слабый отклик и
+# увеличенная задержка приходят вместе, и это самый вероятный совместный промах модели.
+# Объект один и входит в поставляемый набор — признак mandatory нельзя потерять копией.
+COMBINED_RESPONSE_STRESS = {
+    "name": "слабый отклик ГО и задержка +50% одновременно",
+    "path": "hydrotreating.response_stress", "factor": 1.0, "mandatory": True,
+}
+
 DEFAULT_PERTURBATIONS = (
     {"name": "сера сырья +10%", "path": "crude.sulfur_wt_pct", "factor": 1.10},
     {"name": "сера сырья -10%", "path": "crude.sulfur_wt_pct", "factor": 0.90},
@@ -17,6 +27,7 @@ DEFAULT_PERTURBATIONS = (
     {"name": "сера основного компонента +10%", "path": "tank.main.sulfur_mgkg", "factor": 1.10},
     {"name": "подача резерва -20%", "path": "tank.reserve.max_outflow", "factor": 0.80},
     {"name": "доля серы в дизельной фракции +10%", "path": "avt.sulfur_partition", "factor": 1.10},
+    COMBINED_RESPONSE_STRESS,
 )
 
 FRAGILE_BELOW = 1.0
@@ -40,9 +51,11 @@ def response_perturbations(raw: dict) -> tuple:
 
 def inapplicable_reason(spec: dict, plan, base_controls: dict, pending) -> str | None:
     path = spec.get("path", "")
-    if path == "hydrotreating.conversion_per_degree" and not moves_temperature(plan, base_controls, pending):
+    if path in ("hydrotreating.conversion_per_degree", "hydrotreating.response_stress") \
+            and not moves_temperature(plan, base_controls, pending):
         return "план не меняет температуру входа реактора: возмущение отклика на него не действует"
-    if path == "hydrotreating.response_lag_hours" and not moves_hydrotreating(plan, base_controls, pending):
+    if path in ("hydrotreating.response_lag_hours", "hydrotreating.response_stress") \
+            and not moves_hydrotreating(plan, base_controls, pending):
         return "план не меняет уставки гидроочистки: возмущение задержки на него не действует"
     return None
 
@@ -82,7 +95,10 @@ def perturb(raw: dict, spec: dict) -> dict:
     elif path.startswith("hydrotreating."):
         key = path.split(".", 1)[1]
         stage = out["stages"]["hydrotreating"]
-        if key == "response_lag_hours":
+        if key == "response_stress":
+            stage["response_lag_hours"]["value"] = min(3.0, stage["response_lag_hours"]["value"] * 1.50)
+            stage["model"]["conversion_per_degree"] *= 0.80
+        elif key == "response_lag_hours":
             stage[key]["value"] = min(3.0, stage[key]["value"] * factor)
         else:
             stage["model"][key] *= factor
@@ -108,19 +124,24 @@ class RobustnessCheck:
             raise RobustnessError("Для проверки устойчивости не передан парсер сценария")
         results = []
         specs = tuple(self.perturbations) + response_perturbations(self.raw)
+        mandatory_paths = set((self.raw.get("policy") or {}).get("mandatory_robustness_paths") or ())
         base_planner = PlanOperation(self.scenario)
         base_controls = base_planner.base_controls()
         pending = base_planner.confirmed_with_operation(confirmed, current_operation)
         for spec in specs:
+            mandatory = bool(spec.get("mandatory", False) or spec.get("path") in mandatory_paths)
             reason = inapplicable_reason(spec, plan, base_controls, pending)
             if reason is not None:
                 results.append({"perturbation": spec["name"], "path": spec["path"], "factor": spec["factor"],
+                                "mandatory": mandatory,
                                 "outcome": "not_applicable", "reason": reason})
                 continue
             try:
                 altered = self.scenario_parser(perturb(self.raw, spec))
             except (RobustnessError, ValueError) as exc:
-                results.append({"perturbation": spec["name"], "outcome": "not_applicable",
+                results.append({"perturbation": spec["name"],
+                                "mandatory": mandatory,
+                                "outcome": "not_applicable",
                                 "reason": str(exc)})
                 continue
             planner = PlanOperation(altered)
@@ -140,12 +161,15 @@ class RobustnessCheck:
                 evaluation = planner.evaluate(plan, confirmed, initial_tanks=stocks,
                                               current_operation=current_operation)
             except ValueError as exc:
-                results.append({"perturbation": spec["name"], "outcome": "not_evaluable",
+                results.append({"perturbation": spec["name"],
+                                "mandatory": mandatory,
+                                "outcome": "not_evaluable",
                                 "reason": str(exc)})
                 continue
             first = evaluation.gate.first_violation
             results.append({
                 "perturbation": spec["name"], "path": spec["path"], "factor": spec["factor"],
+                "mandatory": mandatory,
                 "outcome": "holds" if evaluation.feasible else "violated",
                 "first_violation": None if first is None else
                                    {"constraint_id": first.constraint_id,
@@ -158,6 +182,9 @@ class RobustnessCheck:
         not_applicable = [r for r in results if r["outcome"] == "not_applicable"]
         share = len(held) / len(evaluated) if evaluated else None
         fragile = share is not None and share < FRAGILE_BELOW
+        mandatory = [r for r in results if r.get("mandatory")]
+        mandatory_evaluated = [r for r in mandatory if r["outcome"] in ("holds", "violated", "not_evaluable")]
+        mandatory_failures = [r for r in mandatory_evaluated if r["outcome"] != "holds"]
         return {
             "plan_id": getattr(plan, "plan_id", None),
             "perturbations_declared": len(specs),
@@ -167,9 +194,15 @@ class RobustnessCheck:
             "not_applicable": len(not_applicable),
             "share_holding": share,
             "fragile": fragile,
+            "mandatory_declared": len(mandatory),
+            "mandatory_evaluated": len(mandatory_evaluated),
+            "mandatory_failed": len(mandatory_failures),
+            "mandatory_failure_names": [r["perturbation"] for r in mandatory_failures],
             "results": results,
             "verdict": ("План сохраняет допустимость при всех перечисленных отклонениях"
                         if not fragile else
+                        "План нарушает обязательный диапазон устойчивости: рекомендация блокируется"
+                        if mandatory_failures else
                         "План теряет допустимость при допустимом отклонении: как надёжный не выдаётся"),
             "limits": [
                 "Возмущения выбраны нами и перечислены поимённо; доля выдержанных — не вероятность "

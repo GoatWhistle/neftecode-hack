@@ -6,6 +6,8 @@ import pytest
 from neftecode.domain.advisory.entities import CheckResult, FAIL, GateResult, PASS, UNKNOWN
 from neftecode.domain.advisory.optimizer import (DEFAULT_BUDGET, RANKING, Candidate, CandidateGenerator,
                                  Evaluation, OptimizerError, rank)
+from neftecode.application.use_cases.plan_operation import PlanOperation
+from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -117,10 +119,88 @@ def test_severity_breaks_the_tie_on_equal_production_and_cost():
     assert rank([a, b])["selected"]["candidate_id"] == "c0002"
 
 
+def test_severity_can_win_inside_an_explicit_cost_window():
+    expensive_safe = evaluation("c0001", passing_gate, production=100.0, cost=1.02, severity=0.1)
+    cheap_heavy = evaluation("c0002", passing_gate, production=100.0, cost=1.00, severity=0.8)
+    result = rank([expensive_safe, cheap_heavy], severity_cost_tolerance_fraction=0.03)
+    assert result["selected"]["candidate_id"] == "c0001"
+    assert result["severity_tradeoff"] is True
+
+
+def test_explicit_severity_tradeoff_is_not_undone_by_minimum_savings_rule():
+    hold = evaluation("hold", passing_gate, production=100.0, cost=1.00, severity=0.8, changes=0)
+    safer = evaluation("c0001", passing_gate, production=100.0, cost=1.02, severity=0.1)
+    result = rank([hold, safer], min_useful_gain=0.05,
+                  severity_cost_tolerance_fraction=0.03)
+    assert result["selected"]["candidate_id"] == "c0001"
+    assert result["severity_tradeoff"] is True
+    assert "меньшей тяжестью" in result["reason"]
+    assert result["reliability_tradeoff"]["cost_premium_fraction"] == pytest.approx(0.02)
+    assert result["reliability_tradeoff"]["severity_reduction"] == pytest.approx(0.7)
+
+
+def test_cost_window_can_prefer_fewer_actions_and_reports_the_actual_tradeoff():
+    simpler = evaluation("c0001", passing_gate, production=100.0, cost=1.02, severity=0.1, changes=1)
+    cheaper = evaluation("c0002", passing_gate, production=100.0, cost=1.00, severity=0.1, changes=2)
+    result = rank([simpler, cheaper], severity_cost_tolerance_fraction=0.03)
+    assert result["selected"]["candidate_id"] == "c0001"
+    assert result["reliability_tradeoff"]["severity_reduction"] == pytest.approx(0.0)
+    assert result["reliability_tradeoff"]["changes_reduction"] == 1
+
+
+def test_sour_crude_scenario_explicitly_uses_the_reliability_window():
+    document = json.loads(Path("config/scenarios/sour_crude.json").read_text(encoding="utf-8"))
+    with_window = MakeDecision(parse_scenario(document)).decide(budget=400)
+    document["policy"].pop("severity_cost_tolerance_fraction")
+    without_window = MakeDecision(parse_scenario(document)).decide(budget=400)
+    assert with_window["selected_plan"]["plan_id"] != without_window["selected_plan"]["plan_id"]
+    assert with_window["selected_plan"]["changes"] < without_window["selected_plan"]["changes"]
+    tradeoff = with_window["selection_policy"]["reliability_tradeoff"]
+    assert tradeoff["cost_premium_fraction"] <= 0.03
+    assert tradeoff["changes_reduction"] > 0
+
+
+def test_severity_does_not_override_cost_outside_the_window():
+    expensive_safe = evaluation("c0001", passing_gate, production=100.0, cost=1.10, severity=0.1)
+    cheap_heavy = evaluation("c0002", passing_gate, production=100.0, cost=1.00, severity=0.8)
+    result = rank([expensive_safe, cheap_heavy], severity_cost_tolerance_fraction=0.03)
+    assert result["selected"]["candidate_id"] == "c0002"
+    assert result["severity_tradeoff"] is False
+
+
+def test_negative_severity_cost_window_is_rejected():
+    with pytest.raises(ValueError, match="severity_cost_tolerance_fraction"):
+        rank([evaluation("c0001", passing_gate)], severity_cost_tolerance_fraction=-0.1)
+
+
+def test_scenario_severity_cap_excludes_an_otherwise_feasible_plan():
+    heavy = evaluation("heavy", passing_gate, production=110.0, cost=0.8, severity=0.8)
+    safe = evaluation("safe", passing_gate, production=100.0, cost=1.0, severity=0.2)
+    result = rank([heavy, safe], max_severity_index=0.5)
+    assert result["selected"]["candidate_id"] == "safe"
+    rejected = next(item for item in result["rejected"] if item["candidate_id"] == "heavy")
+    assert rejected["feasible"] is False
+    assert "сценарного предела" in rejected["rejection_reasons"][0]
+
+
+@pytest.mark.parametrize("value", [-0.1, float("nan")])
+def test_invalid_scenario_severity_cap_is_rejected(value):
+    with pytest.raises(ValueError, match="max_severity_index"):
+        rank([evaluation("c0001", passing_gate)], max_severity_index=value)
+
+
 def test_the_result_does_not_depend_on_the_order_candidates_arrive_in():
     items = [evaluation(f"c{i:04d}", passing_gate, production=100.0, cost=1.0 + i * 0.1)
              for i in range(5)]
     assert rank(items)["selected"] == rank(list(reversed(items)))["selected"]
+
+
+def test_scenario_can_disable_unconfirmed_control_moves():
+    document = json.loads(BASELINE.read_text(encoding="utf-8"))
+    document["policy"]["disabled_control_moves"] = ["avt_furnace_outlet_temp_c"]
+    candidates, _ = CandidateGenerator(parse_scenario(document), budget=400).generate()
+    current = candidates[0].controls["avt_furnace_outlet_temp_c"]
+    assert all(candidate.controls["avt_furnace_outlet_temp_c"] == current for candidate in candidates)
 
 
 def test_a_missing_figure_sorts_last_rather_than_first():

@@ -18,16 +18,17 @@ from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 ROOT = Path(".")
 SCENARIOS = ROOT / "config/scenarios"
 EXPECTED = {
-    "ample_reserve": ("recommend_scenario", 300.0, "e15dd782cfbed5dc7cfa270d8de03e5e7efa417511315ec2a61138ecc07fbbaf"),
-    "baseline": ("hold", 300.0, "af8d5ca9f6c4fbfff2f15b0ab925b7d3b8f6d60a0468632c6abfd45d4a553c7f"),
-    "no_feasible": ("refuse", None, "89209108270d016923016a3184623df08bd4ad0acacfaee648b3866f038386d7"),
-    "sour_crude": ("recommend_scenario", 300.0, "6d4888f872a57f805c43a665695cc34afcd11ae7955bce84419d820c8050bb87"),
+    "ample_reserve": ("recommend_scenario", 300.0, "044dda345e8c0f68afb1ccbc6e388374aa77911bc53637004242856b117a8917"),
+    "baseline": ("hold", 300.0, "2ae6e42f4a6440c2a15e9e481209b3d1ef7b3efdd74d74260b17a9c33327930d"),
+    "no_feasible": ("refuse", None, "f6ed902acb25aaf5b9320ef83319947bf7abb3a8be45760b28f662454d0f5c21"),
+    "sour_crude": ("recommend_scenario", 300.0, "fa0899a06a2b4890767df72388694f23e0fc0a0aa3aea7384435aa512276cff3"),
 }
 DECISION_KEYS = {
     "alternatives", "commercial_release_allowed", "cost_per_tonne", "current_operation", "lookahead",
     "decision_id", "gate", "immediate_action", "note", "production_t", "reason",
     "refusal", "rejected", "robustness", "scenario_id", "scope", "selected_plan",
     "severity_index", "status", "tank_estimate", "trace", "deployment_readiness",
+    "selection_policy",
 }
 
 

@@ -2,7 +2,7 @@
 
 Default mode is a dry run: it loads the configuration, prints it without the key and touches no network.
 `--live` performs exactly one end-to-end decision. Rerunning it is a deliberate act: quota is limited and
-the Z.AI Coding Plan terms restrict where its key may be used (see plan/07-risks.md, R10).
+the Z.AI Coding Plan terms restrict where its key may be used.
 
     uv run python scripts/agent_live_smoke.py                 # dry run
     uv run python scripts/agent_live_smoke.py --live          # one real decision

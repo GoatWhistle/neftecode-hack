@@ -55,6 +55,14 @@ class Benchmark:
     raw: dict
     budget: int = DEFAULT_BUDGET
     scenario_parser: Callable[[dict], Scenario] | None = None
+    evaluation_raw: dict | None = None
+
+    def evaluation_scenario(self) -> Scenario:
+        if self.evaluation_raw is None:
+            return self.scenario
+        if self.scenario_parser is None:
+            raise BenchmarkError("Для независимой оценки не передан парсер сценария")
+        return self.scenario_parser(copy.deepcopy(self.evaluation_raw))
 
     def hold_plan(self) -> PlanCandidate:
         planner = PlanOperation(self.scenario)
@@ -118,10 +126,11 @@ class Benchmark:
         plan = PlanCandidate(selected["plan_id"],
                              tuple(PlanStep(**step) for step in selected["steps"]),
                              selected["changes"], selected.get("intent", ""))
-        return plan, PlanOperation(scenario).evaluate(plan), decision
+        return plan, PlanOperation(self.evaluation_scenario()).evaluate(plan), decision
 
     def run(self) -> dict:
-        planner = PlanOperation(self.scenario)
+        evaluation_scenario = self.evaluation_scenario()
+        planner = PlanOperation(evaluation_scenario)
         results: dict[str, dict] = {}
 
         for name, plan in ((HOLD, self.hold_plan()), (THRESHOLD, self.threshold_plan())):
@@ -134,7 +143,7 @@ class Benchmark:
             except ValueError as exc:
                 results[name] = {"refused": True, "reason": str(exc)}
                 continue
-            results[name] = _outcome(evaluation, plan, self.scenario)
+            results[name] = _outcome(evaluation, plan, evaluation_scenario)
 
         for name, transition, terminal in ((ADVISOR, True, True),
                                            (ADVISOR_NO_TRANSITION, False, True),
@@ -147,7 +156,7 @@ class Benchmark:
                 results[name] = {"refused": True, "reason": decision["reason"],
                                  "status": decision["status"]}
                 continue
-            results[name] = {**_outcome(evaluation, plan, self.scenario_parser(raw)),
+            results[name] = {**_outcome(evaluation, plan, evaluation_scenario),
                              "status": decision["status"],
                              "plan_id": plan.plan_id, "intent": plan.intent}
         return {"scenario_id": self.scenario.scenario_id, "strategies": results}

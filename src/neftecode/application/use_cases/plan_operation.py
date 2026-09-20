@@ -74,7 +74,11 @@ class PlanOperation(PlanBuilderMixin, PlanEvaluationMixin):
             evaluations.append(evaluation)
             by_id[candidate.plan_id] = candidate
         min_gain = float(self.scenario.policy.get("min_useful_gain", 0.0))
-        result = rank(evaluations, hold_id="hold", min_useful_gain=min_gain)
+        result = rank(evaluations, hold_id="hold", min_useful_gain=min_gain,
+                      severity_cost_tolerance_fraction=float(
+                          self.scenario.policy.get("severity_cost_tolerance_fraction", 0.0)),
+                      max_severity_index=(float(self.scenario.policy["max_severity_index"])
+                                          if self.scenario.policy.get("max_severity_index") is not None else None))
         chosen_id = result["selected"]["candidate_id"] if result["selected"] else None
         result["selected_plan"] = by_id[chosen_id].to_dict() if chosen_id in by_id else None
         result["search"] = info
