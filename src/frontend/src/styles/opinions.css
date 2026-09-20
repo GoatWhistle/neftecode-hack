@@ -152,6 +152,18 @@
   max-width: var(--measure);
 }
 
+.opinion__constraint {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  margin-right: 0.6em;
+}
+
+.opinion__constraint code {
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+
 .opinion__foot {
   align-self: end;
 }

@@ -18,8 +18,10 @@ export function TerminalNode({ node, state, onSelect }: TerminalNodeProps) {
   const className = `mapnode mapnode--terminal mapnode--term-${state}`;
   const body = (
     <>
-      <span className="mapnode__kind">исход</span>
-      <span className="mapnode__title mapnode__title--mono">{node.label}</span>
+      <span className="mapnode__kind">
+        исход{node.code ? <code className="mapnode__code">{node.code}</code> : null}
+      </span>
+      <span className="mapnode__title">{node.label}</span>
       <span className="mapnode__artifact">{state === "idle" ? node.artifact : WORD[state]}</span>
     </>
   );

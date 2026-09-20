@@ -1,4 +1,5 @@
 import type { ScreenPayload } from "../types";
+import { controlLabel, controlUnit, isNumber, num } from "../format";
 
 /**
  * Компактный ответ оператору над подробной схемой (finalization-plan.md, пункт 2):
@@ -6,19 +7,70 @@ import type { ScreenPayload } from "../types";
  * или предупреждение. Схема, трасса и JSON остаются ниже, в «Итоге» и по этапам — как доказательства.
  */
 
+// Независимая проверка (2026-09-20): при потере телеметрии карточка писала «допустимый план не
+// найден», хотя поиск вообще не запускался (отказ на проверке данных, до Gate/optimizer). Текст
+// отказа теперь различает четыре канонических explanation.kind из explain_types.py: bad_data
+// (источника нет — поиск не проводился), model_not_applicable (режим вне области модели),
+// no_feasible_plan (поиск шёл, ни один план не прошёл проверки) и agent_rejected (план был, но
+// агенты отклонили).
+const REFUSAL_TEXT: Record<string, string> = {
+  bad_data: "Действие не выдано: нет достоверного источника качества, поиск плана не проводился.",
+  model_not_applicable: "Действие не выдано: текущий режим вышел за объявленную область применимости модели.",
+  no_feasible_plan: "Действие не выдано: поиск планов прошёл, но ни один не прошёл обязательные проверки.",
+  agent_rejected: "Действие не выдано: допустимый план был, но агенты качества/надёжности его отклонили."
+};
+
+function refusalLine(payload: ScreenPayload): string {
+  const kind = payload.explanation.kind;
+  return (kind && REFUSAL_TEXT[kind]) ?? "Действие не выдано: расчёт отказал, причина — ниже.";
+}
+
+const RECIPE_DIGITS = 3;
+
+// Независимая проверка: карточка не говорила, что именно меняется, только «действие — на этапе
+// «Итог» ниже». Сравниваем immediate_action с current_operation (оба PlanStep) — то же сравнение,
+// что PlanDiff делает для альтернатив, только против текущего режима, а не против выбранного плана.
+function changeSummary(payload: ScreenPayload): string | null {
+  const action = payload.decision.immediate_action;
+  const current = payload.decision.current_operation;
+  if (!action || !current) return null;
+  const names = payload.explanation.component_names ?? {};
+  const parts: string[] = [];
+  const controlKeys = new Set([...Object.keys(current.controls ?? {}), ...Object.keys(action.controls ?? {})]);
+  for (const key of [...controlKeys].sort()) {
+    const from = current.controls?.[key];
+    const to = action.controls?.[key];
+    if (!isNumber(from) || !isNumber(to) || Number(from.toFixed(1)) === Number(to.toFixed(1))) continue;
+    parts.push(`${controlLabel(key)}: ${num(from, 1)} → ${num(to, 1)} ${controlUnit(key)}`);
+  }
+  const recipeKeys = new Set([...Object.keys(current.recipe ?? {}), ...Object.keys(action.recipe ?? {})]);
+  for (const key of [...recipeKeys].sort()) {
+    const from = current.recipe?.[key];
+    const to = action.recipe?.[key];
+    if (!isNumber(from) || !isNumber(to) || Number(from.toFixed(RECIPE_DIGITS)) === Number(to.toFixed(RECIPE_DIGITS))) continue;
+    parts.push(`доля ${names[key] ?? key}: ${num(from, RECIPE_DIGITS)} → ${num(to, RECIPE_DIGITS)}`);
+  }
+  if (
+    isNumber(current.throughput_tph) && isNumber(action.throughput_tph)
+    && Number(current.throughput_tph.toFixed(1)) !== Number(action.throughput_tph.toFixed(1))
+  ) {
+    parts.push(`Производительность: ${num(current.throughput_tph, 1)} → ${num(action.throughput_tph, 1)} т/ч`);
+  }
+  if (parts.length === 0) return null;
+  return parts.slice(0, 3).join("; ") + (parts.length > 3 ? `; ещё ${parts.length - 3}` : "");
+}
+
 function actionLine(payload: ScreenPayload): string {
   const decision = payload.decision;
-  if (decision.status === "refuse") {
-    return "Действие не выдано: без него допустимый план не найден, менять режим сейчас нельзя.";
-  }
+  if (decision.status === "refuse") return refusalLine(payload);
   if (decision.status === "hold") {
     return "Сохранить текущий режим: изменения уставок не требуются.";
   }
+  const summary = changeSummary(payload);
   const changes = decision.selected_plan?.changes;
-  const suffix = typeof changes === "number"
-    ? ` (изменений в плане: ${changes})`
-    : "";
-  return `Перейти на другой режим, действие — на этапе «Итог» ниже${suffix}.`;
+  const changesText = typeof changes === "number" ? ` (изменений в плане: ${changes})` : "";
+  if (summary) return `Изменить: ${summary}${changesText}.`;
+  return `Перейти на другой режим${changesText}; конкретные уставки — на этапе «Итог» ниже.`;
 }
 
 // Предупреждение о потере допустимости (хрупкий план или неизмеренный резервуар) должно быть

@@ -1,6 +1,7 @@
 import type { Agentic } from "../types";
 import { num } from "../format";
 import { ROLE_TEXT } from "../run/agentMeters";
+import { constraintTypeText, limitText } from "../run/orchRead";
 import { Empty, Field, Fields, Note } from "./Primitives";
 import { JsonPanel } from "./Json";
 
@@ -82,9 +83,12 @@ export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
         <p className="final__constraints">
           Ограничения, наложенные агентами по ходу поиска:{" "}
           {constraints.map((item) => (
-            <code key={`${item.type}-${item.limit}`}>
-              {item.type} {item.limit} ≥ {num(item.value, 3)}
-            </code>
+            <span key={`${item.type}-${item.limit}`} className="opinion__constraint">
+              {constraintTypeText(item.type)}
+              {item.limit ? ` (${limitText(item.limit)})` : ""}
+              {typeof item.value === "number" ? ` ≥ ${num(item.value, 3)}` : ""}{" "}
+              <code title="исходный код">{item.type}{item.limit ? `/${item.limit}` : ""}</code>
+            </span>
           ))}
         </p>
       ) : null}

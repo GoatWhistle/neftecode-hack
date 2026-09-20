@@ -1,5 +1,6 @@
 import type { AgentOpinion, Agentic } from "../types";
 import { num } from "../format";
+import { constraintTypeText, limitText } from "../run/orchRead";
 import type { Lamp } from "./Primitives";
 import { Empty, LampDot, Tag } from "./Primitives";
 import { JsonPanel } from "./Json";
@@ -104,9 +105,12 @@ function Opinion({ opinion }: { opinion: AgentOpinion }) {
         <p className="opinion__proposal">
           Агент сам предложил ограничение:{" "}
           {opinion.proposed_constraints.map((item) => (
-            <code key={`${item.type}-${item.limit}`}>
-              {item.type} {item.limit} ≥ {num(item.value, 3)}
-            </code>
+            <span key={`${item.type}-${item.limit}`} className="opinion__constraint">
+              {constraintTypeText(item.type)}
+              {item.limit ? ` (${limitText(item.limit)})` : ""}
+              {typeof item.value === "number" ? ` ≥ ${num(item.value, 3)}` : ""}{" "}
+              <code title="исходный код">{item.type}{item.limit ? `/${item.limit}` : ""}</code>
+            </span>
           ))}
         </p>
       ) : null}

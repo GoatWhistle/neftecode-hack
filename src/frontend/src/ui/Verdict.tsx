@@ -9,6 +9,14 @@ export interface VerdictHeadProps {
   refused: boolean;
 }
 
+// decision.scope — код из domain/shared/primitives.py: SCENARIO_SCOPE ("synthetic_scenario") или
+// CONFIRMED_SCOPE ("confirmed_model"), других значений backend не производит. Независимая проверка
+// нашла "synthetic_scenario" сырым текстом на основном экране.
+const SCOPE_TEXT: Record<string, string> = {
+  synthetic_scenario: "сценарные данные, не измерения завода",
+  confirmed_model: "подтверждено детерминированной моделью"
+};
+
 export function VerdictHead({ payload, refused }: VerdictHeadProps) {
   const decision = payload.decision;
   return (
@@ -16,7 +24,9 @@ export function VerdictHead({ payload, refused }: VerdictHeadProps) {
       <p className="final__kicker">Вердикт советчика</p>
       <p className="final__label">{payload.status_label}</p>
       <p className="final__reason">{decision.reason}</p>
-      {decision.scope ? <p className="final__scope">{decision.scope}</p> : null}
+      {decision.scope ? (
+        <p className="final__scope">{SCOPE_TEXT[decision.scope] ?? decision.scope}</p>
+      ) : null}
     </div>
   );
 }

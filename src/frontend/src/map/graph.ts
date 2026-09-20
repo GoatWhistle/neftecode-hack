@@ -9,6 +9,10 @@ export interface MapNode {
   order: number | null;
   artifact: string;
   waiting: string;
+  /** Исходный код backend (decision.status и т.п.) для узлов, где label — человеческий перевод.
+   *  Показывается мелко, рядом, а не вместо перевода — независимая проверка нашла, что терминальные
+   *  узлы схемы показывали код (hold/recommend_scenario/refuse) как основной заголовок. */
+  code?: string;
 }
 
 export interface MapEdge {
@@ -101,7 +105,8 @@ export const MAP_NODES: readonly MapNode[] = [
   {
     id: TERMINAL_HOLD,
     kind: "terminal",
-    label: "hold",
+    label: "Сохранить режим",
+    code: "hold",
     artifact: "держать режим",
     waiting: "исход: держать режим",
     order: null
@@ -109,7 +114,8 @@ export const MAP_NODES: readonly MapNode[] = [
   {
     id: TERMINAL_RECOMMEND,
     kind: "terminal",
-    label: "recommend_scenario",
+    label: "Изменить режим",
+    code: "recommend_scenario",
     artifact: "предложить план",
     waiting: "исход: предложить план",
     order: null
@@ -117,7 +123,8 @@ export const MAP_NODES: readonly MapNode[] = [
   {
     id: TERMINAL_REFUSE,
     kind: "terminal",
-    label: "refuse",
+    label: "Отказ",
+    code: "refuse",
     artifact: "отказ с причиной",
     waiting: "исход: отказ с причиной",
     order: null

@@ -73,8 +73,8 @@ fi
 
 echo "Копирование результатов прогона"
 mkdir -p "$STAGE/artifacts"
-REQUIRED_ARTIFACTS="report.md metrics.json benchmark.json scenes.json manifest.json response_model.json model.pkl screen.json scenes agent-demo.json agent-demo.md"
-OPTIONAL_ARTIFACTS="risk_metrics.json vak_check.json episodes.json source_rules.json snapshots tank_level_check.json expert_grid.json agent-live-full-20260917.json agent-live-smoke.json agent-live-specialists-20260917.json agent-live-sour_crude-20260920.json audit.jsonl demo.json predictions.csv replay.csv risk_predictions.csv screen.html"
+REQUIRED_ARTIFACTS="report.md metrics.json benchmark.json scenes.json manifest.json response_model.json model.pkl screen.json scenes agent-demo.json agent-demo.md source_rules.json"
+OPTIONAL_ARTIFACTS="risk_metrics.json vak_check.json episodes.json tank_level_check.json expert_grid.json agent-live-full-20260917.json agent-live-smoke.json agent-live-specialists-20260917.json agent-live-sour_crude-20260920.json audit.jsonl demo.json predictions.csv replay.csv risk_predictions.csv screen.html"
 MISSING_REQUIRED=0
 for item in $REQUIRED_ARTIFACTS; do
   if [ -e "artifacts/$item" ]; then
@@ -84,6 +84,16 @@ for item in $REQUIRED_ARTIFACTS; do
     MISSING_REQUIRED=1
   fi
 done
+# snapshots — отдельная проверка, а не простое artifacts/*: независимая проверка нашла, что каталог
+# был в OPTIONAL_ARTIFACTS, поэтому пустой комплект без единого замороженного среза собирался
+# успешно. Обязателен: хотя бы один файл среза внутри, не просто существование каталога.
+if [ ! -d "artifacts/snapshots" ] || [ -z "$(find artifacts/snapshots -type f -print -quit 2>/dev/null)" ]; then
+  echo "  ОШИБКА: artifacts/snapshots пуст или отсутствует — нет ни одного замороженного среза." >&2
+  MISSING_REQUIRED=1
+else
+  mkdir -p "$STAGE/artifacts/snapshots"
+  cp -R "artifacts/snapshots/." "$STAGE/artifacts/snapshots/"
+fi
 for item in $OPTIONAL_ARTIFACTS; do
   if [ -e "artifacts/$item" ]; then
     cp -R "artifacts/$item" "$STAGE/artifacts/"

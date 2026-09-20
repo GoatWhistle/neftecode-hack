@@ -25,6 +25,23 @@ export function limitText(key: string): string {
   return LIMIT_TEXT[key] ?? key;
 }
 
+// Полный словарь proposed_constraints.type — см. CONSTRAINT_VOCABULARY в
+// application/agentic/specialist.py. Независимая проверка нашла, что constraintText() переводит
+// только .limit (сера/цетан/…), а сам .type оставался сырым кодом на основном экране.
+const TYPE_TEXT: Record<string, string> = {
+  min_quality_margin: "минимальный запас качества",
+  max_changes: "не более переключений",
+  forbid_additive: "запрет присадки",
+  max_outflow_utilization: "предел загрузки по расходу",
+  constant_plans_only: "только постоянный режим",
+  min_hours_to_violation: "минимум часов до нарушения",
+  require_not_fragile: "план должен быть устойчивым"
+};
+
+export function constraintTypeText(type: string): string {
+  return TYPE_TEXT[type] ?? type;
+}
+
 export function rankKeyText(key: string): string {
   return RANK_KEY_TEXT[key] ?? key;
 }
@@ -88,7 +105,8 @@ export function decimal(value: number, digits: number): string {
 }
 
 export function constraintText(item: Record<string, unknown>): string {
-  const type = stringAt(item, "type") ?? "ограничение без типа";
+  const rawType = stringAt(item, "type");
+  const type = rawType ? constraintTypeText(rawType) : "ограничение без типа";
   const limit = stringAt(item, "limit");
   const value = numberAt(item, "value");
   const parts: string[] = [type];
