@@ -116,8 +116,14 @@ export function AgenticMode({ agentic }: { agentic: Agentic | null }) {
         <Field label="Исход">{OUTCOMES[agentic.outcome] ?? agentic.outcome}</Field>
         <Field label="Провайдер">{agentic.provider ?? "не задан"}</Field>
         <Field label="Модель">{agentic.model ?? "не задана"}</Field>
-        <Field label="Причина отката">
-          {agentic.fallback_reason ? <code>{agentic.fallback_reason}</code> : "отката не было"}
+        <Field label={tone === "skipped" ? "Почему агенты не привлекались" : "Причина отката"}>
+          {agentic.fallback_reason ? (
+            <code>{agentic.fallback_reason}</code>
+          ) : tone === "skipped" ? (
+            "—"
+          ) : (
+            "отката не было"
+          )}
         </Field>
         <Field label="Статус детерминированного пути">
           {agentic.legacy_status
