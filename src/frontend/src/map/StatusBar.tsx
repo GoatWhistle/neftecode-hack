@@ -32,8 +32,11 @@ function currentOf(run: RunState): Current | null {
   if (running) return { id: running, state: "running" };
   const failed = ORDER.find((id) => reachedState(run.stages, id) === "failed");
   if (failed) return { id: failed, state: "failed" };
-  const last = [...ORDER].reverse().find((id) => reachedState(run.stages, id) === "done");
-  return last ? { id: last, state: "done" } : null;
+  const last = [...ORDER].reverse().find((id) => {
+    const state = reachedState(run.stages, id);
+    return state === "done" || state === "skipped";
+  });
+  return last ? { id: last, state: reachedState(run.stages, last) } : null;
 }
 
 function useAway(active: boolean): boolean {

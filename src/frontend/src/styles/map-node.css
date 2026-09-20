@@ -104,6 +104,18 @@
   color: var(--muted);
 }
 
+.mapnode--skipped {
+  border-style: dotted;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.mapnode--skipped .mapnode__order,
+.mapnode--skipped .mapnode__word {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .mapnode--running {
   border-width: 2px;
   border-style: solid;

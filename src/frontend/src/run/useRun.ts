@@ -4,7 +4,7 @@ import type { StreamHandlers } from "./stream";
 import { streamDecision } from "./stream";
 import type { AgentEvent, RunPhase, RunState, StageState } from "./types";
 import { EMPTY_RUN } from "./types";
-import { advanceTo, chainTo, LATE_STAGES, mergeFacts, mergePhase, ORDER } from "./sequence";
+import { advanceTo, chainTo, LATE_STAGES, mergeFacts, mergePhase, ORDER, stageRan } from "./sequence";
 import { createRevealQueue } from "./revealQueue";
 import type { RunTape } from "./replay";
 import { canReplay, createTapeRecorder, playTape } from "./replay";
@@ -78,7 +78,7 @@ export function useRun(): RunControls {
         return { ...prev, payload, stageSource: sources };
       });
       enqueue("agents", "done");
-      for (const id of LATE_STAGES) enqueue(id, "done");
+      for (const id of LATE_STAGES) enqueue(id, stageRan(id, payload) ? "done" : "skipped");
       reveal.onDrained(() => {
         setRun((prev) => (prev.status === "running" ? { ...prev, status: "done" } : prev));
       });

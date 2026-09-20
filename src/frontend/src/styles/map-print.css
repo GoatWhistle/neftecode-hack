@@ -40,6 +40,11 @@
     border-color: #767676;
   }
 
+  .mapnode--skipped {
+    border-color: #767676;
+    color: #767676;
+  }
+
   .mapnode--running {
     border-width: 3px;
     border-color: #000000;

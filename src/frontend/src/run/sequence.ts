@@ -1,6 +1,27 @@
+import type { ScreenPayload } from "../types";
 import type { PhaseEvent, RunPhase, StageFacts, StageState } from "./types";
 
 export const ORDER = ["state", "trust", "candidates", "forecast", "choice", "gate", "agents", "decision"];
+
+/**
+ * Did this stage actually execute for the given result, or did the run stop before reaching it
+ * (early data refusal, no feasible plan)? Mirrors the same per-stage "ran or not" checks each
+ * stage's own Empty-state text already uses — see CandidatesStage/ForecastStage/ChoiceStage/GateStage.
+ * "state" and "trust" always run first; "decision" always produces a final verdict.
+ */
+export function stageRan(id: string, payload: ScreenPayload): boolean {
+  switch (id) {
+    case "candidates":
+      return (payload.decision.trace ?? []).some((item) => item.agent === "optimizer");
+    case "forecast":
+    case "gate":
+      return (payload.decision.gate?.checks ?? []).length > 0;
+    case "choice":
+      return payload.decision.selected_plan !== null;
+    default:
+      return true;
+  }
+}
 
 export function reachedState(stages: Record<string, StageState>, id: string): StageState {
   const target = ORDER.indexOf(id);

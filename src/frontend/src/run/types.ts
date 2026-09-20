@@ -1,6 +1,6 @@
 import type { ScreenPayload } from "../types";
 
-export type StageState = "pending" | "running" | "done" | "failed";
+export type StageState = "pending" | "running" | "done" | "skipped" | "failed";
 
 export type StageSource = "server" | "payload";
 

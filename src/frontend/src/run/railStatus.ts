@@ -13,6 +13,7 @@ export interface RailSignal {
 const RUNNING: RailSignal = { lamp: "idle", note: "идёт", live: true };
 const PENDING: RailSignal = { lamp: "idle", note: "ждёт", live: false };
 const FAILED: RailSignal = { lamp: "fail", note: "обрыв связи", live: true };
+const SKIPPED: RailSignal = { lamp: "idle", note: "не выполнялся", live: false };
 export const SILENT_NOTE = "без отметок";
 
 const SILENT: RailSignal = { lamp: "idle", note: SILENT_NOTE, live: false };
@@ -21,6 +22,7 @@ export const STATE_WORD: Record<StageState, string> = {
   pending: "ожидает",
   running: "идёт",
   done: "готово",
+  skipped: "пропущено",
   failed: "обрыв связи"
 };
 
@@ -82,6 +84,7 @@ export function railSignal(run: RunState, payload: ScreenPayload | null, id: str
   const state: StageState = run.stages[id] ?? "pending";
   if (state === "failed") return FAILED;
   if (state === "pending") return PENDING;
+  if (state === "skipped") return SKIPPED;
 
   const live = factSignal(id, run.stageFacts[id]);
   if (state === "running") {
