@@ -2,6 +2,7 @@ export const TRUNCATION_MARK = "…";
 
 const LIMIT_TEXT: Record<string, string> = {
   sulfur_mgkg: "сера",
+  t95_c: "T95",
   cetane_number: "цетановое число",
   density_max_kgm3: "плотность",
   density_min_kgm3: "плотность снизу",
@@ -23,6 +24,21 @@ const RANK_KEY_TEXT: Record<string, string> = {
 
 export function limitText(key: string): string {
   return LIMIT_TEXT[key] ?? key;
+}
+
+// Независимая проверка (второй заход): decision.reason иногда приходит от детерминированного backend
+// (lookahead.py: "Упреждение за горизонтом: при плане {id} {constraint} = {value} при пределе {limit}
+// …") с сырым именем свойства качества внутри обычной русской фразы. Backend — не текстовый шаблон,
+// который стоит трогать здесь (влияет на decision_id и замороженные хеши тестов), поэтому подставляем
+// перевод уже готовой фразы на фронтенде: находим известные ключи как целые слова и меняем на текст
+// из того же словаря LIMIT_TEXT, которым уже переведены margin/constraint UI в других местах.
+const QUALITY_KEY_PATTERN = new RegExp(
+  `\\b(${Object.keys(LIMIT_TEXT).map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
+  "g"
+);
+
+export function humanizeReason(text: string): string {
+  return text.replace(QUALITY_KEY_PATTERN, (match) => LIMIT_TEXT[match] ?? match);
 }
 
 // Полный словарь proposed_constraints.type — см. CONSTRAINT_VOCABULARY в

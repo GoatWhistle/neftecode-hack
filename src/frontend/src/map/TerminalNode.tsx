@@ -16,11 +16,14 @@ const WORD: Record<TerminalState, string> = {
 
 export function TerminalNode({ node, state, onSelect }: TerminalNodeProps) {
   const className = `mapnode mapnode--terminal mapnode--term-${state}`;
+  // Независимая проверка (второй заход): раньше код исхода (hold/recommend_scenario/refuse) был
+  // виден текстом прямо на карточке, хоть и мелко — по правилу плана код должен остаться только в
+  // раскрытой трассе/JSON, не на обычном экране вообще. Теперь код — только в `title` (нативная
+  // подсказка при наведении/фокусе), в видимом тексте карточки его нет.
+  const titleAttr = node.code ? `код исхода: ${node.code}` : undefined;
   const body = (
     <>
-      <span className="mapnode__kind">
-        исход{node.code ? <code className="mapnode__code">{node.code}</code> : null}
-      </span>
+      <span className="mapnode__kind">исход</span>
       <span className="mapnode__title">{node.label}</span>
       <span className="mapnode__artifact">{state === "idle" ? node.artifact : WORD[state]}</span>
     </>
@@ -32,6 +35,7 @@ export function TerminalNode({ node, state, onSelect }: TerminalNodeProps) {
         type="button"
         className={`${className} mapnode--link`}
         data-map-node={node.id}
+        title={titleAttr}
         aria-label={`Исход ${node.label}, ${WORD[state]}, перейти к итогу`}
         onClick={onSelect}
       >
@@ -41,7 +45,12 @@ export function TerminalNode({ node, state, onSelect }: TerminalNodeProps) {
   }
 
   return (
-    <div className={className} data-map-node={node.id} aria-label={`Исход ${node.label}, ${WORD[state]}`}>
+    <div
+      className={className}
+      data-map-node={node.id}
+      title={titleAttr}
+      aria-label={`Исход ${node.label}, ${WORD[state]}`}
+    >
       {body}
     </div>
   );

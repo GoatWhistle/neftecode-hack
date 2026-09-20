@@ -1,5 +1,6 @@
 import type { ScreenPayload } from "../types";
 import { controlLabel, controlUnit, isNumber, num } from "../format";
+import { humanizeReason } from "../run/orchRead";
 
 /**
  * Компактный ответ оператору над подробной схемой (finalization-plan.md, пункт 2):
@@ -27,12 +28,20 @@ function refusalLine(payload: ScreenPayload): string {
 
 const RECIPE_DIGITS = 3;
 
-// Независимая проверка: карточка не говорила, что именно меняется, только «действие — на этапе
-// «Итог» ниже». Сравниваем immediate_action с current_operation (оба PlanStep) — то же сравнение,
-// что PlanDiff делает для альтернатив, только против текущего режима, а не против выбранного плана.
+interface ControlsLike {
+  controls?: Record<string, number>;
+  recipe?: Record<string, number>;
+  throughput_tph?: number | null;
+}
+
+// Независимая проверка (второй заход): decision.current_operation часто отсутствует, а фактический
+// текущий режим лежит в explanation.current_operation — тот же приоритет, что StateStage.tsx уже
+// использует (`explanation.current_operation ?? decision.current_operation`). changeSummary раньше
+// смотрел только decision.current_operation и поэтому падал в null даже когда данные для сравнения
+// были прямо в payload.
 function changeSummary(payload: ScreenPayload): string | null {
   const action = payload.decision.immediate_action;
-  const current = payload.decision.current_operation;
+  const current: ControlsLike | null = payload.explanation.current_operation ?? payload.decision.current_operation;
   if (!action || !current) return null;
   const names = payload.explanation.component_names ?? {};
   const parts: string[] = [];
@@ -105,7 +114,7 @@ export function OperatorAnswer({ payload }: { payload: ScreenPayload }) {
         {payload.status_label}
       </p>
       <p className="answer__action">{actionLine(payload)}</p>
-      <p className="answer__reason">{payload.decision.reason}</p>
+      <p className="answer__reason">{humanizeReason(payload.decision.reason)}</p>
       {note ? (
         <p className={`answer__note ${note.critical ? "answer__note--critical" : ""}`}>{note.text}</p>
       ) : null}
