@@ -1,0 +1,83 @@
+/* Компактный ответ оператору над схемой — finalization-plan.md, пункт 2. */
+
+.answer {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.answer__kicker {
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.answer__kicker::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex: none;
+  background: var(--carbon);
+}
+
+.answer__verdict {
+  margin: 0;
+  font-size: clamp(28px, 4.5vw, 48px);
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.answer__verdict--refuse {
+  color: var(--fail);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+}
+
+.answer__action {
+  margin: var(--space-3) 0 0;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.4;
+  max-width: var(--measure-lead);
+}
+
+.answer__reason {
+  margin: var(--space-2) 0 0;
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.45;
+  max-width: var(--measure-lead);
+}
+
+.answer__note {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: var(--measure-lead);
+}
+
+/* Предупреждение о потере допустимости — заметнее идентификатора плана: крупнее шрифт, цвет
+   тревоги, левая полоса вместо тонкой рамки. */
+.answer__note--critical {
+  border: none;
+  border-left: 4px solid var(--fail);
+  background: color-mix(in srgb, var(--fail) 8%, var(--paper));
+  color: var(--fail);
+  font-size: 16px;
+  font-weight: 500;
+}

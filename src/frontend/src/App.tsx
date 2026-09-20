@@ -7,6 +7,7 @@ import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf }
 import { PipelineMap } from "./map/PipelineMap";
 import { Summary } from "./map/Summary";
 import { StatusBar } from "./map/StatusBar";
+import { OperatorAnswer } from "./ui/OperatorAnswer";
 import { Logo } from "./ui/Logo";
 import { useDocumentTitle } from "./useDocumentTitle";
 
@@ -123,6 +124,7 @@ export function App() {
             pending={pending}
           />
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
+          {payload ? <OperatorAnswer payload={payload} /> : null}
           <PipelineMap run={run} inputCaption={inputCaption} open={open} onOpen={setOpen} />
           {payload ? <Summary payload={payload} state={reachedState(run.stages, "decision")} /> : null}
         </main>
