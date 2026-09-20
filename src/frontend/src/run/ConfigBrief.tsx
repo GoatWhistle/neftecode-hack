@@ -5,6 +5,7 @@ export interface ConfigBriefProps {
   options: RunOptions;
   conditions: Conditions;
   tank: TankOption | null;
+  folded?: boolean;
 }
 
 interface Line {
@@ -16,7 +17,7 @@ function snapshotTitle(options: RunOptions, key: string): string {
   return options.snapshots.find((item) => item.key === key)?.title ?? key;
 }
 
-export function ConfigBrief({ options, conditions, tank }: ConfigBriefProps) {
+export function ConfigBrief({ options, conditions, tank, folded }: ConfigBriefProps) {
   const lines: Line[] = [
     { term: "Сценарий", value: conditions.scenario },
     { term: "Момент", value: snapshotTitle(options, conditions.snapshot) },
@@ -32,10 +33,12 @@ export function ConfigBrief({ options, conditions, tank }: ConfigBriefProps) {
     });
   }
 
+  const id = folded ? "brief-folded-title" : "brief-title";
+
   return (
-    <aside className="brief" aria-labelledby="brief-title">
-      <h3 className="brief__title" id="brief-title">
-        Что уйдёт на расчёт
+    <aside className={`brief ${folded ? "brief--folded" : ""}`} aria-labelledby={id}>
+      <h3 className="brief__title" id={id}>
+        {folded ? "Ушло на расчёт" : "Что уйдёт на расчёт"}
       </h3>
       <dl className="brief__list">
         {lines.map((line) => (
@@ -45,14 +48,18 @@ export function ConfigBrief({ options, conditions, tank }: ConfigBriefProps) {
           </div>
         ))}
       </dl>
-      <p className="brief__note">
-        Сервер получает ровно эти условия. Числа пределов и производительности берутся из полей слева
-        как есть — интерфейс их не пересчитывает.
-      </p>
-      <p className="brief__note">
-        Сервер предлагает {options.scenarios.length} сценариев и {options.faults.length} вариантов
-        отказа источников; выбран один из них. Прогон считается по нему целиком.
-      </p>
+      {folded ? null : (
+        <>
+          <p className="brief__note">
+            Сервер получает ровно эти условия. Числа пределов и производительности берутся из полей
+            слева как есть — интерфейс их не пересчитывает.
+          </p>
+          <p className="brief__note">
+            Сервер предлагает {options.scenarios.length} сценариев и {options.faults.length}{" "}
+            вариантов отказа источников; выбран один из них. Прогон считается по нему целиком.
+          </p>
+        </>
+      )}
     </aside>
   );
 }

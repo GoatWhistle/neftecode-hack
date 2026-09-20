@@ -1,8 +1,6 @@
 @import "./data.css";
 @import "./agents.css";
 @import "./veto.css";
-@import "./stage-state.css";
-@import "./bands.css";
 @import "./final.css";
 @import "./motion.css";
 
@@ -16,6 +14,16 @@
 .stage {
   scroll-margin-top: var(--space-4);
   min-width: 0;
+  padding-block: var(--space-7);
+  border-top: 1px solid var(--line-soft);
+}
+
+.stages > .stage:first-of-type {
+  border-top-color: transparent;
+}
+
+.config {
+  padding-block: var(--space-7);
 }
 
 .stage__head {

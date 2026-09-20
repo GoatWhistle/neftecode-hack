@@ -3,11 +3,14 @@
 @import "./layout.css";
 @import "./run.css";
 @import "./config-groups.css";
-@import "./rail.css";
 @import "./scroll.css";
 @import "./acts.css";
 @import "./vocab.css";
+@import "./map.css";
+@import "./map-drawer.css";
+@import "./map-live.css";
 @import "./print.css";
+@import "./map-print.css";
 
 :root {
   color-scheme: light;
@@ -31,15 +34,8 @@
   --fail: #8c3322;
   --unknown: #6a4a11;
   --accent: #322d2a;
-  --band-0: #f0efe9; --band-1: #f2ebd7; --band-2: #d7e4f2; --band-3: #f2d7e0; --band-4: #e2d7f2; --band-5: #d7edf2; --band-6: #dbf2d7; --band-7: #f2e2d7; --band-8: #d7f2eb;
-  --band-line-0: #d6d3c9; --band-line-1: #d0cab9; --band-line-2: #b9c4d0; --band-line-3: #d0b9c1; --band-line-4: #c2b9d0; --band-line-5: #b9ccd0; --band-line-6: #bcd0b9; --band-line-7: #d0c2b9; --band-line-8: #b9d0ca;
-  --band-field-0: #e4e2db; --band-field-1: #e3dcca; --band-field-2: #cad6e3; --band-field-3: #e3cad2; --band-field-4: #d4cae3; --band-field-5: #cadee3; --band-field-6: #cde3ca; --band-field-7: #e3d4ca; --band-field-8: #cae3dc;
-  --band-hover-0: #f5f4f2; --band-hover-1: #f4f2ee; --band-hover-2: #eef1f4; --band-hover-3: #f4eef0; --band-hover-4: #f0eef4; --band-hover-5: #eef3f4; --band-hover-6: #eff4ee; --band-hover-7: #f4f0ee; --band-hover-8: #eef4f2;
-  --band: var(--band-0);
-  --band-line: var(--band-line-0);
-  --band-field: var(--band-field-0);
-  --band-hover: var(--band-hover-0);
-  --band-seam: rgba(50, 45, 42, 0.1);
+  --accent-line: #c8761a;
+  --accent-ink: #8a4d0f;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -52,6 +48,7 @@
   --measure: 78ch;
   --measure-lead: 62ch;
   --dense-max: 1600px;
+  --map-max: 2320px;
   --radius-sm: 8px;
   --radius-card: 12px;
   --radius-nav: 16px;

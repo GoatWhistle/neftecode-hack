@@ -113,3 +113,8 @@ export function duration(ms: number | undefined): string {
   if (minutes === 0) return `${seconds},${tenth}`;
   return `${minutes}:${String(seconds).padStart(2, "0")},${tenth}`;
 }
+
+export function spanText(ms: number | undefined): string {
+  if (ms === undefined || !Number.isFinite(ms)) return "—";
+  return ms < 100 ? "<0,1" : duration(ms);
+}

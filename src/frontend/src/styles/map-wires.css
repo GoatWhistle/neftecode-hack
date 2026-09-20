@@ -1,0 +1,107 @@
+.wires {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.wire__track,
+.wire__line {
+  fill: none;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+.wire__track {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+.wire__line {
+  stroke: var(--carbon);
+  stroke-width: 2;
+  transition: stroke-dashoffset 320ms var(--ease);
+}
+
+.wire__head {
+  fill: var(--muted);
+  transition: fill var(--motion-panel) var(--ease);
+}
+
+.wire__label {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 0.7vw, 14px);
+  fill: var(--muted);
+  paint-order: stroke;
+  stroke: var(--vellum);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.wire--drawn .wire__head {
+  fill: var(--carbon);
+}
+
+.wire--loop .wire__track,
+.wire--back .wire__track {
+  stroke-dasharray: 5 4;
+}
+
+.wire--exit .wire__track {
+  stroke-dasharray: 3 5;
+}
+
+.wire--exit.wire--alert .wire__track {
+  stroke: var(--fail);
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+
+.wire--exit.wire--alert .wire__head {
+  fill: var(--fail);
+}
+
+.wire--exit.wire--alert .wire__label {
+  fill: var(--fail);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wire__line,
+  .wire__head {
+    transition: none;
+  }
+}
+
+@media print {
+  .wire__track {
+    stroke: #767676;
+  }
+
+  .wire__line {
+    stroke: #000000;
+  }
+
+  .wire__head {
+    fill: #000000;
+  }
+
+  .wire__label {
+    fill: #000000;
+    stroke: #ffffff;
+  }
+
+  .wire--exit.wire--alert .wire__track {
+    stroke: #000000;
+    stroke-width: 3;
+  }
+
+  .wire--exit.wire--alert .wire__head {
+    fill: #000000;
+  }
+
+  .wire--exit.wire--alert .wire__label {
+    fill: #000000;
+    font-weight: 700;
+  }
+}

@@ -13,7 +13,7 @@ interface OptimizerTrace extends TraceEvent {
   note?: string;
 }
 
-export function CandidatesStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function CandidatesStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const trace = (payload.decision.trace ?? []).find((item) => item.agent === "optimizer") as
     | OptimizerTrace
     | undefined;
@@ -32,6 +32,7 @@ export function CandidatesStage({ payload, index, state, source, lamp, lampTitle
       lead="Сколько планов оптимизатор построил и проверил, и по каким семействам ограничений они отсеялись."
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       {rounds.length === 0 ? (
         <Empty>Трасса оптимизатора не передавалась.</Empty>

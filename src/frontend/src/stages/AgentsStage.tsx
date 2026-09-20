@@ -36,7 +36,7 @@ export interface AgentsStageProps extends StageProps {
   lastFrameAt: number | null;
 }
 
-export function AgentsStage({ payload, index, state, source, lamp, lampTitle, events, facts, elapsedMs, lastFrameAt }: AgentsStageProps) {
+export function AgentsStage({ payload, index, state, source, lamp, lampTitle, bare, events, facts, elapsedMs, lastFrameAt }: AgentsStageProps) {
   const agentic = payload.decision.agentic;
   const trace = ordered(payload.decision.trace ?? []);
   const severity = severityOf(trace);
@@ -52,6 +52,7 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ev
       lead="Диалог оркестратора со специалистами по мере его хода: кто кого спросил, какой инструмент выбрал сам агент, что вернулось, какой вердикт и почему."
       lamp={running ? "idle" : lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       <AgenticMode agentic={agentic} />
 

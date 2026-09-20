@@ -19,20 +19,10 @@
     margin-top: 0;
   }
 
-  .stages {
-    --band-bleed-start: 0px;
-    --band-bleed-end: 0px;
-  }
-
   .stage.stage.stage,
   .config.config.config,
-
-  .rail__item.rail__item {
-    --band: #ffffff;
-    --band-line: #767676;
-    --band-field: #ffffff;
-    --band-hover: #ffffff;
-    --band-seam: #000000;
+  .mapnode.mapnode.mapnode,
+  .drawer.drawer.drawer {
     --paper: #ffffff;
     --panel: #ffffff;
     --panel-raised: #ffffff;
@@ -43,11 +33,8 @@
     --muted: #3d3a35;
   }
 
-  .rail,
-  .stage--outline,
   .config__actions,
   .config__offline-actions,
-
   .config {
     background-color: transparent;
     padding-block: 0 8mm;
@@ -73,7 +60,6 @@
     page-break-before: always;
   }
 
-  .stage__head,
   .readouts,
   .fields,
   .grid,
@@ -88,7 +74,6 @@
     page-break-inside: avoid;
   }
 
-  .stage__title,
   .final__label {
     break-after: avoid;
     page-break-after: avoid;
@@ -112,8 +97,7 @@
   .chart,
   .origin-legend,
   .final__control,
-  .final__blend,
-  .rail__list {
+  .final__blend {
     background: #ffffff;
     border-color: #000000;
   }
@@ -145,10 +129,8 @@
     font-size: 8.5pt;
   }
 
-  .masthead__verdict,
-  .masthead__verdict--refuse,
+  .final__label,
   .note,
-  .note--warn,
   .warnings__text,
   .readout--fail .readout__value,
   .readout--unknown .readout__value,

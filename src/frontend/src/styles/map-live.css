@@ -1,0 +1,111 @@
+.live {
+  margin-block-start: var(--space-3);
+}
+
+.live__caption {
+  margin: 0 0 var(--space-2);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.live__grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-2);
+}
+
+.live__cell {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.live__cell.live__cell--pass {
+  border-color: var(--pass);
+}
+
+.live__cell--pass dd {
+  color: var(--pass);
+  font-weight: 500;
+}
+
+.live__cell.live__cell--fail {
+  border-color: var(--fail);
+  border-width: 2px;
+}
+
+.live__cell--fail dd {
+  color: var(--fail);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.live__cell.live__cell--unknown {
+  border-color: var(--unknown);
+  border-style: dashed;
+}
+
+.live__cell--unknown dd {
+  color: var(--unknown);
+  font-style: italic;
+}
+
+.live__cell dt {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.live__cell dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.live__sources {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.live__source {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 14px;
+  padding-block-end: var(--space-1);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.live__source-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live__source-value,
+.live__source-age {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.live__source-age {
+  color: var(--muted);
+  font-size: 11px;
+}

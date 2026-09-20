@@ -60,7 +60,7 @@ export function buildRows(statements: Statement[]): Row[] {
 
 const TRACK = 100;
 
-function window(value: number, low: number | null, high: number | null): [number, number] {
+function scaleWindow(value: number, low: number | null, high: number | null): [number, number] {
   const points = [value, low, high].filter(isNumber);
   const lo = Math.min(...points);
   const hi = Math.max(...points);
@@ -75,7 +75,7 @@ function position(value: number, from: number, to: number): number {
 
 function Bar({ row }: { row: Row }) {
   const { spec, value, low, high } = row;
-  const [from, to] = window(value, low, high);
+  const [from, to] = scaleWindow(value, low, high);
   const mark = position(value, from, to);
   const lowMark = low === null ? null : position(low, from, to);
   const highMark = high === null ? null : position(high, from, to);

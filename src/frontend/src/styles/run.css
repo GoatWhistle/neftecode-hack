@@ -5,6 +5,7 @@
   --config-label: 11px;
   --config-track: 0.1em;
   --config-control-h: 42px;
+  --motion-fold: 240ms;
 }
 
 .config__head {

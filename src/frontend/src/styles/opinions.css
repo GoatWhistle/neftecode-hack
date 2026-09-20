@@ -6,7 +6,7 @@
 }
 
 .opinion {
-  border: 1px solid var(--band-line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-card);
   background: var(--paper);
   padding: var(--space-4);

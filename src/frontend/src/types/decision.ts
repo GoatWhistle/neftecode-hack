@@ -221,7 +221,7 @@ export interface Decision {
   scope: string | null;
   current_operation: PlanStep | null;
   commercial_release_allowed: boolean;
-  deployment_readiness: DeploymentReadiness;
+  deployment_readiness?: DeploymentReadiness;
   scenario_id: string | null;
   selected_plan: SelectedPlan | null;
   immediate_action: PlanStep | null;

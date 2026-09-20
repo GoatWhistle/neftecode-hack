@@ -29,7 +29,7 @@ function count(checks: GateCheck[], status: CheckStatus): number {
   return checks.filter((check) => check.status === status).length;
 }
 
-export function GateStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function GateStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const gate = payload.decision.gate;
   const checks = gate?.checks ?? [];
   const failed = checks.filter((check) => check.status === "fail");
@@ -48,6 +48,7 @@ export function GateStage({ payload, index, state, source, lamp, lampTitle }: St
       lead="Жёсткая проверка выбранного плана: каждое ограничение в каждый момент горизонта."
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       {checks.length === 0 ? (
         payload.decision.status === "refuse" ? (

@@ -1,4 +1,4 @@
-export const REVEAL_GAP_MS = 260;
+export const REVEAL_GAP_MS = 450;
 
 export interface RevealQueue {
   push: (id: string) => void;

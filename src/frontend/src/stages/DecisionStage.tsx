@@ -13,7 +13,7 @@ const RISK_TONE: Record<string, "pass" | "unknown" | "fail"> = {
   high: "fail"
 };
 
-export function DecisionStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function DecisionStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const decision = payload.decision;
   const explanation = payload.explanation;
   const refused = decision.status === "refuse";
@@ -37,11 +37,16 @@ export function DecisionStage({ payload, index, state, source, lamp, lampTitle }
       }
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
       final
     >
       <VerdictHead payload={payload} refused={refused} />
 
-      {!deployment.ready ? (
+      {deployment === undefined ? (
+        <Note tone="warn">
+          Готовность к промышленному применению сервер не передавал: судить по этому прогону нельзя.
+        </Note>
+      ) : !deployment.ready ? (
         <Note tone="warn">
           Промышленное применение пока заблокировано: {deployment.required_inputs.map((item) => item.label).join("; ")}.
           Числа 4000 т и 30 т/ч остаются только сценарными допущениями.

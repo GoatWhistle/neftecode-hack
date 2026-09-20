@@ -1,0 +1,47 @@
+import { useEffect, useState } from "react";
+import { ORDER } from "../run/sequence";
+import type { RunState, StageState } from "../run/types";
+import { SUMMARY_ID } from "./Summary";
+
+export function spentOf(run: RunState, id: string, state: StageState, liveMs: number): number | null {
+  const position = ORDER.indexOf(id);
+  if (position === -1) return null;
+  const startedAt = position === 0 ? 0 : (run.stageAt[ORDER[position - 1] as string] ?? 0);
+  if (state === "running") return Math.max(0, liveMs - startedAt);
+  const at = run.stageAt[id];
+  if ((state === "done" || state === "failed") && at !== undefined) {
+    return Math.max(0, at - startedAt);
+  }
+  return null;
+}
+
+export function focusNode(board: HTMLElement, id: string): void {
+  const target = board.querySelector<HTMLElement>(`[data-map-node="${id}"]`);
+  target?.focus();
+}
+
+export function scrollToSummary(): void {
+  const node = document.getElementById(SUMMARY_ID);
+  if (!node) return;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  node.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+}
+
+export function usePrinting(): boolean {
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("print");
+    const onChange = (event: MediaQueryListEvent | MediaQueryList) => setPrinting(event.matches);
+    const onBefore = () => setPrinting(true);
+    const onAfter = () => setPrinting(false);
+    query.addEventListener("change", onChange);
+    window.addEventListener("beforeprint", onBefore);
+    window.addEventListener("afterprint", onAfter);
+    return () => {
+      query.removeEventListener("change", onChange);
+      window.removeEventListener("beforeprint", onBefore);
+      window.removeEventListener("afterprint", onAfter);
+    };
+  }, []);
+  return printing;
+}

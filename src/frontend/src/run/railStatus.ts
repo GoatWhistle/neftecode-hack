@@ -12,7 +12,7 @@ export interface RailSignal {
 
 const RUNNING: RailSignal = { lamp: "idle", note: "идёт", live: true };
 const PENDING: RailSignal = { lamp: "idle", note: "ждёт", live: false };
-const FAILED: RailSignal = { lamp: "fail", note: "отказ", live: true };
+const FAILED: RailSignal = { lamp: "fail", note: "обрыв связи", live: true };
 export const SILENT_NOTE = "без отметок";
 
 const SILENT: RailSignal = { lamp: "idle", note: SILENT_NOTE, live: false };
@@ -21,7 +21,7 @@ export const STATE_WORD: Record<StageState, string> = {
   pending: "ожидает",
   running: "идёт",
   done: "готово",
-  failed: "отказ"
+  failed: "обрыв связи"
 };
 
 export function marked(id: string, facts: StageFacts | undefined, events = 0): boolean {

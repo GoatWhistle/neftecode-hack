@@ -20,7 +20,7 @@ function sulfurStatement(statements: Statement[]): Statement | undefined {
   return statements.find((item) => item.topic === "sulfur_mgkg");
 }
 
-export function ForecastStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function ForecastStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const checks = payload.decision.gate?.checks ?? [];
   const points = series(checks);
   const limit = points.find((check) => isNumber(check.limit))?.limit ?? null;
@@ -43,6 +43,7 @@ export function ForecastStage({ payload, index, state, source, lamp, lampTitle }
       lead="Запасы по всем нормируемым свойствам продукта и траектория серы по горизонту плана."
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       {payload.forecast === null ? (
         <Empty>

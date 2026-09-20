@@ -1,25 +1,5 @@
-.stage[data-band="7"] {
-  padding-block-end: calc(var(--space-7) * 1.5);
-}
-
 .stage--final {
   padding-block: calc(var(--space-7) * 1.6) calc(var(--space-7) * 1.8);
-}
-
-.stage--final .stage__title {
-  font-size: clamp(30px, 3.4vw, 46px);
-  line-height: 1.04;
-}
-
-.stage--final .stage__step {
-  font-size: 34px;
-}
-
-.stage--final .stage__head {
-  grid-template-columns: 44px minmax(0, 1fr);
-  padding-bottom: var(--space-4);
-  border-bottom-width: 2px;
-  border-bottom-color: var(--carbon);
 }
 
 .stage--final .stage__body {
@@ -48,7 +28,7 @@
 
 .final__verdict {
   padding: 0 0 var(--space-5);
-  border-bottom: 1px solid var(--band-line);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .final__label {
@@ -106,8 +86,8 @@
   max-width: var(--dense-max);
   gap: 1px;
   margin: 0;
-  background: var(--band-line);
-  border: 1px solid var(--band-line);
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-card);
   overflow: hidden;
 }
@@ -157,7 +137,7 @@
   margin: 0;
   padding: 0;
   max-width: var(--dense-max);
-  border: 1px solid var(--band-line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-card);
   overflow: hidden;
   background: var(--paper);
@@ -169,7 +149,7 @@
   gap: var(--space-3);
   align-items: baseline;
   padding: 11px var(--space-4);
-  border-bottom: 1px solid var(--band-line);
+  border-bottom: 1px solid var(--line-soft);
   font-size: 15px;
   transition: background-color var(--motion-hover) var(--ease);
 }
@@ -207,15 +187,11 @@
 @media (hover: hover) and (pointer: fine) {
   .final__control:hover,
   .final__blend-row:hover {
-    background: var(--band-hover);
+    background: var(--row-hover);
   }
 }
 
 @media (max-width: 720px) {
-  .stage[data-band="7"] {
-    padding-block-end: calc(var(--space-7) * 1.2);
-  }
-
   .stage--final {
     padding-block: var(--space-7);
   }

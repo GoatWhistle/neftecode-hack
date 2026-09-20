@@ -15,9 +15,10 @@ export interface StageProps {
   source?: string | undefined;
   lamp: Lamp;
   lampTitle: string;
+  bare?: boolean | undefined;
 }
 
-export function StateStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function StateStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const operation = payload.explanation.current_operation ?? payload.decision.current_operation;
   const origin = payload.explanation.current_operation?.origin ?? null;
   const names = payload.explanation.component_names ?? {};
@@ -35,6 +36,7 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle }: S
       lead="Режим на момент решения: уставки, рецепт смешения, запасы компонентов."
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       <Fields>
         <Field label="Момент решения">{moment(payload.decision_time)}</Field>

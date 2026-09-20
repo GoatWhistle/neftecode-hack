@@ -18,7 +18,7 @@ function verdicts(report: TrustReport | null, fallback: SourceVerdict[]): Source
   return fallback ?? [];
 }
 
-export function TrustStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function TrustStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const report = reportOf(payload.decision.trace ?? []);
   const sources = verdicts(report, payload.sources);
   const missing = report?.telemetry_missing_fraction ?? null;
@@ -34,6 +34,7 @@ export function TrustStage({ payload, index, state, source, lamp, lampTitle }: S
       lead="Агент данных решает, какому источнику можно верить: возраст замера, пригодность, пропуски телеметрии."
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       {sources.length === 0 ? (
         <Empty>

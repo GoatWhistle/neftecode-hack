@@ -10,7 +10,7 @@ import { RobustnessMap } from "../ui/RobustnessMap";
 import { PlanDiff } from "../ui/PlanDiff";
 import type { StageProps } from "./StateStage";
 
-export function ChoiceStage({ payload, index, state, source, lamp, lampTitle }: StageProps) {
+export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const plan = payload.decision.selected_plan;
   const candidates = payload.decision.alternatives ?? [];
   const setpointsOf = new Map(candidates.map((item) => [item.candidate_id, item]));
@@ -54,6 +54,7 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle }: 
       lead="Какой план победил, и чем именно проигрывает каждый из остальных."
       lamp={lamp}
       lampTitle={lampTitle}
+      bare={bare}
     >
       {plan ? (
         <>

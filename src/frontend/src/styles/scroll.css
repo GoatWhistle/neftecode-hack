@@ -6,8 +6,7 @@ html {
 .scroller,
 .json,
 .json__body,
-pre,
-.rail {
+pre {
   scrollbar-width: thin;
   scrollbar-color: var(--carbon) var(--field);
 }

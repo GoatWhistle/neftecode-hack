@@ -1,3 +1,44 @@
+.config__fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--motion-fold) var(--ease);
+}
+
+.config--folded .config__fold {
+  grid-template-rows: 0fr;
+}
+
+.config__fold-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.brief--folded {
+  margin-top: var(--space-4);
+  max-width: var(--dense-max);
+  animation: enter-fade var(--motion-fold) var(--ease) both;
+}
+
+.brief--folded .brief__list {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-2) var(--space-5);
+}
+
+.config--folded .config__head {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config__fold {
+    transition: none;
+  }
+
+  .brief--folded {
+    animation-duration: 0.01ms;
+  }
+}
+
 .config__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 288px);
@@ -48,7 +89,7 @@
 
 .brief {
   min-width: 0;
-  border: 1px solid var(--band-line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-card);
   padding: var(--space-4);
   background: var(--paper);
@@ -106,8 +147,8 @@
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text);
-  background: var(--band-field);
-  border: 1px solid var(--band-line);
+  background: var(--field);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-sm);
   padding: 2px 7px;
 }

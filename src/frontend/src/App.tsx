@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Rail } from "./ui/Rail";
-import { useActiveStage } from "./useActiveStage";
 import { ConfigStage } from "./run/ConfigStage";
 import { useRun } from "./run/useRun";
-import { stageStateOf } from "./run/types";
+import { reachedState } from "./run/sequence";
 import type { Conditions, RunOptions } from "./run/options";
 import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf } from "./run/options";
-import { Pipeline } from "./Pipeline";
-import { StageOutline } from "./run/StageOutline";
+import { PipelineMap } from "./map/PipelineMap";
+import { Summary } from "./map/Summary";
+import { StatusBar } from "./map/StatusBar";
 import { Logo } from "./ui/Logo";
 import { useDocumentTitle } from "./useDocumentTitle";
 
@@ -21,8 +20,8 @@ export function App() {
   const [options, setOptions] = useState<RunOptions | null>(null);
   const [conditions, setConditions] = useState<Conditions>(BLANK);
   const [optionsError, setOptionsError] = useState<string | null>(null);
-  const { run, start, stop, pending } = useRun();
-  const active = useActiveStage(run.status !== "idle");
+  const { run, start, stop, replay, canReplay, pending } = useRun();
+  const [open, setOpen] = useState<string | null>(null);
   const payload = run.payload;
   useDocumentTitle(run);
 
@@ -80,14 +79,26 @@ export function App() {
     start(queryOf(conditions));
   }, [conditions, start]);
 
+  const inputCaption = (() => {
+    if (!conditions.scenario) return "условия не загружены";
+    const snapshot = options?.snapshots.find((item) => item.key === conditions.snapshot);
+    const fault = FAULT_LABELS[conditions.fault] ?? conditions.fault;
+    return `${conditions.scenario} · ${snapshot?.title ?? conditions.snapshot} · ${fault}`;
+  })();
+
   useEffect(() => {
-    if (run.status !== "running") return;
+    if (run.status !== "running" && open === null) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") stop();
+      if (event.key !== "Escape") return;
+      if (open !== null) {
+        setOpen(null);
+        return;
+      }
+      if (run.status === "running") stop();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [run.status, stop]);
+  }, [open, run.status, stop]);
 
   return (
     <div className="app">
@@ -97,10 +108,7 @@ export function App() {
         </h1>
       </header>
 
-      <div className={`layout ${run.status === "idle" ? "layout--solo" : "layout--railed"}`}>
-        {run.status === "idle" ? null : (
-          <Rail payload={payload} active={active} run={run} />
-        )}
+      <div className="layout">
         <main className="stages" aria-live="polite" aria-relevant="additions">
           <ConfigStage
             options={options}
@@ -114,27 +122,9 @@ export function App() {
             onRetry={loadOptions}
             pending={pending}
           />
-          {payload ? (
-            <Pipeline
-              payload={payload}
-              stateOf={(id) => stageStateOf(run, id)}
-              sources={run.stageSource}
-              agentEvents={run.agentEvents}
-              stages={run.stages}
-              stageFacts={run.stageFacts}
-              elapsedMs={run.elapsedMs}
-              lastFrameAt={run.lastFrameAt}
-            />
-          ) : run.status === "running" || run.status === "failed" ? (
-            <StageOutline
-              stages={run.stages}
-              stateOf={(id) => stageStateOf(run, id)}
-              factsOf={(id) => run.stageFacts[id]}
-              agentEvents={run.agentEvents}
-              elapsedMs={run.elapsedMs}
-              lastFrameAt={run.lastFrameAt}
-            />
-          ) : null}
+          <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
+          <PipelineMap run={run} inputCaption={inputCaption} open={open} onOpen={setOpen} />
+          {payload ? <Summary payload={payload} state={reachedState(run.stages, "decision")} /> : null}
         </main>
       </div>
 

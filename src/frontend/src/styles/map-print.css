@@ -1,0 +1,107 @@
+@media print {
+  .mapnode.mapnode.mapnode,
+  .drawer.drawer.drawer {
+    --paper: #ffffff;
+    --panel: #ffffff;
+    --panel-raised: #ffffff;
+    --field: #ffffff;
+    --row-hover: #ffffff;
+    --vellum: #ffffff;
+    --line-soft: #767676;
+    --muted: #3d3a35;
+  }
+
+  .map {
+    padding-block: 6mm;
+    border-top: 1px solid #000000;
+  }
+
+  .map__board {
+    max-width: none;
+    padding: 0;
+  }
+
+  .map__contour {
+    color: #000000;
+  }
+
+  .map__contour::before {
+    background: #000000;
+  }
+
+  .mapnode {
+    background: #ffffff;
+    border-color: #000000;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .mapnode--pending {
+    border-color: #767676;
+  }
+
+  .mapnode--running {
+    border-width: 3px;
+    border-color: #000000;
+  }
+
+  .mapnode--running .mapnode__order,
+  .mapnode--running .mapnode__word {
+    color: #000000;
+    animation: none;
+    opacity: 1;
+  }
+
+  .mapnode--done .mapnode__order {
+    color: #000000;
+  }
+
+  .mapnode--failed {
+    border-color: #000000;
+  }
+
+  .mapnode--failed .mapnode__order,
+  .mapnode--failed .mapnode__word {
+    color: #000000;
+  }
+
+  .mapnode--term-taken,
+  .mapnode--term-refused {
+    border-color: #000000;
+  }
+
+  .mapnode--term-refused .mapnode__kind,
+  .mapnode--term-refused .mapnode__title {
+    color: #000000;
+  }
+
+  .map__slot {
+    grid-template-rows: 1fr !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .drawer {
+    background: #ffffff;
+    border-color: #000000;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .drawer__close {
+    display: none;
+  }
+
+  .live__cell {
+    background: #ffffff;
+    border-color: #000000;
+  }
+
+  .live__cell--fail {
+    border-width: 2px;
+  }
+
+  .summary {
+    border-top-color: #000000;
+  }
+}
