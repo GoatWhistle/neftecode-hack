@@ -215,6 +215,19 @@
   padding: var(--space-4);
 }
 
+.mode__chain {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 14px;
+  line-height: 1.5;
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--space-3);
+}
+
 .mode--scripted {
   background: var(--field);
 }

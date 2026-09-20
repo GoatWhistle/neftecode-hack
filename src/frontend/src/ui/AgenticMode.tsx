@@ -1,4 +1,5 @@
 import type { Agentic } from "../types";
+import { ROLE_TEXT } from "../run/agentMeters";
 import { Empty, Field, Fields, Note } from "./Primitives";
 
 // Реальные значения agentic.outcome (AgenticMakeDecision._with в decision.py):
@@ -58,6 +59,44 @@ function headline(agentic: Agentic): string {
   return "Живая модель не участвовала: сработал запасной детерминированный путь после сбоя провайдера";
 }
 
+const VERDICT_TEXT: Record<string, string> = {
+  ACCEPT: "принял",
+  REJECT: "отклонил"
+};
+
+// Короткая цепочка для агентного результата (finalization-plan.md, пункт 3): «ядро предложило →
+// специалисты проверили → ограничения/вето → итог». Только когда агенты реально дошли до вердикта
+// (opinions есть) — не показываем цепочку для fallback/skipped, там и проверять было нечего.
+function AgentChain({ agentic }: { agentic: Agentic }) {
+  const opinions = agentic.opinions ?? [];
+  if (opinions.length === 0) return null;
+  const core = agentic.legacy_status ? (LEGACY_STATUS[agentic.legacy_status] ?? agentic.legacy_status) : "—";
+  const constraints = agentic.constraints_applied?.length ?? 0;
+  const vetoed = Object.keys(agentic.vetoed_candidates ?? {}).length;
+  return (
+    <ol className="mode__chain">
+      <li>
+        <b>Ядро предложило:</b> {core}
+      </li>
+      <li>
+        <b>Специалисты проверили:</b>{" "}
+        {opinions
+          .map((o) => `${ROLE_TEXT[o.role] ?? o.role} — ${VERDICT_TEXT[o.verdict] ?? o.verdict}`)
+          .join("; ")}
+      </li>
+      <li>
+        <b>Ограничения и вето:</b>{" "}
+        {constraints === 0 && vetoed === 0
+          ? "не добавлялись"
+          : `ограничений: ${constraints}, планов под вето: ${vetoed}`}
+      </li>
+      <li>
+        <b>Итог:</b> {agentic.final?.summary ?? "—"}
+      </li>
+    </ol>
+  );
+}
+
 export function AgenticMode({ agentic }: { agentic: Agentic | null }) {
   if (!agentic) {
     return (
@@ -86,6 +125,7 @@ export function AgenticMode({ agentic }: { agentic: Agentic | null }) {
             : "—"}
         </Field>
       </Fields>
+      <AgentChain agentic={agentic} />
       {agentic.note ? <Note>{agentic.note}</Note> : null}
     </div>
   );
