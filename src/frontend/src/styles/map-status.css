@@ -94,6 +94,12 @@
   font-weight: 700;
 }
 
+.statusbar__stage--skipped .statusbar__order,
+.statusbar__stage--skipped .statusbar__state {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .statusbar__stale {
   margin: 0;
   padding: 3px var(--space-2);

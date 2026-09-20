@@ -18,11 +18,21 @@ export function stageRan(id: string, payload: ScreenPayload): boolean {
       return (payload.decision.gate?.checks ?? []).length > 0;
     case "choice":
       return payload.decision.selected_plan !== null;
-    case "agents":
+    case "agents": {
       // Подтверждено живым прогоном (fault=both_broken): при отказе на проверке данных backend
       // шлёт agentic.outcome="skipped" и trace содержит только агента "data" — оркестратор и
       // специалисты не привлекались вовсе, а не просто "готово" без результата.
-      return payload.decision.agentic?.outcome !== "skipped";
+      const agentic = payload.decision.agentic;
+      if (agentic?.outcome === "skipped") return false;
+      // ultrareview: agentic.outcome="fallback" тоже бывает без единого обращения к оркестратору —
+      // когда self.llm is None (провайдер не настроен), backend в decision.py возвращает
+      // outcome="fallback" ДО emit("stage", stage="agents", ...) и без вызова orchestrator.run().
+      // Но "fallback" получается и когда специалисты успели дать мнения, а цикл оборвался позже
+      // (_recover_after_agent_failure) — тогда opinions непустые и агенты реально отработали.
+      // Различаем по наличию мнений, а не по строке outcome.
+      if (agentic?.outcome === "fallback") return (agentic.opinions ?? []).length > 0;
+      return true;
+    }
     default:
       return true;
   }

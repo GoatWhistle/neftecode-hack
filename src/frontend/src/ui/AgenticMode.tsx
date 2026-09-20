@@ -32,20 +32,25 @@ const LEGACY_STATUS: Record<string, string> = {
   refuse: "отказ"
 };
 
-const REAL_FALLBACK_OUTCOMES = new Set(["fallback"]);
-
 // Backend всегда шлёт agentic.mode = "agentic" (см. AgenticMakeDecision.decide) — mode никогда не
 // становится "scripted", реальный признак детерминированного пути — отдельный флаг
 // deterministic_policy. И backend никогда не шлёт outcome "ok": настоящие значения после успешного
-// прогона — "selected"/"confirmed_legacy"/"refused". Раньше тон читался как
-// `outcome === "ok" ? "live" : "fallback"`, поэтому КАЖДЫЙ обычный завершённый прогон (agentic.outcome
-// всегда "selected"/"confirmed_legacy"/"refused", никогда "ok") подписывался «сработал запасной
-// детерминированный путь», хотя Причина отката оставалась пустой («отката не было») — та самая
+// прогона — "selected"/"confirmed_legacy"/"refused" с fallback_reason=null. Раньше тон читался как
+// `outcome === "ok" ? "live" : "fallback"`, поэтому КАЖДЫЙ обычный завершённый прогон подписывался
+// «сработал запасной детерминированный путь», хотя Причина отката оставалась пустой — та самая
 // противоречивая пара из finalization-plan.md.
+//
+// Тон читается по agentic.fallback_reason, а не по конкретному значению outcome: ultrareview нашёл,
+// что AgenticMakeDecision._recover_after_agent_failure (decision.py) может вернуть outcome
+// "selected"/"refused" (не "fallback") с непустым fallback_reason — когда цикл оркестратора обрывается
+// (бюджет исчерпан, исключение, orchestrator_no_final) уже ПОСЛЕ того как специалисты успели наложить
+// ограничения/вето; эти ограничения сохраняются, решение пересобирается детерминированно. По
+// bacкенд-контракту (`_with` в decision.py) fallback_reason ненулевой ровно тогда, когда что-то пошло
+// не так по пути — это и есть надёжный сигнал, а не белый список конкретных outcome-строк.
 function toneOf(agentic: Agentic): "live" | "fallback" | "scripted" | "off" | "skipped" {
   if (agentic.outcome === "skipped") return "skipped";
   if (agentic.outcome === "disabled") return "off";
-  if (REAL_FALLBACK_OUTCOMES.has(agentic.outcome)) return "fallback";
+  if (agentic.fallback_reason) return "fallback";
   if (agentic.deterministic_policy || agentic.mode === "scripted") return "scripted";
   return "live";
 }
@@ -56,6 +61,13 @@ function headline(agentic: Agentic): string {
   if (tone === "scripted") return "Живая модель не участвовала: детерминированная политика, не LLM";
   if (tone === "off") return "Агентный режим выключен: решение принял детерминированный код без участия LLM";
   if (tone === "skipped") return "Агенты не привлекались: отказ случился раньше, на проверке данных";
+  // fallback_reason ненулевой при двух разных ситуациях: живая модель не работала вовсе (opinions
+  // пустые) либо специалисты успели высказаться и наложить ограничения/вето до обрыва цикла (opinions
+  // непустые) — во втором случае утверждение «живая модель не участвовала» было бы неправдой.
+  if ((agentic.opinions ?? []).length > 0) {
+    return "Специалисты успели проверить план, но цикл оркестратора оборвался: решение пересобрано " +
+      "детерминированно с сохранением их ограничений";
+  }
   return "Живая модель не участвовала: сработал запасной детерминированный путь после сбоя провайдера";
 }
 

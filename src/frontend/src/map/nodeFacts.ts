@@ -89,8 +89,15 @@ function decisionCaption(payload: ScreenPayload | null): string | null {
 
 function agentsCaption(run: RunState, liveMs: number): string | null {
   const live = waitingCaption(run.agentEvents, run.stageFacts.agents, liveMs);
-  if (run.stages.agents !== "done") return live;
   const agentic = run.payload?.decision.agentic;
+  // ultrareview: этап может быть "skipped" (агенты не привлекались вовсе — отказ на данных, или
+  // fallback без единого мнения), и раньше это молча падало обратно в live-заглушку "ещё не
+  // обращался к специалистам" — неверно для уже завершённого прогона.
+  if (run.stages.agents === "skipped") {
+    if (!agentic) return live;
+    return agentic.fallback_reason ? `не привлекались · ${agentic.fallback_reason}` : "не привлекались";
+  }
+  if (run.stages.agents !== "done") return live;
   if (!agentic) return live;
   const overridden = agentic.llm_choice_overridden === true ? "выбор переопределён" : null;
   const calls = run.agentEvents.length > 0 ? `событий ${run.agentEvents.length}` : null;
