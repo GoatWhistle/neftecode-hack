@@ -1,5 +1,24 @@
 export const TRUNCATION_MARK = "…";
 
+// Человеческие подписи для известных синтетических демо-сценариев (config/scenarios, шесть штук из
+// state.md). Живые сценарии (реальный момент времени) под этот словарь не попадают и показываются
+// как есть — это не внутренний код, а конкретный идентификатор запуска. Используется и в форме
+// выбора сценария (ConfigStage), и в отображении принятого решения (StateStage) — раньше форма
+// показывала сырые id ("ample_reserve"), а StateStage уже был переведён.
+export const SCENARIO_LABEL: Record<string, string> = {
+  baseline: "норма",
+  ample_reserve: "запас по резерву",
+  light_component: "лёгкий компонент",
+  no_feasible: "нет допустимого плана",
+  sour_crude: "сернистое сырьё",
+  winter_grade: "зимняя марка"
+};
+
+export function scenarioLabel(id: string | null): string {
+  if (!id) return "—";
+  return SCENARIO_LABEL[id] ?? id;
+}
+
 const LIMIT_TEXT: Record<string, string> = {
   sulfur_mgkg: "сера",
   t95_c: "T95",
@@ -26,19 +45,30 @@ export function limitText(key: string): string {
   return LIMIT_TEXT[key] ?? key;
 }
 
-// Независимая проверка (второй заход): decision.reason иногда приходит от детерминированного backend
-// (lookahead.py: "Упреждение за горизонтом: при плане {id} {constraint} = {value} при пределе {limit}
-// …") с сырым именем свойства качества внутри обычной русской фразы. Backend — не текстовый шаблон,
-// который стоит трогать здесь (влияет на decision_id и замороженные хеши тестов), поэтому подставляем
-// перевод уже готовой фразы на фронтенде: находим известные ключи как целые слова и меняем на текст
-// из того же словаря LIMIT_TEXT, которым уже переведены margin/constraint UI в других местах.
-const QUALITY_KEY_PATTERN = new RegExp(
-  `\\b(${Object.keys(LIMIT_TEXT).map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
+// legacy_status / decision.status — три кода из domain/shared/primitives.py (HOLD,
+// RECOMMEND_SCENARIO, REFUSE). Тот же candidate_id "hold" backend использует и как id плана внутри
+// lookahead.py, поэтому словарь переиспользуется humanizeReason() ниже, а не только AgenticMode.tsx.
+export const STATUS_TEXT: Record<string, string> = {
+  hold: "сохранить режим",
+  recommend_scenario: "изменить режим",
+  refuse: "отказ"
+};
+
+// Независимая проверка (второй и третий заход): decision.reason иногда приходит от детерминированного
+// backend (lookahead.py: "Упреждение за горизонтом: при плане {id} {constraint} = {value} при пределе
+// {limit} …") с сырым именем свойства качества и/или id плана (может совпадать с кодом статуса,
+// например "hold") внутри обычной русской фразы. Backend — не текстовый шаблон, который стоит трогать
+// здесь (влияет на decision_id и замороженные хеши тестов), поэтому подставляем перевод уже готовой
+// фразы на фронтенде: находим известные ключи как целые слова и меняем на текст из тех же словарей,
+// которыми уже переведены margin/constraint/статус в других местах интерфейса.
+const HUMANIZE_MAP: Record<string, string> = { ...LIMIT_TEXT, ...STATUS_TEXT };
+const HUMANIZE_PATTERN = new RegExp(
+  `\\b(${Object.keys(HUMANIZE_MAP).map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
   "g"
 );
 
 export function humanizeReason(text: string): string {
-  return text.replace(QUALITY_KEY_PATTERN, (match) => LIMIT_TEXT[match] ?? match);
+  return text.replace(HUMANIZE_PATTERN, (match) => HUMANIZE_MAP[match] ?? match);
 }
 
 // Полный словарь proposed_constraints.type — см. CONSTRAINT_VOCABULARY в

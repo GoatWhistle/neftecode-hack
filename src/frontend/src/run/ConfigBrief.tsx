@@ -1,5 +1,6 @@
 import type { Conditions, RunOptions, TankOption } from "./options";
 import { FAULT_LABELS } from "./options";
+import { SCENARIO_LABEL } from "./orchRead";
 
 export interface ConfigBriefProps {
   options: RunOptions;
@@ -19,7 +20,7 @@ function snapshotTitle(options: RunOptions, key: string): string {
 
 export function ConfigBrief({ options, conditions, tank, folded }: ConfigBriefProps) {
   const lines: Line[] = [
-    { term: "Сценарий", value: conditions.scenario },
+    { term: "Сценарий", value: SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario },
     { term: "Момент", value: snapshotTitle(options, conditions.snapshot) },
     { term: "Источники", value: FAULT_LABELS[conditions.fault] ?? conditions.fault }
   ];

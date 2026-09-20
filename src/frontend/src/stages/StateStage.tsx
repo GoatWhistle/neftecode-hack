@@ -7,23 +7,7 @@ import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
 import { OriginBadge, OriginLegend } from "../ui/Origin";
 import { onDemandIds, stockLine, tanksOf } from "../provenance";
-
-// Человеческие подписи для известных синтетических демо-сценариев (config/scenarios, шесть штук из
-// state.md). Живые сценарии (реальный момент времени) под этот словарь не попадают и показываются
-// как есть — это не внутренний код, а конкретный идентификатор запуска.
-const SCENARIO_LABEL: Record<string, string> = {
-  baseline: "норма",
-  ample_reserve: "запас по резерву",
-  light_component: "лёгкий компонент",
-  no_feasible: "нет допустимого плана",
-  sour_crude: "сернистое сырьё",
-  winter_grade: "зимняя марка"
-};
-
-function scenarioLabel(id: string | null): string {
-  if (!id) return "—";
-  return SCENARIO_LABEL[id] ?? id;
-}
+import { SCENARIO_LABEL, scenarioLabel } from "../run/orchRead";
 
 export interface StageProps {
   payload: ScreenPayload;

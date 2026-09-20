@@ -1,5 +1,6 @@
 import type { NextStep, OptimizerRound, ScreenPayload, TraceEvent } from "../types";
 import { hours, isNumber, num } from "../format";
+import { humanizeReason } from "../run/orchRead";
 import { Empty, Field, Fields, Note, Readout, Tag } from "./Primitives";
 import { VetoFunnel } from "./VetoFunnel";
 
@@ -49,7 +50,9 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
         <Field label="Вид отказа">
           <code>{kind ?? "—"}</code>
         </Field>
-        <Field label="Что это означает">{kind ? KIND_TEXT[kind] ?? decision.reason : decision.reason}</Field>
+        <Field label="Что это означает">
+          {kind ? KIND_TEXT[kind] ?? humanizeReason(decision.reason) : humanizeReason(decision.reason)}
+        </Field>
         <Field label="Товарный выпуск разрешён">{decision.commercial_release_allowed ? "да" : "нет"}</Field>
         <Field label="Режим установки">остаётся прежним: советчик ничего не меняет</Field>
       </Fields>

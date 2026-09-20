@@ -1,6 +1,7 @@
 import { controlLabel, controlUnit, hours, num } from "../format";
 import type { PlanStep, ScreenPayload } from "../types";
 import { stockLine } from "../provenance";
+import { humanizeReason } from "../run/orchRead";
 import { Empty } from "./Primitives";
 import { OriginBadge } from "./Origin";
 
@@ -23,7 +24,7 @@ export function VerdictHead({ payload, refused }: VerdictHeadProps) {
     <div className={`final__verdict ${refused ? "final__verdict--refuse" : "final__verdict--ok"}`}>
       <p className="final__kicker">Вердикт советчика</p>
       <p className="final__label">{payload.status_label}</p>
-      <p className="final__reason">{decision.reason}</p>
+      <p className="final__reason">{humanizeReason(decision.reason)}</p>
       {decision.scope ? (
         <p className="final__scope">{SCOPE_TEXT[decision.scope] ?? decision.scope}</p>
       ) : null}
