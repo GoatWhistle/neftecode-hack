@@ -8,6 +8,23 @@ import { JsonPanel } from "../ui/Json";
 import { OriginBadge, OriginLegend } from "../ui/Origin";
 import { onDemandIds, stockLine, tanksOf } from "../provenance";
 
+// Человеческие подписи для известных синтетических демо-сценариев (config/scenarios, шесть штук из
+// state.md). Живые сценарии (реальный момент времени) под этот словарь не попадают и показываются
+// как есть — это не внутренний код, а конкретный идентификатор запуска.
+const SCENARIO_LABEL: Record<string, string> = {
+  baseline: "норма",
+  ample_reserve: "запас по резерву",
+  light_component: "лёгкий компонент",
+  no_feasible: "нет допустимого плана",
+  sour_crude: "сернистое сырьё",
+  winter_grade: "зимняя марка"
+};
+
+function scenarioLabel(id: string | null): string {
+  if (!id) return "—";
+  return SCENARIO_LABEL[id] ?? id;
+}
+
 export interface StageProps {
   payload: ScreenPayload;
   index: number;
@@ -41,7 +58,12 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle, bar
       <Fields>
         <Field label="Момент решения">{moment(payload.decision_time)}</Field>
         <Field label="Происхождение состояния">{payload.state_origin ?? "не указано"}</Field>
-        <Field label="Сценарий">{payload.decision.scenario_id ?? "—"}</Field>
+        <Field label="Сценарий">
+          {scenarioLabel(payload.decision.scenario_id)}
+          {payload.decision.scenario_id && SCENARIO_LABEL[payload.decision.scenario_id] ? (
+            <> (<code>{payload.decision.scenario_id}</code>)</>
+          ) : null}
+        </Field>
         <Field label="Идентификатор решения">
           <code>{payload.decision.decision_id ?? "—"}</code>
         </Field>
