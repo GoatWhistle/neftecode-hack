@@ -72,12 +72,11 @@ export function useRun(): RunControls {
     (payload: ScreenPayload) => {
       setRun((prev) => {
         const sources = { ...prev.stageSource };
-        for (const id of ["agents", ...LATE_STAGES]) {
+        for (const id of LATE_STAGES) {
           if (sources[id] === undefined) sources[id] = "payload";
         }
         return { ...prev, payload, stageSource: sources };
       });
-      enqueue("agents", "done");
       for (const id of LATE_STAGES) enqueue(id, stageRan(id, payload) ? "done" : "skipped");
       reveal.onDrained(() => {
         setRun((prev) => (prev.status === "running" ? { ...prev, status: "done" } : prev));

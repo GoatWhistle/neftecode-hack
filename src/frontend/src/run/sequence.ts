@@ -18,6 +18,11 @@ export function stageRan(id: string, payload: ScreenPayload): boolean {
       return (payload.decision.gate?.checks ?? []).length > 0;
     case "choice":
       return payload.decision.selected_plan !== null;
+    case "agents":
+      // Подтверждено живым прогоном (fault=both_broken): при отказе на проверке данных backend
+      // шлёт agentic.outcome="skipped" и trace содержит только агента "data" — оркестратор и
+      // специалисты не привлекались вовсе, а не просто "готово" без результата.
+      return payload.decision.agentic?.outcome !== "skipped";
     default:
       return true;
   }
@@ -94,7 +99,7 @@ export function chainTo(current: Record<string, StageState>, id: string,
   return out;
 }
 
-export const LATE_STAGES = ["candidates", "forecast", "choice", "gate", "decision"];
+export const LATE_STAGES = ["candidates", "forecast", "choice", "gate", "agents", "decision"];
 
 export function mergeFacts(current: Record<string, StageFacts>, id: string,
                            facts: StageFacts): Record<string, StageFacts> {
