@@ -16,6 +16,7 @@ from neftecode.presentation.demo import Demo, DemoError, snapshot_key, snapshot_
 from .cache import DecisionCache, cache_key
 from .query import DemoServerError, parse_conditions
 from .progress import decision_stream
+from .run_meta import build_run_meta
 from .static import StaticError, StaticFiles, resolve_static_dir
 from .ui import error_payload
 
@@ -82,6 +83,7 @@ class DemoService:
         payload["snapshot"] = result.get("snapshot")
         payload["binding"] = result.get("binding")
         payload["decision_timeout_s"] = self.decision_timeout_s
+        payload["run_meta"] = build_run_meta(self.root, canonical, payload, self.snapshots, raw, snapshot_key)
         return payload
 
     def loading_payload(self, name: str) -> dict:
