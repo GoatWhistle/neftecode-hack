@@ -94,6 +94,7 @@ function agentsCaption(run: RunState, liveMs: number): string | null {
   // fallback без единого мнения), и раньше это молча падало обратно в live-заглушку "ещё не
   // обращался к специалистам" — неверно для уже завершённого прогона.
   if (run.stages.agents === "skipped") {
+    if (run.payload?.agentic_state) return "не привлекались · агенты выключены";
     if (!agentic) return live;
     return agentic.fallback_reason ? `не привлекались · ${agentic.fallback_reason}` : "не привлекались";
   }

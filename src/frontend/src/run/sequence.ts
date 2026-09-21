@@ -19,6 +19,9 @@ export function stageRan(id: string, payload: ScreenPayload): boolean {
     case "choice":
       return payload.decision.selected_plan !== null;
     case "agents": {
+      // O2: агенты выключены (AGENTIC_DECISION_ENABLED=0) — decision.agentic отсутствует вовсе,
+      // сервер шлёт agentic_state.outcome="skipped" отдельным полем верхнего уровня.
+      if (payload.agentic_state?.outcome === "skipped") return false;
       // Подтверждено живым прогоном (fault=both_broken): при отказе на проверке данных backend
       // шлёт agentic.outcome="skipped" и trace содержит только агента "data" — оркестратор и
       // специалисты не привлекались вовсе, а не просто "готово" без результата.

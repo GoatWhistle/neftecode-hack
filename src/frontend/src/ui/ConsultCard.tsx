@@ -101,20 +101,22 @@ function Steps({ act, limit, deterministic }: { act: ConsultAct; limit: number |
   );
 }
 
+function confidenceLevel(value: number): string {
+  if (value >= 0.7) return "высокая";
+  if (value >= 0.4) return "средняя";
+  return "низкая";
+}
+
 function Confidence({ act }: { act: ConsultAct }) {
   const opinion = act.opinion;
   if (!opinion || !opinion.confidenceSent || opinion.confidence === null) {
     return <p className="consult__confidence consult__confidence--absent">уверенность не передана</p>;
   }
-  const steps = Math.round(Math.min(1, Math.max(0, opinion.confidence)) * 10);
   return (
-    <p className="consult__confidence">
-      <span className="consult__conf-bar" aria-hidden="true">
-        {Array.from({ length: 10 }, (_, index) => (
-          <span key={index} className={`consult__conf-cell${index < steps ? " consult__conf-cell--on" : ""}`} />
-        ))}
+    <p className="consult__confidence" title={`${opinion.confidence.toFixed(2)} — самооценка модели, не калибрована по исходам`}>
+      <span className="consult__conf-text">
+        {confidenceLevel(opinion.confidence)} самооценка модели (не калибрована)
       </span>
-      <span className="consult__conf-text">уверенность {steps} из 10, как передал агент</span>
     </p>
   );
 }

@@ -24,6 +24,9 @@ export function modeOf(run: RunState): ModeLine | null {
   }
   const agentic = run.payload?.decision.agentic ?? null;
   if (agentic === null) {
+    if (run.payload?.agentic_state) {
+      return { kind: "offline", text: "Агенты выключены", detail: run.payload.agentic_state.note };
+    }
     return run.status === "running"
       ? { kind: "waiting", text: "Режим уточняется при запуске", detail: null }
       : { kind: "pending", text: "Режим не передан", detail: "сервер не прислал метаданные агентного режима" };

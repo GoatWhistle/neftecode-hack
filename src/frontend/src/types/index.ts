@@ -32,6 +32,7 @@ export interface ScreenPayload {
   forecast: Forecast | null;
   forecast_used: boolean | null;
   defaults?: ScreenDefaults;
+  agentic_state?: { mode: string; outcome: string; reason: string; note: string };
 }
 
 export interface ErrorPayload {

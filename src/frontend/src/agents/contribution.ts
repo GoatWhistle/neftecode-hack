@@ -170,7 +170,9 @@ function specialistCard(key: CardKey, agentic: Agentic, events: AgentEvent[],
     concluded: [
       `Вердикт: ${verdict}`,
       risk !== null ? `риск ${risk}` : null,
-      typeof opinion.confidence === "number" ? `уверенность ${opinion.confidence}` : null
+      typeof opinion.confidence === "number"
+        ? `самооценка модели ${opinion.confidence.toFixed(2)} (не калибрована)`
+        : null
     ].filter(Boolean).join(", ") + ".",
     effect,
     invalid: !opinion.valid,

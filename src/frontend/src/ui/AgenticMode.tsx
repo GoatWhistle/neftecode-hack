@@ -113,8 +113,33 @@ function AgentChain({ agentic }: { agentic: Agentic }) {
   );
 }
 
-export function AgenticMode({ agentic }: { agentic: Agentic | null }) {
+export interface AgenticStateInfo {
+  mode: string;
+  outcome: string;
+  reason: string;
+  note: string;
+}
+
+export function AgenticMode({
+  agentic,
+  agenticState
+}: {
+  agentic: Agentic | null;
+  agenticState?: AgenticStateInfo | undefined;
+}) {
   if (!agentic) {
+    if (agenticState) {
+      return (
+        <div className="mode mode--off">
+          <p className="mode__headline">Агентный режим выключен: решение принял детерминированный код без участия LLM</p>
+          <Fields>
+            <Field label="Режим">{MODES["off"]}</Field>
+            <Field label="Причина">{agenticState.reason}</Field>
+          </Fields>
+          <Note>{agenticState.note}</Note>
+        </div>
+      );
+    }
     return (
       <Empty>
         Режим работы агентов не передавался: по этому экрану нельзя сказать, работала ли живая модель.

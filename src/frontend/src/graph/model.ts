@@ -21,6 +21,8 @@ export interface GraphNode {
   verdict: string | null;
   risk: string | null;
   confidence: number | null;
+  confidenceCalibrated: boolean | null;
+  valid: boolean | null;
   events: AgentEvent[];
 }
 
@@ -102,7 +104,11 @@ function askedFocus(event: AgentEvent): string | null {
   return match === null ? null : (match[1] ?? null);
 }
 
-export function buildGraph(events: AgentEvent[], agentic: Agentic | null): GraphModel {
+export function buildGraph(
+  events: AgentEvent[],
+  agentic: Agentic | null,
+  selectedPlanId: string | null = null
+): GraphModel {
   if (events.length === 0) {
     return { nodes: [], edges: [], steps: 0, width: CANVAS_W, height: CANVAS_H,
       absent: "События агентов по этому прогону не передавались." };
@@ -134,6 +140,8 @@ export function buildGraph(events: AgentEvent[], agentic: Agentic | null): Graph
     verdict: null,
     risk: null,
     confidence: null,
+    confidenceCalibrated: null,
+    valid: null,
     events: hubEvents
   });
 
@@ -157,16 +165,28 @@ export function buildGraph(events: AgentEvent[], agentic: Agentic | null): Graph
       verdict: opinion?.verdict ?? null,
       risk: opinion?.risk_level ?? null,
       confidence: typeof opinion?.confidence === "number" ? opinion.confidence : null,
+      confidenceCalibrated: opinion?.confidence_calibrated === true,
+      valid: opinion?.valid ?? null,
       events: own
     });
   });
 
   const last = events[events.length - 1];
   const lastSeq = last === undefined ? 0 : last.seq;
-  const chosen = agentic?.final?.candidate_id ?? null;
+  // agentic.final.candidate_id — предложение LLM, а не обязательно итог решения: при
+  // override/fallback/refusal реальный итог — decision.selected_plan.plan_id (selectedPlanId).
+  const proposed = agentic?.final?.candidate_id ?? null;
+  const overridden = proposed !== null && selectedPlanId !== null && proposed !== selectedPlanId;
+  const finalPlanId = selectedPlanId ?? proposed;
+  const outcomeTitle =
+    finalPlanId === null
+      ? "итог"
+      : overridden
+        ? `план ${finalPlanId} (LLM предлагал ${proposed}, не принято)`
+        : `план ${finalPlanId}`;
   nodes.push({
     id: "outcome",
-    title: chosen === null ? "итог" : `план ${chosen}`,
+    title: outcomeTitle,
     kind: "outcome",
     role: agentic?.final?.summary ?? "итог цикла",
     x: HUB_X,
@@ -177,6 +197,8 @@ export function buildGraph(events: AgentEvent[], agentic: Agentic | null): Graph
     verdict: null,
     risk: null,
     confidence: null,
+    confidenceCalibrated: null,
+    valid: null,
     events: events.filter((event) => event.kind === "final" && event.agent === "orchestrator")
   });
 
@@ -253,7 +275,7 @@ export function buildGraph(events: AgentEvent[], agentic: Agentic | null): Graph
         to: "outcome",
         kind: "finalize",
         tone: event.decision === "accepted" ? "pass" : "warn",
-        label: chosen === null ? "свёл итог" : `выбрал ${chosen}`,
+        label: finalPlanId === null ? "свёл итог" : overridden ? `итог: ${finalPlanId}` : `выбрал ${finalPlanId}`,
         detail: agentic?.final?.summary ?? null,
         order: order++,
         seq: event.seq,

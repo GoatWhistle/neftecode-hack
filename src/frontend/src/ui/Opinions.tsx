@@ -35,21 +35,17 @@ function toneOf(verdict: string): Lamp {
   return "unknown";
 }
 
-function ConfidenceBar({ value }: { value: number }) {
-  const cells = Array.from({ length: 5 }, (_, index) => index < Math.round(value * 5));
-  return (
-    <span className="opinion__conf" aria-hidden="true">
-      {cells.map((on, index) => (
-        <span key={index} className={`opinion__conf-cell${on ? " opinion__conf-cell--on" : ""}`} />
-      ))}
-    </span>
-  );
+function confidenceLevel(value: number): string {
+  if (value >= 0.7) return "высокая";
+  if (value >= 0.4) return "средняя";
+  return "низкая";
 }
 
 function Opinion({ opinion }: { opinion: AgentOpinion }) {
   const tone = toneOf(opinion.verdict);
   const risk = opinion.risk_level;
   const confidence = opinion.confidence;
+  const calibrated = opinion.confidence_calibrated === true;
 
   return (
     <article className={`opinion opinion--${tone}`}>
@@ -68,16 +64,13 @@ function Opinion({ opinion }: { opinion: AgentOpinion }) {
           <dd>{risk === null || risk === undefined ? "не передан" : RISK[risk] ?? risk}</dd>
         </div>
         <div className="opinion__metric">
-          <dt>Уверенность</dt>
-          <dd>
-            {confidence === null ? (
-              "не передана"
-            ) : (
-              <>
-                <ConfidenceBar value={confidence} />
-                <span className="opinion__conf-value">{num(confidence, 2)}</span>
-              </>
-            )}
+          <dt>Самооценка модели</dt>
+          <dd title={confidence === null ? undefined : `${num(confidence, 2)} — самооценка модели, не калибрована по исходам`}>
+            {confidence === null
+              ? "не передана"
+              : calibrated
+                ? num(confidence, 2)
+                : `${confidenceLevel(confidence)} (самооценка модели, не калибрована)`}
           </dd>
         </div>
       </dl>
