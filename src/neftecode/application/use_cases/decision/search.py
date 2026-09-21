@@ -2,6 +2,7 @@ from dataclasses import replace
 import json
 
 from neftecode.domain.advisory.optimizer import rank
+from neftecode.application.cancellation import check_cancelled
 from ..plan_operation import PlannerError
 from .reviews import family
 from .constants import VETO_FAMILIES, AgentError, SearchOutcome
@@ -22,6 +23,7 @@ class SearchMixin:
         examined, examined_by_id = [], {}
         computation_errors: list[dict] = []
         for round_number in range(1, self.max_rounds + 1):
+            check_cancelled()
             remaining = budget - evaluated_total
             if remaining <= 0:
                 rounds.append({"round": round_number, "proposed": 0, "feasible": 0,
@@ -39,6 +41,7 @@ class SearchMixin:
             evaluations, by_id = [], {}
             round_evaluated = 0
             for plan in search_plans:
+                check_cancelled()
                 if evaluated_total >= budget or round_evaluated >= round_budget:
                     break
                 if self._forbidden(plan, forbidden):

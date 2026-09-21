@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import time
 
 from neftecode.application.contracts import DecisionCommand
+from neftecode.application.cancellation import CancellationError, check_cancelled
 from neftecode.application.ports import LLMClient, ResponseEffectProvider, RobustnessEvaluator
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.application.use_cases.make_decision import MakeDecision
@@ -83,12 +84,15 @@ class AgenticMakeDecision:
         agent_budget = AgentBudget(self.settings, clock=self.clock)
         try:
             return self._agentic(legacy, request, info, trace, agent_budget)
+        except CancellationError:
+            raise
         except Exception as exc:
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
             return self._with(legacy, info, "fallback", f"unexpected_error:{type(exc).__name__}")
 
 
     def _agentic(self, legacy: dict, request: dict, info: dict, trace: AgentTrace, agent_budget: AgentBudget) -> dict:
+        check_cancelled()
         outcome = self.maker._search(request["budget"], request["confirmed"], request["initial_tanks"],
                                      request["current_operation"])
         session = DecisionSession(self.maker, outcome, legacy, self.settings, agent_budget,
@@ -100,6 +104,8 @@ class AgenticMakeDecision:
         try:
             run = self.orchestrator.run(llm=self.llm, session=session, budget=agent_budget, settings=self.settings,
                                         trace=trace)
+        except CancellationError:
+            raise
         except Exception as exc:
             info.update(opinions=[], constraints_applied=[c.to_dict() for c in session.constraints],
                         vetoed_candidates={cid: sorted(roles) for cid, roles in sorted(session.vetoes.items())},
@@ -124,6 +130,8 @@ class AgenticMakeDecision:
         try:
             result, outcome_name, reason = self._resolve(
                 run.final, run.opinions, session, legacy, request, info, trace)
+        except CancellationError:
+            raise
         except Exception as exc:
             trace.add("system", 0, "resolution", decision="failed",
                       reason_codes=(f"resolution_error:{type(exc).__name__}",))
@@ -136,6 +144,8 @@ class AgenticMakeDecision:
                         trace: AgentTrace, reason: str) -> tuple[dict, str, str]:
         try:
             return self._recover_after_agent_failure(session, legacy, request, trace, reason)
+        except CancellationError:
+            raise
         except Exception as exc:
             recovery_reason = f"{reason};recovery_error:{type(exc).__name__}"
             trace.add("system", 0, "resolution", decision="recovery_failed",

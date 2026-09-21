@@ -5,6 +5,7 @@ import json
 import threading
 
 from neftecode.application.ports.llm import LLMClient, LLMError, LLMMessage, ToolSpec
+from neftecode.application.cancellation import check_cancelled
 from neftecode.application.progress import current_sink, reporting_to
 
 from .budget import AgentBudget, BudgetExhausted
@@ -58,6 +59,7 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
     invalid_finals = 0
     calls = 0
     for step in range(1, max_calls + 1):
+        check_cancelled()
         last = step == max_calls
         if last:
             messages.append(LLMMessage("user", f"Лимит шагов исчерпан: вызови только инструмент {final_tool.name}."))
@@ -75,6 +77,7 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
             trace.add(role, step, "fallback", decision=f"llm_error:{exc.kind}", provider=llm.provider, model=llm.model,
                       reason_codes=(str(exc.code)[:40],) if exc.code else (), tool_result_summary=str(exc)[:300])
             return LoopResult(None, f"llm_error:{exc.kind}", calls, tuple(evidence), exc)
+        check_cancelled()
         budget.add_usage(response.usage.to_dict())
         trace.add(role, step, "llm_call", provider=response.provider or llm.provider, model=response.model or llm.model,
                   latency_ms=int(response.latency_s * 1000), usage=response.usage.to_dict(),

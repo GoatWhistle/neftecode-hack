@@ -6,6 +6,7 @@ import time
 from typing import Callable, Iterator
 
 from neftecode.application.progress import reporting_to
+from neftecode.application.cancellation import CancellationToken, cancellation_with
 
 PHASE_LABELS = {
     "accepted": ("Запрос принят", "Условия разобраны сервером"),
@@ -35,6 +36,7 @@ def _phase(key: str, state: str, elapsed_ms: int) -> Frame:
 
 def decision_stream(compute: Callable[[], dict], heartbeat_s: float = 1.0) -> Iterator[Frame]:
     started = time.monotonic()
+    cancellation = CancellationToken()
     channel: queue.Queue = queue.Queue()
     box: dict = {}
 
@@ -43,34 +45,39 @@ def decision_stream(compute: Callable[[], dict], heartbeat_s: float = 1.0) -> It
 
     def work() -> None:
         try:
-            with reporting_to(channel.put):
-                box["payload"] = compute()
+            with cancellation_with(cancellation):
+                with reporting_to(channel.put):
+                    box["payload"] = compute()
         except BaseException as exc:
             box["error"] = exc
         finally:
             channel.put(SENTINEL)
 
-    yield _phase("accepted", "done", elapsed())
-    worker = threading.Thread(target=work, name="decision-stream", daemon=True)
-    worker.start()
+    worker = None
+    try:
+        yield _phase("accepted", "done", elapsed())
+        worker = threading.Thread(target=work, name="decision-stream", daemon=True)
+        worker.start()
 
-    while True:
-        try:
-            item = channel.get(timeout=heartbeat_s)
-        except queue.Empty:
-            yield Frame("tick", {"elapsed_ms": elapsed()})
-            continue
-        if item is SENTINEL:
-            break
-        yield _relay(item, elapsed())
+        while True:
+            try:
+                item = channel.get(timeout=heartbeat_s)
+            except queue.Empty:
+                yield Frame("tick", {"elapsed_ms": elapsed()})
+                continue
+            if item is SENTINEL:
+                break
+            yield _relay(item, elapsed())
 
-    if "error" in box:
-        yield Frame("failed", {"message": str(box["error"]), "elapsed_ms": elapsed()})
-        return
+        if "error" in box:
+            yield Frame("failed", {"message": str(box["error"]), "elapsed_ms": elapsed()})
+            return
 
-    yield _phase("ready", "done", elapsed())
-    yield Frame("screen", {"payload": box["payload"], "elapsed_ms": elapsed()})
-    yield Frame("end", {"elapsed_ms": elapsed()})
+        yield _phase("ready", "done", elapsed())
+        yield Frame("screen", {"payload": box["payload"], "elapsed_ms": elapsed()})
+        yield Frame("end", {"elapsed_ms": elapsed()})
+    finally:
+        cancellation.cancel()
 
 
 def _relay(item: dict, elapsed_ms: int) -> Frame:

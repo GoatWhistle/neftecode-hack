@@ -99,6 +99,10 @@ def make_handler(routes: Mapping[str, Callable[[Request], Any]], readiness: Call
                         self.wfile.flush()
                 except (BrokenPipeError, ConnectionResetError):
                     pass
+                finally:
+                    close = getattr(envelope.chunks, "close", None)
+                    if close is not None:
+                        close()
                 return
             if isinstance(envelope, RawResponse):
                 body, content_type, status = envelope.body, envelope.content_type, envelope.status

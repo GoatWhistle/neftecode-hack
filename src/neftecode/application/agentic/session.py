@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 import json
 import threading
 
+from neftecode.application.cancellation import check_cancelled
+
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.application.use_cases.make_decision import MakeDecision, SearchOutcome
 from neftecode.application.use_cases.plan_operation import PlannerError
@@ -148,6 +150,7 @@ class DecisionSession(SessionMetricsMixin, SessionContextMixin):
         plans, _ = self.maker.build_plans(self.evaluation_budget, self.current_operation)
         new_ids, skipped = [], 0
         for plan in plans:
+            check_cancelled()
             if len(new_ids) >= remaining:
                 break
             if plan.plan_id in self.evaluations or not self._pre_filter(plan, self.constraints):
