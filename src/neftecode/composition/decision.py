@@ -3,11 +3,7 @@ from pathlib import Path
 
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.progress import emit
-from neftecode.application.services.explain import explain
-from neftecode.application.services.trust import DataTrustAgent
-from neftecode.application.use_cases.get_live_advice import binding_summary, decision_context
-from neftecode.domain.production.inventory import initial_state
-from neftecode.application.services.robustness import RobustnessCheck
+from neftecode.application.use_cases.advise_under_conditions import AdviseUnderConditions
 from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.agentic import default_decision_factory
@@ -27,32 +23,24 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
     if not isinstance(trust_cfg, dict):
         raise ValueError("trust_cfg должен быть словарём порогов доверия к источникам")
     try:
-        scenario = parse_scenario(raw)
-        if snapshot is not None:
-            scenario, raw = bind_snapshot(raw, state, snapshot, response_model, trust_cfg)
+        advice = AdviseUnderConditions(
+            parse_scenario, bind_snapshot, select_forecast_dict,
+            decision_factory or default_decision_factory(), default_tank_estimate_factory,
+        ).execute(raw, state, budget, trust_cfg, snapshot, response_model)
     except (ScenarioError, ForecastBindingError) as exc:
         return {"ok": False, "rejected": True, "reason": str(exc),
                 "screen": error_payload(str(exc))}
     emit("phase", key="scenario", state="done")
-    trust = DataTrustAgent(trust_cfg).assess(state)
-    active_forecast = select_forecast_dict(snapshot, trust) if snapshot is not None else None
-    emit("stage", stage="state", inventories={key: value.inventory_t
-                                              for key, value in initial_state(scenario).items()})
+    scenario, trust, active_forecast = advice["scenario"], advice["trust"], advice["forecast"]
+    emit("stage", stage="state", inventories=advice["inventories"])
     emit("stage", stage="trust", sources=[source.to_dict() for source in trust.sources.values()],
          usable=trust.usable)
-    factory = decision_factory or default_decision_factory()
-    evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
-    maker = (factory(scenario, evaluator, tank_estimate_factory=default_tank_estimate_factory,
-                     scenario_parser=parse_scenario) if snapshot is None else
-             factory(scenario, evaluator, decision_context(snapshot.get("at"), active_forecast, raw),
-                    tank_estimate_factory=default_tank_estimate_factory, scenario_parser=parse_scenario))
     emit("phase", key="solving", state="running")
-    decision = maker.decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
+    decision = advice["decision"]
     emit("phase", key="solving", state="done")
     screen = Screen(
         decision,
-        explain(decision, scenario, state),
-        inventories={key: value.inventory_t for key, value in initial_state(scenario).items()},
+        advice["explanation"], inventories=advice["inventories"],
         sources=[source.to_dict() for source in trust.sources.values()],
         rule_origin=trust_origin,
         state_origin=state_origin_label(state, snapshot),
@@ -63,7 +51,7 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
     ).payload()
     return {"ok": True, "rejected": False, "scenario_id": scenario.scenario_id,
             "decision": decision, "screen": screen, "trust_origin": trust_origin,
-            "binding": binding_summary(raw) if snapshot is not None else None}
+            "binding": advice["binding"]}
 
 def make_interactive_demo(raw: dict, budget: int, trust_cfg: dict, trust_origin: str | None = None,
                           snapshots: list | None = None, response_model: dict | None = None,
