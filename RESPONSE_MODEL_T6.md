@@ -6,7 +6,7 @@
 Код: `context/response-research/t6/` (`response_model.py`, `s1_frame.py`, `f1_*`, `f2_*`, `f6_*`, `f7_*`, `f9_fit.py`,
 `compare_t11.py`, `c2_export.py`), журнал `context/response-research/t6/notes.md`. Контракт с дорожкой A — `config/response_model.json`.
 
-> **Актуальные числа production-контура (18.09, `uv run neftecode train`, `artifacts/response_model.json`,
+> **Актуальные числа production-контура (артефакт обучения 19.09, `uv run neftecode train`, `artifacts/response_model.json`,
 > τ = 2026-01-01):** β = **−0.4227** [−0.4768; −0.3890], weak/strong −0.211 / −0.721, n_rows 49 105,
 > T6 342.9–386.1 °C, F9 149.8–256.7 т/ч, порог расхода q01(F9) = 133.457 т/ч, выученный на строках до τ − 6 ч.
 > Отличие от таблицы ниже (−0.433): порог F9 в исследовательском прогоне 17.09 считался по всей истории

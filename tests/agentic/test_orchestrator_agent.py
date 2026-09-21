@@ -65,6 +65,14 @@ def test_keep_legacy_after_a_consult_is_marked_grounded():
     assert not any(e for e in decision["agentic"]["trace"] if e.get("decision") == "keep_legacy_ungrounded")
 
 
+def test_screen_payload_marks_opinion_confidence_as_uncalibrated_self_report():
+    opinions = agentic_decide("sour_crude", demo_llm())["agentic"]["opinions"]
+    assert opinions
+    for item in opinions:
+        assert isinstance(item["confidence"], float)
+        assert item["confidence_kind"] == "llm_self_report" and item["confidence_calibrated"] is False
+
+
 def test_demo_policy_paths_differ_by_situation():
     calm = agentic_decide("baseline", demo_llm())
     sour = agentic_decide("sour_crude", demo_llm())

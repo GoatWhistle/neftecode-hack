@@ -141,6 +141,42 @@ def test_the_server_offers_snapshots_first_and_the_synthetic_state_last(out):
     assert service.decide({"scenario": ["baseline"], "snapshot": ["synthetic"]})["snapshot"] is None
 
 
+# --- O1 (task-pool.md, «Ключевые факты» #8): источник каждого значения выбранного плана ---
+#
+# Критерий: срез 05.01 — АВТ «scenario», T6 «measured»; без F9 расход сырья ГО «scenario».
+# С F9 расход — F9·1000/ρ, то есть пересчёт измерения: остаётся derived. Модель отклика — та же
+# форма, что в test_measurement_binding (область применимости покрывает T6 = 367.8, F9 = 206.1).
+
+O1_RESPONSE = {"schema_version": "v1", "tag": "ht.T6", "flow_tag": "ht.F9", "tau": "2026-01-01",
+               "window_months": 12, "beta_mgkg_per_c": -0.4226, "ci": [-0.4767, -0.389], "envelope_dt_c": 2.0,
+               "n_rows": 48938, "method": "тест", "drift": [], "flow_beta": None, "model_fingerprint": "x",
+               "t6_range_c": [342.9, 386.1], "f9_range_tph": [150.3, 256.7], "weak_strong": [-0.217, -0.739]}
+
+
+def plan_origin_on_2026_01_05(without_f9: bool) -> tuple[dict, dict]:
+    item = snapshot()
+    if without_f9:
+        item["state"]["measurements"]["ht.F9"] = None
+    demo = Demo(BASELINE, run_demo_decision, trust_cfg(), 300, snapshots=[item], response_model=O1_RESPONSE)
+    result = demo.run(snapshot="норма")
+    return result["decision"], result["screen"]["explanation"]["plan_origin"]
+
+
+@pytest.mark.parametrize("without_f9", [False, True])
+def test_o1_plan_values_on_2026_01_05_carry_their_real_source(without_f9):
+    decision, origin = plan_origin_on_2026_01_05(without_f9)
+    assert decision["status"] == "hold" and decision["immediate_action"] is not None
+    action = origin["immediate_action"]
+    assert action == origin["steps"][0]
+    for step in origin["steps"]:
+        controls = step["controls"]
+        assert controls["crude_feed_rate_tph"] == controls["avt_furnace_outlet_temp_c"] == "scenario"
+        assert controls["ht_reactor_inlet_temp_c"] == "measured"
+        assert controls["ht_feed_flow_m3h"] == ("scenario" if without_f9 else "derived")
+        assert (step["recipe"], step["throughput_tph"], step["additive_dose"]) == ("scenario",) * 3
+    assert decision["immediate_action"]["controls"]["ht_reactor_inlet_temp_c"] == pytest.approx(367.8)
+
+
 # --- Z5 (task-pool.md, дефект #1): регрессия «прогноз не пересчитывается после инъекции отказа ПАК» ---
 #
 # Срез момента 2026-07-24T03:00 «риск по качеству при возврате нагрузки»

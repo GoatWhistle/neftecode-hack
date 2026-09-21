@@ -613,11 +613,12 @@
     "ht_response_beta": {
       "status": "derived",
       "unit": "мг/кг на °C",
-      "value": -0.4226,
+      "value": -0.4227,
       "ci90": [
-        -0.4767,
+        -0.4768,
         -0.389
       ],
+      "n_rows": 49105,
       "weak_strong": [
         -0.211,
         -0.721
@@ -625,7 +626,7 @@
       "tag": "ht.T6",
       "tau": "2026-01-01",
       "window_months": 12,
-      "source": "artifacts/response_model.json (C2, оценивается train на сетке τ; объявленная политика — config/response_model.json), RESPONSE_MODEL_T6.md",
+      "source": "artifacts/response_model.json, estimates[τ = 2026-01-01] (обучение 19.09.2026; C2, оценивается train на сетке τ; объявленная политика — config/response_model.json), RESPONSE_MODEL_T6.md. Прежнее −0.4226 / n_rows 49069 — промежуточный пересчёт 18.09 из history, продуктом не используется",
       "note": "Устойчивый отклик серы ПАК на +1 °C на входе Р-202 через 3–8 ч. Порог работы по F9 причинно оценён только до τ−6 ч: q01 = 133.457 т/ч. Применим при T6 в [342.9, 386.1] °C, F9 в [149.8, 256.7] т/ч, |ΔT| ≤ 2 °C."
     },
     "ht_flow_response": {
