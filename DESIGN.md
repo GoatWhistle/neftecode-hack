@@ -1,5 +1,18 @@
 # T1 Energy — Style Reference
 
+## Применение в CUTPOINT
+
+Это reference, а не обещание полного лендинга: текущий продукт — операторский экран
+с технологической схемой. В реализации сохранены тёплая монохромная палитра, тонкая
+типографика, плоские поверхности и контрастный агентный контур; фотографии, тёмная
+плавающая навигация, hero и footer из исходного референса не являются частью приложения.
+Состояния ошибки, отказа и пропуска обязаны отличаться словом и рамкой, а не только цветом.
+Проверенная точка входа — `src/frontend/src/App.tsx`, схема — `map/PipelineMap.tsx`.
+
+Для демонстрации frontend должен получать поток через `uv run neftecode serve`:
+разнесённый `neftecode-stack` gateway отдаёт legacy JSON, но не `/api/stream`. Это
+операционное ограничение дизайна показа, не визуальный вариант.
+
 > Factory floor blueprint on warm vellum — a quiet, monochromatic stage where industrial scale and whisper-light typography carry the entire brand.
 
 **Theme:** light

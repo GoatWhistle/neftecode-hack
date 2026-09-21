@@ -64,6 +64,10 @@
 
 ТЗ допускает явные допущения, но недостающие данные нельзя считать известными. Проблемы и вопросы — `issues.md`. Дальше обсуждаем смысл задачи и уточнения, без реализации.
 
+## Аудит реализации 21.09.2026
+
+Код подтверждает временную защиту прогноза: признаки выбираются по доступности источника, возрасту и состоянию ПАК; target guard запрещает использовать пробу цели в признаках (`src/neftecode/infrastructure/data/data.py:32–109`). Обнаружено отдельное ограничение live response binding: отсутствие F9 не блокирует `in_region`, если T6 находится в диапазоне (`src/neftecode/infrastructure/live/binding.py:88–90`). Focused-проверка дала `provenance=derived` и числовой T6 envelope при сценарном F9; downstream `response_guard`/Gate отсутствующий F9 не отсекают. Это P1 finding для правки кода, не доказательство допустимости промышленной рекомендации.
+
 ## Файлы проверки
 
 `inventory.json` — SHA-256 исходников. `spec-text.txt`, `schemes-text.txt`, `tag-dictionary.txt` — текст; схемы также просмотрены визуально. `telemetry-profile.json`, `laboratory-profile.json`, `online-profile.json` — полные профили сигналов. `workbook-metadata.json` — листы/ячейки. `quality-examples.json`, `extra-checks.json` — дополнительные факты. `inspect_sources.py` — основной скрипт чтения и профилирования, не прототип хакатона.

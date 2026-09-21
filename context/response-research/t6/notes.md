@@ -64,6 +64,7 @@ h6/h8 pooled −0.27/−0.25. ARX все данные −0.381 [−.415,−.352]
 DML-полугодия шумнее ARX и дрейфуют сильнее (h3 2025H2 −0.73) — как и в T11-версии; для C2 взято ARX trailing-12 (правило F8/v3).
 
 ## C2 (`c2_export.py` → `config/response_model.json`)
+
 β = −0.4332, ci = [−0.4761, −0.3970] (бутстрап по месяцам, 40), n_rows 48 938 (10-мин строк ARX в окне 2025-01-01…2025-12-31 18:00),
 drift = ARX по полугодиям (realized), flow_beta = null, fingerprint из artifacts/manifest.json. CI не включает 0.
 Правка по замечанию оркестратора: файл перенесён в config/ (в git), добавлены t6_range_c [342.9, 386.1], f9_range_tph [150.3, 256.7], weak_strong [−0.217, −0.739].
@@ -75,3 +76,13 @@ k = F15/(F9/ρ) медиана 12.85, по кварталам 11.6–13.6, по 
 ## Моменты (`snapshot_moments.py` → `out/snapshot_moments.json`, `config/snapshot_moments.json`)
 build_features с конфигом artifacts/model.pkl (lab 48 ч, ПАК 30 мин, frozen 4 показания, конфликт 4.749). Итог — 7 записей,
 включая синтетический срез «T6 отсутствует» (в данных T6 никогда не NaN) и дополнительный «зависший ПАК при работе».
+
+## Production-аудит (21.09.2026)
+
+Исследовательские числа выше сохранены как исторические. Production `train` записывает сетку τ в
+`artifacts/response_model.json`; верхнеуровневый `train_end` может отличаться от выбранной live
+оценки, потому что `response_at()` берёт последнюю запись `tau <= decision_time`. Временная граница
+порога F9 и ARX-окна — τ−6 ч; это исключает будущее при обучении, но не превращает ARX-оценку в
+экспериментальное доказательство причинного эффекта. Отдельный live finding: binding допускает
+`f9=None` в `in_region`, поэтому числовой T6 envelope может получить `provenance=derived` при
+сценарном F9; см. `context/task-review/issues.md`.
