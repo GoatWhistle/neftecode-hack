@@ -79,6 +79,10 @@ def make_snapshot():
     return {"schema_version": "v1", "at": AT, "label": "риск по качеству", "why": "тест Z4",
             "state": state, "trust": {"usable": True, "primary": "ПАК", "fallback": False},
             "forecast": WRONG_FORECAST,
+            # I1: резервный прогноз без ПАК, посчитанный на момент сборки среза
+            # (forecast_at(..., fallback=True)) — bind_snapshot обязан выбрать его после
+            # пересчёта trust.fallback_mode=True (инъекция frozen_pak).
+            "forecast_no_pak": CORRECT_FORECAST,
             "measured": state["measurements"], "synthetic_edits": [],
             "model_fingerprint": "fp-z4", "source_rules_fingerprint": None}
 
@@ -191,9 +195,18 @@ def test_demo_gateway_and_live_agree_on_the_same_slice_and_fault():
 
     # Проверка согласованности между demo и gateway: оба используют bind_snapshot и должны
     # хотя бы совпадать друг с другом (иначе дефект ещё серьёзнее, чем зафиксировано в пуле).
-    assert demo_model == gateway_model == WRONG_FORECAST["model"], (
-        f"demo ({demo_model}) и gateway ({gateway_model}) разошлись между собой ещё до "
-        f"сравнения с live — ожидался общий устаревший прогноз {WRONG_FORECAST['model']!r}"
+    #
+    # ПРАВКА после I1 (не логика проверки, а фиксация ожидаемого значения): до фикса дефекта #1
+    # это сравнение проверяло, что demo и gateway сходятся на СТАРОМ прогнозе WRONG_FORECAST
+    # (last_pak_bc) — именно так тест был красным. I1 чинит bind_snapshot и общую точку показа
+    # прогноза (composition/decision.py, services/decision_service.py, services/gateway_service.py)
+    # так, чтобы demo и gateway тоже пересчитывали прогноз по актуальному trust.fallback_mode —
+    # это и есть цель задачи ("общая функция demo и decision-service"), а не расхождение с live.
+    # Поэтому после фикса demo и gateway обязаны сойтись друг с другом на ПРАВИЛЬНОМ прогнозе
+    # catboost_no_pak, а не остаться на last_pak_bc.
+    assert demo_model == gateway_model == CORRECT_FORECAST["model"], (
+        f"demo ({demo_model}) и gateway ({gateway_model}) разошлись между собой — ожидался общий "
+        f"пересчитанный прогноз {CORRECT_FORECAST['model']!r}"
     )
     assert demo_screen["decision"]["status"] == gateway_screen["decision"]["status"]
 

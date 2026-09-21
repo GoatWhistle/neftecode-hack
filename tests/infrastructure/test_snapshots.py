@@ -42,6 +42,10 @@ def snapshot(label="норма", fingerprint="fp", synthetic=()):
             "state": state, "trust": {"usable": True, "primary": "ЛИМС", "fallback": False},
             "forecast": {"model": "last_pak", "value": 5.88, "lower": 3.68, "upper": 9.13, "available": True,
                          "reason": "тест", "coverage_target": 0.9, "coverage_test_2026": 0.867},
+            # I1 (task-pool.md, «Ключевые факты» #1, 05.01 + frozen_pak): резервный прогноз без ПАК,
+            # который bind_snapshot обязан выбрать после инъекции отказа источника.
+            "forecast_no_pak": {"model": "catboost_no_pak", "value": 7.511, "lower": 5.83, "upper": 10.292,
+                                "available": True, "reason": "тест: резерв без ПАК"},
             "measured": state["measurements"], "synthetic_edits": edits,
             "model_fingerprint": fingerprint, "source_rules_fingerprint": None}
 
@@ -189,6 +193,12 @@ def real_2026_07_24_snapshot() -> dict:
                          "reason": "лабораторное значение прогнозируется по ПАК с причинной "
                                    "медианой 20 последних доступных пар; это не заводская "
                                    "калибровка ПАК к шкале ЛИМС"},
+            # I1 (task-pool.md, «Доказательная база 21.09»): резервный прогноз без ПАК, посчитанный
+            # на тот же момент сборки среза (forecast_at(..., fallback=True)) — bind_snapshot обязан
+            # выбрать его после инъекции frozen_pak.
+            "forecast_no_pak": {"model": "catboost_no_pak", "value": 8.11, "lower": 6.31, "upper": 11.09,
+                                "available": True,
+                                "reason": "тест Z5: пересчёт без ПАК после отказа источника"},
             "measured": state["measurements"], "synthetic_edits": [],
             "model_fingerprint": "fp", "source_rules_fingerprint": None}
 

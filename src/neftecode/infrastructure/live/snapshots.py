@@ -21,9 +21,27 @@ def snapshot_name(snapshot: dict) -> str:
     return stamp + ("-synthetic" if snapshot.get("synthetic_edits") else "")
 
 
+def _with_coverage(forecast: dict, coverage: dict | None) -> dict:
+    if not coverage:
+        return forecast
+    applied = coverage
+    if "coverage_target" not in coverage:
+        applied = coverage.get(forecast.get("model"), {})
+    return {**forecast, **applied}
+
+
 def build_snapshot(signals, lab, online, bundle: dict, at, label: str = "", why: str = "",
                    synthetic_missing: tuple[str, ...] = (), coverage: dict | None = None,
                    source_rules_fingerprint: str | None = None) -> dict:
+    """Собирает срез момента `at`.
+
+    Дефект #1 (task-pool.md, I1): срез хранит ОБА прогноза, посчитанных на момент сборки —
+    основной (`forecast`, источники доверены, fallback=False) и резервный no-PAK
+    (`forecast_no_pak`, fallback=True), — а не только тот, что соответствовал доверию source'ов
+    в момент сборки. Это позволяет `bind_snapshot` выбирать прогноз ПОСЛЕ инъекции отказа
+    источника (например, `frozen_pak`) по пересчитанному на актуальном состоянии
+    `trust.fallback_mode`, а не эхом того, что было доверено при сборке среза.
+    """
     when = validate_origin(at, bundle)
     state = state_at(signals, lab, online, bundle, when)
     edits = []
@@ -35,14 +53,10 @@ def build_snapshot(signals, lab, online, bundle: dict, at, label: str = "", why:
     if edits:
         state["synthetic_edits"] = edits
     trust = DataTrustAgent(bundle["config"]).assess(state).to_dict()
-    forecast = forecast_at(signals, lab, online, bundle, when, fallback=trust.get("fallback", False))
-    if coverage:
-        applied = coverage
-        if "coverage_target" not in coverage:
-            applied = coverage.get(forecast.get("model"), {})
-        forecast = {**forecast, **applied}
+    forecast = _with_coverage(forecast_at(signals, lab, online, bundle, when, fallback=False), coverage)
+    forecast_no_pak = _with_coverage(forecast_at(signals, lab, online, bundle, when, fallback=True), coverage)
     return {"schema_version": SCHEMA_VERSION, "at": when.isoformat(), "label": label, "why": why,
-            "state": state, "trust": trust, "forecast": forecast,
+            "state": state, "trust": trust, "forecast": forecast, "forecast_no_pak": forecast_no_pak,
             "measured": dict(state.get("measurements") or {}),
             "synthetic_edits": edits,
             "model_fingerprint": (bundle.get("manifest") or {}).get("fingerprint"),
@@ -91,9 +105,33 @@ def load_snapshots(out: Path) -> list[dict]:
 
 
 
+def select_forecast_dict(snapshot: dict, trust) -> dict:
+    """Выбирает, какой из двух прогнозов, сохранённых в срезе, использовать — ПО
+    ПЕРЕСЧИТАННОМУ доверию (`trust`, обычно `DataTrustAgent(...).assess(state)` на актуальном
+    состоянии), а не по доверию, зафиксированному в срезе на момент его сборки.
+
+    Дефект #1: если после сборки среза источник отказал (например, инъекция `frozen_pak`),
+    пересчитанный `trust.fallback_mode` становится `True`, и в этом случае нужно взять
+    резервный `snapshot["forecast_no_pak"]`, а не основной `snapshot["forecast"]`. Общая
+    функция для `bind_snapshot` и для отображения прогноза (demo/gateway/decision-service),
+    чтобы решение и показанный прогноз никогда не расходились.
+
+    Для срезов старого формата (без `forecast_no_pak`, собранных до этого исправления) —
+    падаем обратно на `snapshot["forecast"]`, чтобы не ломать обратную совместимость; такие
+    срезы стоит пересобрать командой `uv run neftecode snapshot --all`.
+    """
+    fallback_mode = getattr(trust, "fallback_mode", None)
+    if fallback_mode is None:
+        fallback_mode = trust.get("fallback", False) if isinstance(trust, dict) else False
+    key = "forecast_no_pak" if fallback_mode and "forecast_no_pak" in snapshot else "forecast"
+    return snapshot[key]
+
+
 def bind_snapshot(raw: dict, state: dict, snapshot: dict, response_model: dict | None, trust_cfg: dict):
+    """Связывает срез со сценарием, выбирая прогноз по пересчитанному доверию к текущему
+    состоянию (`state`) через `select_forecast_dict` (см. её докстринг про дефект #1)."""
     trust = DataTrustAgent(trust_cfg).assess(state)
-    forecast = LiveForecast.from_dict(snapshot["forecast"])
+    forecast = LiveForecast.from_dict(select_forecast_dict(snapshot, trust))
     if not trust.usable or not forecast.available:
         return parse_scenario(raw), raw
     live = LiveSnapshot(state.get("decision_time") or snapshot["at"], state, trust.to_dict(), trust_cfg=trust_cfg)
