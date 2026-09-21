@@ -17,10 +17,12 @@ from neftecode.presentation.web.query import DemoServerError, parse_conditions
 from neftecode.presentation.web.server import FIRST_SNAPSHOT
 from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_static_dir
 from neftecode.presentation.web.ui import error_payload, Screen
+from neftecode.presentation.web.progress import decision_stream
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.llm.config import decision_wait_seconds
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
-from .common import RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, make_handler, serve, encode_json
+from .common import (RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, StreamResponse,
+                     make_handler, serve, encode_json)
 
 
 class StaticRoutes(Mapping):
@@ -95,6 +97,18 @@ class GatewayService:
         canonical = canonical_conditions(parse_conditions(values), raw, name, default_snapshot)
         return self.cache.get(cache_key(canonical), lambda: self._decide(canonical, raw, request_id))
 
+    def stream(self, values, request_id="gateway"):
+        names = self.scenarios(request_id); name = (values.get("scenario") or [names[0]])[0]
+        raw = self.raw(name, request_id)
+        canonical = canonical_conditions(parse_conditions(values), raw, name, self.default_snapshot())
+
+        def compute():
+            payload = self._decide(canonical, raw, request_id)
+            self.cache.put(cache_key(canonical), payload)
+            return payload
+
+        return StreamResponse((frame.encode() for frame in decision_stream(compute)))
+
     def _decide(self, canonical, raw, request_id):
         chosen = self.snapshot(canonical["snapshot"])
         state = state_under(chosen, canonical["fault"])
@@ -160,6 +174,7 @@ class GatewayService:
                 "/api/scenarios": legacy(lambda r: {"scenarios": self.scenarios(r.request_id)}),
                 "/api/defaults": legacy(lambda r: defaults_for(self.raw((r.query.get("scenario") or [self.scenarios(r.request_id)[0]])[0], r.request_id))),
                 "/api/decide": legacy(lambda r: self.decide(r.query, r.request_id)),
+                "/api/stream": lambda r: self.stream(r.query, r.request_id),
                 "/api/options": legacy(lambda r: self.options_payload((r.query.get("scenario") or [None])[0], r.request_id)),
                 "/": lambda r: self.asset("/")}
         return StaticRoutes(api, lambda r: self.asset(r.path))
