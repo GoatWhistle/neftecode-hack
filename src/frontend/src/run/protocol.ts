@@ -55,12 +55,30 @@ function pick<T extends object>(source: T, fields: readonly string[]): Partial<T
   return out as Partial<T>;
 }
 
+const META_FIELDS = [
+  "schema", "created_at", "conditions_requested", "conditions_applied", "input_fingerprint", "input_parts", "code",
+  "model", "provider", "horizon_hours", "severity_profile", "unknown_note"
+] as const;
+
+const FRAME_FIELDS: Record<string, readonly string[]> = {
+  phase: ["kind", "atMs", "phase"],
+  tick: ["kind", "atMs", "elapsedMs"],
+  agent: ["kind", "atMs", "event"],
+  stage: ["kind", "atMs", "stage", "elapsedMs", "state", "facts"],
+  screen: ["kind", "atMs", "elapsedMs"]
+};
+
+function exportableFrame(frame: RecordedFrame): RecordedFrame {
+  return pick(frame, FRAME_FIELDS[frame.kind] ?? ["kind", "atMs"]) as RecordedFrame;
+}
+
 /** Только явный список полей приложения: без окружения, заголовков и посторонних ключей. */
 export function exportableRecord(record: RunRecord): RunRecord {
   return {
     schema: record.schema, run_id: record.run_id, recorded_at: record.recorded_at, label: record.label,
-    origin: record.origin, form: pick(record.form, FORM_FIELDS), query: record.query, meta: record.meta,
-    payload: pick(record.payload, PAYLOAD_FIELDS) as ScreenPayload, events: record.events,
+    origin: record.origin, form: pick(record.form, FORM_FIELDS), query: record.query,
+    meta: record.meta ? (pick(record.meta, META_FIELDS) as RunRecord["meta"]) : null,
+    payload: pick(record.payload, PAYLOAD_FIELDS) as ScreenPayload, events: record.events.map(exportableFrame),
     duration_ms: record.duration_ms
   };
 }
@@ -105,6 +123,50 @@ function assertFinite(value: unknown, path: string, depth = 0): void {
   }
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+const FRAME_KINDS = ["phase", "tick", "agent", "stage", "screen"];
+const STAGE_STATES = ["pending", "running", "done", "skipped", "failed"];
+
+function validateFrame(raw: unknown, where: string): void {
+  const item = object(raw, where);
+  if (typeof item.kind !== "string" || !FRAME_KINDS.includes(item.kind)) {
+    throw new ProtocolError(`${where}: неизвестный вид события`);
+  }
+  if (!isFiniteNumber(item.atMs) || item.atMs < 0) throw new ProtocolError(`${where}: время события неверно`);
+  if (item.kind === "phase") {
+    const phase = object(item.phase, `${where}.phase`);
+    for (const key of ["key", "label", "detail"]) {
+      if (typeof phase[key] !== "string") throw new ProtocolError(`${where}: у фазы нет поля ${key}`);
+    }
+    if (!isFiniteNumber(phase.elapsed_ms)) throw new ProtocolError(`${where}: у фазы нет времени`);
+    if (phase.state !== undefined && (typeof phase.state !== "string" || !STAGE_STATES.includes(phase.state))) {
+      throw new ProtocolError(`${where}: недопустимое состояние фазы`);
+    }
+  } else if (item.kind === "tick") {
+    if (!isFiniteNumber(item.elapsedMs)) throw new ProtocolError(`${where}: у отсчёта нет времени`);
+  } else if (item.kind === "agent") {
+    const event = object(item.event, `${where}.event`);
+    if (typeof event.agent !== "string" || typeof event.kind !== "string" ||
+        !isFiniteNumber(event.seq) || !isFiniteNumber(event.step)) {
+      throw new ProtocolError(`${where}: событие агента неполное`);
+    }
+  } else if (item.kind === "stage") {
+    if (typeof item.stage !== "string" || !isFiniteNumber(item.elapsedMs)) {
+      throw new ProtocolError(`${where}: у этапа нет идентификатора или времени`);
+    }
+    if (item.state !== undefined && item.state !== null &&
+        (typeof item.state !== "string" || !STAGE_STATES.includes(item.state))) {
+      throw new ProtocolError(`${where}: недопустимое состояние этапа`);
+    }
+    if (item.facts !== undefined && item.facts !== null) object(item.facts, `${where}.facts`);
+  } else if (!isFiniteNumber(item.elapsedMs)) {
+    throw new ProtocolError(`${where}: у итогового кадра нет времени`);
+  }
+}
+
 function validateRecord(raw: unknown, where: string): RunRecord {
   const record = object(raw, where);
   if (record.schema !== RECORD_SCHEMA) throw new ProtocolError(`${where}: неподдерживаемая схема записи «${String(record.schema)}»`);
@@ -116,11 +178,17 @@ function validateRecord(raw: unknown, where: string): RunRecord {
   if (typeof decision.status !== "string") throw new ProtocolError(`${where}: у решения нет статуса`);
   object(payload.explanation, `${where}.payload.explanation`);
   if (!Array.isArray(record.events)) throw new ProtocolError(`${where}: список событий отсутствует`);
-  for (const [index, frame] of record.events.entries()) {
-    const item = object(frame, `${where}.events[${index}]`);
-    if (typeof item.kind !== "string" || typeof item.atMs !== "number") {
-      throw new ProtocolError(`${where}: событие ${index} без вида или времени`);
-    }
+  for (const [index, frame] of record.events.entries()) validateFrame(frame, `${where}.events[${index}]`);
+  if (record.duration_ms !== null && record.duration_ms !== undefined && !isFiniteNumber(record.duration_ms)) {
+    throw new ProtocolError(`${where}: длительность записи не число`);
+  }
+  if (record.query !== null && record.query !== undefined && typeof record.query !== "string") {
+    throw new ProtocolError(`${where}: запрос записи не строка`);
+  }
+  if (record.form !== undefined) object(record.form, `${where}.form`);
+  if (record.meta !== null && record.meta !== undefined) object(record.meta, `${where}.meta`);
+  if (!("state" in payload) || typeof payload.title !== "string") {
+    throw new ProtocolError(`${where}: в результате нет состояния или заголовка`);
   }
   return { ...(record as unknown as RunRecord), origin: "record" };
 }

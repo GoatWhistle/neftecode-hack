@@ -28,7 +28,7 @@ import { TradeoffMapView } from "./compare/TradeoffMap";
 import { comparePair } from "./run/pair";
 import { buildRecord } from "./run/record";
 import type { RunRecord } from "./run/record";
-import type { ParsedProtocol } from "./run/protocol";
+import { ProtocolError, type ParsedProtocol } from "./run/protocol";
 
 const BLANK: Conditions = {
   scenario: "", snapshot: "", fault: "healthy", crude_sulfur_wt_pct: "", product_sulfur_mgkg: "",
@@ -179,12 +179,16 @@ export function App() {
 
   const openProtocol = useCallback((parsed: ParsedProtocol) => {
     const shown = parsed.b ?? parsed.a!;
+    try {
+      openRecord(shown, parsed.protocol.exported_at);
+    } catch {
+      throw new ProtocolError("Запись не удалось восстановить: структура файла не соответствует протоколу. Текущий экран сохранён.");
+    }
     setPinned(parsed.b ? parsed.a : null);
     setCurrent(shown);
     built.current = shown.payload;
     setOpen(null);
     setLaunched({ ...BLANK, ...(shown.form as Partial<Conditions>) });
-    openRecord(shown, parsed.protocol.exported_at);
     scrollToMap();
   }, [openRecord]);
 

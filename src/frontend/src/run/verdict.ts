@@ -132,12 +132,12 @@ export function verdictOf(outcome: RunOutcome): Verdict {
   if (outcome.kind === "stopped") {
     return {
       tone: "stopped",
-      title: "Расчёт остановлен",
+      title: "Показ остановлен",
       qualifier: null,
       backendStatus: null,
       backendLabel: null,
       lines: [
-        { kind: "cause", text: "Прогон прерван в браузере до получения решения." },
+        { kind: "cause", text: "Показ прерван в браузере до получения решения; расчёт на сервере мог продолжиться." },
         {
           kind: "need",
           text: "Это не отказ по технологии и не успешное завершение: результата нет, запустите расчёт заново."

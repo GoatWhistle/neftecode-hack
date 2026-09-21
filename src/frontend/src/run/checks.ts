@@ -98,7 +98,7 @@ function readiness(payload: ScreenPayload): CheckFamily {
   const scope = payload.decision.scope;
   const scopeText =
     scope === "synthetic_scenario"
-      ? " Числа получены на сценарных данных, а не на измерениях завода."
+      ? " Это модельный результат, а не измеренный эффект на заводе; происхождение каждого входа (измерение или сценарная уставка) указано отдельно в источниках."
       : "";
   if (!deployment) {
     return {

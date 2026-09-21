@@ -39,7 +39,7 @@ function statusText(status: string): string {
   if (status === "running") return "Пайплайн работает";
   if (status === "done") return "Расчёт завершён";
   if (status === "failed") return "Расчёт не завершён";
-  if (status === "stopped") return "Расчёт остановлен";
+  if (status === "stopped") return "Показ остановлен";
   return "Готов к запуску";
 }
 

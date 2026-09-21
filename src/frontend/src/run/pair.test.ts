@@ -15,7 +15,7 @@ describe("парное сравнение", () => {
     expect(row(cmp, "production").delta).toBeNull();
     expect(row(cmp, "cost").delta).toBeNull();
     expect(row(cmp, "severity").delta).toBeNull();
-    expect(row(cmp, "refusal").b).toBe("no_feasible_plan");
+    expect(row(cmp, "refusal").b).toBe("нет допустимого плана");
     expect(row(cmp, "needs").b).toContain("сера основного компонента");
     expect(cmp.inputDiff.map((item) => item.key)).toContain("tank_available");
     expect(cmp.identicalInputs).toBe(false);
@@ -108,3 +108,32 @@ describe("парное сравнение", () => {
     }).toThrow();
   });
 });
+
+describe("скрытые изменения входов", () => {
+  const withParts = (name: string, parts: Record<string, unknown>, fingerprint: string) => {
+    const base = record(name);
+    return {
+      ...base,
+      meta: { ...base.meta!, input_fingerprint: fingerprint, input_parts: { scenario_sha256: "s1", snapshot_sha256: "p1", model: null, ...parts } }
+    } as typeof base;
+  };
+
+  it("одинаковые запрошенные условия, но другая конфигурация сценария не объявляются совпадающими", () => {
+    const cmp = comparePair(withParts("risk", {}, "f1"), withParts("risk", { scenario_sha256: "s2" }, "f2"));
+    expect(cmp.inputDiff).toEqual([]);
+    expect(cmp.identicalInputs).toBe(false);
+    expect(cmp.hiddenChanges.length).toBeGreaterThan(0);
+  });
+
+  it("изменение содержимого среза при том же ключе замечено", () => {
+    const cmp = comparePair(withParts("risk", {}, "f1"), withParts("risk", { snapshot_sha256: "p2" }, "f2"));
+    expect(cmp.hiddenChanges.join(" ")).toContain("срез");
+  });
+
+  it("одинаковые части и отпечаток — скрытых изменений нет", () => {
+    const cmp = comparePair(withParts("risk", {}, "f1"), withParts("risk", {}, "f1"));
+    expect(cmp.hiddenChanges).toEqual([]);
+    expect(cmp.identicalInputs).toBe(true);
+  });
+});
+

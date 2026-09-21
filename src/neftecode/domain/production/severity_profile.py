@@ -61,8 +61,11 @@ def build_profile(reference_temp_c, temp_max_c, reference_flow_m3h, flow_max_m3h
 
 
 def profile_id(profile: dict) -> str:
+    weights = profile.get("weights") or {}
+    weight_text = "/".join(f"{float(weights.get(name, 0.0)):g}" for name in TERMS)
     return (f"{profile['version']}:{profile['source']}:T{profile['reference_temp_c']:g}/"
-            f"{profile['temp_scale_c']:g}:F{profile['reference_flow_m3h']:g}/{profile['flow_scale_m3h']:g}")
+            f"{profile['temp_scale_c']:g}:F{profile['reference_flow_m3h']:g}/{profile['flow_scale_m3h']:g}"
+            f":W{weight_text}")
 
 
 def _limits(profile: dict, temp: float, index: float) -> list[dict]:

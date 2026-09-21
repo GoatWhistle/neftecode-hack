@@ -159,7 +159,7 @@ export function ConfigStage({
               title="То же самое делает клавиша Escape"
               onClick={onReset}
             >
-              Остановить прогон
+              Прекратить показ
             </button>
             <span className="config__shortcut">
               или клавиша <kbd className="config__key">Esc</kbd>

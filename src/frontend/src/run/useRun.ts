@@ -207,18 +207,19 @@ export function useRun(): RunControls {
 
   const openRecord = useCallback(
     (record: RunRecord, exportedAt: string | null) => {
+      const info = recordInfoOf(record, exportedAt);
+      const restored = hydrateRun(record, info);
       abort.current?.abort();
       reveal.clear();
       states.current = {};
       queued.current = {};
       setPending(false);
       setReplaying(false);
-      const info = recordInfoOf(record, exportedAt);
       recordInfo.current = info;
       lastQuery.current = record.query;
       tape.current = tapeOf(record);
       setHasTape(canReplay(tape.current));
-      setRun(hydrateRun(record, info));
+      setRun(restored);
     },
     [reveal]
   );

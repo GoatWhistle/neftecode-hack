@@ -74,4 +74,4 @@ def make_demo_service(root: Path, budget: int = DEFAULT_BUDGET, out: Path | None
                                                                      snapshots, response_model, factory),
                        FileScenarioRepository(root / "config/scenarios"), budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
                        decision_timeout_s=decision_wait_seconds(root),
-                       provenance=lambda: {"code": code_version(str(root)), "model": model_version(str(root))})
+                       provenance=lambda: {"code": code_version(str(root)), "model": model_version(str(root), str(out))})

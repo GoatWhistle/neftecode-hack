@@ -97,3 +97,36 @@ describe("протокол решения", () => {
     expect(state.live).toBe(false);
   });
 });
+
+describe("структурная проверка импорта при верной контрольной сумме", () => {
+  const forged = (mutate: (frames: Record<string, unknown>[]) => void) => {
+    const protocol = JSON.parse(serializeProtocol(buildProtocol(record("risk"), null))) as {
+      content: { a: { events: Record<string, unknown>[] } }; checksum: { value: string };
+    };
+    mutate(protocol.content.a.events);
+    protocol.checksum.value = sha256Hex(canonicalJson(protocol.content));
+    return JSON.stringify(protocol);
+  };
+
+  it("фаза с phase=null отклоняется до восстановления", () => {
+    const text = forged((frames) => { frames[0] = { kind: "phase", atMs: 0, phase: null }; });
+    expect(() => parseProtocol(text)).toThrow(ProtocolError);
+  });
+
+  it("неизвестный вид события, отрицательное время и этап без идентификатора отклоняются", () => {
+    expect(() => parseProtocol(forged((f) => { f[0] = { kind: "boom", atMs: 0 }; }))).toThrow(ProtocolError);
+    expect(() => parseProtocol(forged((f) => { f[0] = { ...f[0], atMs: -1 }; }))).toThrow(ProtocolError);
+    expect(() => parseProtocol(forged((f) => { f[1] = { kind: "stage", atMs: 1, elapsedMs: 1 }; }))).toThrow(ProtocolError);
+  });
+
+  it("недопустимое состояние этапа и событие агента без полей отклоняются", () => {
+    expect(() => parseProtocol(forged((f) => { f[1] = { ...f[1], state: "weird" }; }))).toThrow(ProtocolError);
+    expect(() => parseProtocol(forged((f) => { f.push({ kind: "agent", atMs: 9000, event: {} }); }))).toThrow(ProtocolError);
+  });
+
+  it("корректный протокол по-прежнему восстанавливается", () => {
+    const parsed = parseProtocol(forged(() => {}));
+    expect(() => hydrateRun(parsed.a!, recordInfoOf(parsed.a!, null))).not.toThrow();
+  });
+});
+

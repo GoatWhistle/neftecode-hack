@@ -33,6 +33,7 @@ export interface PairComparison {
   inputDiff: DiffItem[];
   inputsKnown: boolean;
   identicalInputs: boolean | null;
+  hiddenChanges: string[];
   notApplied: string[];
   incomparable: Incomparable[];
   rows: PairRow[];
@@ -117,6 +118,34 @@ export function notAppliedOf(record: RunRecord, against: RunRecord | null): stri
     }
   }
   return out;
+}
+
+const PART_LABELS: Record<string, string> = {
+  scenario_sha256: "Содержимое или конфигурация сценария изменились при тех же запрошенных условиях",
+  snapshot_sha256: "Содержимое среза данных изменилось при том же ключе среза",
+  model: "Версия модели отклика изменилась"
+};
+
+/** Различия отпечатка входов, не видимые в запрошенных условиях. */
+export function hiddenChangesOf(a: RunRecord, b: RunRecord): string[] {
+  const pa = a.meta?.input_parts;
+  const pb = b.meta?.input_parts;
+  const out: string[] = [];
+  if (pa && pb) {
+    for (const key of Object.keys(PART_LABELS)) {
+      if (canonicalKey(pa[key]) !== canonicalKey(pb[key])) out.push(PART_LABELS[key]!);
+    }
+  }
+  const fa = a.meta?.input_fingerprint;
+  const fb = b.meta?.input_fingerprint;
+  if (out.length === 0 && fa && fb && fa !== fb) {
+    out.push("Отпечаток эффективных входов различается по причине, не выделенной в частях отпечатка");
+  }
+  return out;
+}
+
+function canonicalKey(value: unknown): string {
+  return JSON.stringify(value ?? null) ?? "null";
 }
 
 function providerKey(record: RunRecord): string {
@@ -221,9 +250,27 @@ function needsText(payload: ScreenPayload): string {
   return steps.map((step) => step.need).join("; ");
 }
 
+const KIND_LABEL: Record<string, string> = {
+  bad_data: "нет достоверного источника качества",
+  no_feasible_plan: "нет допустимого плана",
+  model_not_applicable: "режим вне области модели",
+  agent_rejected: "план отклонён агентами",
+  fragile_plan: "план хрупкий к отклонениям",
+  tank_estimate_sensitive: "результат чувствителен к оценке резервуара",
+  refused_on_data: "отказ по данным",
+  refused_no_plan: "отказ: плана нет",
+  source_degraded: "источник деградирован",
+  sulfur_operating_margin: "тонкий запас по сере",
+  plan_switched: "план заменён",
+  resource_or_scenario_condition: "условие ресурса или сценария"
+};
+
+const kindText = (kind: string): string => KIND_LABEL[kind] ?? kind;
+
 function refusalText(payload: ScreenPayload): string {
   if (payload.decision.status !== "refuse") return "—";
-  return payload.explanation?.kind ?? payload.decision.refusal?.kind ?? "причина не передана";
+  const kind = payload.explanation?.kind ?? payload.decision.refusal?.kind;
+  return kind ? kindText(kind) : "причина не передана";
 }
 
 function marginOf(payload: ScreenPayload): number | null {
@@ -235,7 +282,7 @@ function warningsText(payload: ScreenPayload): string {
   const risk = (payload.explanation?.risk?.items ?? []).map((item) => item.kind);
   const warn = (payload.explanation?.warnings ?? []).map((item) => item.kind);
   const all = [...new Set([...risk, ...warn])];
-  return all.length === 0 ? "нет" : all.join(", ");
+  return all.length === 0 ? "нет" : all.map(kindText).join(", ");
 }
 
 export function comparePair(a: RunRecord, b: RunRecord): PairComparison {
@@ -291,6 +338,6 @@ export function comparePair(a: RunRecord, b: RunRecord): PairComparison {
     headline, answerChanged, inputDiff: diff ?? [], inputsKnown: diff !== null,
     identicalInputs: a.meta?.input_fingerprint && b.meta?.input_fingerprint
       ? a.meta.input_fingerprint === b.meta.input_fingerprint : null,
-    notApplied: [...notAppliedOf(b, a)], incomparable, rows, notes
+    hiddenChanges: hiddenChangesOf(a, b), notApplied: [...notAppliedOf(b, a)], incomparable, rows, notes
   };
 }

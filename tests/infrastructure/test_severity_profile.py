@@ -96,3 +96,21 @@ def test_the_profile_does_not_change_the_response_model_or_the_scale_with_the_mo
         with_profile["policy"]["severity_profile"]["reference_temp_c"]
     assert other_mode["policy"]["severity_profile"]["temp_scale_c"] == \
         with_profile["policy"]["severity_profile"]["temp_scale_c"]
+
+
+def test_profiles_with_different_weights_have_different_ids_and_no_delta():
+    temp_only = profile(weights={"temperature_above_reference": 1.0, "throughput_above_reference": 0.0})
+    flow_only = profile(weights={"temperature_above_reference": 0.0, "throughput_above_reference": 1.0})
+    a = evaluate(temp_only, 360.0, 256.0, MISSING)
+    b = evaluate(flow_only, 360.0, 256.0, MISSING)
+    assert a["profile_id"] != b["profile_id"]
+    assert not comparable(a, b)
+    assert delta(a, b) is None
+
+
+def test_profiles_with_equal_parameters_stay_comparable():
+    a = evaluate(profile(), 360.0, 256.0, MISSING)
+    b = evaluate(profile(), 370.0, 280.0, MISSING)
+    assert a["profile_id"] == b["profile_id"]
+    assert comparable(a, b)
+

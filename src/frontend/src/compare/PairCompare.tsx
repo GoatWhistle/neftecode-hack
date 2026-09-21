@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function PairCompare({ comparison, labelA, labelB }: Props) {
-  const { headline, inputDiff, inputsKnown, incomparable, rows, notes, notApplied, identicalInputs } = comparison;
+  const { headline, inputDiff, inputsKnown, hiddenChanges, incomparable, rows, notes, notApplied, identicalInputs } = comparison;
   return (
     <section className="pair" aria-labelledby="pair-title">
       <h3 className="pair__title" id="pair-title">{headline}</h3>
@@ -16,14 +16,27 @@ export function PairCompare({ comparison, labelA, labelB }: Props) {
         <p className="pair__kicker">Что изменено в условиях</p>
         {!inputsKnown ? (
           <p className="pair__warn">Условия одной из записей неизвестны (сервер не передал метаданные): отличия входов не установлены.</p>
-        ) : inputDiff.length === 0 ? (
-          <p>Эффективные входы совпадают{identicalInputs ? " (отпечаток входов одинаков)" : ""}: различие возможно только из-за вариативности расчёта.</p>
+        ) : inputDiff.length === 0 && hiddenChanges.length === 0 ? (
+          identicalInputs === true ? (
+            <p>Эффективные входы совпадают (отпечаток входов одинаков): различие возможно только из-за вариативности расчёта.</p>
+          ) : (
+            <p className="pair__warn">Запрошенные условия совпадают, но отпечаток входов неизвестен у одной из записей: одинаковость входов не подтверждена.</p>
+          )
         ) : (
-          <ul className="pair__diff">
-            {inputDiff.map((item) => (
-              <li key={item.key}><b>{item.label}:</b> {item.a} → {item.b}</li>
-            ))}
-          </ul>
+          <>
+            {inputDiff.length > 0 ? (
+              <ul className="pair__diff">
+                {inputDiff.map((item) => (
+                  <li key={item.key}><b>{item.label}:</b> {item.a} → {item.b}</li>
+                ))}
+              </ul>
+            ) : null}
+            {hiddenChanges.length > 0 ? (
+              <ul className="pair__warn-list">
+                {hiddenChanges.map((text) => <li key={text}>{text}: разницу нельзя приписывать вариативности агента или одному изменённому условию.</li>)}
+              </ul>
+            ) : null}
+          </>
         )}
         {notApplied.length > 0 ? (
           <ul className="pair__warn-list">

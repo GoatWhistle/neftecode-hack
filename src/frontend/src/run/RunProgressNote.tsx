@@ -5,7 +5,7 @@ export function RunProgressNote({ run }: { run: RunState }) {
   if (run.status === "stopped") {
     return (
       <p className="progress progress--stopped" role="status">
-        Расчёт остановлен · протокол решения не получен
+        Показ остановлен · протокол решения не получен
       </p>
     );
   }
