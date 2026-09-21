@@ -9,6 +9,7 @@ from neftecode.application.services.trust import DataTrustAgent
 from neftecode.bootstrap import run_demo_decision
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots, write_snapshot
+from neftecode.infrastructure.scenarios import FileScenarioRepository, FileSnapshotRepository
 from neftecode.application.conditions import apply_source_failure
 from neftecode.presentation.demo import Demo, DemoError, scenes, snapshot_key, state_origin_label
 from neftecode.presentation.web.server import DemoService
@@ -68,6 +69,16 @@ def test_snapshots_are_loaded_in_time_order_and_checked_against_the_model(out):
     items = load_snapshots(out)
     assert [item["label"] for item in items] == ["норма", "позже"]
     assert load_snapshots(out / "empty") == []
+
+
+def test_the_file_snapshot_repository_lists_and_loads_by_key(out):
+    write_snapshot(out, snapshot())
+    write_snapshot(out, dict(snapshot(label="позже"), at="2026-02-01T00:00:00"))
+    repository = FileSnapshotRepository(out)
+    assert repository.all() == load_snapshots(out)
+    assert repository.get("20260201-000000")["label"] == "позже"
+    with pytest.raises(KeyError, match="не найден"):
+        repository.get("20990101-000000")
 
 
 def test_a_snapshot_from_another_model_is_refused(out):
@@ -131,7 +142,8 @@ def test_the_server_offers_snapshots_first_and_the_synthetic_state_last(out):
     write_snapshot(out, snapshot())
     items = load_snapshots(out)
     service = DemoService(ROOT, lambda raw, budget: Demo(raw, run_demo_decision, trust_cfg(), budget,
-                                                         snapshots=items), 120, snapshots=items)
+                                                         snapshots=items),
+                          FileScenarioRepository(ROOT / "config/scenarios"), 120, snapshots=items)
     keys = [key for key, _ in service.snapshot_options()]
     assert keys == ["20260105-080000", "synthetic"]
     titles = [item["title"] for item in service.options_payload("baseline")["snapshots"]]

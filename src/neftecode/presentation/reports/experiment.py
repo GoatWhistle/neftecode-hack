@@ -1,5 +1,3 @@
-import json
-
 def selection_section(summary):
     lines = []
     choice = summary.get("selection_decision", {})
@@ -50,10 +48,9 @@ def selection_section(summary):
                   "создало бы заведомо слабого соперника и завысило бы выигрыш модели.", ""]
     return lines
 
-def make_report(out, demos):
+def make_report(demos, summary: dict | None = None, risk: dict | None = None) -> str:
     lines = ["# Первый рабочий проход", "", "Прогноз на реальных данных. Оптимизация смешения — явно модельный сценарий.", ""]
-    if (out / "metrics.json").exists():
-        summary = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
+    if summary is not None:
         selection_text = (f"Production-выбор по rolling до 2026: **{summary['selected']}**."
                           if summary.get("production_selection") else
                           f"Выбор только по validation: **{summary['selected']}**.")
@@ -73,8 +70,7 @@ def make_report(out, demos):
                   "", "Результаты воспроизведения всех тестовых моментов с модельным смешением: " + str(summary["replay"]["statuses"]), ""]
         lines += selection_section(summary)
         lines += ["## Допущения", "", *[f"- {a}" for a in summary["assumptions"]], ""]
-    if (out / "risk_metrics.json").exists():
-        risk = json.loads((out / "risk_metrics.json").read_text(encoding="utf-8"))
+    if risk is not None:
         lines += ["## Обнаружение превышений", "",
                   f"Выбран по validation: **{risk['selected']}**, резерв: **{risk['fallback']}**. "
                   f"Экспериментальный бюджет ложных тревог: {risk['false_alarm_budget']:.0%}. "
@@ -102,4 +98,4 @@ def make_report(out, demos):
     lines += ["Численные условия берутся из config/scenarios/*.json. audit.jsonl содержит решения, "
               "проверки и причины запретов. Фактическое будущее в решение не передается.", "",
               "Результат остаётся исследовательским советом: решение не разрешает промышленный выпуск.", ""]
-    (out / "report.md").write_text("\n".join(lines), encoding="utf-8")
+    return "\n".join(lines)

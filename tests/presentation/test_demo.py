@@ -17,7 +17,7 @@ TRUST_CFG, TRUST_ORIGIN = load_trust_rules(Path("."), Path("artifacts"))
 
 @pytest.fixture(scope="module")
 def demo():
-    return Demo.from_path(BASELINE, run_demo_decision, TRUST_CFG, budget=BUDGET, trust_origin=TRUST_ORIGIN)
+    return Demo(raw(), run_demo_decision, TRUST_CFG, budget=BUDGET, trust_origin=TRUST_ORIGIN)
 
 
 def raw():

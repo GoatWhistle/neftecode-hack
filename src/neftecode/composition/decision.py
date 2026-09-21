@@ -15,7 +15,8 @@ from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenar
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import load_response_model
 from neftecode.infrastructure.llm.config import decision_wait_seconds
-from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots, select_forecast_dict
+from neftecode.infrastructure.live.snapshots import bind_snapshot, select_forecast_dict
+from neftecode.infrastructure.scenarios import FileScenarioRepository, FileSnapshotRepository
 from neftecode.presentation.demo import Demo, state_origin_label
 from neftecode.presentation.web.server import DemoService
 from neftecode.presentation.web.ui import Screen, error_payload
@@ -77,10 +78,10 @@ def make_demo_service(root: Path, budget: int = DEFAULT_BUDGET, out: Path | None
     root = Path(root)
     out = Path(out) if out is not None else root / "artifacts"
     trust_cfg, trust_origin = load_trust_rules(root, out)
-    snapshots = load_snapshots(out)
+    snapshots = FileSnapshotRepository(out).all()
     response_model = load_response_model(root, out)
     factory = default_decision_factory(root)
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
                                                                      snapshots, response_model, factory),
-                       budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
+                       FileScenarioRepository(root / "config/scenarios"), budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
                        decision_timeout_s=decision_wait_seconds(root))

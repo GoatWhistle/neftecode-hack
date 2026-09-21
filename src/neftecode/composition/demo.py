@@ -8,6 +8,7 @@ from neftecode.composition.decision import run_demo_decision
 from neftecode.infrastructure.artifacts import clean, load_model_bundle, write_json
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import bind_forecast
+from neftecode.infrastructure.scenarios import FileScenarioRepository
 from neftecode.presentation.reports.experiment import make_report
 
 STATE_COLUMNS = ["decision_time", "lab_sample_time", "lab_available_time", "lab_value", "lab_age_hours",
@@ -38,8 +39,8 @@ def risk_alarm(reading: dict) -> bool | None:
     return score >= threshold
 
 def make_demo(root, out):
-    scenario_dir = root / "config/scenarios"
-    baseline = json.loads((scenario_dir / "baseline.json").read_text(encoding="utf-8"))
+    scenarios = FileScenarioRepository(root / "config/scenarios")
+    baseline = scenarios.raw("baseline")
     healthy = {"decision_time": "2026-01-15T10:00:00",
                "lab_value": 8.0, "lab_age_hours": 5.0, "lab_usable": True,
                "pak_value": 8.4, "pak_age_minutes": 10.0, "pak_usable": True,
@@ -75,7 +76,7 @@ def make_demo(root, out):
             400, trust_cfg,
         )["decision"],
         "no_feasible_synthetic": run_demo_decision(
-            json.loads((scenario_dir / "no_feasible.json").read_text(encoding="utf-8")), healthy, 400, trust_cfg
+            scenarios.raw("no_feasible"), healthy, 400, trust_cfg
         )["decision"],
     }
     replay_rows = []
@@ -128,5 +129,8 @@ def make_demo(root, out):
     with (out / "audit.jsonl").open("w", encoding="utf-8") as stream:
         for name, decision in demos.items():
             stream.write(json.dumps(clean({"case": name, **decision}), ensure_ascii=False, allow_nan=False) + "\n")
-    make_report(out, demos)
+    summary = json.loads((out / "metrics.json").read_text(encoding="utf-8")) if (out / "metrics.json").exists() else None
+    risk = (json.loads((out / "risk_metrics.json").read_text(encoding="utf-8"))
+            if (out / "risk_metrics.json").exists() else None)
+    (out / "report.md").write_text(make_report(demos, summary, risk), encoding="utf-8")
     print(f"Готово: {out / 'report.md'}", flush=True)

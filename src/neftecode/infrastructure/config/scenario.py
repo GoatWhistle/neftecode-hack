@@ -15,7 +15,7 @@ from neftecode.domain.production.scenario import (
 from .scenario_parts import (CONTROL_KINDS, CRUDE_KINDS, ECONOMICS_KINDS, PRODUCT_KINDS, QUALITY_KINDS,
                              _parse_horizon, _parse_stage, _parse_tank, _price_on_demand, _require)
 
-__all__ = ["CONTROL_KINDS", "CRUDE_KINDS", "ECONOMICS_KINDS", "FileScenarioRepository", "PRODUCT_KINDS",
+__all__ = ["CONTROL_KINDS", "CRUDE_KINDS", "ECONOMICS_KINDS", "PRODUCT_KINDS",
            "QUALITIES", "QUALITY_KINDS", "ScenarioError", "describe", "load_scenario", "parse_scenario"]
 
 _REQUIRED_DEPLOYMENT_INPUTS = {"tank_farm", "deep_treatment_capacity"}
@@ -187,17 +187,3 @@ def describe(scenario: Scenario) -> dict:
                  "и не получены из данных завода.",
     }
 
-
-class FileScenarioRepository:
-
-    def __init__(self, directory: str | Path):
-        self.directory = Path(directory)
-
-    def get(self, scenario_id: str) -> Scenario:
-        path = self.directory / f"{scenario_id}.json"
-        if not path.is_file():
-            raise ScenarioError(f"Сценарий «{scenario_id}» не найден в {self.directory}")
-        scenario = load_scenario(path)
-        if scenario.scenario_id != scenario_id:
-            raise ScenarioError(f"{path}: id сценария не совпадает с запрошенным «{scenario_id}»")
-        return scenario

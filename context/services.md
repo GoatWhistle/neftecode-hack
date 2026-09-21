@@ -29,6 +29,13 @@ Gateway намеренно не проксирует демонстрацион�
 названия одного сервера. Разбор условий из query-строки (`presentation/web/query.py`) и их
 применение (`application/conditions`) у обоих общие.
 
+Сценарии и срезы оба получают через порты `application/ports/scenarios.py`. `serve` читает
+сценарии из `config/scenarios` (`FileScenarioRepository`). Gateway берёт сценарии у data-service
+по HTTP (`HttpScenarioRepository`, `X-Request-ID` входящего запроса), data-service сам читает их
+через `FileScenarioRepository`. Срезы и `serve`, и gateway читают локально из `artifacts/snapshots`
+(`FileSnapshotRepository`): HTTP-источника сохранённых срезов нет, `POST /v1/snapshots` data-service
+собирает состояние из `task/` на момент `at`, а не отдаёт сохранённый срез.
+
 ## Запуск и настройки
 
 Отдельно: `uv run neftecode-data`, `uv run neftecode-model`, `uv run neftecode-decision`, `uv run neftecode-gateway`. Полный запуск: `uv run neftecode-stack --root . --artifacts artifacts`. Интерактивная браузерная демонстрация: `uv run neftecode serve` (по умолчанию порт 8765; при занятом портe укажите `--port`).

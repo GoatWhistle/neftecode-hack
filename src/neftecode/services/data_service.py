@@ -11,26 +11,26 @@ import pandas as pd
 from neftecode.infrastructure.data.data import build_features, load_sources, recent_quality_history
 from neftecode.infrastructure.live.advisor import measurements_at
 from neftecode.application.contracts import MEASURED_ORIGIN
+from neftecode.application.ports import ScenarioRepository
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
+from neftecode.infrastructure.scenarios import FileScenarioRepository
 from .common import Request, ServiceError, ServiceSettings, serve, clean, content_hash
 
 
 class DataService:
-    def __init__(self, root: str | Path = ".", artifacts: str | Path = "artifacts"):
+    def __init__(self, root: str | Path = ".", artifacts: str | Path = "artifacts",
+                 scenario_repository: ScenarioRepository | None = None):
         self.root = Path(root).resolve()
         self.artifacts = Path(artifacts).resolve()
+        self.scenario_repository = scenario_repository or FileScenarioRepository(self.root / "config" / "scenarios")
         self._sources_cache = None
         self._config_cache = None
         self._trust_origin = None
         self._lock = Lock()
 
-    @property
-    def scenario_dir(self) -> Path:
-        return self.root / "config" / "scenarios"
-
     def scenarios(self) -> list[str]:
-        return sorted(path.stem for path in self.scenario_dir.glob("*.json"))
+        return self.scenario_repository.names()
 
     def scenario(self, scenario_id: str) -> dict[str, Any]:
         if not isinstance(scenario_id, str) or not scenario_id or "/" in scenario_id or "\\" in scenario_id:
@@ -38,7 +38,7 @@ class DataService:
         if scenario_id not in self.scenarios():
             raise ServiceError(f"Сценарий «{scenario_id}» не найден", 404, "scenario_not_found")
         try:
-            value = json.loads((self.scenario_dir / f"{scenario_id}.json").read_text(encoding="utf-8"))
+            value = self.scenario_repository.raw(scenario_id)
         except (OSError, json.JSONDecodeError) as exc:
             raise ServiceError("Сценарий недоступен", 503, "scenario_unavailable", retryable=True) from exc
         if not isinstance(value, dict):

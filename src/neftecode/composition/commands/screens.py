@@ -1,6 +1,5 @@
 from functools import partial
 import json
-from pathlib import Path
 
 from neftecode.application.services.explain import explain
 from neftecode.composition.decision import run_demo_decision
@@ -12,7 +11,7 @@ from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import load_response_model
-from neftecode.infrastructure.live.snapshots import load_snapshots
+from neftecode.infrastructure.scenarios import FileSnapshotRepository, read_raw_scenario
 from neftecode.presentation.demo import Demo, scenes as demo_scenes
 from neftecode.presentation.web.ui import Screen, error_payload
 
@@ -24,7 +23,7 @@ def screen(args, parser, root, out):
         if args.decision:
             decision = json.loads(args.decision.read_text(encoding="utf-8"))
         else:
-            raw_scenario = json.loads(Path(scenario_path).read_text(encoding="utf-8"))
+            raw_scenario = read_raw_scenario(scenario_path)
             decision = default_decision_factory(root)(scenario, RobustnessCheck(
                 scenario, raw_scenario, scenario_parser=parse_scenario
             )).decide(budget=DEFAULT_BUDGET, raw_scenario=raw_scenario)
@@ -42,10 +41,10 @@ def screen(args, parser, root, out):
 def scenes(args, parser, root, out):
     scenario_path = args.scenario or (root / "config/scenarios/baseline.json")
     trust_cfg, trust_origin = load_trust_rules(root, out)
-    snapshots = load_snapshots(out)
+    snapshots = FileSnapshotRepository(out).all()
     runner = partial(run_demo_decision, decision_factory=default_decision_factory(root))
-    demo = Demo.from_path(scenario_path, runner, trust_cfg, budget=DEFAULT_BUDGET, trust_origin=trust_origin,
-                          snapshots=snapshots, response_model=load_response_model(root, out))
+    demo = Demo(read_raw_scenario(scenario_path), runner, trust_cfg, budget=DEFAULT_BUDGET, trust_origin=trust_origin,
+                snapshots=list(snapshots), response_model=load_response_model(root, out))
     folder = out / "scenes"
     folder.mkdir(parents=True, exist_ok=True)
     index = []

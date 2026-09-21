@@ -9,7 +9,9 @@ from neftecode.application.conditions import (SOURCE_FAULTS, apply_changes, cano
                                                defaults_for, state_under)
 from neftecode.presentation.demo import snapshot_key, snapshot_title, state_origin_label
 from neftecode.application.services.trust import DataTrustAgent
-from neftecode.infrastructure.live.snapshots import load_snapshots, select_forecast_dict
+from neftecode.application.ports import SnapshotRepository
+from neftecode.infrastructure.live.snapshots import select_forecast_dict
+from neftecode.infrastructure.scenarios import FileSnapshotRepository, HttpScenarioRepository
 from neftecode.presentation.web.cache import DecisionCache, cache_key
 from neftecode.presentation.web.query import DemoServerError, parse_conditions
 from neftecode.presentation.web.server import FIRST_SNAPSHOT
@@ -49,14 +51,16 @@ class StaticRoutes(Mapping):
 class GatewayService:
     def __init__(self, data_url="http://127.0.0.1:8766", decision_url="http://127.0.0.1:8768", timeout_s=10.0,
                  decision_timeout_s=660.0, root: str | Path = ".", artifacts: str | Path | None = None,
-                 static: str | Path | None = None):
+                 static: str | Path | None = None, scenario_repository: HttpScenarioRepository | None = None,
+                 snapshot_repository: SnapshotRepository | None = None):
         self.data_url, self.decision_url = data_url.rstrip("/"), decision_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
         self.decision_timeout_s = decision_timeout_s
         root = Path(root)
         out = Path(artifacts) if artifacts is not None else root / "artifacts"
         self.trust_cfg, self.trust_origin = load_trust_rules(root, out)
-        self.snapshots = load_snapshots(out)
+        self.scenario_repository = scenario_repository or HttpScenarioRepository(self.client, self.data_url)
+        self.snapshots = (snapshot_repository or FileSnapshotRepository(out)).all()
         self.cache = DecisionCache()
         self.static = StaticFiles(resolve_static_dir(root, static))
 
@@ -79,12 +83,10 @@ class GatewayService:
         raise DemoServerError(f"Срез «{name}» не найден")
 
     def scenarios(self, request_id="gateway"):
-        return self.client.request("GET", self.data_url + "/v1/scenarios",
-                                   headers={"X-Request-ID": request_id}).data["scenarios"]
+        return self.scenario_repository.for_request(request_id).names()
 
     def raw(self, name, request_id="gateway"):
-        return self.client.request("POST", self.data_url + "/v1/scenarios/get", {"scenario_id": name},
-                                   headers={"X-Request-ID": request_id}).data
+        return self.scenario_repository.for_request(request_id).raw(name)
 
     def decide(self, values, request_id="gateway"):
         names = self.scenarios(request_id); name = (values.get("scenario") or [names[0]])[0]

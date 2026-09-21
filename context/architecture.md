@@ -226,20 +226,21 @@ src/neftecode/
     advisory/                 # планы, gate, оптимизация и решение
   application/
     conditions/               # условия расчёта: правки сценария, инъекции отказов, canonical/defaults
-    ports/                    # контракты внешних источников и адаптеров
+    ports/                    # контракты внешних источников и адаптеров; scenarios.py — ScenarioRepository, SnapshotRepository
     services/                 # доверие к данным, объяснение, устойчивость и оценка резервуара
     use_cases/                # MakeDecision, PlanOperation, GetLiveAdvice, ReplayDecisions
   infrastructure/
     data/                     # CSV/XLSX и подготовка данных
     ml/                       # обучение, прогноз, риск и runtime-сборка данных
     config/                   # чтение и проверка JSON-сценариев
+    scenarios/                # репозитории сценариев и срезов: file.py (config/scenarios, artifacts/snapshots), http.py (data-service)
     artifacts/                # сохранение результатов
     live/                     # адаптер реальных измерений к GetLiveAdvice
   evaluation/                 # только offline: benchmark, ВАК, эпизоды, лаги
   presentation/
     cli.py                    # аргументы и команды
     demo.py                   # демонстрационные сцены
-    web/                      # HTTP и HTML; query.py — только разбор query-строки условий
+    web/                      # HTTP и HTML; query.py — только разбор query-строки условий; файлы читает только static.py (статика фронта)
   services/                   # отдельные HTTP-процессы и общий supervisor
   composition/               # внешняя сборка зависимостей и обработчики CLI
   bootstrap.py               # совместимая точка запуска CLI
@@ -265,7 +266,10 @@ services ──────┘
 AST-тест запрещает обратные зависимости,
 обращения внутренних слоёв к pandas/HTTP/openpyxl и старые плоские импорты. Рантайм (`application`,
 `infrastructure`, `presentation`, `services`, `composition`) не импортирует `evaluation`; исключение —
-batch-команды offline-исследований в `composition/commands/evaluation.py`.
+batch-команды offline-исследований в `composition/commands/evaluation.py`. Presentation не читает
+сценарии и срезы сам: `DemoService` получает `ScenarioRepository`, а `Demo` — уже прочитанный сценарий и
+список срезов из `composition/`; AST-тест запрещает файловый ввод-вывод в `presentation/`, кроме отдачи
+статики фронта (`presentation/web/static.py`).
 
 Хранение сейчас файловое: CSV/XLSX на входе, локальные модели, CSV/JSON/JSONL на выходе.
 Для следующего этапа можно добавить кэш нормализованных рядов и индекс решений. СУБД и очереди

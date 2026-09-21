@@ -26,7 +26,6 @@ def test_every_product_entry_point_uses_the_single_default_budget():
     assert default_of(AgenticMakeDecision.decide) == DEFAULT_BUDGET
     assert default_of(PlanOperation.plan) == DEFAULT_BUDGET
     assert default_of(PlanBuilderMixin.build_plans) == DEFAULT_BUDGET
-    assert default_of(Demo.from_path) == DEFAULT_BUDGET
     assert default_of(TankEstimateCheck.evaluate) == DEFAULT_BUDGET
     assert CandidateGenerator.__dataclass_fields__["budget"].default == DEFAULT_BUDGET
     assert Benchmark.__dataclass_fields__["budget"].default == DEFAULT_BUDGET

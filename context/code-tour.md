@@ -97,7 +97,9 @@ gateway-service
 Сценарии работы системы: в каком порядке вызвать правила.
 
 - `contracts.py` — входы и выходы сценариев использования.
-- `ports/` — интерфейсы для моделей, данных, сценариев и сохранения результатов.
+- `ports/` — интерфейсы для моделей, данных, сценариев и сохранения результатов; `ports/scenarios.py` —
+  `ScenarioRepository` (список сценариев, сырой JSON, загрузка `Scenario`) и `SnapshotRepository`
+  (срезы по времени с подписью `label`, загрузка среза по ключу).
 - `conditions/changes.py` — правки сценария (`apply_change`, `apply_changes`, таблица `CHANGES`).
 - `conditions/faults.py` — инъекции отказов источников (`SOURCE_FAULTS`: `frozen_pak`, `stale_lab`,
   `both_broken`, `missing_telemetry`), синтетическое исправное состояние и `state_under` — состояние
@@ -124,7 +126,11 @@ gateway-service
 - `ml/risk.py` — отдельная модель риска превышения.
 - `live/advisor.py` — адаптер live-данных к прикладному сценарию.
 - `live/origin.py` — запрет применения модели раньше даты её калибровки.
-- `config/scenario.py` — загрузка JSON-сценариев.
+- `config/scenario.py` — разбор и проверка JSON-сценариев.
+- `scenarios/file.py` — `FileScenarioRepository` (`config/scenarios/*.json`) и `FileSnapshotRepository`
+  (`artifacts/snapshots/*.json` через `live/snapshots.load_snapshots`).
+- `scenarios/http.py` — `HttpScenarioRepository`: сценарии от data-service (`/v1/scenarios`,
+  `/v1/scenarios/get`), так их берёт gateway.
 - `artifacts/json_sink.py` — сохранение результатов.
 
 ### `evaluation/`
@@ -143,13 +149,16 @@ gateway-service
 - `presentation/demo.py` управляет демонстрационными сценами; условия применяет через `application/conditions`.
 - `presentation/web/` формирует экран и старый локальный HTTP-интерфейс; `web/query.py` только разбирает
   query-строку условий в простые значения, `web/cache.py` — кэш решений по canonical-условиям.
+  `DemoService` получает сценарии через `ScenarioRepository`; файлы в presentation читает только
+  `web/static.py` (статика фронта).
 - `services/` содержит четыре отдельных HTTP-процесса.
 - `bootstrap.py` сохраняет публичную точку запуска и совместимые функции.
 - `composition/decision.py` подключает парсер, ядро, robustness и экран.
 - `composition/training.py` собирает обучение и сохранение моделей.
 - `composition/demo.py` формирует demo и исторический replay.
 - `composition/commands/` содержит dispatcher и отдельные обработчики команд.
-- `presentation/reports/experiment.py` формирует Markdown-отчёт.
+- `presentation/reports/experiment.py` формирует текст Markdown-отчёта; метрики читает и `report.md`
+  пишет `composition/demo.py`.
 
 ## Где сейчас легко запутаться
 

@@ -8,7 +8,9 @@
 CLI и HTTP входят через `presentation/cli.py`, `composition/commands/` и `services/*_service.py`.
 `GetLiveAdvice` собирает snapshot из data/model адаптеров, строит `Scenario` и передаёт его в
 `MakeDecision` или `AgenticMakeDecision`. Один и тот же domain/application-код используется CLI,
-HTTP и демонстрационным экраном.
+HTTP и демонстрационным экраном. Сценарии и сохранённые срезы приходят через порты
+`ScenarioRepository` / `SnapshotRepository` (`application/ports/scenarios.py`); файловые и HTTP-реализации —
+`infrastructure/scenarios/`, сборка — `composition/`.
 
 Четыре процесса stack: data, model, decision, gateway. Процессы обмениваются JSON через
 `services/common.py`; evaluation запускается batch-командами и не является отдельным live-процессом.

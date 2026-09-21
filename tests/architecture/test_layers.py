@@ -163,6 +163,39 @@ def test_conditions_logic_lives_only_in_application():
                     assert not names & CONDITION_TABLES, f"{path}: {names & CONDITION_TABLES}"
 
 
+FILE_IO_METHODS = {"exists", "glob", "is_dir", "is_file", "iterdir", "open", "read_bytes", "read_text", "rglob",
+                   "write_bytes", "write_text"}
+# Отдача собранной статики фронта — единственный файловый ввод-вывод presentation: это не данные решения.
+PRESENTATION_FILE_IO_EXCEPTIONS = {PACKAGE / "presentation" / "web" / "static.py"}
+
+
+def test_presentation_reads_scenarios_and_snapshots_only_through_repositories():
+    """A4: сценарии и срезы приходят в presentation через ScenarioRepository / SnapshotRepository.
+
+    Реализации — infrastructure/scenarios (file, http), сборка — composition. В presentation нет ни
+    `open`, ни `json.load`, ни чтения, записи или обхода путей; исключение — статика фронта.
+    """
+    ports = PACKAGE / "application" / "ports"
+    assert (ports / "scenarios.py").is_file() and not (ports / "scenario.py").exists()
+    for name in ("file.py", "http.py"):
+        assert (PACKAGE / "infrastructure" / "scenarios" / name).is_file(), name
+    for path in layer_sources("presentation"):
+        if path in PRESENTATION_FILE_IO_EXCEPTIONS:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if isinstance(func, ast.Name):
+                assert func.id != "open", f"{path}:{node.lineno}: open"
+            elif isinstance(func, ast.Attribute):
+                owner = func.value.id if isinstance(func.value, ast.Name) else None
+                assert not (owner == "json" and func.attr in {"load", "loads"}), \
+                    f"{path}:{node.lineno}: json.{func.attr}"
+                assert func.attr not in FILE_IO_METHODS, f"{path}:{node.lineno}: .{func.attr}()"
+
+
 def test_composition_is_only_used_by_external_entry_points():
     for layer in ("domain", "application", "infrastructure", "evaluation", "presentation"):
         for path in layer_sources(layer):

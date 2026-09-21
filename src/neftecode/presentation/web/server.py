@@ -10,6 +10,7 @@ from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
+from neftecode.application.ports import ScenarioRepository
 from neftecode.application.conditions import SOURCE_FAULTS, canonical_conditions, changes_from, defaults_for
 from neftecode.presentation.demo import Demo, DemoError, snapshot_key, snapshot_title
 from .cache import DecisionCache, cache_key
@@ -18,7 +19,6 @@ from .progress import decision_stream
 from .static import StaticError, StaticFiles, resolve_static_dir
 from .ui import error_payload
 
-SCENARIO_DIR = Path("config/scenarios")
 FIRST_SNAPSHOT = "20260105-080000"
 
 
@@ -27,6 +27,7 @@ class DemoService:
 
     root: Path
     demo_factory: Callable[[dict, int], Demo]
+    scenario_repository: ScenarioRepository
     budget: int = DEFAULT_BUDGET
     snapshots: list = field(default_factory=list)
     default_snapshot_key: str | None = None
@@ -48,12 +49,12 @@ class DemoService:
         return FIRST_SNAPSHOT if FIRST_SNAPSHOT in keys else keys[0]
 
     def scenarios(self) -> list[str]:
-        return sorted(p.stem for p in (self.root / SCENARIO_DIR).glob("*.json"))
+        return self.scenario_repository.names()
 
     def raw(self, name: str) -> dict:
         if name not in self.scenarios():
             raise DemoServerError(f"Сценарий «{name}» не найден")
-        return json.loads((self.root / SCENARIO_DIR / f"{name}.json").read_text(encoding="utf-8"))
+        return self.scenario_repository.raw(name)
 
     def canonical(self, values: dict) -> dict:
         name = (values.get("scenario") or [self.scenarios()[0]])[0]

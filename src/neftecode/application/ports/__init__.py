@@ -6,7 +6,7 @@ from .measurements import MeasurementSource
 from .models import ForecastModel, ModelRepository
 from .response_effect import ResponseEffectProvider
 from .robustness import RobustnessEvaluator
-from .scenario import ScenarioRepository
+from .scenarios import ScenarioRepository, SnapshotRepository
 from .tank_estimate import TankEstimateEvaluator
 
 __all__ = [
@@ -26,6 +26,7 @@ __all__ = [
     "RobustnessEvaluator",
     "ScenarioProvider",
     "ScenarioRepository",
+    "SnapshotRepository",
     "TankEstimateEvaluator",
     "ToolCall",
     "ToolSpec",

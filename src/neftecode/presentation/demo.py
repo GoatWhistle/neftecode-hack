@@ -1,6 +1,4 @@
 from dataclasses import dataclass, field
-import json
-from pathlib import Path
 from typing import Callable
 
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
@@ -25,13 +23,6 @@ class Demo:
     changes: list = field(default_factory=list)
     snapshots: list = field(default_factory=list)
     response_model: dict | None = None
-
-    @classmethod
-    def from_path(cls, path, runner: DemoRunner, trust_cfg: dict, budget: int = DEFAULT_BUDGET,
-                  trust_origin: str | None = None, snapshots: list | None = None,
-                  response_model: dict | None = None) -> "Demo":
-        return cls(json.loads(Path(path).read_text(encoding="utf-8")), runner, trust_cfg, budget, trust_origin,
-                   snapshots=list(snapshots or []), response_model=response_model)
 
     def reset(self) -> "Demo":
         return Demo(self.raw, self.runner, self.trust_cfg, self.budget, self.trust_origin,

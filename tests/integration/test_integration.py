@@ -318,5 +318,5 @@ def test_each_scenario_matches_its_recorded_expectation():
 
 def test_the_demo_and_the_advisor_agree_on_the_same_conditions():
     scenario, decision = decide(BASELINE)
-    demo = Demo.from_path(BASELINE, run_demo_decision, load_trust_rules(Path("."), Path("artifacts"))[0], budget=BUDGET).run()
+    demo = Demo(raw(BASELINE), run_demo_decision, load_trust_rules(Path("."), Path("artifacts"))[0], budget=BUDGET).run()
     assert demo["decision"]["status"] == decision["status"]
