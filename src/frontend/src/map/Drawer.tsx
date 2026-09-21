@@ -17,12 +17,13 @@ export interface DrawerProps {
   panelId: string;
   run: RunState;
   state: StageState;
-  onClose: () => void;
+  onClose?: () => void;
   focusOnMount?: boolean;
   inert?: boolean;
   body?: ReactNode;
   meta?: string;
   closeLabel?: string;
+  pinned?: boolean;
 }
 
 function timeText(ms: number | null): string | null {
@@ -47,7 +48,8 @@ export function Drawer({
   inert = false,
   body,
   meta,
-  closeLabel = "Закрыть панель этапа"
+  closeLabel = "Закрыть панель этапа",
+  pinned = false
 }: DrawerProps) {
   const node = nodeById(id);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -61,9 +63,9 @@ export function Drawer({
   const sourceText = state === "done" && source ? SOURCE_TEXT[source] : null;
 
   useEffect(() => {
-    if (!focusOnMount || inert) return;
+    if (!focusOnMount || inert || pinned) return;
     closeRef.current?.focus({ preventScroll: true });
-  }, [id, focusOnMount, inert]);
+  }, [id, focusOnMount, inert, pinned]);
 
   if (!node) return null;
 
@@ -76,7 +78,7 @@ export function Drawer({
 
   return (
     <div
-      className="drawer"
+      className={`drawer ${pinned ? "drawer--pinned" : ""}`}
       id={panelId}
       role="region"
       aria-label={`Этап ${node.order}: ${node.label}`}
@@ -91,12 +93,14 @@ export function Drawer({
             <span className="drawer__name">{node.label}</span>
           </h2>
           <p className="drawer__meta">{metaText}</p>
-          <button type="button" className="drawer__close" onClick={onClose} ref={closeRef}
-            aria-label={closeLabel}>
-            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-              <path d="M3.5 3.5 L12.5 12.5 M12.5 3.5 L3.5 12.5" />
-            </svg>
-          </button>
+          {pinned || !onClose ? null : (
+            <button type="button" className="drawer__close" onClick={onClose} ref={closeRef}
+              aria-label={closeLabel}>
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M3.5 3.5 L12.5 12.5 M12.5 3.5 L3.5 12.5" />
+              </svg>
+            </button>
+          )}
         </header>
         {body ?? (
           <StageBody

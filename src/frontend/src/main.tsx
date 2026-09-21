@@ -8,7 +8,8 @@ import "./styles/base.css";
 const container = document.getElementById("root");
 
 if (container) {
-  const mock = new URLSearchParams(window.location.search).get("mock");
+  const params = new URLSearchParams(window.location.search);
+  const mock = params.get("mock");
   createRoot(container).render(
     <StrictMode>
       {mock === "f0405" ? <ContributionHarness />

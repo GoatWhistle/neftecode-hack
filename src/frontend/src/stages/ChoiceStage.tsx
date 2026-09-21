@@ -1,5 +1,5 @@
 import type { Alternative } from "../types";
-import { controlLabel, controlUnit, hours, num } from "../format";
+import { controlLabel, controlUnit, hours, isNumber, num, percent } from "../format";
 import { Empty, Field, Fields, Note, Readout, Scroller, Tag } from "../ui/Primitives";
 import { OriginBadge } from "../ui/Origin";
 import { onDemandIds } from "../provenance";
@@ -9,6 +9,22 @@ import { OffspecBlock } from "../ui/OffspecBlock";
 import { RobustnessMap } from "../ui/RobustnessMap";
 import { PlanDiff } from "../ui/PlanDiff";
 import type { StageProps } from "./StateStage";
+
+const RANK_LABEL: Record<string, string> = {
+  "-production_t": "больший выпуск",
+  production_t: "меньший выпуск",
+  cost_per_tonne: "меньшая стоимость тонны",
+  "-cost_per_tonne": "большая стоимость тонны",
+  severity_index: "меньшая тяжесть режима",
+  "-severity_index": "большая тяжесть режима",
+  changes: "меньше изменений уставок",
+  "-changes": "больше изменений уставок",
+  candidate_id: "номер кандидата — на случай полного равенства"
+};
+
+function rankLabel(key: string): string {
+  return RANK_LABEL[key] ?? key;
+}
 
 export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, bare }: StageProps) {
   const plan = payload.decision.selected_plan;
@@ -40,6 +56,7 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
   const baseline = plan?.steps?.[0] ?? payload.decision.immediate_action ?? null;
   const withSetpoints = alternatives.filter((item) => item.controls || item.recipe).length;
   const rule = payload.explanation.comparison_rule;
+  const policy = payload.decision.selection_policy;
   const names = payload.explanation.component_names ?? {};
   const demand = onDemandIds(payload);
   const usesDemand = demand.some((id) => (payload.decision.immediate_action?.recipe?.[id] ?? 0) > 0);
@@ -142,12 +159,15 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
         <Scroller label="Ближайшие альтернативы">
           <table className="grid">
             <caption>
-              Почему не они. Ближайших альтернатив: {alternatives.length}. Payload несёт не более пяти — это
-              не полный список проверенных планов, их число показано на этапе «Кандидаты». Стоимость — в условных
-              единицах сценария, не в рублях. В колонке различий перечислены только те уставки и доли рецепта,
-              которые отличаются от выбранного плана; совпавшие не печатаются, поэтому пустая колонка значит
-              совпадение, а не отсутствие данных. Уставки переданы у {withSetpoints} альтернатив из{" "}
-              {alternatives.length}; сравнение идёт с первым шагом выбранного плана
+              Почему не они
+              <span className="grid__gloss">
+                Ближайших альтернатив: {alternatives.length}. Payload несёт не более пяти — это не полный список
+                проверенных планов, их число показано на этапе «Кандидаты». Стоимость — в условных единицах
+                сценария, не в рублях. В колонке различий перечислены только те уставки и доли рецепта, которые
+                отличаются от выбранного плана; совпавшие не печатаются, поэтому пустая колонка значит совпадение,
+                а не отсутствие данных. Уставки переданы у {withSetpoints} альтернатив из {alternatives.length};
+                сравнение идёт с первым шагом выбранного плана.
+              </span>
             </caption>
             <thead>
               <tr>
@@ -191,8 +211,13 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
 
       {payload.decision.robustness ? (
         <RobustnessMap robustness={payload.decision.robustness} />
-      ) : (
+      ) : plan ? (
         <Empty>Проверка устойчивости не проводилась или её результат не передавался.</Empty>
+      ) : (
+        <Empty>
+          Устойчивость не проверяли: возмущают выбранный план, а его нет. Пустой блок означает отсутствие
+          проверки, а не подтверждённую устойчивость.
+        </Empty>
       )}
 
       {payload.decision.lookahead?.offspec ? (
@@ -200,12 +225,42 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
       ) : null}
 
       <Fields>
+        <Field label="Порядок сравнения">
+          {policy?.ranking?.length ? (
+            <span className="ranking">
+              {policy.ranking.map((key, position) => (
+                <span key={key} className="ranking__step">
+                  <span className="ranking__order">{position + 1}</span>
+                  {rankLabel(key)}
+                </span>
+              ))}
+            </span>
+          ) : (
+            "правило ранжирования в payload не передавалось"
+          )}
+        </Field>
+        <Field label="Окно уступки по стоимости">
+          {isNumber(policy?.severity_cost_tolerance_fraction)
+            ? policy.severity_cost_tolerance_fraction === 0
+              ? "0 % — уступать стоимостью ради меньшей тяжести режима не разрешено"
+              : `${percent(policy.severity_cost_tolerance_fraction)} — в этих пределах выбирается менее тяжёлый режим`
+            : "не передавалось"}
+        </Field>
+        <Field label="Потолок тяжести режима">
+          {isNumber(policy?.max_severity_index)
+            ? `${num(policy.max_severity_index, 3)} — планы тяжелее этого порога до сравнения не допускаются`
+            : policy
+              ? "не задан: тяжесть режима сверху не ограничивали"
+              : "не передавалось"}
+        </Field>
         <Field label="Проекция за горизонт">
           {payload.decision.lookahead?.available
             ? `${hours(payload.decision.lookahead.lookahead_hours)}; смена плана: ${
                 payload.decision.lookahead.switched ? "да" : "не потребовалась"
               }`
-            : "недоступна"}
+            : plan
+              ? "недоступна: сервер не передал проекцию за горизонт"
+              : "не строилась: проецировать нечего, плана нет"}
         </Field>
         <Field label="Устойчивость">
           {payload.decision.robustness ? (
@@ -214,8 +269,10 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
               возмущений
               {payload.decision.robustness.fragile ? <Tag tone="unknown">чувствителен</Tag> : <Tag tone="pass">держится</Tag>}
             </>
+          ) : plan ? (
+            "не проверялась: результат проверки устойчивости не передавался"
           ) : (
-            "не проверялась"
+            "не проверялась: возмущать нечего, плана нет"
           )}
         </Field>
       </Fields>
@@ -226,6 +283,7 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
           selected_plan: plan,
           alternatives,
           comparison_rule: rule,
+          selection_policy: policy,
           robustness: payload.decision.robustness,
           lookahead: payload.decision.lookahead
         }}

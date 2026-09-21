@@ -16,7 +16,6 @@ import type { WireState } from "./WireLayer";
 import { WireLayer } from "./WireLayer";
 import type { Wire } from "./wires";
 import { buildWires } from "./wires";
-import { INPUT_PANEL_ID } from "./InputSlot";
 import { MapBand, PANEL_ID } from "./MapBand";
 import { MapOutline } from "./MapOutline";
 import { focusNode, scrollToSummary, spentOf, usePrinting } from "./mapRuntime";
@@ -71,14 +70,7 @@ export function PipelineMap({
   );
 
   const stageOpen = open === INPUT_SCENARIO ? null : open;
-  const inputOpen = open === INPUT_SCENARIO ? open : null;
   const { shown, onSlotTransitionEnd } = useDrawerSlot(stageOpen, board, PANEL_ID, printing);
-  const { shown: shownInput, onSlotTransitionEnd: onInputTransitionEnd } = useDrawerSlot(
-    inputOpen,
-    board,
-    INPUT_PANEL_ID,
-    printing
-  );
 
   const onBoardKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -132,18 +124,7 @@ export function PipelineMap({
 
   const renderNode = (node: MapNode) => {
     if (node.kind === "input") {
-      if (!inputPanel) return <InputNode key={node.id} node={node} caption={inputCaption} />;
-      return (
-        <InputNode
-          key={node.id}
-          node={node}
-          caption={inputCaption}
-          locked={started}
-          expanded={open === node.id}
-          panelId={INPUT_PANEL_ID}
-          onSelect={pick}
-        />
-      );
+      return <InputNode key={node.id} node={node} caption={inputCaption} locked={started} />;
     }
     if (node.kind === "terminal") {
       return (
@@ -197,15 +178,12 @@ export function PipelineMap({
                   printing={printing}
                   stageOpen={stageOpen}
                   shown={shown}
-                  inputOpen={inputOpen}
-                  shownInput={shownInput}
                   inputPanel={inputPanel}
                   inputMeta={inputMeta ?? ""}
                   stateOf={stateOfNode}
                   renderNode={renderNode}
                   onClose={() => onOpen(null)}
                   onSlotTransitionEnd={onSlotTransitionEnd}
-                  onInputTransitionEnd={onInputTransitionEnd}
                 />
               ))}
             </div>

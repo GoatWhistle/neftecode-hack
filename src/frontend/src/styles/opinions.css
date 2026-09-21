@@ -168,8 +168,8 @@
 }
 
 .opinion__constraint code {
-  font-size: 0.85em;
-  opacity: 0.6;
+  font-size: var(--ag-label);
+  color: var(--muted);
 }
 
 .opinion__foot {

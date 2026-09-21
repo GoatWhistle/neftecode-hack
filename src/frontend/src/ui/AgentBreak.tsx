@@ -1,5 +1,6 @@
 import type { BreakAct } from "../run/agentActs";
 import { fallbackText } from "../run/agentMeters";
+import { reasonCodesText } from "../run/agentVocab";
 
 export function GuardPlate({ act }: { act: BreakAct }) {
   const event = act.event;
@@ -13,7 +14,7 @@ export function GuardPlate({ act }: { act: BreakAct }) {
       </p>
       <p className="plate__note">агенты к этой проверке отношения не имеют</p>
       {!passed && event.reason_codes && event.reason_codes.length > 0 ? (
-        <p className="plate__codes">коды: {event.reason_codes.join(", ")}</p>
+        <p className="plate__codes">коды: {reasonCodesText(event.reason_codes)}</p>
       ) : null}
     </aside>
   );
@@ -30,7 +31,7 @@ export function FallbackPlate({ act }: { act: BreakAct }) {
         </p>
       ) : null}
       {event.reason_codes && event.reason_codes.length > 0 ? (
-        <p className="plate__codes">коды: {event.reason_codes.join(", ")}</p>
+        <p className="plate__codes">коды: {reasonCodesText(event.reason_codes)}</p>
       ) : null}
       <p className="plate__note">дальше решение принимает детерминированный код</p>
     </aside>
@@ -52,7 +53,7 @@ export function OverridePlate({ act }: { act: BreakAct }) {
         модель здесь не главная: её выбор перепроверяется кодом и может быть заменён
       </p>
       {act.event.reason_codes && act.event.reason_codes.length > 0 ? (
-        <p className="plate__codes">коды: {act.event.reason_codes.join(", ")}</p>
+        <p className="plate__codes">коды: {reasonCodesText(act.event.reason_codes)}</p>
       ) : null}
     </aside>
   );

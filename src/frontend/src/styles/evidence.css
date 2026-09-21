@@ -27,6 +27,7 @@
   block-size: 0;
   overflow: hidden;
   opacity: 0;
+  content-visibility: hidden;
   transition: block-size var(--motion-panel) var(--ease),
     opacity var(--motion-panel) var(--ease),
     content-visibility var(--motion-panel) allow-discrete;
@@ -35,6 +36,7 @@
 .ev__block[open]::details-content {
   block-size: auto;
   opacity: 1;
+  content-visibility: visible;
 }
 
 .ev__block > summary {

@@ -2,8 +2,11 @@ import type { ConsultAct, ToolStep } from "../run/agentActs";
 import { constraintPicks, toolSteps } from "../run/agentActs";
 import type { AgentEvent, StageFacts } from "../run/types";
 import { callMeter } from "../run/agentMeters";
+import { readSpecialistTool } from "../run/orchTool";
+import { reasonCodesText } from "../run/agentVocab";
 import { AGENT_NAMES } from "../run/agentEvents";
 import { ConstraintVocabulary } from "./AgentMeters";
+import { RawJson } from "./RawJson";
 
 const VERDICT_TEXT: Record<string, string> = {
   ACCEPT: "план разумен",
@@ -36,15 +39,35 @@ function StepRow({ step, deterministic }: { step: ToolStep; deterministic: boole
       {step.tools.map((tool) => {
         const failed = tool.decision === "error";
         const codes = tool.reason_codes ?? [];
+        const read = readSpecialistTool(tool);
         return (
           <li key={tool.seq} className={`consult__tool${failed ? " consult__tool--failed" : ""}`}>
-            <span className="consult__tool-name">{tool.tool_name ?? "инструмент не назван"}</span>
-            <span className="consult__tool-state">{failed ? "вызов отклонён" : "вернул результат"}</span>
+            <span className="consult__tool-name">{read.title}</span>
+            <span className="consult__tool-code">{tool.tool_name ?? "инструмент не назван"}</span>
+            {failed ? (
+              <span className="consult__tool-state">вызов отклонён</span>
+            ) : null}
             {failed && codes.length > 0 ? (
-              <span className="consult__tool-why">причина: {codes.join(", ")}</span>
+              <span className="consult__tool-why">причина: {reasonCodesText(codes)}</span>
             ) : null}
             {failed && tool.tool_result_summary ? (
               <span className="consult__tool-why">{tool.tool_result_summary}</span>
+            ) : null}
+            {!failed && read.facts.length > 0 ? (
+              <dl className="consult__tool-facts">
+                {read.facts.map((fact) => (
+                  <div className="consult__tool-fact" key={fact.label}>
+                    <dt>{fact.label}</dt>
+                    <dd>{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {!failed && read.facts.length === 0 ? (
+              <span className="consult__tool-state">вернул результат</span>
+            ) : null}
+            {!failed && read.resultRaw !== null ? (
+              <RawJson label="ответ инструмента" text={read.resultRaw} full={read.resultFull} />
             ) : null}
           </li>
         );
@@ -96,6 +119,49 @@ function Confidence({ act }: { act: ConsultAct }) {
   );
 }
 
+function Reasons({ act }: { act: ConsultAct }) {
+  const reasons = act.opinion?.reasons ?? [];
+  if (reasons.length === 0) return null;
+  return (
+    <ul className="consult__reasons">
+      {reasons.map((reason, index) => (
+        <li className="consult__reason" key={`${reason.code}-${index}`}>
+          {reason.text !== "" ? <span className="consult__reason-text">{reason.text}</span> : null}
+          <span className="consult__reason-meta">
+            {reason.code !== "" ? <code>{reason.code}</code> : null}
+            {reason.candidateId !== null ? (
+              <span className="consult__reason-plan">план {reason.candidateId}</span>
+            ) : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function PerPlan({ act }: { act: ConsultAct }) {
+  const verdicts = Object.entries(act.opinion?.candidateVerdicts ?? {});
+  const preferred = act.opinion?.preferred ?? [];
+  if (verdicts.length === 0 && preferred.length === 0) return null;
+  return (
+    <div className="consult__perplan">
+      {verdicts.length > 0 ? (
+        <ul className="consult__plan-list">
+          {verdicts.map(([plan, value]) => (
+            <li className={`consult__plan-row consult__plan-row--${value.toLowerCase()}`} key={plan}>
+              <span className="consult__plan-id">{plan}</span>
+              <span className="consult__plan-verdict">{value}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {preferred.length > 0 ? (
+        <p className="consult__preferred">агент предпочёл: {preferred.join(", ")}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export interface ConsultCardProps {
   act: ConsultAct;
   deterministic: boolean;
@@ -108,7 +174,7 @@ function breakReason(event: AgentEvent | null): string | null {
   if (event === null) return null;
   const summary = event.tool_result_summary;
   if (summary) return summary;
-  if (event.reason_codes && event.reason_codes.length > 0) return event.reason_codes.join(", ");
+  if (event.reason_codes && event.reason_codes.length > 0) return reasonCodesText(event.reason_codes);
   return event.decision ?? null;
 }
 
@@ -123,8 +189,10 @@ export function ConsultCard({ act, deterministic, closed, facts, breakEvent }: C
   const limit = facts?.budget_limits?.["specialist_max_calls"] ?? null;
   const picks = constraintPicks(opinion?.constraints ?? []);
   const note = opinion?.truncated
-    ? "сводка мнения обрезана сервером до 300 символов, разобрать предложенные ограничения не удалось"
-    : null;
+    ? "сводка мнения обрезана сервером и полной версии нет: предложенные ограничения разобрать не удалось"
+    : opinion?.fromFull
+      ? "сводка мнения обрезана сервером — разобрана полная версия ответа"
+      : null;
 
   return (
     <article className={`consult consult--${act.role}`}>
@@ -141,29 +209,28 @@ export function ConsultCard({ act, deterministic, closed, facts, breakEvent }: C
         <span className={`consult__state${state === "идёт" ? " consult__state--live" : ""}`}>
           {state}
         </span>
+        <p className="consult__ask">
+          <span className="consult__ask-label">о чём спросил</span>
+          {act.focus !== null ? (
+            <span className="consult__focus">{act.focus}</span>
+          ) : act.candidateIds.length > 0 ? (
+            <span className="consult__focus">
+              фокус запроса не передан; спросили про планы {act.candidateIds.join(", ")}
+            </span>
+          ) : (
+            <span className="consult__none">ни фокуса, ни списка планов в запросе не передавалось</span>
+          )}
+        </p>
       </header>
 
       <div className="consult__body">
-        <section className="consult__part">
-          <h5 className="consult__label">о чём спросил</h5>
-          {act.focus !== null ? (
-            <p className="consult__focus">{act.focus}</p>
-          ) : act.candidateIds.length > 0 ? (
-            <p className="consult__focus">
-              фокус запроса не передан; спросили про планы {act.candidateIds.join(", ")}
-            </p>
-          ) : (
-            <p className="consult__none">ни фокуса, ни списка планов в запросе не передавалось</p>
-          )}
-        </section>
-
         <section className="consult__part">
           <h5 className="consult__label">что делал специалист</h5>
           <Steps act={act} limit={typeof limit === "number" ? limit : null}
             deterministic={deterministic} />
         </section>
 
-        <section className="consult__part">
+        <section className="consult__part consult__part--verdict">
           <h5 className="consult__label">вердикт</h5>
           {verdict === null ? (
             <p className="consult__none">
@@ -179,11 +246,13 @@ export function ConsultCard({ act, deterministic, closed, facts, breakEvent }: C
             </p>
           )}
           <Confidence act={act} />
+          <Reasons act={act} />
+          <PerPlan act={act} />
           {act.vetoed.length > 0 ? (
             <p className="consult__veto">вето наложено на планы: {act.vetoed.join(", ")}</p>
           ) : null}
           {act.reasonCodes.length > 0 ? (
-            <p className="consult__codes">коды причин: {act.reasonCodes.join(", ")}</p>
+            <p className="consult__codes">коды причин: {reasonCodesText(act.reasonCodes)}</p>
           ) : null}
           {broken ? (
             <p className="consult__broken">

@@ -25,11 +25,28 @@ export function focusNode(board: HTMLElement, id: string): void {
   target?.focus();
 }
 
-export function scrollToSummary(): void {
-  const node = document.getElementById(SUMMARY_ID);
+export const AFTER_ID = "after";
+
+function scrollTo(node: HTMLElement | null): void {
   if (!node) return;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   node.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+}
+
+export function scrollToSummary(): void {
+  scrollTo(document.getElementById(AFTER_ID) ?? document.getElementById(SUMMARY_ID));
+}
+
+export function scrollToMap(): void {
+  window.requestAnimationFrame(() => {
+    scrollTo(document.querySelector<HTMLElement>(".map__board"));
+  });
+}
+
+export function scrollToConditions(): void {
+  window.requestAnimationFrame(() => {
+    scrollTo(document.getElementById("map-drawer-input"));
+  });
 }
 
 export function usePrinting(): boolean {

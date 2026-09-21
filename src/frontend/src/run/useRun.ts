@@ -9,6 +9,8 @@ import { createRevealQueue } from "./revealQueue";
 import type { RunTape } from "./replay";
 import { canReplay, createTapeRecorder, playTape } from "./replay";
 
+const FIRST_STAGE = ORDER[0] as string;
+
 function readable(reason: unknown): string {
   if (reason instanceof DOMException && reason.name === "AbortError") return "прогон остановлен";
   if (reason instanceof TypeError) return "сервер недоступен, проверьте, что бэкенд запущен";
@@ -110,7 +112,7 @@ export function useRun(): RunControls {
           const broken =
             order.find((id) => prev.stages[id] === "running") ??
             [...order].reverse().find((id) => prev.stages[id] === "done") ??
-            "agents";
+            FIRST_STAGE;
           return {
             ...prev,
             status: "failed",
