@@ -1,0 +1,104 @@
+{
+ "normal": {
+  "status": "hold",
+  "scenario_id": "baseline",
+  "plan": "hold",
+  "production_t": 300.0,
+  "cost_per_tonne": 1.0859999999999999,
+  "severity_index": 0.0,
+  "n_alternatives": 5,
+  "alt_ids": [
+   "c0006",
+   "c0127",
+   "c0128",
+   "c0012",
+   "c0129"
+  ],
+  "alt_sev": [
+   0.0,
+   0.0,
+   0.35,
+   0.0,
+   0.0
+  ],
+  "robustness": {
+   "passed": null,
+   "total": null,
+   "fragile": false
+  },
+  "snapshot": "20260105-080000",
+  "fault": null,
+  "decision_id": "e6795a2f23edc152",
+  "selection": {
+   "ranking": [
+    "-production_t",
+    "cost_per_tonne",
+    "severity_index",
+    "changes",
+    "candidate_id"
+   ],
+   "severity_cost_tolerance_fraction": 0.0,
+   "max_severity_index": null,
+   "reliability_tradeoff": null
+  }
+ },
+ "risk": {
+  "status": "recommend_scenario",
+  "scenario_id": "sour_crude",
+  "plan": "c0042",
+  "production_t": 300.0,
+  "cost_per_tonne": 1.158,
+  "severity_index": 0.0,
+  "n_alternatives": 5,
+  "alt_ids": [
+   "c0006",
+   "c0127",
+   "c0128",
+   "c0012",
+   "c0129"
+  ],
+  "alt_sev": [
+   0.0,
+   0.0,
+   0.35,
+   0.0,
+   0.0
+  ],
+  "robustness": {
+   "passed": null,
+   "total": null,
+   "fragile": true
+  },
+  "snapshot": "20260724-030000",
+  "fault": null,
+  "decision_id": "203a15fb2bdbd1fe",
+  "selection": {
+   "ranking": [
+    "-production_t",
+    "cost_per_tonne",
+    "severity_index",
+    "changes",
+    "candidate_id"
+   ],
+   "severity_cost_tolerance_fraction": 0.03,
+   "max_severity_index": 0.75,
+   "reliability_tradeoff": null
+  }
+ },
+ "bad": {
+  "status": "refuse",
+  "scenario_id": "baseline",
+  "plan": null,
+  "production_t": null,
+  "cost_per_tonne": null,
+  "severity_index": null,
+  "n_alternatives": 0,
+  "alt_ids": [],
+  "alt_sev": [],
+  "robustness": {},
+  "snapshot": "20260416-101000",
+  "fault": "Модельная инъекция отказа: both_broken. Это не наблюдение из данных.",
+  "decision_id": "32054fa00a913f57",
+  "selection": null
+ }
+}

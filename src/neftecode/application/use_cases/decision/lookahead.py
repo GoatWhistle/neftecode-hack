@@ -2,7 +2,9 @@ import hashlib
 import json
 import math
 
+from neftecode.domain.advisory.tradeoff import tradeoff_map
 from neftecode.domain.production.offspec import offspec_block
+from neftecode.domain.production.severity_profile import comparable, delta
 from neftecode.domain.shared.primitives import SCENARIO_SCOPE
 from ..plan_operation import PlannerError
 from .constants import LOOKAHEAD_CANDIDATES
@@ -89,7 +91,7 @@ class LookaheadMixin:
 
     def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None,
                 robustness=None, current_operation=None, lookahead=None,
-                tank_estimate=None) -> dict:
+                tank_estimate=None, pool=None) -> dict:
         required_inputs = list((self.scenario.policy or {}).get("deployment_inputs") or ())
         ready = not any(item.get("status") == "open" for item in required_inputs)
         result = {
@@ -129,4 +131,45 @@ class LookaheadMixin:
         }
         content = json.dumps(result, sort_keys=True, ensure_ascii=False, default=str)
         result["decision_id"] = hashlib.sha256(content.encode()).hexdigest()[:16]
+        result["severity"] = self._severity_block(evaluation, current_operation)
+        result["tradeoff"] = self._tradeoff_block(result, ranking, pool, trace, plan, robustness)
         return result
+
+    def _tradeoff_block(self, result, ranking, pool, trace, plan, robustness) -> dict | None:
+        if result["status"] not in ("hold", "recommend_scenario"):
+            return None
+        limit = self._max_severity_index()
+        admissible = [e for e in (pool or ())
+                      if limit is None or (isinstance(e.severity_index, (int, float)) and math.isfinite(e.severity_index)
+                                      and e.severity_index <= limit + 1e-9)]
+        hold_rejection = next((item for item in (ranking or {}).get("rejected", [])
+                               if item.get("candidate_id") == "hold"), None)
+        optimizer = next((t for t in trace if t.get("agent") == "optimizer"), {})
+        profile = ((result.get("severity") or {}).get("selected") or {}).get("profile_id")
+        return tradeoff_map(
+            admissible, plan.plan_id if plan is not None else None,
+            horizon_hours=self.scenario.horizon.hours, severity_profile=profile,
+            evaluated=optimizer.get("evaluated"), budget=optimizer.get("evaluation_budget"),
+            rounds=len(optimizer.get("rounds") or ()) or None,
+            selection_reason=(ranking or {}).get("reason"),
+            hold_note=("; ".join(hold_rejection.get("rejection_reasons") or ()) if hold_rejection else None),
+            stress_checked_id=plan.plan_id if plan is not None and robustness is not None else None,
+            robustness=({k: robustness.get(k) for k in ("perturbations_evaluated", "held", "violated",
+                                                          "not_applicable", "fragile")}
+                        if robustness is not None else None))
+
+    def _severity_block(self, evaluation, current_operation) -> dict:
+        economics = self.planner.economics
+        controls = {**self.planner.base_controls(), **((current_operation or {}).get("controls") or {})}
+        try:
+            current = economics.severity(controls)
+        except ValueError as exc:
+            current = {"available": False, "index": None, "reason": str(exc)}
+        selected = evaluation.severity_full if evaluation is not None else None
+        origins = {name: self.scenario.stages["hydrotreating"].controls[name]["current"].source
+                   for name in ("ht_reactor_inlet_temp_c", "ht_feed_flow_m3h")
+                   if name in self.scenario.stages["hydrotreating"].controls}
+        return {"current": current, "selected": selected, "current_inputs_origin": origins,
+                "comparable": comparable(current, selected),
+                "delta": delta(current, selected),
+                "rule": "Разница считается только при одном профиле тяжести; неизвестное значение не заменяется нулём."}

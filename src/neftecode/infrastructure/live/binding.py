@@ -3,6 +3,7 @@ import copy
 import pandas as pd
 
 from neftecode.infrastructure.data.data import frozen_rule
+from neftecode.domain.production.severity_profile import build_profile
 from neftecode.infrastructure.response.estimate import response_at
 
 from .constants import LiveError, MEASURED_TAGS, RESPONSE_FILE, _bound, _finite_number, _pair
@@ -57,6 +58,31 @@ def _control_missing_note(tag: str) -> str:
             f"числовая уставка не предлагается")
 
 
+def _severity_profile(raw: dict, response: dict | None, at) -> dict | None:
+    """Фиксированная опора тяжести — исходные сценарные параметры, не текущий режим и не диапазон кандидатов."""
+    stage = raw["stages"]["hydrotreating"]
+    model, controls = stage.get("model") or {}, stage["controls"]
+    policy = raw.get("policy") or {}
+    region = None
+    selected = response_at(response, at) if response is not None and at is not None else response
+    if selected is not None and _pair(selected.get("t6_range_c")):
+        region = {"t6_range_c": [float(v) for v in selected["t6_range_c"]],
+                  "f9_range_tph": ([float(v) for v in selected["f9_range_tph"]]
+                                   if _pair(selected.get("f9_range_tph")) else None),
+                  "source": RESPONSE_FILE}
+    try:
+        return build_profile(
+            model.get("reference_temp_c"), controls["ht_reactor_inlet_temp_c"]["max"]["value"],
+            model.get("reference_space_velocity_m3h"), controls["ht_feed_flow_m3h"]["max"]["value"],
+            policy.get("severity_weights"), temp_min_c=controls["ht_reactor_inlet_temp_c"]["min"]["value"],
+            model_region=region,
+            max_severity_index=policy.get("max_severity_index"),
+            origin=("Исходные сценарные опорная точка и верхняя граница гидроочистки до привязки "
+                    "измерений; live-опора отклика (текущий режим) в шкалу не входит."))
+    except (KeyError, TypeError):
+        return None
+
+
 def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict | None, forecast: dict,
                       tank_id: str = "main", at=None) -> dict:
     out = copy.deepcopy(raw)
@@ -68,6 +94,10 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
         "В live-контуре ходы АВТ не предлагаются: время прохождения через промежуточные ёмкости и "
         "измеренный отклик товарного качества на эти ходы не подтверждены."
     )
+    if not isinstance(policy.get("severity_profile"), dict):
+        profile = _severity_profile(raw, response, at)
+        if profile is not None:
+            policy["severity_profile"] = profile
     density = derived["density_kgm3"]
     if not _finite_number(density) or density <= 0:
         raise LiveError("Плотность для пересчёта расходов должна быть положительным числом")

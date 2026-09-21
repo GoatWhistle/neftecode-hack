@@ -25,6 +25,13 @@ def _worst_severity(details: list, severities: list) -> dict | None:
             "step_index": position, "reason": worst.get("reason"), "scope": worst.get("scope")}
 
 
+def _worst_full(details: list, severities: list) -> dict | None:
+    known = [(value, index) for index, value in enumerate(severities) if value is not None]
+    if not known or not details or max(known)[1] >= len(details):
+        return None
+    return {**details[max(known)[1]], "step_index": max(known)[1]}
+
+
 def _finite(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
@@ -95,7 +102,7 @@ class PlanEvaluationMixin:
                       plan.steps[0].throughput_tph, plan.steps[0].additive_dose, plan.changes),
             gate, summary["production_t"], summary["cost_per_tonne"],
             max(known) if known else None,
-            _worst_severity(details, severities))
+            _worst_severity(details, severities), _worst_full(details, severities))
 
     def lookahead(self, plan: PlanCandidate, hours: float, confirmed=(), initial_tanks=None,
                   current_operation=None) -> dict:

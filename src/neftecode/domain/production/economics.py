@@ -3,11 +3,13 @@ import math
 
 from neftecode.domain.production.scenario import Scenario
 
-SEVERITY_TERMS = ("temperature_above_reference", "throughput_above_reference")
+from neftecode.domain.production.severity_profile import (
+    TERMS as SEVERITY_TERMS, SeverityProfileError, build_profile, evaluate as evaluate_severity)
 
 
 class EconomicsError(ValueError):
     pass
+
 
 
 def _finite(value) -> bool:
@@ -104,41 +106,34 @@ class Economics:
                                    + deep_treating_cost_per_t(economics, depth))
         return StepCost(float(hours), mass, component, additive, treating)
 
-    def severity(self, controls: dict[str, float]) -> dict:
+    def severity_profile(self) -> dict | None:
+        try:
+            return self._severity_profile()
+        except SeverityProfileError as exc:
+            raise EconomicsError(str(exc)) from exc
+
+    def _severity_profile(self) -> dict | None:
+        profile = (self.scenario.policy or {}).get("severity_profile")
+        if isinstance(profile, dict):
+            return profile
         stage = self.scenario.stages["hydrotreating"]
         model = stage.model or {}
         reference_temp = model.get("reference_temp_c")
         reference_flow = model.get("reference_space_velocity_m3h")
         if reference_temp is None or reference_flow is None:
-            return {"available": False, "index": None,
-                    "reason": "В сценарии нет опорной точки гидроочистки: тяжесть режима не считается"}
-        temp = controls.get("ht_reactor_inlet_temp_c")
-        flow = controls.get("ht_feed_flow_m3h")
-        if not _finite(temp) or not _finite(flow):
-            return {"available": False, "index": None,
-                    "reason": "Уставки гидроочистки неизвестны: тяжесть режима не считается"}
+            return None
+        policy = self.scenario.policy or {}
         low, high = stage.control_range("ht_reactor_inlet_temp_c")
-        flow_low, flow_high = stage.control_range("ht_feed_flow_m3h")
-        temp_span = max(1e-9, high - reference_temp)
-        flow_span = max(1e-9, flow_high - reference_flow)
-        terms = {
-            "temperature_above_reference": max(0.0, temp - reference_temp) / temp_span,
-            "throughput_above_reference": max(0.0, flow - reference_flow) / flow_span,
-        }
-        weights = (self.scenario.policy or {}).get("severity_weights") or {
-            "temperature_above_reference": 0.7, "throughput_above_reference": 0.3}
-        unknown = set(weights) - set(SEVERITY_TERMS)
-        if unknown:
-            raise EconomicsError(f"policy.severity_weights: неизвестные слагаемые {', '.join(sorted(unknown))}")
-        index = sum(weights.get(name, 0.0) * value for name, value in terms.items())
-        return {
-            "available": True, "index": float(index), "terms": terms, "weights": dict(weights),
-            "reference_temp_c": reference_temp, "reference_flow_m3h": reference_flow,
-            "control_range_c": [low, high],
-            "reason": "Показатель тяжести режима собран из наблюдаемых слагаемых с явными весами.",
-            "scope": "Это описанный индекс режима, а не возраст катализатора, не остаточный ресурс "
-                     "и не вероятность отказа: дат замен, наработки и разметки отказов в пакете нет.",
-        }
+        return build_profile(reference_temp, high, reference_flow, stage.control_range("ht_feed_flow_m3h")[1],
+                             policy.get("severity_weights"), temp_min_c=low,
+                             max_severity_index=policy.get("max_severity_index"))
+
+    def severity(self, controls: dict[str, float]) -> dict:
+        profile = self.severity_profile()
+        return evaluate_severity(
+            profile, controls.get("ht_reactor_inlet_temp_c"), controls.get("ht_feed_flow_m3h"),
+            "В сценарии нет опорной точки гидроочистки или масштаб тяжести не положителен: "
+            "тяжесть режима не считается")
 
     def summarise(self, steps) -> dict:
         total = sum(step.total for step in steps)

@@ -28,8 +28,9 @@ DECISION_KEYS = {
     "decision_id", "gate", "immediate_action", "note", "production_t", "reason",
     "refusal", "rejected", "robustness", "scenario_id", "scope", "selected_plan",
     "severity_index", "status", "tank_estimate", "trace", "deployment_readiness",
-    "selection_policy",
+    "selection_policy", "severity", "tradeoff",
 }
+ADDITIVE_KEYS = {"severity", "tradeoff"}
 
 
 def decision(path: Path) -> dict:
@@ -51,7 +52,8 @@ def test_four_scenario_outputs_are_frozen():
         assert {item["id"] for item in result["deployment_readiness"]["required_inputs"]} == \
                {"tank_farm", "deep_treatment_capacity"}
         assert (result["immediate_action"] is None) == (name == "no_feasible")
-        encoded = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        frozen = {k: v for k, v in result.items() if k not in ADDITIVE_KEYS}
+        encoded = json.dumps(frozen, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
         assert hashlib.sha256(encoded).hexdigest() == digest
 
 

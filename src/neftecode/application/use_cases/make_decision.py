@@ -207,6 +207,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
         return self._finish(
             status, reason, trace, chosen, final, None, selected, robustness,
             current_operation=current_operation, lookahead=lookahead, tank_estimate=tank_estimate,
+            pool=feasible,
         )
 
     def execute(self, command: DecisionCommand) -> DecisionResult:

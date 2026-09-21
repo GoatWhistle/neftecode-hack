@@ -179,6 +179,7 @@ class Evaluation:
     cost_per_tonne: float | None = None
     severity_index: float | None = None
     severity_detail: dict | None = None
+    severity_full: dict | None = None
 
     @property
     def feasible(self) -> bool:
