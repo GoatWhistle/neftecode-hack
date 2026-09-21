@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from neftecode.domain.shared.primitives import HOLD, RECOMMEND_SCENARIO, REFUSE
-from neftecode.application.use_cases.make_decision import (MAX_ROUNDS, AgentError, MakeDecision, QualityAgent,
-                                    ReliabilityAgent)
+from neftecode.application.use_cases.make_decision import (MAX_ROUNDS, AgentError, MakeDecision, QualityReview,
+                                    ReliabilityReview)
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")
@@ -225,7 +225,7 @@ def test_a_feasible_first_round_does_not_trigger_extra_rounds():
 def test_the_quality_agent_reports_only_quality_checks():
     planner = orchestrator(SOUR).planner
     plans, _ = planner.build_plans(BUDGET)
-    review = QualityAgent().review(planner.evaluate(plans[0]))
+    review = QualityReview().review(planner.evaluate(plans[0]))
     assert review["agent"] == "quality"
     assert set(review) >= {"vetoes", "unknown", "verdict"}
 
@@ -233,7 +233,7 @@ def test_the_quality_agent_reports_only_quality_checks():
 def test_the_reliability_agent_reports_equipment_limits_and_severity():
     planner = orchestrator(SOUR).planner
     plans, _ = planner.build_plans(BUDGET)
-    review = ReliabilityAgent().review(planner.evaluate(plans[0]))
+    review = ReliabilityReview().review(planner.evaluate(plans[0]))
     assert review["agent"] == "reliability"
     assert "severity_index" in review
     assert "не оценка реального ресурса" in review["scope"]

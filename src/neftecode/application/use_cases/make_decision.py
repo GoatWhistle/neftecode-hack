@@ -11,13 +11,13 @@ from neftecode.application.ports import RobustnessEvaluator, TankEstimateEvaluat
 from neftecode.application.ports.tank_estimate import TankEstimateFactory
 from ..progress import emit
 from ..services.trust import DataTrustAgent
-from .decision.agents import QualityAgent, ReliabilityAgent
+from .decision.reviews import QualityReview, ReliabilityReview
 from .decision.constants import LOOKAHEAD_CANDIDATES, MAX_ROUNDS, VETO_FAMILIES, AgentError, SearchOutcome
 from .decision.lookahead import LookaheadMixin
 from .decision.search import SearchMixin
 
-__all__ = ["AgentError", "LOOKAHEAD_CANDIDATES", "MAX_ROUNDS", "MakeDecision", "QualityAgent",
-           "ReliabilityAgent", "SearchOutcome", "VETO_FAMILIES"]
+__all__ = ["AgentError", "LOOKAHEAD_CANDIDATES", "MAX_ROUNDS", "MakeDecision", "QualityReview",
+           "ReliabilityReview", "SearchOutcome", "VETO_FAMILIES"]
 
 
 @dataclass
@@ -25,8 +25,8 @@ class MakeDecision(SearchMixin, LookaheadMixin):
 
     scenario: Scenario
     planner: PlanOperation = field(init=False)
-    quality: QualityAgent = field(default_factory=QualityAgent)
-    reliability: ReliabilityAgent = field(default_factory=ReliabilityAgent)
+    quality: QualityReview = field(default_factory=QualityReview)
+    reliability: ReliabilityReview = field(default_factory=ReliabilityReview)
     max_rounds: int = MAX_ROUNDS
     robustness_evaluator: RobustnessEvaluator | None = None
     tank_estimate_evaluator: TankEstimateEvaluator | None = None

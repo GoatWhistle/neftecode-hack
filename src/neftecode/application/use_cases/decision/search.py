@@ -3,7 +3,7 @@ import json
 
 from neftecode.domain.advisory.optimizer import rank
 from ..plan_operation import PlannerError
-from .agents import family
+from .reviews import family
 from .constants import VETO_FAMILIES, AgentError, SearchOutcome
 
 

@@ -83,7 +83,8 @@ T95/цетан — сценарное линейное правило, плот�
 ## 8. Агентный слой
 
 `OrchestratorAgent` — LLM-координатор с allowlist инструментов. `SpecialistAgent` запускает LLM-специалистов
-качества и надёжности; отдельные детерминированные `application/use_cases/decision/agents.py` читают Gate-результаты.
+качества и надёжности; отдельные детерминированные `QualityReview` / `ReliabilityReview`
+(`application/use_cases/decision/reviews.py`) читают Gate-результаты.
 LLM может запросить осмотр,
 консультацию, ужесточение ограничений, robustness и finalize; он не вычисляет числа, не меняет
 пределы и не может выбрать запрещённый plan_id.

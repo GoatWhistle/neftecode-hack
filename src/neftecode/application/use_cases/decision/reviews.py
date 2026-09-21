@@ -6,7 +6,7 @@ def family(constraint_id: str) -> str:
 
 
 @dataclass
-class QualityAgent:
+class QualityReview:
 
     def review(self, evaluation) -> dict:
         checks = [c for c in evaluation.gate.checks if family(c.constraint_id) == "quality"]
@@ -20,7 +20,7 @@ class QualityAgent:
 
 
 @dataclass
-class ReliabilityAgent:
+class ReliabilityReview:
 
     def review(self, evaluation) -> dict:
         families = ("outflow", "control", "inventory", "additive")

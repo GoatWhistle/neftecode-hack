@@ -105,6 +105,18 @@ def test_make_decision_is_the_only_production_coordinator():
         assert "neftecode.infrastructure.ml.agents" not in set(imports(path)), path
 
 
+def test_deterministic_reviews_do_not_share_names_with_llm_agents():
+    def classes(root: Path) -> set[str]:
+        return {node.name for path in root.rglob("*.py")
+                for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))
+                if isinstance(node, ast.ClassDef)}
+
+    decision = PACKAGE / "application" / "use_cases" / "decision"
+    assert not (decision / "agents.py").exists()
+    assert {"QualityReview", "ReliabilityReview"} <= classes(decision)
+    assert not classes(decision) & classes(PACKAGE / "application" / "agentic")
+
+
 def test_composition_is_only_used_by_external_entry_points():
     for layer in ("domain", "application", "infrastructure", "evaluation", "presentation"):
         for path in layer_sources(layer):
