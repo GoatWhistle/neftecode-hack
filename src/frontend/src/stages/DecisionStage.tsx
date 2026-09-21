@@ -79,16 +79,38 @@ export function DecisionStage({ payload, index, state, source, lamp, lampTitle, 
             value={
               explanation.checks_passed !== undefined && explanation.checks_total !== undefined
                 ? `${explanation.checks_passed} из ${explanation.checks_total}`
-                : "не передавалось"
+                : "—"
             }
-            tone={explanation.checks_passed === explanation.checks_total ? "pass" : "unknown"}
+            tone={
+              explanation.checks_passed === undefined || explanation.checks_total === undefined
+                ? "unknown"
+                : explanation.checks_passed === explanation.checks_total
+                  ? "pass"
+                  : "unknown"
+            }
+            hint={
+              explanation.checks_passed === undefined || explanation.checks_total === undefined
+                ? refused
+                  ? "финальной проверки не было: план не дошёл до Gate"
+                  : "счёт проверок не передавался"
+                : undefined
+            }
           />
-          <Readout label="Выпуск за горизонт" value={num(decision.production_t, 1)} unit="т" />
+          <Readout
+            label="Выпуск за горизонт"
+            value={num(decision.production_t, 1)}
+            unit="т"
+            hint={decision.production_t === null && refused ? "плана нет — выпуск не считался" : undefined}
+          />
           <Readout
             label="Стоимость тонны"
             value={num(decision.cost_per_tonne, 4)}
             unit="у.е./т"
-            hint="в условных единицах сценария"
+            hint={
+              decision.cost_per_tonne === null && refused
+                ? "плана нет — стоимость не считалась"
+                : "в условных единицах сценария"
+            }
           />
           <Readout
             label="Товарный выпуск"

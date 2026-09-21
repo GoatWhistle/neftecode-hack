@@ -1,5 +1,6 @@
 import type { AgentEvent } from "../run/types";
 import { readOrchTool } from "../run/orchTool";
+import { reasonCodesText } from "../run/agentVocab";
 import { RawJson } from "./RawJson";
 
 export function OrchTool({ event }: { event: AgentEvent }) {
@@ -64,7 +65,7 @@ export function OrchTool({ event }: { event: AgentEvent }) {
       ) : null}
 
       {event.reason_codes && event.reason_codes.length > 0 ? (
-        <p className="orch-tool__codes">коды причин: {event.reason_codes.join(", ")}</p>
+        <p className="orch-tool__codes">коды причин: {reasonCodesText(event.reason_codes)}</p>
       ) : null}
 
       {read.inputRaw !== null && read.inputRaw !== "{}"

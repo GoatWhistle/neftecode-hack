@@ -100,7 +100,9 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
   const showReplay = !running && canReplay === true && onReplay !== undefined;
   const mode = modeOf(run);
 
-  if (run.status === "idle" || !away) return null;
+  const stopped = run.status === "stopped";
+
+  if (run.status === "idle" || (!away && !stopped)) return null;
 
   const toMap = (): void => {
     const anchor = anchorOf();
@@ -124,6 +126,11 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
           <span className="statusbar__order">{String(node.order ?? 0).padStart(2, "0")}</span>
           <span className="statusbar__name">{node.label}</span>
           <span className="statusbar__state">{STATE_WORD[current.state]}</span>
+        </p>
+      ) : null}
+      {stopped ? (
+        <p className="statusbar__stopped">
+          Расчёт остановлен · протокол решения не получен
         </p>
       ) : null}
       {stale ? (

@@ -119,7 +119,8 @@
 }
 
 @media (max-width: 1180px) {
-  .config__body {
+  .config__body,
+  .drawer .config__body {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-5);
   }

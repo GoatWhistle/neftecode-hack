@@ -138,7 +138,7 @@ export function GateStage({ payload, index, state, source, lamp, lampTitle, bare
                       <td className="grid__num">{num(check.observed, 3)}</td>
                       <td className="grid__num">{num(check.limit, 3)}</td>
                       <td className="grid__num">{hours(check.time_hours)}</td>
-                      <td>{check.reason || "—"}</td>
+                      <td>{check.reason || "причина не передана: сервер прислал проверку без пояснения"}</td>
                     </tr>
                   ))}
                 </tbody>

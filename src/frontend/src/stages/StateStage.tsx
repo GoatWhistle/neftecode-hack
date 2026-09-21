@@ -66,8 +66,6 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle, bar
                 badge={<OriginBadge origin={origin?.controls?.[key]} />}
               />
             ))}
-          </div>
-          <div className="readouts">
             <Readout
               label="Производительность"
               value={num(operation.throughput_tph, 2)}
@@ -85,6 +83,9 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle, bar
             <table className="grid">
               <caption>
                 Рецепт смешения и запасы <OriginBadge origin={origin?.recipe} label="рецепт" />
+                <span className="grid__gloss">
+                  Доли рецепта и остаток каждого компонента на момент решения.
+                </span>
               </caption>
               <thead>
                 <tr>

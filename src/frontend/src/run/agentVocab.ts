@@ -33,6 +33,25 @@ export const FINISH_TEXT: Record<string, string> = {
   content_filter: "ответ обрезан фильтром провайдера"
 };
 
+export const REASON_CODE_TEXT: Record<string, string> = {
+  best_allowed_after_review: "лучший из допущенных после проверок",
+  specialists_agree: "специалисты согласны",
+  no_allowed_plan: "допустимых планов нет",
+  no_intervention: "вмешательство не требуется",
+  no_specialist_consultation: "специалистов не спрашивали",
+  sulfur_margin_ok: "запас по сере достаточен",
+  thin_sulfur_margin: "запас по сере тонкий",
+  fragile_plan: "план хрупкий к отклонениям"
+};
+
+export function reasonCodeText(code: string): string {
+  return REASON_CODE_TEXT[code] ?? code;
+}
+
+export function reasonCodesText(codes: readonly string[]): string {
+  return codes.map(reasonCodeText).join(", ");
+}
+
 export function resolutionText(decision: string | undefined | null): string {
   if (!decision) return "решение без пометки";
   return RESOLUTION_TEXT[decision] ?? decision;

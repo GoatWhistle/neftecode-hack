@@ -32,6 +32,7 @@ export function ForecastStage({ payload, index, state, source, lamp, lampTitle, 
   const statements = payload.explanation.statements ?? [];
   const statement = sulfurStatement(statements);
   const marginRows = buildRows(statements);
+  const refused = payload.decision.status === "refuse";
 
   return (
     <Section
@@ -45,34 +46,39 @@ export function ForecastStage({ payload, index, state, source, lamp, lampTitle, 
       lampTitle={lampTitle}
       bare={bare}
     >
-      {payload.forecast === null ? (
+      {refused && marginRows.length === 0 && points.length === 0 ? (
         <Empty>
-          Отдельного блока прогноза с интервалом неопределённости в этом решении нет: поле{" "}
-          <code>forecast</code> пустое, и подставлять сюда интервал было бы выдумкой. Ниже — расчётная
-          траектория серы, которую проверял Gate: это точки плана, а не измерения.
+          Прогноза на этом этапе нет, и это результат расчёта, а не пробел в передаче. Запасы по пределам
+          строят из утверждений о выбранном плане, траекторию серы — из его проверок; плана нет, поэтому нет
+          ни того, ни другого. Пустой этап не означает благополучия по качеству: уровень серы остаётся тем
+          же, из-за которого план и не нашёлся. Что именно отсекло варианты — на этапе «Кандидаты».
         </Empty>
-      ) : null}
-
-      {marginRows.length > 0 ? (
-        <MarginBars statements={statements} />
       ) : (
-        <Empty>
-          Утверждений о свойствах качества в payload не передавалось, поэтому запасы по пределам
-          показать не из чего. Пустой блок означает отсутствие утверждений, а не отсутствие рисков.
-        </Empty>
+        <>
+          {payload.forecast === null ? (
+            <Empty>
+              Отдельного блока прогноза с интервалом неопределённости в этом решении нет: поле{" "}
+              <code>forecast</code> пустое, и подставлять сюда интервал было бы выдумкой. Ниже — расчётная
+              траектория серы, которую проверял Gate: это точки плана, а не измерения.
+            </Empty>
+          ) : null}
+
+          {marginRows.length > 0 ? (
+            <MarginBars statements={statements} />
+          ) : (
+            <Empty>
+              Утверждений о свойствах качества в payload не передавалось, поэтому запасы по пределам
+              показать не из чего. Пустой блок означает отсутствие утверждений, а не отсутствие рисков.
+            </Empty>
+          )}
+
+          {points.length === 0 ? (
+            <Empty>Точек по сере в проверках нет: сервер не передал ни одной точки траектории.</Empty>
+          ) : null}
+        </>
       )}
 
-      {points.length === 0 ? (
-        payload.decision.status === "refuse" ? (
-          <Empty>
-            Траектории серы здесь нет: её строят по проверкам выбранного плана, а плана нет. Пустой график
-            означает отсутствие расчёта, а не благополучие по сере — уровень серы остаётся тем же, из-за
-            которого план не нашёлся.
-          </Empty>
-        ) : (
-          <Empty>Точек по сере в проверках нет.</Empty>
-        )
-      ) : (
+      {points.length === 0 ? null : (
         <>
           <div className="readouts">
             <Readout

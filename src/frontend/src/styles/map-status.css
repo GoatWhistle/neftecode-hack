@@ -100,6 +100,16 @@
   font-style: italic;
 }
 
+.statusbar__stopped {
+  margin: 0;
+  padding: 3px var(--space-2);
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--fail);
+  border: 1px solid var(--fail);
+  border-radius: var(--radius-sm);
+}
+
 .statusbar__stale {
   margin: 0;
   padding: 3px var(--space-2);
