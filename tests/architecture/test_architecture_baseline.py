@@ -11,8 +11,8 @@ from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.presentation.cli import COMMANDS
 from neftecode.bootstrap import fingerprint, make_demo_service
-from neftecode.evaluation.robustness import RobustnessCheck
-from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
+from neftecode.application.services.robustness import RobustnessCheck
+from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 
 
 ROOT = Path(".")

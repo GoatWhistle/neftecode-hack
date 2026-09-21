@@ -13,8 +13,12 @@ ALLOWED = {
     "infrastructure": {"infrastructure", "application", "domain"},
     "evaluation": {"evaluation", "application", "domain"},
     "presentation": {"presentation", "application", "domain"},
-    "services": {"services", "presentation", "infrastructure", "evaluation", "application", "domain"},
+    "services": {"services", "presentation", "infrastructure", "application", "domain"},
 }
+RUNTIME_LAYERS = ("application", "composition", "infrastructure", "presentation", "services")
+# Batch-команды offline-исследований (benchmark, episodes, vak, expert-grid) собираются
+# в composition, но в рантайм решения не входят.
+OFFLINE_ENTRY_POINTS = {PACKAGE / "composition" / "commands" / "evaluation.py"}
 INNER_FORBIDDEN = {"catboost", "http", "numpy", "openpyxl", "pandas", "pickle", "sklearn"}
 
 
@@ -63,6 +67,20 @@ def test_evaluation_receives_io_inputs_from_the_composition_root():
     for path in layer_sources("evaluation"):
         for imported in imports(path):
             assert imported.split(".")[0] not in {"openpyxl", "pathlib"}, f"{path}: {imported}"
+
+
+def test_runtime_does_not_import_offline_evaluation():
+    for layer in RUNTIME_LAYERS:
+        for path in layer_sources(layer):
+            if path in OFFLINE_ENTRY_POINTS:
+                continue
+            for imported in imports(path):
+                parts = imported.split(".")
+                target = parts[1] if parts[:1] == ["neftecode"] and len(parts) > 1 else parts[0]
+                assert target != "evaluation", f"{path}: {imported}"
+    for name in ("robustness.py", "tank_estimate.py"):
+        assert not (PACKAGE / "evaluation" / name).exists(), name
+        assert (PACKAGE / "application" / "services" / name).is_file(), name
 
 
 def test_moved_flat_modules_are_deleted():

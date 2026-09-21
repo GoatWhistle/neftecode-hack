@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from neftecode.application.agentic.decision import AgenticMakeDecision  # noqa: E402
-from neftecode.evaluation.robustness import RobustnessCheck  # noqa: E402
+from neftecode.application.services.robustness import RobustnessCheck  # noqa: E402
 from neftecode.infrastructure.agentic.factory import build_decision_factory  # noqa: E402
 from neftecode.infrastructure.config.scenario import parse_scenario  # noqa: E402
 from neftecode.presentation.reports.agent_trace import render_agent_trace  # noqa: E402

@@ -5,7 +5,7 @@ from pathlib import Path
 from neftecode.application.services.explain import explain
 from neftecode.composition.decision import run_demo_decision
 from neftecode.domain.production.inventory import initial_state
-from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.application.services.robustness import RobustnessCheck
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import write_json

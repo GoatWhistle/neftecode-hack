@@ -8,7 +8,7 @@ import pytest
 
 from neftecode.application.use_cases.get_live_advice import binding_summary
 from neftecode.application.use_cases.plan_operation import PlanOperation
-from neftecode.evaluation.robustness import RobustnessCheck, response_perturbations
+from neftecode.application.services.robustness import RobustnessCheck, response_perturbations
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.live.advisor import (LiveError, bind_forecast, bind_measurements,
                                                    load_response_model, measurements_at)

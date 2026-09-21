@@ -8,7 +8,7 @@ from neftecode.application.use_cases.plan_operation import PlanCandidate
 from neftecode.domain.advisory.entities import PlanStep
 from neftecode.domain.advisory.response_guard import (moves_hydrotreating, moves_temperature, weak_response_factor,
                                                       weak_response_raw)
-from neftecode.evaluation.robustness import DEFAULT_PERTURBATIONS, RobustnessCheck
+from neftecode.application.services.robustness import DEFAULT_PERTURBATIONS, RobustnessCheck
 from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.live.advisor import bind_forecast, bind_measurements
 

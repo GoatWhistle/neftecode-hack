@@ -3,10 +3,10 @@ from dataclasses import dataclass, replace
 import copy
 import math
 
+from neftecode.application.services.tank_estimate import TankEstimateCheck, default_tank_estimate_factory
 from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.domain.advisory.response_guard import moves_hydrotreating, moves_temperature
 from neftecode.domain.production.scenario import Scenario
-from neftecode.evaluation.tank_estimate import TankEstimateCheck, default_tank_estimate_factory
 
 # Совместный стресс отклика обязателен во всех сценариях, а не только там, где сценарий
 # перечислил его в policy.mandatory_robustness_paths. План, который держится лишь при

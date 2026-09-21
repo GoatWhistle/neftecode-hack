@@ -4,7 +4,7 @@
 
 Сводка: выполнено 21 (этап 0: Z0,Z1,Z2,Z4,Z5,Z6,Z7,Z8,Z9,Z9-3,S6; этап 1: I1,I2,I3,I4,S1;
 этап 2 сервер: O1,O2,N1,N2), передано фронту 7 (Z3, O1-фронт, O2-фронт, N1-фронт, N2-фронт, O3, O4),
-заблокировано 0. Этапы 0–2 закрыты по серверу, всё фронтовое описано в `frontend-handoff.md`. Текущий этап: 3 (A1 закрыт).
+заблокировано 0. Этапы 0–2 закрыты по серверу, всё фронтовое описано в `frontend-handoff.md`. Текущий этап: 3 (A1, A2 закрыты). С A2 после слияния гоняется быстрый набор, полный `pytest` — в конце этапа (решение владельца 21.09).
 
 Гейт этапа 2 (21.09): полный `LLM_PROVIDER=scripted uv run pytest -q` — 1388 passed;
 `npm run build` — ок; `/api/decide` по 7 случаям (`serve`, scripted): 05.01 норма — hold,
@@ -64,8 +64,8 @@ refuse; агенты выключены — hold, `agentic_state.outcome = skipp
 
 | ID | Задача | Статус | Коммит | Проверка | Дата |
 |---|---|---|---|---|---|
-| A1 | `QualityReview` / `ReliabilityReview` | ✅ выполнено | `<см. след. коммит>` | `decision/agents.py` → `decision/reviews.py`, классы `QualityAgent`/`ReliabilityAgent` → `QualityReview`/`ReliabilityReview`; строковые имена трассы (`quality`, `reliability`), инструменты и JSON не менялись. Новый тест `test_deterministic_reviews_do_not_share_names_with_llm_agents`. Эталоны не перефиксированы; полный `pytest` на main — 1389 passed | 2026-09-21 |
-| A2 | `robustness`, `tank_estimate` → `application/services` | ⏳ ожидает | | | |
+| A1 | `QualityReview` / `ReliabilityReview` | ✅ выполнено | `0a3c213` | `decision/agents.py` → `decision/reviews.py`, классы `QualityAgent`/`ReliabilityAgent` → `QualityReview`/`ReliabilityReview`; строковые имена трассы (`quality`, `reliability`), инструменты и JSON не менялись. Новый тест `test_deterministic_reviews_do_not_share_names_with_llm_agents`. Эталоны не перефиксированы; полный `pytest` на main — 1389 passed | 2026-09-21 |
+| A2 | `robustness`, `tank_estimate` → `application/services` | ✅ выполнено | `<см. след. коммит>` | `git mv` обоих модулей и их тестов в `application/services` / `tests/application`, потребители обновлены (только импорты), без shim. `ALLOWED["services"]` без `evaluation`; новый `test_runtime_does_not_import_offline_evaluation` (application, composition, infrastructure, presentation, services). Исключение: `composition/commands/evaluation.py` — CLI offline-исследований (benchmark, episodes, vak, expert_grid), явно в `OFFLINE_ENTRY_POINTS`. Эталоны бит-в-бит; у агента полный `pytest` — 1388 passed, 2 skipped (gitignored данные); на main быстрый набор (architecture, integration, services, затронутые) — 167 passed | 2026-09-21 |
 | A3 | Условия и инъекции → `application/conditions` | ⏳ ожидает | | | |
 | A4 | Порты `ScenarioRepository` / `SnapshotRepository` | ⏳ ожидает | | | |
 | A5 | Единый `AdviseUnderConditions` | ⏳ ожидает | | | |

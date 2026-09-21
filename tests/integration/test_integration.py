@@ -19,7 +19,7 @@ from neftecode.application.use_cases.replay_decisions import ExecutionState, Rep
 from neftecode.infrastructure.config.scenario import ScenarioError, load_scenario, parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.application.services.trust import DataTrustAgent
-from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.application.services.robustness import RobustnessCheck
 
 SCENARIOS = Path("config/scenarios")
 BASELINE = SCENARIOS / "baseline.json"

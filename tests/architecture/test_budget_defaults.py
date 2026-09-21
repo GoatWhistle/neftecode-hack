@@ -7,7 +7,7 @@ from neftecode.application.use_cases.plan_operation import PlanOperation
 from neftecode.application.use_cases.planning.builder import PlanBuilderMixin
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET, CandidateGenerator
 from neftecode.evaluation.benchmark_run import Benchmark
-from neftecode.evaluation.tank_estimate import TankEstimateCheck
+from neftecode.application.services.tank_estimate import TankEstimateCheck
 from neftecode.infrastructure.live.advisor import LiveAdviceAdapter
 from neftecode.presentation.demo import Demo
 from neftecode.presentation.web.server import DemoService

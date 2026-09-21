@@ -6,7 +6,7 @@ import pytest
 from neftecode.application.services.explain import explain
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.production.inventory import initial_state
-from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.application.services.robustness import RobustnessCheck
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 from neftecode.presentation.web.ui import AGENTS_SKIPPED, STATES, Screen, UiError, error_payload

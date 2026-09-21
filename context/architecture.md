@@ -226,7 +226,7 @@ src/neftecode/
     advisory/                 # планы, gate, оптимизация и решение
   application/
     ports/                    # контракты внешних источников и адаптеров
-    services/                 # доверие к данным и объяснение
+    services/                 # доверие к данным, объяснение, устойчивость и оценка резервуара
     use_cases/                # MakeDecision, PlanOperation, GetLiveAdvice, ReplayDecisions
   infrastructure/
     data/                     # CSV/XLSX и подготовка данных
@@ -234,7 +234,7 @@ src/neftecode/
     config/                   # чтение и проверка JSON-сценариев
     artifacts/                # сохранение результатов
     live/                     # адаптер реальных измерений к GetLiveAdvice
-  evaluation/                 # benchmark, ВАК, эпизоды, лаги и устойчивость
+  evaluation/                 # только offline: benchmark, ВАК, эпизоды, лаги
   presentation/
     cli.py                    # аргументы и команды
     demo.py                   # демонстрационные сцены
@@ -262,7 +262,9 @@ services ──────┘
 связывает конкретные адаптеры; модули `services/*_service.py` собирают отдельные
 процессы. Эти внешние точки знают о конкретных адаптерах и связывают их с прикладными сценариями.
 AST-тест запрещает обратные зависимости,
-обращения внутренних слоёв к pandas/HTTP/openpyxl и старые плоские импорты.
+обращения внутренних слоёв к pandas/HTTP/openpyxl и старые плоские импорты. Рантайм (`application`,
+`infrastructure`, `presentation`, `services`, `composition`) не импортирует `evaluation`; исключение —
+batch-команды offline-исследований в `composition/commands/evaluation.py`.
 
 Хранение сейчас файловое: CSV/XLSX на входе, локальные модели, CSV/JSON/JSONL на выходе.
 Для следующего этапа можно добавить кэш нормализованных рядов и индекс решений. СУБД и очереди

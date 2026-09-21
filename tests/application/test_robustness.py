@@ -6,8 +6,8 @@ import pytest
 
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation
-from neftecode.evaluation.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck,
-                                             COMBINED_RESPONSE_STRESS, RobustnessError, choose_robust, perturb)
+from neftecode.application.services.robustness import (DEFAULT_PERTURBATIONS, RobustnessCheck,
+                                                       COMBINED_RESPONSE_STRESS, RobustnessError, choose_robust, perturb)
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 BASELINE = Path("config/scenarios/baseline.json")

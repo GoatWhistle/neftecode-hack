@@ -8,8 +8,8 @@ from neftecode.application.contracts import DataRejection, DecisionCommand
 from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.domain.advisory.entities import CheckResult, GateResult
 from neftecode.domain.shared.primitives import FAIL, HOLD, RECOMMEND_SCENARIO, REFUSE
-from neftecode.evaluation.robustness import RobustnessCheck
-from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
+from neftecode.application.services.robustness import RobustnessCheck
+from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 from neftecode.infrastructure.config.scenario import parse_scenario
 
 SCENARIOS = Path("config/scenarios")

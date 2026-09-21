@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from neftecode.evaluation.robustness import RobustnessCheck
+from neftecode.application.services.robustness import RobustnessCheck
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.artifacts import load_model_bundle, write_json
 from neftecode.infrastructure.config.scenario import parse_scenario

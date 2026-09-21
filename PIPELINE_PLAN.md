@@ -104,8 +104,8 @@ payload решения, а не подставные презентационн�
 
 Фокусированные тесты: `tests/domain/test_gate.py`, `test_inventory.py`, `test_optimizer.py`,
 `test_blending.py`; `tests/application/test_planner.py`, `test_trust.py`; `tests/agentic/test_safety.py`,
-`test_orchestrator_agent.py`, `test_specialists.py`; `tests/evaluation/test_robustness.py`,
-`test_independent.py`, `test_agent_value.py`.
+`test_orchestrator_agent.py`, `test_specialists.py`; `tests/application/test_robustness.py`,
+`test_tank_estimate.py`; `tests/evaluation/test_independent.py`, `test_agent_value.py`.
 
 `evaluation/independent.py` использует то же PlanOperation с изменёнными параметрами, не независимый
 физический симулятор. Зафиксированный артефакт рассчитан при budget=400, а runtime default равен 1200;

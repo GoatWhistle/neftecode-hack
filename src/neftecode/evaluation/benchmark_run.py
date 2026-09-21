@@ -6,8 +6,8 @@ from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.use_cases.plan_operation import PlanOperation, PlanCandidate, PlanStep
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.domain.production.scenario import Scenario
-from neftecode.evaluation.robustness import RobustnessCheck
-from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
+from neftecode.application.services.robustness import RobustnessCheck
+from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 
 
 HOLD = "hold"
