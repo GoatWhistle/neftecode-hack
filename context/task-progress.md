@@ -2,9 +2,22 @@
 
 Ведётся по мере выполнения. `task-pool.md` не переписывается — статус только здесь.
 
-Сводка: выполнено 12 (этап 0: Z0,Z1,Z2,Z4,Z5,Z6,Z7,Z8; этап 1: I1,I2,I3,I4), передано фронту 1
-(Z3), заблокировано 0. Новые задачи владельца 21.09 (Z9, N1–N3, S1–S6) в очереди, статус
-«ожидает». Текущий этап: 0 (Z9 и S6 не закрыты — блокируют полное закрытие этапа 0).
+Сводка: выполнено 19 (этап 0: Z0,Z1,Z2,Z4,Z5,Z6,Z7,Z8,Z9; этап 1: I1,I2,I3,I4,S1;
+этап 2 сервер: O1,O2,N1,N2), передано фронту 5 (Z3, O1-фронт, O2-фронт, N1-фронт, N2-фронт),
+заблокировано 0. Открыто на этапах 0–2: S6 (текст вопроса организаторам), O3 и O4 (фронт,
+handoff ещё не записан). Текущий этап: 2 закрыт по серверу, следующий — 3.
+
+Гейт этапа 2 (21.09): полный `LLM_PROVIDER=scripted uv run pytest -q` — 1388 passed;
+`npm run build` — ок; `/api/decide` по 7 случаям (`serve`, scripted): 05.01 норма — hold,
+`last_pak_bc` 7.582; 05.01 + `frozen_pak` — hold, `catboost_no_pak` 7.511; 24.07 —
+`recommend_scenario` c0042, `last_pak_bc` 14.933; 24.07 + `frozen_pak` — hold,
+`catboost_no_pak` 8.112; `both_broken` — refuse, агенты `skipped`; `no_feasible` (synthetic) —
+refuse; агенты выключены — hold, `agentic_state.outcome = skipped`. Во всех live-случаях
+`plan_origin`: АВТ `scenario`, T6 `measured`, расход `derived`; `chain`: АВТ неуправляем
+(`scenario`), ГО `data_beta`, смешение `mass_balance`; мнения с `confidence_kind`.
+Гейт нашёл, что срезы `artifacts/snapshots` не были пересобраны после I1 (24.07 + `frozen_pak`
+давал c0042): пересобраны `neftecode snapshot --all`, изменились только `forecast_no_pak` и
+текст `forecast.reason`.
 
 ## Этап 0. Порядок и страховочная сетка
 
@@ -36,12 +49,12 @@
 
 | ID | Задача | Статус | Коммит | Проверка | Дата |
 |---|---|---|---|---|---|
-| O1 | Backend отдаёт `source` каждого значения плана (сервер) | ✅ выполнено | `<см. след. коммит>` (общий с N2) | Новое поле `explanation.plan_origin` (`decision` заморожен): у каждой уставки, рецепта, выпуска, дозы — источник; значение равно текущему после привязки среза → его источник, изменено планом → `derived`. Срез 05.01: АВТ `scenario`, T6 `measured`, расход с F9 `derived` (F9·1000/ρ), без F9 `scenario`. 5 новых тестов; полный `pytest` N2+O1 на main — 1388 passed | 2026-09-21 |
+| O1 | Backend отдаёт `source` каждого значения плана (сервер) | ✅ выполнено | `ac4dc32` (общий с N2) | Новое поле `explanation.plan_origin` (`decision` заморожен): у каждой уставки, рецепта, выпуска, дозы — источник; значение равно текущему после привязки среза → его источник, изменено планом → `derived`. Срез 05.01: АВТ `scenario`, T6 `measured`, расход с F9 `derived` (F9·1000/ρ), без F9 `scenario`. 5 новых тестов; полный `pytest` N2+O1 на main — 1388 passed | 2026-09-21 |
 | O1-фронт | Подпись = `source` | 📤 передано фронту | | `frontend-handoff.md`, раздел «O1 — источник значений плана» | 2026-09-21 |
 | O2 | `agentic == null` → «пропущено» (сервер) | ✅ выполнено | `b98117c` | При отключённых агентах ключа `decision.agentic` нет (не `null`); `decision` заморожен побитово, поэтому явное состояние — новое поле экрана `agentic_state = {mode: disabled, outcome: skipped, reason, note}` (`presentation/web/ui.py`, `Screen.payload`), при включённых агентах поля нет. Реальный `decide` baseline: `=0` → `skipped`, `scripted` → `decision.agentic` без изменений. 5 новых тестов; полный `LLM_PROVIDER=scripted uv run pytest -q` (N1+O2 на main) — 1377 passed | 2026-09-21 |
 | N1 | Сервер: признак некалиброванной самооценки у `confidence` (владелец добавил 21.09) | ✅ выполнено | `a804e3f` | `CONFIDENCE_LABEL` (`confidence_kind: llm_self_report`, `confidence_calibrated: false`) в `Opinion.to_dict` и `opinion_summary` — доходит до `agentic.opinions[]` экрана, трассы и ответа оркестратору; от LLM поле не требуется (`OPINION_FIELDS` без изменений); `confidence` в логике решения не используется. 2 новых теста; `uv run pytest -q tests/agentic tests/presentation` — 389 passed; в worktree полный — 1372 passed, 2 skipped | 2026-09-21 |
 | N1-фронт | Убрать число «уверенности» | 📤 передано фронту | | `frontend-handoff.md`, раздел «N1 — самооценка уверенности агента» | 2026-09-21 |
-| N2 | Сервер: `controllable` и `model_basis` у блоков цепочки (владелец добавил 21.09) | ✅ выполнено | `<см. след. коммит>` (общий с O1) | Новое поле `explanation.chain` = `{mode, blocks}` (`chain_blocks.py`), и в решении, и в отказе. Срез 05.01 live: АВТ `controllable=false`, `scenario`; ГО `data_beta` (β по τ среза, −0.4227), управляем только T6; смешение `mass_balance`. Текст объяснения для отключённых ходов АВТ: «ход не рассматривался; эффект на качество не оценивался». 6 новых тестов; полный `pytest` — 1388 passed | 2026-09-21 |
+| N2 | Сервер: `controllable` и `model_basis` у блоков цепочки (владелец добавил 21.09) | ✅ выполнено | `ac4dc32` (общий с O1) | Новое поле `explanation.chain` = `{mode, blocks}` (`chain_blocks.py`), и в решении, и в отказе. Срез 05.01 live: АВТ `controllable=false`, `scenario`; ГО `data_beta` (β по τ среза, −0.4227), управляем только T6; смешение `mass_balance`. Текст объяснения для отключённых ходов АВТ: «ход не рассматривался; эффект на качество не оценивался». 6 новых тестов; полный `pytest` — 1388 passed | 2026-09-21 |
 | N2-фронт | Управляемость блоков на схеме | 📤 передано фронту | | `frontend-handoff.md`, раздел «N2 — управляемость и основание блоков цепочки» | 2026-09-21 |
 | O2-фронт | Этап «пропущено» | 📤 передано фронту | | `frontend-handoff.md`, раздел «O2 — явное состояние агентов» | 2026-09-21 |
 | O3 | Контрактные тесты фронта | ⏳ ожидает | | | |
