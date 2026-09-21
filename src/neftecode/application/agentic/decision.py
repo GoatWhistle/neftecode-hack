@@ -107,7 +107,7 @@ class AgenticMakeDecision:
             error_reason = (f"orchestrator_error:{type(exc).__name__}"
                             if session.constraints or session.vetoes
                             else f"unexpected_error:{type(exc).__name__}")
-            result, outcome_name, reason = self._recover_after_agent_failure(
+            result, outcome_name, reason = self._recover_safely(
                 session, legacy, request, trace, error_reason)
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
             return self._with(result, info, outcome_name, reason)
@@ -116,14 +116,37 @@ class AgenticMakeDecision:
                     vetoed_candidates={cid: sorted(roles) for cid, roles in sorted(session.vetoes.items())},
                     llm_choice_overridden=False)
         if run.final is None:
-            result, outcome_name, reason = self._recover_after_agent_failure(
+            result, outcome_name, reason = self._recover_safely(
                 session, legacy, request, trace, f"orchestrator_no_final:{run.stop_reason}")
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
             return self._with(result, info, outcome_name, reason)
         info["final"] = run.final.to_dict()
-        result, outcome_name, reason = self._resolve(run.final, run.opinions, session, legacy, request, info, trace)
+        try:
+            result, outcome_name, reason = self._resolve(
+                run.final, run.opinions, session, legacy, request, info, trace)
+        except Exception as exc:
+            trace.add("system", 0, "resolution", decision="failed",
+                      reason_codes=(f"resolution_error:{type(exc).__name__}",))
+            result, outcome_name, reason = self._recover_safely(
+                session, legacy, request, trace, f"resolution_error:{type(exc).__name__}")
         info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
         return self._with(result, info, outcome_name, reason)
+
+    def _recover_safely(self, session: DecisionSession, legacy: dict, request: dict,
+                        trace: AgentTrace, reason: str) -> tuple[dict, str, str]:
+        try:
+            return self._recover_after_agent_failure(session, legacy, request, trace, reason)
+        except Exception as exc:
+            recovery_reason = f"{reason};recovery_error:{type(exc).__name__}"
+            trace.add("system", 0, "resolution", decision="recovery_failed",
+                      reason_codes=("agent_constraints_preserved", f"recovery_error:{type(exc).__name__}"))
+            final = OrchestratorFinal(
+                action="refuse", candidate_id=None,
+                reason_codes=("agent_failure", "recovery_failed"),
+                summary="После сбоя безопасно проверить план с агентными ограничениями не удалось",
+                evidence_refs=(),
+            )
+            return self._refuse(final, session, legacy, request, trace), "refused", recovery_reason
 
     def _resolve(self, final: OrchestratorFinal, opinions, session: DecisionSession, legacy: dict, request: dict,
                  info: dict, trace: AgentTrace) -> tuple[dict, str, str | None]:
