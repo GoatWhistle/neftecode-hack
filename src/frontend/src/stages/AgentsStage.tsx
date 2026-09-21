@@ -60,7 +60,7 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
       <div className="agents__stage">
         <section className="agents__sec">
           <h3 className="agents__heading">Режим работы</h3>
-          <AgenticMode agentic={agentic} />
+          <AgenticMode agentic={agentic} agenticState={payload.agentic_state} />
         </section>
 
         <section className="agents__sec">
@@ -73,7 +73,12 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
             запрос, дуга вниз — вердикт, петля у узла — инструмент, который агент выбрал сам.
             Связи появляются по мере прихода событий. Нажмите на узел, чтобы оставить только его ходы.
           </p>
-          <GraphPanel events={events} agentic={agentic ?? null} running={running} />
+          <GraphPanel
+            events={events}
+            agentic={agentic ?? null}
+            running={running}
+            selectedPlanId={payload.decision.selected_plan?.plan_id ?? null}
+          />
         </section>
 
         <section className="agents__sec">

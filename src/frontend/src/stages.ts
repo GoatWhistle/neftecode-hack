@@ -46,6 +46,7 @@ function candidatesLamp(payload: ScreenPayload): StageLamp {
 }
 
 function agentsLamp(payload: ScreenPayload): StageLamp {
+  if (payload.agentic_state) return { lamp: "unknown", title: "агенты выключены" };
   const trace = payload.decision.trace ?? [];
   if (trace.length === 0) return { lamp: "unknown", title: "трасса участников пуста" };
   const vetoed = trace.some((event) => ((event["vetoes"] as unknown[] | undefined)?.length ?? 0) > 0);

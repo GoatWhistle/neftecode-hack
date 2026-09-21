@@ -1,7 +1,7 @@
 import type { StageState } from "../run/types";
 import type { ScreenPayload } from "../types";
 import type { Lamp } from "../ui/Primitives";
-import { controlLabel, controlUnit, moment, num, withUnit } from "../format";
+import { additiveDoseKgPerT, controlLabel, controlUnit, doseDigits, moment, num, withUnit } from "../format";
 import { Empty, Field, Fields, Note, Readout, Scroller } from "../ui/Primitives";
 import { Section } from "../ui/Section";
 import { JsonPanel } from "../ui/Json";
@@ -26,6 +26,15 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle, bar
   const inventories = payload.inventories ?? {};
   const tanks = tanksOf(payload);
   const demand = onDemandIds(payload);
+  const doseKg = operation ? additiveDoseKgPerT(operation.additive_dose) : null;
+  const chainBlocks = payload.explanation.chain?.blocks ?? [];
+  const controllableOf = (key: string): boolean | null => {
+    for (const block of chainBlocks) {
+      if (key in block.controls) return block.controls[key] ?? null;
+    }
+    return null;
+  };
+  const NOT_MOVED_HINT = "не двигается советчиком в текущем режиме";
 
   return (
     <Section
@@ -64,6 +73,7 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle, bar
                 value={num(value, 2)}
                 unit={controlUnit(key)}
                 badge={<OriginBadge origin={origin?.controls?.[key]} />}
+                hint={controllableOf(key) === false ? NOT_MOVED_HINT : undefined}
               />
             ))}
             <Readout
@@ -71,12 +81,14 @@ export function StateStage({ payload, index, state, source, lamp, lampTitle, bar
               value={num(operation.throughput_tph, 2)}
               unit="т/ч"
               badge={<OriginBadge origin={origin?.throughput_tph} />}
+              hint={controllableOf("throughput_tph") === false ? NOT_MOVED_HINT : undefined}
             />
             <Readout
               label="Доза присадки"
-              value={num(operation.additive_dose, 3)}
+              value={doseKg === null ? "—" : num(doseKg, doseDigits(doseKg))}
               unit="кг/т"
               badge={<OriginBadge origin={origin?.additive_dose} />}
+              hint={controllableOf("additive_dose") === false ? NOT_MOVED_HINT : undefined}
             />
           </div>
           <Scroller label="Рецепт смешения и запасы">

@@ -1,4 +1,4 @@
-import { controlLabel, controlUnit, hours, num } from "../format";
+import { controlLabel, controlUnit, doseText, hours, num } from "../format";
 import type { PlanStep, ScreenPayload } from "../types";
 import { stockLine } from "../provenance";
 import { humanizeReason } from "../run/orchRead";
@@ -41,6 +41,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
   const names = payload.explanation.component_names ?? {};
   const controls = Object.entries(action.controls ?? {});
   const recipe = Object.entries(action.recipe ?? {});
+  const stepOrigin = payload.explanation.plan_origin?.immediate_action ?? null;
 
   return (
     <div className="final__action">
@@ -58,7 +59,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
               <span className="final__unit">{controlUnit(key)}</span>
             </dd>
             <span className="final__origin">
-              <OriginBadge origin="derived" />
+              <OriginBadge origin={stepOrigin?.controls[key]} />
             </span>
           </div>
         ))}
@@ -70,18 +71,16 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
             <span className="final__unit">т/ч</span>
           </dd>
           <span className="final__origin">
-            <OriginBadge origin="derived" />
+            <OriginBadge origin={stepOrigin?.throughput_tph} />
           </span>
         </div>
         <div className="final__control">
           <dt>Доза присадки</dt>
-          <dd>
-            {num(action.additive_dose, 3)}
-            {" "}
-            <span className="final__unit">кг/т</span>
+          <dd title="кг присадки на тонну исходных компонентов (доля х 1000)">
+            {doseText(action.additive_dose)}
           </dd>
           <span className="final__origin">
-            <OriginBadge origin="derived" />
+            <OriginBadge origin={stepOrigin?.additive_dose} />
           </span>
         </div>
       </dl>

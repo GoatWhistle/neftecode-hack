@@ -15,6 +15,8 @@ export interface AgentOpinion {
   verdict: string;
   risk_level: string | null;
   confidence: number | null;
+  confidence_kind?: string;
+  confidence_calibrated?: boolean;
   valid: boolean;
   reasons: OpinionReason[];
   candidate_verdicts?: Record<string, string>;

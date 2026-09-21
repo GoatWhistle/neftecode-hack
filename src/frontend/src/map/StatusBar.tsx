@@ -130,7 +130,7 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
       ) : null}
       {stopped ? (
         <p className="statusbar__stopped">
-          Расчёт остановлен · протокол решения не получен
+          Отображение остановлено · протокол решения не получен · расчёт на сервере мог продолжиться
         </p>
       ) : null}
       {stale ? (
@@ -174,8 +174,8 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
           type="button"
           className="statusbar__button statusbar__button--icon statusbar__button--stop"
           onClick={onStop}
-          aria-label="Остановить прогон"
-          title="Стоп · то же самое делает клавиша Escape"
+          aria-label="Остановить отображение"
+          title="Остановить отображение · расчёт на сервере может продолжиться · Escape"
         >
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <rect x="4.4" y="4.4" width="7.2" height="7.2" rx="1" />

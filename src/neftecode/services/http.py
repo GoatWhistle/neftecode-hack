@@ -13,7 +13,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request as URLRequest, urlopen
 
-from .envelope import (RawResponse, Request, ServiceEnvelope, ServiceError, ServiceSettings, decode_json,
+from .envelope import (RawResponse, Request, ServiceEnvelope, ServiceError, ServiceSettings, StreamResponse, decode_json,
                        encode_json)
 
 
@@ -81,6 +81,29 @@ def make_handler(routes: Mapping[str, Callable[[Request], Any]], readiness: Call
         def log_message(self, *_args):
             pass
         def _reply(self, envelope: ServiceEnvelope | RawResponse, status: int = 200, response_limit: int | None = None, request_id: str = "unknown"):
+            if isinstance(envelope, StreamResponse):
+                self.send_response(envelope.status)
+                self.send_header("Content-Type", envelope.content_type)
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Accel-Buffering", "no")
+                self.send_header("X-Request-ID", request_id)
+                self.send_header("Connection", "close")
+                self.end_headers()
+                total = 0
+                try:
+                    for chunk in envelope.chunks:
+                        total += len(chunk)
+                        if response_limit is not None and total > response_limit:
+                            break
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                finally:
+                    close = getattr(envelope.chunks, "close", None)
+                    if close is not None:
+                        close()
+                return
             if isinstance(envelope, RawResponse):
                 body, content_type, status = envelope.body, envelope.content_type, envelope.status
             else:
@@ -141,7 +164,7 @@ def make_handler(routes: Mapping[str, Callable[[Request], Any]], readiness: Call
                     raw = self.rfile.read(length)
                 request = Request(self.command, parts.path, parse_qs(parts.query), decode_json(raw) if raw else None, dict(self.headers), request_id)
                 result = route(request)
-                if isinstance(result, RawResponse):
+                if isinstance(result, (RawResponse, StreamResponse)):
                     return self._reply(result, request_id=request_id, response_limit=settings.max_response_bytes)
                 envelope = result if isinstance(result, ServiceEnvelope) else ServiceEnvelope.success(result, request_id, service_name)
                 if envelope.service == "unknown" or envelope.request_id == "unknown":

@@ -1,0 +1,2619 @@
+{
+"state": "decision",
+"title": "Советчик оператору цепочки АВТ → гидроочистка → смешение",
+"status_label": "Сохранить режим",
+"decision": {
+"status": "hold",
+"reason": "Текущий режим проходит все обязательные проверки; изменения не требуются",
+"scope": "synthetic_scenario",
+"current_operation": null,
+"commercial_release_allowed": false,
+"deployment_readiness": {
+"ready": false,
+"reason": "Для промышленного применения завод должен передать фактические параметры парка и допустимую мощность глубокой очистки.",
+"required_inputs": [
+{
+"id": "tank_farm",
+"label": "Фактический рабочий объём и полезная вместимость резервуарного парка",
+"status": "open",
+"unit": "т",
+"required_values": [
+"current_inventory_t",
+"usable_capacity_t"
+],
+"scenario_assumptions": {
+"current_inventory_t": 4000.0,
+"usable_capacity_t": null
+},
+"impact": "Определяет разбавление, оборачиваемость, чувствительность советов и физическую замкнутость баланса парка."
+},
+{
+"id": "deep_treatment_capacity",
+"label": "Допустимая мощность наработки ДТ более глубокой очистки",
+"status": "open",
+"unit": "т/ч",
+"required_values": [
+"production_capacity_tph"
+],
+"scenario_assumptions": {
+"production_capacity_tph": 30.0
+},
+"impact": "Ограничивает доступность on-demand-компонента; 30 т/ч нельзя выдавать за возможность установки."
+}
+]
+},
+"scenario_id": "baseline",
+"selected_plan": {
+"plan_id": "hold",
+"intent": "постоянный режим на весь горизонт",
+"changes": 0,
+"steps": [
+{
+"time_hours": 0.0,
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0
+}
+]
+},
+"immediate_action": {
+"time_hours": 0.0,
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0
+},
+"gate": {
+"plan_id": "hold",
+"feasible": true,
+"checks": [
+{
+"constraint_id": "plan.time_grid",
+"status": "pass",
+"observed": 7.0,
+"limit": 7.0,
+"time_hours": null,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 4.30616,
+"limit": 10.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.2,
+"limit": 360.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.650000000000006,
+"limit": 51.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129896,
+"limit": 820.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129896,
+"limit": 845.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4000.0,
+"limit": 0.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 0.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 4.447800039087509,
+"limit": 10.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.267915499994,
+"limit": 360.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.650000000000006,
+"limit": 51.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129895,
+"limit": 820.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129895,
+"limit": 845.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4057.0506,
+"limit": 0.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 0.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 4.583962551227729,
+"limit": 10.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.33320456057334,
+"limit": 360.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.650000000000006,
+"limit": 51.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129895,
+"limit": 820.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129895,
+"limit": 845.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4114.1012,
+"limit": 0.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 1.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 4.714931385430713,
+"limit": 10.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.39600328553723,
+"limit": 360.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.650000000000006,
+"limit": 51.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129893,
+"limit": 820.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129893,
+"limit": 845.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4171.1518,
+"limit": 0.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 1.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 4.840972049997283,
+"limit": 10.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.4564389844312,
+"limit": 360.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.650000000000006,
+"limit": 51.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129891,
+"limit": 820.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129891,
+"limit": 845.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4228.202399999999,
+"limit": 0.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 2.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 4.96233312598849,
+"limit": 10.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.5146308502966,
+"limit": 360.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.650000000000006,
+"limit": 51.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129889,
+"limit": 820.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129889,
+"limit": 845.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4285.252999999999,
+"limit": 0.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 2.5,
+"reason": ""
+},
+{
+"constraint_id": "quality.sulfur_mgkg",
+"status": "pass",
+"observed": 5.079247554623328,
+"limit": 10.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.t95_c",
+"status": "pass",
+"observed": 351.57069057697,
+"limit": 360.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.cetane_number",
+"status": "pass",
+"observed": 51.65000000000002,
+"limit": 51.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_min_kgm3",
+"status": "pass",
+"observed": 835.8680009129888,
+"limit": 820.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "quality.density_max_kgm3",
+"status": "pass",
+"observed": 835.8680009129888,
+"limit": 845.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "control.crude_feed_rate_tph",
+"status": "pass",
+"observed": 740.0,
+"limit": 820.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "control.avt_furnace_outlet_temp_c",
+"status": "pass",
+"observed": 372.0,
+"limit": 400.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_reactor_inlet_temp_c",
+"status": "pass",
+"observed": 367.8237,
+"limit": 369.8237,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "control.ht_feed_flow_m3h",
+"status": "pass",
+"observed": 246.4769,
+"limit": 246.4769,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "recipe.sum",
+"status": "pass",
+"observed": 1.0,
+"limit": 1.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "additive.dose",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.03,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "throughput",
+"status": "pass",
+"observed": 100.0,
+"limit": 0.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.main",
+"status": "pass",
+"observed": 4342.303599999998,
+"limit": 0.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.reserve",
+"status": "pass",
+"observed": 0.0,
+"limit": 0.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "inventory.light",
+"status": "pass",
+"observed": 900.0,
+"limit": 0.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.main",
+"status": "pass",
+"observed": 90.0,
+"limit": 120.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "outflow.reserve",
+"status": "pass",
+"observed": 10.0,
+"limit": 30.0,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "model.applicability",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 3.0,
+"reason": ""
+},
+{
+"constraint_id": "plan.discretisation",
+"status": "pass",
+"observed": 0.5,
+"limit": 1.0,
+"time_hours": null,
+"reason": ""
+},
+{
+"constraint_id": "inventory.terminal",
+"status": "pass",
+"observed": null,
+"limit": null,
+"time_hours": 3.0,
+"reason": ""
+}
+],
+"first_violation": null,
+"unknown_requirements": [],
+"rejection_reasons": []
+},
+"production_t": 300.0,
+"cost_per_tonne": 1.0859999999999999,
+"severity_index": 0.0,
+"alternatives": [
+{
+"candidate_id": "c0006",
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 1.0,
+"reserve": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0,
+"changes": 1,
+"feasible": true,
+"production_t": 300.0,
+"cost_per_tonne": 1.05,
+"severity_index": 0.0,
+"rejection_reasons": []
+},
+{
+"candidate_id": "c0127",
+"controls": {
+"avt_furnace_outlet_temp_c": 372.0,
+"crude_feed_rate_tph": 740.0,
+"ht_feed_flow_m3h": 246.4769,
+"ht_reactor_inlet_temp_c": 366.8237
+},
+"recipe": {
+"main": 1.0,
+"reserve": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0,
+"changes": 2,
+"feasible": true,
+"production_t": 300.0,
+"cost_per_tonne": 1.05,
+"severity_index": 0.0,
+"rejection_reasons": []
+},
+{
+"candidate_id": "c0128",
+"controls": {
+"avt_furnace_outlet_temp_c": 372.0,
+"crude_feed_rate_tph": 740.0,
+"ht_feed_flow_m3h": 246.4769,
+"ht_reactor_inlet_temp_c": 368.8237
+},
+"recipe": {
+"main": 1.0,
+"reserve": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0,
+"changes": 2,
+"feasible": true,
+"production_t": 300.0,
+"cost_per_tonne": 1.050588,
+"severity_index": 0.35,
+"rejection_reasons": []
+},
+{
+"candidate_id": "c0012",
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.95,
+"reserve": 0.05
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0,
+"changes": 1,
+"feasible": true,
+"production_t": 300.0,
+"cost_per_tonne": 1.0679999999999998,
+"severity_index": 0.0,
+"rejection_reasons": []
+},
+{
+"candidate_id": "c0129",
+"controls": {
+"avt_furnace_outlet_temp_c": 372.0,
+"crude_feed_rate_tph": 740.0,
+"ht_feed_flow_m3h": 246.4769,
+"ht_reactor_inlet_temp_c": 366.8237
+},
+"recipe": {
+"main": 0.95,
+"reserve": 0.05
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0,
+"changes": 2,
+"feasible": true,
+"production_t": 300.0,
+"cost_per_tonne": 1.0679999999999998,
+"severity_index": 0.0,
+"rejection_reasons": []
+}
+],
+"rejected": [],
+"selection_policy": {
+"ranking": [
+"-production_t",
+"cost_per_tonne",
+"severity_index",
+"changes",
+"candidate_id"
+],
+"severity_cost_tolerance_fraction": 0.0,
+"max_severity_index": null,
+"reliability_tradeoff": null
+},
+"refusal": null,
+"robustness": {
+"plan_id": "hold",
+"perturbations_declared": 11,
+"perturbations_evaluated": 6,
+"held": 6,
+"violated": 0,
+"not_applicable": 5,
+"share_holding": 1.0,
+"fragile": false,
+"mandatory_declared": 1,
+"mandatory_evaluated": 0,
+"mandatory_failed": 0,
+"mandatory_failure_names": [],
+"results": [
+{
+"perturbation": "сера сырья +10%",
+"path": "crude.sulfur_wt_pct",
+"factor": 1.1,
+"mandatory": false,
+"outcome": "holds",
+"first_violation": null,
+"unknown_requirements": [],
+"production_t": 300.0,
+"cost_per_tonne": 1.0859999999999999
+},
+{
+"perturbation": "сера сырья -10%",
+"path": "crude.sulfur_wt_pct",
+"factor": 0.9,
+"mandatory": false,
+"outcome": "holds",
+"first_violation": null,
+"unknown_requirements": [],
+"production_t": 300.0,
+"cost_per_tonne": 1.0859999999999999
+},
+{
+"perturbation": "отклик ГО слабее на 20%",
+"path": "hydrotreating.conversion_per_degree",
+"factor": 0.8,
+"mandatory": false,
+"outcome": "not_applicable",
+"reason": "план не меняет температуру входа реактора: возмущение отклика на него не действует"
+},
+{
+"perturbation": "запаздывание отклика +50%",
+"path": "hydrotreating.response_lag_hours",
+"factor": 1.5,
+"mandatory": false,
+"outcome": "not_applicable",
+"reason": "план не меняет уставки гидроочистки: возмущение задержки на него не действует"
+},
+{
+"perturbation": "сера резерва +50%",
+"path": "tank.reserve.sulfur_mgkg",
+"factor": 1.5,
+"mandatory": false,
+"outcome": "holds",
+"first_violation": null,
+"unknown_requirements": [],
+"production_t": 300.0,
+"cost_per_tonne": 1.075
+},
+{
+"perturbation": "сера основного компонента +10%",
+"path": "tank.main.sulfur_mgkg",
+"factor": 1.1,
+"mandatory": false,
+"outcome": "holds",
+"first_violation": null,
+"unknown_requirements": [],
+"production_t": 300.0,
+"cost_per_tonne": 1.0859999999999999
+},
+{
+"perturbation": "подача резерва -20%",
+"path": "tank.reserve.max_outflow",
+"factor": 0.8,
+"mandatory": false,
+"outcome": "holds",
+"first_violation": null,
+"unknown_requirements": [],
+"production_t": 300.0,
+"cost_per_tonne": 1.0859999999999999
+},
+{
+"perturbation": "доля серы в дизельной фракции +10%",
+"path": "avt.sulfur_partition",
+"factor": 1.1,
+"mandatory": false,
+"outcome": "holds",
+"first_violation": null,
+"unknown_requirements": [],
+"production_t": 300.0,
+"cost_per_tonne": 1.0859999999999999
+},
+{
+"perturbation": "слабый отклик ГО и задержка +50% одновременно",
+"path": "hydrotreating.response_stress",
+"factor": 1.0,
+"mandatory": true,
+"outcome": "not_applicable",
+"reason": "план не меняет температуру входа реактора: возмущение отклика на него не действует"
+},
+{
+"perturbation": "отклик ГО по данным: слабый край диапазона β=-0.211",
+"path": "hydrotreating.conversion_per_degree",
+"factor": 0.49917198959072623,
+"mandatory": false,
+"outcome": "not_applicable",
+"reason": "план не меняет температуру входа реактора: возмущение отклика на него не действует"
+},
+{
+"perturbation": "отклик ГО по данным: сильный край диапазона β=-0.721",
+"path": "hydrotreating.conversion_per_degree",
+"factor": 1.705701443103856,
+"mandatory": false,
+"outcome": "not_applicable",
+"reason": "план не меняет температуру входа реактора: возмущение отклика на него не действует"
+}
+],
+"verdict": "План сохраняет допустимость при всех перечисленных отклонениях",
+"limits": [
+"Возмущения выбраны нами и перечислены поимённо; доля выдержанных — не вероятность успеха и не доверительный интервал.",
+"Возмущения отклика и задержки, не действующие на план без хода уставок ГО, помечены «неприменимо» и в долю выдержанных не входят.",
+"Проверка идёт на той же модели отклика, которой пользуется оптимизатор, поэтому структурно иная установка ею не проверена.",
+"Длительный исторический эпизод сам по себе новым режимом не признаётся: применимость определяется объявленной областью модели."
+]
+},
+"tank_estimate": {
+"available": true,
+"tank_id": "main",
+"baseline_status": "hold",
+"baseline_plan": "hold",
+"sulfur_estimate_mgkg": 4.5624,
+"sulfur_delta_mgkg": 1.0,
+"inventory_estimate_t": 4000.0,
+"inventory_share": 0.25,
+"estimate_is_derived": true,
+"perturbations_declared": 4,
+"perturbations_evaluated": 4,
+"same": 4,
+"changed": 0,
+"sensitive": false,
+"results": [
+{
+"perturbation": "сера резервуара на 1 мг/кг выше оценки",
+"field": "sulfur_mgkg",
+"estimate": 4.5624,
+"value": 5.5624,
+"outcome": "same",
+"status": "hold",
+"plan_id": "hold",
+"reason": "Текущий режим проходит все обязательные проверки; изменения не требуются",
+"cost_per_tonne": 1.0859999999999999,
+"production_t": 300.0,
+"immediate_action": {
+"time_hours": 0.0,
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0
+}
+},
+{
+"perturbation": "сера резервуара на 1 мг/кг ниже оценки",
+"field": "sulfur_mgkg",
+"estimate": 4.5624,
+"value": 3.5624000000000002,
+"outcome": "same",
+"status": "hold",
+"plan_id": "hold",
+"reason": "Текущий режим проходит все обязательные проверки; изменения не требуются",
+"cost_per_tonne": 1.0859999999999999,
+"production_t": 300.0,
+"immediate_action": {
+"time_hours": 0.0,
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0
+}
+},
+{
+"perturbation": "запас резервуара на 25% больше оценки",
+"field": "inventory",
+"estimate": 4000.0,
+"value": 5000.0,
+"outcome": "same",
+"status": "hold",
+"plan_id": "hold",
+"reason": "Текущий режим проходит все обязательные проверки; изменения не требуются",
+"cost_per_tonne": 1.0859999999999999,
+"production_t": 300.0,
+"immediate_action": {
+"time_hours": 0.0,
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0
+}
+},
+{
+"perturbation": "запас резервуара на 25% меньше оценки",
+"field": "inventory",
+"estimate": 4000.0,
+"value": 3000.0,
+"outcome": "same",
+"status": "hold",
+"plan_id": "hold",
+"reason": "Текущий режим проходит все обязательные проверки; изменения не требуются",
+"cost_per_tonne": 1.0859999999999999,
+"production_t": 300.0,
+"immediate_action": {
+"time_hours": 0.0,
+"controls": {
+"crude_feed_rate_tph": 740.0,
+"avt_furnace_outlet_temp_c": 372.0,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0
+}
+}
+],
+"verdict": "Решение не меняется при ошибке оценки резервуара в заявленных пределах: статус и выбранный план те же.",
+"limits": [
+"В выданных данных нет прямой пробы содержимого резервуара: рабочая оценка получена по доверенным показаниям притока за окно обновления при допущении полного перемешивания. На заводе для паспортизации анализируют пробу из резервуара.",
+"Проверены только две величины: сера ±1 мг/кг и запас ±25%. Пределы выбраны нами, это не доверительный интервал.",
+"Возмущается начальное состояние резервуара; прогноз притока и модель отклика проверяются отдельно проверкой устойчивости.",
+"Каждое возмущение прогоняется полным поиском заново, поэтому смена плана может означать и смену действия, и равноценную замену внутри того же действия."
+]
+},
+"lookahead": {
+"available": true,
+"lookahead_hours": 48.0,
+"min_reaction_hours": 12.0,
+"initial_plan": "hold",
+"initial": {
+"plan_id": "hold",
+"lookahead_hours": 48.0,
+"projected_until_hours": 51.0,
+"stock_ends_at_hours": null,
+"hours_to_violation": null,
+"constraint": null,
+"observed": null,
+"limit": null,
+"assumption": "За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства конца горизонта, расчёт останавливается при исчерпании запаса."
+},
+"selected": {
+"plan_id": "hold",
+"lookahead_hours": 48.0,
+"projected_until_hours": 51.0,
+"stock_ends_at_hours": null,
+"hours_to_violation": null,
+"constraint": null,
+"observed": null,
+"limit": null,
+"assumption": "За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства конца горизонта, расчёт останавливается при исчерпании запаса."
+},
+"switched": false,
+"examined": 0,
+"warning": null,
+"offspec": {
+"available": true,
+"share": 0.05,
+"share_source": "given",
+"main_tank": "main",
+"main_stock_t": 4000.0,
+"main_price_per_t": 1.0,
+"rework_cost": 200.0,
+"hold_cost_per_tonne": 1.0859999999999999,
+"plan_cost_per_tonne": 1.0859999999999999,
+"delta_cost_per_tonne": 0.0,
+"production_t": 300.0,
+"plan_extra_cost": 0.0,
+"affects_admissibility": false,
+"note": "Справочная величина: доля некондиции по ответу организаторов 18.09 и разница стоимости с сохранением режима. На допустимость плана не влияет — её решает проверка пределов продукта.",
+"hold_feasible": true
+}
+},
+"trace": [
+{
+"agent": "data",
+"usable": true,
+"primary": "ЛИМС",
+"reasons": [],
+"report": {
+"as_of": "2026-01-05T08:00:00",
+"usable": true,
+"primary": "ЛИМС",
+"fallback": false,
+"telemetry_missing_fraction": 0.0,
+"sources": {
+"ЛИМС": {
+"name": "ЛИМС",
+"status": "ok",
+"value": 6.800000190734863,
+"age_hours": 14.0,
+"max_age_hours": 48.0,
+"reasons": [],
+"usable": true
+},
+"ПАК": {
+"name": "ПАК",
+"status": "ok",
+"value": 5.883740425109863,
+"age_hours": 0.0,
+"max_age_hours": 0.5,
+"reasons": [],
+"usable": true
+}
+},
+"reasons": [],
+"missing_requirements": [],
+"suspect_values": [],
+"rule": "ЛИМС выше ПАК по приоритету источника независимо от точности прогноза. Источник без подтверждённой пригодности не проходит молча.",
+"refusal_reason": null
+}
+},
+{
+"agent": "optimizer",
+"rounds": [
+{
+"round": 1,
+"proposed": 271,
+"feasible": 130,
+"forbidden_before": [],
+"veto_families": {
+"inventory": 963,
+"outflow": 963,
+"control": 1926
+},
+"quality_vetoed": 0,
+"reliability_vetoed": 141,
+"candidate_ids": [
+"hold",
+"c0001",
+"c0002",
+"c0003",
+"c0004",
+"c0005",
+"c0006",
+"c0007",
+"c0008",
+"c0009",
+"c0010",
+"c0011",
+"c0012",
+"c0013",
+"c0014",
+"c0015",
+"c0016",
+"c0017",
+"c0018",
+"c0019"
+]
+}
+],
+"max_rounds": 3,
+"evaluated": 271,
+"evaluation_budget": 1200,
+"note": "Бюджет поиска общий; финальная проверка выбранного плана выполняется отдельно."
+},
+{
+"agent": "lookahead",
+"available": true,
+"lookahead_hours": 48.0,
+"min_reaction_hours": 12.0,
+"initial_plan": "hold",
+"initial": {
+"plan_id": "hold",
+"lookahead_hours": 48.0,
+"projected_until_hours": 51.0,
+"stock_ends_at_hours": null,
+"hours_to_violation": null,
+"constraint": null,
+"observed": null,
+"limit": null,
+"assumption": "За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства конца горизонта, расчёт останавливается при исчерпании запаса."
+},
+"selected": {
+"plan_id": "hold",
+"lookahead_hours": 48.0,
+"projected_until_hours": 51.0,
+"stock_ends_at_hours": null,
+"hours_to_violation": null,
+"constraint": null,
+"observed": null,
+"limit": null,
+"assumption": "За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства конца горизонта, расчёт останавливается при исчерпании запаса."
+},
+"switched": false,
+"examined": 0,
+"warning": null,
+"offspec": {
+"available": true,
+"share": 0.05,
+"share_source": "given",
+"main_tank": "main",
+"main_stock_t": 4000.0,
+"main_price_per_t": 1.0,
+"rework_cost": 200.0,
+"hold_cost_per_tonne": 1.0859999999999999,
+"plan_cost_per_tonne": 1.0859999999999999,
+"delta_cost_per_tonne": 0.0,
+"production_t": 300.0,
+"plan_extra_cost": 0.0,
+"affects_admissibility": false,
+"note": "Справочная величина: доля некондиции по ответу организаторов 18.09 и разница стоимости с сохранением режима. На допустимость плана не влияет — её решает проверка пределов продукта.",
+"hold_feasible": true
+}
+},
+{
+"agent": "quality",
+"stage": "final",
+"checked": 35,
+"passed": 35,
+"vetoes": [],
+"unknown": [],
+"verdict": "pass"
+},
+{
+"agent": "reliability",
+"stage": "final",
+"checked": 71,
+"passed": 71,
+"vetoes": [],
+"unknown": [],
+"severity_index": 0.0,
+"severity_factors": {
+"index": 0.0,
+"terms": {
+"temperature_above_reference": 0.0,
+"throughput_above_reference": 0.0
+},
+"weights": {
+"temperature_above_reference": 0.7,
+"throughput_above_reference": 0.3
+},
+"reference_temp_c": 367.8237,
+"reference_flow_m3h": 246.4769,
+"control_range_c": [
+365.8237,
+369.8237
+],
+"step_index": 6,
+"reason": "Показатель тяжести режима собран из наблюдаемых слагаемых с явными весами.",
+"scope": "Это описанный индекс режима, а не возраст катализатора, не остаточный ресурс и не вероятность отказа: дат замен, наработки и разметки отказов в пакете нет."
+},
+"verdict": "pass",
+"scope": "Ограничения оборудования заданы сценарием; это не оценка реального ресурса."
+},
+{
+"agent": "response_guard",
+"stage": "final",
+"plan": "hold",
+"beta": -0.4227,
+"beta_weak": -0.211,
+"outcome": "not_applicable",
+"reason": "план не меняет температуру входа реактора: слабый край отклика на него не действует"
+},
+{
+"agent": "robustness",
+"held": 6,
+"evaluated": 6,
+"not_applicable": 5,
+"fragile": false,
+"mandatory_failed": 0
+},
+{
+"agent": "tank_estimate",
+"available": true,
+"sensitive": false,
+"changed": 0,
+"evaluated": 4
+}
+],
+"note": "Результат сценарный. Выданный план не считается исполненным и не разрешает выпуск товарного топлива.",
+"decision_id": "e6795a2f23edc152",
+"agentic": {
+"mode": "agentic",
+"outcome": "confirmed_legacy",
+"fallback_reason": null,
+"legacy_decision_id": "e6795a2f23edc152",
+"legacy_status": "hold",
+"provider": "scripted",
+"model": "demo-policy",
+"note": "LLM-агенты выбирают инструменты и предлагают ограничения; числа, допустимость, ранжирование, финальная перепроверка и устойчивость — детерминированный код. Сценарный результат.",
+"deterministic_policy": true,
+"provider_label": "Решение прошло через детерминированную политику, а не через языковую модель: шаги в трассе заданы кодом и воспроизводятся побитово. Это не рассуждение модели.",
+"opinions": [
+{
+"role": "quality",
+"verdict": "ACCEPT",
+"risk_level": "low",
+"confidence": 0.8,
+"valid": true,
+"reasons": [
+{
+"code": "sulfur_margin_ok",
+"text": "Запас по сере 4.9208 мг/кг",
+"candidate_id": "hold"
+}
+],
+"candidate_verdicts": {
+"hold": "ACCEPT"
+},
+"proposed_constraints": [],
+"preferred_candidates": []
+},
+{
+"role": "reliability",
+"verdict": "ACCEPT",
+"risk_level": "low",
+"confidence": 0.9,
+"valid": true,
+"reasons": [
+{
+"code": "no_intervention",
+"text": "Режим не меняется",
+"candidate_id": "hold"
+}
+],
+"candidate_verdicts": {
+"hold": "ACCEPT"
+},
+"proposed_constraints": [],
+"preferred_candidates": []
+}
+],
+"constraints_applied": [],
+"vetoed_candidates": {},
+"llm_choice_overridden": false,
+"final": {
+"action": "keep_legacy",
+"candidate_id": null,
+"reason_codes": [
+"specialists_agree"
+],
+"summary": "Специалисты подтвердили вариант детерминированного контура",
+"evidence_refs": [
+"ask_quality_agent:hold",
+"ask_reliability_agent:hold"
+]
+},
+"keep_legacy_grounded": true,
+"trace": [
+{
+"seq": 1,
+"agent": "orchestrator",
+"step": 1,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 2,
+"agent": "orchestrator",
+"step": 0,
+"kind": "consult",
+"tool_name": "ask_quality_agent",
+"tool_input_summary": "{\"candidate_ids\":[\"hold\"],\"focus\":\"запас качества выбранного плана\"}",
+"candidate_ids": [
+"hold"
+]
+},
+{
+"seq": 3,
+"agent": "quality",
+"step": 1,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 4,
+"agent": "quality",
+"step": 1,
+"kind": "tool",
+"tool_name": "get_quality_margins",
+"tool_input_summary": "{\"candidate_id\":\"hold\"}",
+"tool_result_summary": "{\"margins\":{\"cetane_number\":{\"at_hours\":0.0,\"direction\":\"min\",\"limit\":51.0,\"limit_source\":\"given\",\"min_margin\":0.65,\"observed\":51.65,\"status\":\"pass\"},\"density_max_kgm3\":{\"at_hours\":0.0,\"direction\":\"max\",\"limit\":845.0,\"limit_source\":\"given\",\"min_margin\":9.132,\"observed\":835.868,\"status\":\"pass\"},\"den…",
+"tool_result_full": "{\"evidence_ref\": \"get_quality_margins:hold\", \"margins\": {\"cetane_number\": {\"at_hours\": 0.0, \"direction\": \"min\", \"limit\": 51.0, \"limit_source\": \"given\", \"min_margin\": 0.65, \"observed\": 51.65, \"status\": \"pass\"}, \"density_max_kgm3\": {\"at_hours\": 0.0, \"direction\": \"max\", \"limit\": 845.0, \"limit_source\": \"given\", \"min_margin\": 9.132, \"observed\": 835.868, \"status\": \"pass\"}, \"density_min_kgm3\": {\"at_hours\": 3.0, \"direction\": \"min\", \"limit\": 820.0, \"limit_source\": \"given\", \"min_margin\": 15.868, \"observed\": 835.868, \"status\": \"pass\"}, \"sulfur_mgkg\": {\"at_hours\": 3.0, \"direction\": \"max\", \"limit\": 10.0, \"limit_source\": \"given\", \"min_margin\": 4.9208, \"observed\": 5.0792, \"status\": \"pass\"}, \"t95_c\": {\"at_hours\": 3.0, \"direction\": \"max\", \"limit\": 360.0, \"limit_source\": \"given\", \"min_margin\": 8.4293, \"observed\": 351.5707, \"status\": \"pass\"}}}",
+"decision": "ok",
+"candidate_ids": [
+"hold"
+]
+},
+{
+"seq": 5,
+"agent": "quality",
+"step": 2,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 6,
+"agent": "quality",
+"step": 2,
+"kind": "final",
+"tool_name": "submit_opinion",
+"decision": "accepted"
+},
+{
+"seq": 7,
+"agent": "system",
+"step": 0,
+"kind": "resolution",
+"tool_result_summary": "{\"candidate_verdicts\":{\"hold\":\"ACCEPT\"},\"confidence\":0.8,\"confidence_calibrated\":false,\"confidence_kind\":\"llm_self_report\",\"preferred_candidates\":[],\"proposed_constraints\":[],\"reasons\":[{\"candidate_id\":\"hold\",\"code\":\"sulfur_margin_ok\",\"text\":\"Запас по сере 4.9208 мг/кг\"}],\"risk_level\":\"low\",\"role\":…",
+"tool_result_full": "{\"candidate_verdicts\":{\"hold\":\"ACCEPT\"},\"confidence\":0.8,\"confidence_calibrated\":false,\"confidence_kind\":\"llm_self_report\",\"preferred_candidates\":[],\"proposed_constraints\":[],\"reasons\":[{\"candidate_id\":\"hold\",\"code\":\"sulfur_margin_ok\",\"text\":\"Запас по сере 4.9208 мг/кг\"}],\"risk_level\":\"low\",\"role\":\"quality\",\"valid\":true,\"verdict\":\"ACCEPT\"}",
+"decision": "quality:ACCEPT",
+"reason_codes": [
+"sulfur_margin_ok"
+]
+},
+{
+"seq": 8,
+"agent": "orchestrator",
+"step": 1,
+"kind": "tool",
+"tool_name": "ask_quality_agent",
+"tool_input_summary": "{\"candidate_ids\":[\"hold\"],\"focus\":\"запас качества выбранного плана\"}",
+"tool_result_summary": "{\"allowed_total\":130,\"opinion\":{\"candidate_verdicts\":{\"hold\":\"ACCEPT\"},\"confidence\":0.8,\"confidence_calibrated\":false,\"confidence_kind\":\"llm_self_report\",\"preferred_candidates\":[],\"proposed_constraints\":[],\"reasons\":[{\"candidate_id\":\"hold\",\"code\":\"sulfur_margin_ok\",\"text\":\"Запас по сере 4.9208 мг/к…",
+"tool_result_full": "{\"allowed_total\": 130, \"evidence_ref\": \"ask_quality_agent:hold\", \"opinion\": {\"candidate_verdicts\": {\"hold\": \"ACCEPT\"}, \"confidence\": 0.8, \"confidence_calibrated\": false, \"confidence_kind\": \"llm_self_report\", \"preferred_candidates\": [], \"proposed_constraints\": [], \"reasons\": [{\"candidate_id\": \"hold\", \"code\": \"sulfur_margin_ok\", \"text\": \"Запас по сере 4.9208 мг/кг\"}], \"risk_level\": \"low\", \"role\": \"quality\", \"valid\": true, \"verdict\": \"ACCEPT\"}, \"vetoed_now\": []}",
+"decision": "ok",
+"candidate_ids": [
+"hold"
+]
+},
+{
+"seq": 9,
+"agent": "orchestrator",
+"step": 2,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 10,
+"agent": "orchestrator",
+"step": 0,
+"kind": "consult",
+"tool_name": "ask_reliability_agent",
+"tool_input_summary": "{\"candidate_ids\":[\"hold\"]}",
+"candidate_ids": [
+"hold"
+]
+},
+{
+"seq": 11,
+"agent": "reliability",
+"step": 1,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 12,
+"agent": "reliability",
+"step": 1,
+"kind": "tool",
+"tool_name": "get_setpoint_changes",
+"tool_input_summary": "{\"candidate_id\":\"hold\"}",
+"tool_result_summary": "{\"candidate_id\":\"hold\",\"changes\":0,\"intent\":\"постоянный режим на весь горизонт\",\"plan_kind\":\"constant\",\"steps\":[{\"additive_dose\":0.0,\"at_hours\":0.0,\"controls\":{},\"recipe_delta\":{},\"throughput_delta_tph\":0.0}]}",
+"tool_result_full": "{\"candidate_id\": \"hold\", \"changes\": 0, \"evidence_ref\": \"get_setpoint_changes:hold\", \"intent\": \"постоянный режим на весь горизонт\", \"plan_kind\": \"constant\", \"steps\": [{\"additive_dose\": 0.0, \"at_hours\": 0.0, \"controls\": {}, \"recipe_delta\": {}, \"throughput_delta_tph\": 0.0}]}",
+"decision": "ok",
+"candidate_ids": [
+"hold"
+]
+},
+{
+"seq": 13,
+"agent": "reliability",
+"step": 2,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 14,
+"agent": "reliability",
+"step": 2,
+"kind": "final",
+"tool_name": "submit_opinion",
+"decision": "accepted"
+},
+{
+"seq": 15,
+"agent": "system",
+"step": 0,
+"kind": "resolution",
+"tool_result_summary": "{\"candidate_verdicts\":{\"hold\":\"ACCEPT\"},\"confidence\":0.9,\"confidence_calibrated\":false,\"confidence_kind\":\"llm_self_report\",\"preferred_candidates\":[],\"proposed_constraints\":[],\"reasons\":[{\"candidate_id\":\"hold\",\"code\":\"no_intervention\",\"text\":\"Режим не меняется\"}],\"risk_level\":\"low\",\"role\":\"reliabili…",
+"tool_result_full": "{\"candidate_verdicts\":{\"hold\":\"ACCEPT\"},\"confidence\":0.9,\"confidence_calibrated\":false,\"confidence_kind\":\"llm_self_report\",\"preferred_candidates\":[],\"proposed_constraints\":[],\"reasons\":[{\"candidate_id\":\"hold\",\"code\":\"no_intervention\",\"text\":\"Режим не меняется\"}],\"risk_level\":\"low\",\"role\":\"reliability\",\"valid\":true,\"verdict\":\"ACCEPT\"}",
+"decision": "reliability:ACCEPT",
+"reason_codes": [
+"no_intervention"
+]
+},
+{
+"seq": 16,
+"agent": "orchestrator",
+"step": 2,
+"kind": "tool",
+"tool_name": "ask_reliability_agent",
+"tool_input_summary": "{\"candidate_ids\":[\"hold\"]}",
+"tool_result_summary": "{\"allowed_total\":130,\"opinion\":{\"candidate_verdicts\":{\"hold\":\"ACCEPT\"},\"confidence\":0.9,\"confidence_calibrated\":false,\"confidence_kind\":\"llm_self_report\",\"preferred_candidates\":[],\"proposed_constraints\":[],\"reasons\":[{\"candidate_id\":\"hold\",\"code\":\"no_intervention\",\"text\":\"Режим не меняется\"}],\"risk…",
+"tool_result_full": "{\"allowed_total\": 130, \"evidence_ref\": \"ask_reliability_agent:hold\", \"opinion\": {\"candidate_verdicts\": {\"hold\": \"ACCEPT\"}, \"confidence\": 0.9, \"confidence_calibrated\": false, \"confidence_kind\": \"llm_self_report\", \"preferred_candidates\": [], \"proposed_constraints\": [], \"reasons\": [{\"candidate_id\": \"hold\", \"code\": \"no_intervention\", \"text\": \"Режим не меняется\"}], \"risk_level\": \"low\", \"role\": \"reliability\", \"valid\": true, \"verdict\": \"ACCEPT\"}, \"vetoed_now\": []}",
+"decision": "ok",
+"candidate_ids": [
+"hold"
+]
+},
+{
+"seq": 17,
+"agent": "orchestrator",
+"step": 3,
+"kind": "llm_call",
+"decision": "tool_calls",
+"latency_ms": 0,
+"provider": "scripted",
+"model": "demo-policy",
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+},
+{
+"seq": 18,
+"agent": "orchestrator",
+"step": 3,
+"kind": "final",
+"tool_name": "finalize",
+"decision": "accepted"
+}
+],
+"budget": {
+"llm_calls": 7,
+"llm_calls_by_role": {
+"orchestrator": 3,
+"quality": 2,
+"reliability": 2
+},
+"max_llm_calls": 12,
+"replans": 0,
+"consults": {
+"quality": 1,
+"reliability": 1
+},
+"robustness_runs": 0,
+"usage": {
+"prompt_tokens": 0,
+"completion_tokens": 0,
+"total_tokens": 0
+}
+}
+}
+},
+"explanation": {
+"status": "hold",
+"reason": "Текущий режим проходит все обязательные проверки; изменения не требуются",
+"statements": [
+{
+"topic": "sulfur_mgkg",
+"text": "sulfur_mgkg: самая близкая к пределу точка плана даёт 5.079 при пределе 10 на 3 ч",
+"value": 5.079247554623328,
+"evidence": [
+{
+"kind": "gate_check",
+"ref": "quality.sulfur_mgkg",
+"value": 5.079247554623328,
+"detail": "предел 10.0, момент 3.0 ч"
+},
+{
+"kind": "scenario",
+"ref": "product.sulfur_mgkg",
+"value": 10.0,
+"detail": "предел задан сценарием или ТЗ"
+}
+]
+},
+{
+"topic": "t95_c",
+"text": "t95_c: самая близкая к пределу точка плана даёт 351.571 при пределе 360 на 3 ч",
+"value": 351.57069057697,
+"evidence": [
+{
+"kind": "gate_check",
+"ref": "quality.t95_c",
+"value": 351.57069057697,
+"detail": "предел 360.0, момент 3.0 ч"
+},
+{
+"kind": "scenario",
+"ref": "product.t95_c",
+"value": 360.0,
+"detail": "предел задан сценарием или ТЗ"
+}
+]
+},
+{
+"topic": "cetane_number",
+"text": "cetane_number: самая близкая к пределу точка плана даёт 51.650 при пределе 51 на 0 ч",
+"value": 51.650000000000006,
+"evidence": [
+{
+"kind": "gate_check",
+"ref": "quality.cetane_number",
+"value": 51.650000000000006,
+"detail": "предел 51.0, момент 0.0 ч"
+},
+{
+"kind": "scenario",
+"ref": "product.cetane_number",
+"value": 51.0,
+"detail": "предел задан сценарием или ТЗ"
+}
+]
+},
+{
+"topic": "density_min_kgm3",
+"text": "density_min_kgm3: самая близкая к пределу точка плана даёт 835.868 при пределе 820 на 3 ч",
+"value": 835.8680009129888,
+"evidence": [
+{
+"kind": "gate_check",
+"ref": "quality.density_min_kgm3",
+"value": 835.8680009129888,
+"detail": "предел 820.0, момент 3.0 ч"
+},
+{
+"kind": "scenario",
+"ref": "product.density_min_kgm3",
+"value": 820.0,
+"detail": "предел задан сценарием или ТЗ"
+}
+]
+},
+{
+"topic": "density_max_kgm3",
+"text": "density_max_kgm3: самая близкая к пределу точка плана даёт 835.868 при пределе 845 на 0 ч",
+"value": 835.8680009129896,
+"evidence": [
+{
+"kind": "gate_check",
+"ref": "quality.density_max_kgm3",
+"value": 835.8680009129896,
+"detail": "предел 845.0, момент 0.0 ч"
+},
+{
+"kind": "scenario",
+"ref": "product.density_max_kgm3",
+"value": 845.0,
+"detail": "предел задан сценарием или ТЗ"
+}
+]
+},
+{
+"topic": "control.avt_furnace_outlet_temp_c",
+"text": "avt_furnace_outlet_temp_c: уставка регулятора 372 не меняется — ход не рассматривался (регуляторы температуры выхода печей П-1/2 и П-1/3 (TC на схеме К-2, номера тегов нет)); эффект этого хода на качество не оценивался",
+"value": 372.0,
+"evidence": [
+{
+"kind": "scenario",
+"ref": "controls.avt_furnace_outlet_temp_c",
+"value": 372.0,
+"detail": "уставка из плана"
+},
+{
+"kind": "policy",
+"ref": "policy.disabled_control_moves",
+"value": null,
+"detail": "В live-контуре ходы АВТ не предлагаются: время прохождения через промежуточные ёмкости и измеренный отклик товарного качества на эти ходы не подтверждены."
+},
+{
+"kind": "scenario",
+"ref": "stages.avt.controls.avt_furnace_outlet_temp_c.actuation",
+"value": null,
+"detail": "тег CSV не подписан; Контур TC есть на схеме; тег CSV не подписан. Прежний кандидат avt.T55 относится к вакуумной печи П-3."
+}
+]
+},
+{
+"topic": "control.crude_feed_rate_tph",
+"text": "crude_feed_rate_tph: уставка регулятора 740 не меняется — ход не рассматривался (регуляторы расхода сырой нефти до ЭЛОУ (FC на схеме К-1, номера тегов нет)); эффект этого хода на качество не оценивался",
+"value": 740.0,
+"evidence": [
+{
+"kind": "scenario",
+"ref": "controls.crude_feed_rate_tph",
+"value": 740.0,
+"detail": "уставка из плана"
+},
+{
+"kind": "policy",
+"ref": "policy.disabled_control_moves",
+"value": null,
+"detail": "В live-контуре ходы АВТ не предлагаются: время прохождения через промежуточные ёмкости и измеренный отклик товарного качества на эти ходы не подтверждены."
+},
+{
+"kind": "scenario",
+"ref": "stages.avt.controls.crude_feed_rate_tph.actuation",
+"value": null,
+"detail": "тег CSV не подписан; Регуляторы и их отметка «управляемые переменные» — схема АВТ; быстрая реакция регуляторов — Q&A 11.09. После ЭЛОУ расход видно по avt.F7–F9, масштаб не подтверждён."
+}
+]
+},
+{
+"topic": "control.ht_feed_flow_m3h",
+"text": "ht_feed_flow_m3h: сохранить уставку регулятора 246.477 (регулятор расхода сырья гидроочистки (схемы 24-2000 нет))",
+"value": 246.4769,
+"evidence": [
+{
+"kind": "scenario",
+"ref": "controls.ht_feed_flow_m3h",
+"value": 246.4769,
+"detail": "уставка из плана"
+},
+{
+"kind": "scenario",
+"ref": "stages.hydrotreating.controls.ht_feed_flow_m3h.actuation",
+"value": null,
+"detail": "тег ht.F9; Официальный справочник тегов 24-2000, 16.09 (сообщение 585): F15 — объёмный расход сырья на установку (F9 — массовый). Медиана F15 около 3400 м3/ч не согласуется со сценарными 256 м3/ч — масштаб не подтверждён. ht.F26 — расход гидроочищенного ДТ в цех №8, не сырьё. Регуляторы на 24-2000 — Q&A 11.09. Для привязки измерений используется ht.F9 (массовый расход, т/ч), а не F15 с неподтверждённым масштабом."
+}
+]
+},
+{
+"topic": "control.ht_reactor_inlet_temp_c",
+"text": "ht_reactor_inlet_temp_c: сохранить уставку регулятора 367.824 (регулятор температуры ГСС на входе Р-202 (схемы 24-2000 нет))",
+"value": 367.8237,
+"evidence": [
+{
+"kind": "scenario",
+"ref": "controls.ht_reactor_inlet_temp_c",
+"value": 367.8237,
+"detail": "уставка из плана"
+},
+{
+"kind": "scenario",
+"ref": "stages.hydrotreating.controls.ht_reactor_inlet_temp_c.actuation",
+"value": null,
+"detail": "тег ht.T6; Официальный справочник тегов 24-2000, 16.09 (сообщение 585): T6 — температура ГСС на входе Р-202 (медиана ряда 362.7 °C). Прежнее прочтение сообщения 520 (P8) заменено: P8 — перепад давления на Р-202. Текущее значение берётся из сценария. Регуляторы на 24-2000 — Q&A 11.09."
+}
+]
+},
+{
+"topic": "throughput",
+"text": "Выпуск 100 т/ч",
+"value": 100.0,
+"evidence": [
+{
+"kind": "scenario",
+"ref": "plan.throughput_tph",
+"value": 100.0,
+"detail": "выпуск из плана"
+}
+]
+},
+{
+"topic": "production",
+"text": "Ожидаемый выпуск за горизонт 300.0 т",
+"value": 300.0,
+"evidence": [
+{
+"kind": "model",
+"ref": "economics.summarise",
+"value": 300.0,
+"detail": "сумма по шагам плана"
+}
+]
+},
+{
+"topic": "cost",
+"text": "Условная стоимость 1.0860 на тонну",
+"value": 1.0859999999999999,
+"evidence": [
+{
+"kind": "model",
+"ref": "economics.cost_per_tonne",
+"value": 1.0859999999999999,
+"detail": "условные единицы сценария, не тарифы завода"
+}
+]
+},
+{
+"topic": "severity",
+"text": "Показатель тяжести режима 0.000",
+"value": 0.0,
+"evidence": [
+{
+"kind": "model",
+"ref": "economics.severity",
+"value": 0.0,
+"detail": "индекс режима, не возраст катализатора и не вероятность отказа"
+}
+]
+},
+{
+"topic": "lookahead",
+"text": "За горизонтом 48 ч нарушений качества при сохранении плана не видно",
+"value": null,
+"evidence": [
+{
+"kind": "model",
+"ref": "plan_operation.lookahead",
+"value": null,
+"detail": "За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства конца горизонта, расчёт останавливается при исчерпании запаса."
+}
+]
+},
+{
+"topic": "delay",
+"text": "Эффект коррекции гидроочистки ожидается через 2 ч; в пределах горизонта засчитывается не больше 66% хода температуры",
+"value": 2.0,
+"evidence": [
+{
+"kind": "model",
+"ref": "stages.hydrotreating.response_lag_hours",
+"value": 2.0,
+"detail": "Ответ организаторов 18.09: коррекция начинает действовать через 0,5–2 ч; паспортного времени нет. Консервативно эффект не засчитывается раньше 2 ч. Исследование artifacts/response_model.json оценивает редкое окно плато 3–8 ч; в пределах горизонта 3 ч засчитывается не больше 66% хода (регулятор доводит 0.62–0.66 заданного шага к 3 ч). Сценарное значение 2 ч заменено."
+}
+]
+}
+],
+"current_operation": {
+"controls": {
+"crude_feed_rate_tph": null,
+"avt_furnace_outlet_temp_c": null,
+"ht_reactor_inlet_temp_c": 367.8237,
+"ht_feed_flow_m3h": 246.4769
+},
+"recipe": {
+"main": 0.9,
+"reserve": 0.1,
+"light": 0.0
+},
+"throughput_tph": 100.0,
+"additive_dose": 0.0,
+"origin": {
+"controls": {
+"crude_feed_rate_tph": "unknown",
+"avt_furnace_outlet_temp_c": "unknown",
+"ht_reactor_inlet_temp_c": "measured",
+"ht_feed_flow_m3h": "derived"
+},
+"recipe": "scenario",
+"throughput_tph": "scenario",
+"additive_dose": "scenario"
+},
+"measurements": {
+"ht.T6": {
+"value": 367.82373046875,
+"time": "2026-01-05T08:00:00",
+"age_min": 0.0,
+"max_age_min": 30.0
+},
+"ht.F9": {
+"value": 206.128662109375,
+"time": "2026-01-05T08:00:00",
+"age_min": 0.0,
+"max_age_min": 30.0
+},
+"ht.F26": {
+"value": 244.05262756347656,
+"time": "2026-01-05T08:00:00",
+"age_min": 0.0,
+"max_age_min": 30.0
+}
+}
+},
+"component_names": {
+"main": "Основной гидроочищенный дизель",
+"reserve": "ДТ более глубокой очистки (по необходимости)",
+"light": "Лёгкая фракция"
+},
+"warnings": [],
+"risk": {
+"level": "none",
+"items": [],
+"headline": "Ограничения выдерживаются с запасом; риска, требующего действия оператора, расчёт не показал",
+"scope": "Риск собран из проверенных ограничений, проекции за горизонт, проверок устойчивости и чувствительности к оценке резервуара и состояния источников. Это перечень посчитанного, а не вероятность отказа."
+},
+"checks_passed": 129,
+"checks_total": 129,
+"alternatives": [
+{
+"candidate_id": "c0006",
+"production_t": 300.0,
+"cost_per_tonne": 1.05,
+"severity_index": 0.0,
+"changes": 1,
+"why_not": "Проигрывает по критерию «число изменений»: 1 против 0 у выбранного плана, разница 1"
+},
+{
+"candidate_id": "c0127",
+"production_t": 300.0,
+"cost_per_tonne": 1.05,
+"severity_index": 0.0,
+"changes": 2,
+"why_not": "Проигрывает по критерию «число изменений»: 2 против 0 у выбранного плана, разница 2"
+},
+{
+"candidate_id": "c0128",
+"production_t": 300.0,
+"cost_per_tonne": 1.050588,
+"severity_index": 0.35,
+"changes": 2,
+"why_not": "Проигрывает по критерию «тяжесть режима»: 0.35 против 0 у выбранного плана, разница 0.35"
+},
+{
+"candidate_id": "c0012",
+"production_t": 300.0,
+"cost_per_tonne": 1.0679999999999998,
+"severity_index": 0.0,
+"changes": 1,
+"why_not": "Проигрывает по критерию «число изменений»: 1 против 0 у выбранного плана, разница 1"
+},
+{
+"candidate_id": "c0129",
+"production_t": 300.0,
+"cost_per_tonne": 1.0679999999999998,
+"severity_index": 0.0,
+"changes": 2,
+"why_not": "Проигрывает по критерию «число изменений»: 2 против 0 у выбранного плана, разница 2"
+}
+],
+"comparison_rule": "Планы сравниваются по порядку: больший выпуск, затем меньшая стоимость тонны. Если сценарная политика разрешает небольшую разницу стоимости, внутри этого окна выбирается меньшая тяжесть режима; затем меньшее число изменений и меньший идентификатор. Жёсткие ограничения проверяются до сравнения.",
+"limits": [
+"Объяснение описывает расчёт и проверенные ограничения, а не причину поведения установки.",
+"Изменение режима исполняет регулятор по новой уставке; динамика самого контура не моделируется.",
+"Фактические объём и вместимость резервуарного парка, а также допустимая мощность наработки глубокоочищенного компонента должны быть переданы заводом; 4000 т и 30 т/ч — сценарий.",
+"Результат не разрешает выпуск товарного топлива: проверены не все требуемые свойства."
+]
+},
+"inventories": {
+"main": 4000.0,
+"reserve": 0.0,
+"light": 900.0
+},
+"sources": [
+{
+"name": "ЛИМС",
+"status": "ok",
+"value": 6.800000190734863,
+"age_hours": 14.0,
+"max_age_hours": 48.0,
+"reasons": [],
+"usable": true
+},
+{
+"name": "ПАК",
+"status": "ok",
+"value": 5.883740425109863,
+"age_hours": 0.0,
+"max_age_hours": 0.5,
+"reasons": [],
+"usable": true
+}
+],
+"rule_origin": "derived:artifacts/source_rules.json",
+"state_origin": "реальный срез: норма · 05.01.2026 08:00",
+"decision_time": "2026-01-05T08:00:00",
+"forecast": {
+"model": "last_pak_bc",
+"value": 7.582309246063232,
+"lower": 5.231989158963845,
+"upper": 10.819024410387263,
+"available": true,
+"reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента; лабораторное значение прогнозируется по ПАК с причинной медианой 20 последних доступных пар; это не заводская калибровка ПАК к шкале ЛИМС",
+"coverage_target": 0.9,
+"coverage_test": 0.871244635193133
+},
+"forecast_used": true,
+"defaults": {
+"crude_sulfur_wt_pct": 1.35,
+"product_sulfur_mgkg": 10.0,
+"product_t95_c": 360.0,
+"product_cetane_number": 51.0,
+"throughput_tph": 100.0,
+"tanks": [
+{
+"id": "main",
+"inventory": 4000.0,
+"on_demand": false,
+"available": true
+},
+{
+"id": "reserve",
+"inventory": null,
+"on_demand": true,
+"available": true
+},
+{
+"id": "light",
+"inventory": 900.0,
+"on_demand": false,
+"available": false
+}
+]
+},
+"applied": [],
+"injection": null,
+"snapshot": "20260105-080000",
+"binding": {
+"measurement_binding": {
+"tags": {
+"ht.T6": {
+"value": 367.82373046875,
+"time": "2026-01-05T08:00:00",
+"age_min": 0.0,
+"max_age_min": 30.0
+},
+"ht.F9": {
+"value": 206.128662109375,
+"time": "2026-01-05T08:00:00",
+"age_min": 0.0,
+"max_age_min": 30.0
+},
+"ht.F26": {
+"value": 244.05262756347656,
+"time": "2026-01-05T08:00:00",
+"age_min": 0.0,
+"max_age_min": 30.0
+}
+},
+"density_kgm3": 836.3,
+"response_loaded": true,
+"notes": [],
+"warnings": []
+},
+"controls": {
+"ht_reactor_inlet_temp_c": {
+"current": {
+"value": 367.8237,
+"source": "measured"
+},
+"min": {
+"value": 365.8237,
+"source": "derived"
+},
+"max": {
+"value": 369.8237,
+"source": "derived"
+}
+},
+"ht_feed_flow_m3h": {
+"current": {
+"value": 246.4769,
+"source": "derived"
+},
+"min": {
+"value": 246.4769,
+"source": "scenario"
+},
+"max": {
+"value": 246.4769,
+"source": "scenario"
+}
+}
+},
+"response_model": {
+"provenance": "derived",
+"beta_mgkg_per_c": -0.4227,
+"beta_ci": [
+-0.4768,
+-0.389
+],
+"weak_strong": [
+-0.211,
+-0.721
+],
+"conversion_per_degree": 0.03907006620617003,
+"reference_temp_c": 367.8237,
+"reference_space_velocity_m3h": 246.4769,
+"linearization_sulfur_mgkg": 10.819024410387263,
+"envelope_dt_c": 2.0,
+"horizon_response_share": 0.66,
+"horizon_response_until_hours": 3.0
+},
+"response_lag_hours": {
+"value": 2.0,
+"source": "derived"
+},
+"tank_inflow": {
+"value": 204.1012,
+"source": "derived"
+},
+"tank_level_window_hours": 19.5981,
+"tank_sulfur_note": "Сера содержимого резервуара: среднее 121 доверенных показаний ПАК за 19.5981 ч окна обновления; допущение полного перемешивания.",
+"inflow_sulfur_note": "Сера притока с гидроочистки: верхняя граница прогноза модели last_pak_bc на момент решения; точечная оценка 7.582 мг/кг. Интервал откалиброван на покрытие 90%; фактическое покрытие на тесте 2026 — 87.1%: верхняя граница не гарантирует предел при смене режима. Вклад прогноза за 3 ч: +0.888 мг/кг к сере резервуара (приток 204.101 т/ч, запас 4000 т)."
+},
+"decision_timeout_s": 660.0
+}

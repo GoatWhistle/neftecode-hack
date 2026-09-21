@@ -7,7 +7,7 @@ import json
 import hashlib
 import math
 import os
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 
 def clean(value: Any) -> Any:
@@ -104,6 +104,13 @@ class Request:
 class RawResponse:
     body: bytes
     content_type: str
+    status: int = 200
+
+
+@dataclass(frozen=True)
+class StreamResponse:
+    chunks: Iterable[bytes]
+    content_type: str = "text/event-stream; charset=utf-8"
     status: int = 200
 
 

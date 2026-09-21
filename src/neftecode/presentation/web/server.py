@@ -139,12 +139,15 @@ def make_handler(service: DemoService, static: StaticFiles | None = None):
             self.send_header("Connection", "close")
             self.send_header("X-Accel-Buffering", "no")
             self.end_headers()
+            stream = decision_stream(lambda: service.recompute(values))
             try:
-                for frame in decision_stream(lambda: service.recompute(values)):
+                for frame in stream:
                     self.wfile.write(frame.encode())
                     self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError):
                 return
+            finally:
+                stream.close()
 
         def _static(self, path: str):
             try:

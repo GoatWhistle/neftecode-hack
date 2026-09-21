@@ -54,6 +54,9 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
     };
   });
   const baseline = plan?.steps?.[0] ?? payload.decision.immediate_action ?? null;
+  const stepOrigins = payload.explanation.plan_origin?.steps ?? [];
+  const originForStep = (timeHours: number) =>
+    stepOrigins.find((entry) => entry.time_hours === timeHours) ?? null;
   const withSetpoints = alternatives.filter((item) => item.controls || item.recipe).length;
   const rule = payload.explanation.comparison_rule;
   const policy = payload.decision.selection_policy;
@@ -107,28 +110,37 @@ export function ChoiceStage({ payload, index, state, source, lamp, lampTitle, ba
                 </tr>
               </thead>
               <tbody>
-                {plan.steps.map((step) => (
-                  <tr key={step.time_hours}>
-                    <th scope="row" className="grid__num">
-                      {hours(step.time_hours)}
-                    </th>
-                    <td>
-                      {Object.entries(step.controls ?? {}).map(([key, value]) => (
-                        <span key={key} className="chip">
-                          {controlLabel(key)} <b>{num(value, 1)}</b> {controlUnit(key)}
-                        </span>
-                      ))}
-                    </td>
-                    <td>
-                      {Object.entries(step.recipe ?? {}).map(([key, value]) => (
-                        <span key={key} className="chip">
-                          {names[key] ?? key} <b>{num(value, 3)}</b>
-                        </span>
-                      ))}
-                    </td>
-                    <td className="grid__num">{num(step.throughput_tph, 1)} т/ч</td>
-                  </tr>
-                ))}
+                {plan.steps.map((step) => {
+                  const stepOrigin = originForStep(step.time_hours);
+                  return (
+                    <tr key={step.time_hours}>
+                      <th scope="row" className="grid__num">
+                        {hours(step.time_hours)}
+                      </th>
+                      <td>
+                        {Object.entries(step.controls ?? {}).map(([key, value]) => (
+                          <span key={key} className="chip">
+                            {controlLabel(key)} <b>{num(value, 1)}</b> {controlUnit(key)}
+                            <OriginBadge origin={stepOrigin?.controls[key]} />
+                          </span>
+                        ))}
+                      </td>
+                      <td>
+                        {Object.entries(step.recipe ?? {}).map(([key, value]) => (
+                          <span key={key} className="chip">
+                            {names[key] ?? key} <b>{num(value, 3)}</b>
+                          </span>
+                        ))}
+                        {step.recipe && Object.keys(step.recipe).length > 0 ? (
+                          <OriginBadge origin={stepOrigin?.recipe} label="рецепт" />
+                        ) : null}
+                      </td>
+                      <td className="grid__num">
+                        {num(step.throughput_tph, 1)} т/ч <OriginBadge origin={stepOrigin?.throughput_tph} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </Scroller>

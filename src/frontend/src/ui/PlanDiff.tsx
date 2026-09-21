@@ -1,4 +1,4 @@
-import { controlLabel, controlUnit, isNumber, num } from "../format";
+import { additiveDoseKgPerT, controlLabel, controlUnit, doseDigits, isNumber, num } from "../format";
 import type { Alternative, PlanStep } from "../types";
 
 export interface DiffEntry {
@@ -73,13 +73,15 @@ export function planDiff(alternative: Alternative, baseline: PlanStep | null, na
     isNumber(alternative.additive_dose) &&
     Number(baseline.additive_dose.toFixed(3)) !== Number(alternative.additive_dose.toFixed(3))
   ) {
+    const fromKg = additiveDoseKgPerT(baseline.additive_dose)!;
+    const toKg = additiveDoseKgPerT(alternative.additive_dose)!;
     entries.push({
       key: "additive",
       label: "Доза присадки",
       unit: "кг/т",
-      from: baseline.additive_dose,
-      to: alternative.additive_dose,
-      digits: 3
+      from: fromKg,
+      to: toKg,
+      digits: Math.max(doseDigits(fromKg), doseDigits(toKg), doseDigits(toKg - fromKg))
     });
   }
   return entries;

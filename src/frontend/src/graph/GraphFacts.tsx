@@ -22,7 +22,7 @@ export interface GraphFactsProps {
 }
 
 function WholeFacts({ model }: { model: GraphModel }) {
-  const asks = model.edges.filter((edge) => edge.kind === "ask").length;
+  const asks = model.edges.filter((edge) => edge.kind === "ask");
   const answers = model.edges.filter((edge) => edge.kind === "answer");
   const tools = model.edges.filter((edge) => edge.kind === "tool").length;
   const specialists = model.nodes.filter((node) => node.kind === "specialist");
@@ -32,21 +32,41 @@ function WholeFacts({ model }: { model: GraphModel }) {
   const worst = answers.find((edge) => edge.tone === "fail")
     ?? answers.find((edge) => edge.tone === "warn")
     ?? null;
+  const askedRoles = new Set(asks.map((edge) => edge.to));
+  const answeredRoles = new Set(answers.map((edge) => edge.from));
+  const unanswered = [...askedRoles].filter((role) => !answeredRoles.has(role));
+  const invalid = specialists.filter((node) => node.valid === false);
+  const unknownVerdict = verdicts.some((verdict) => verdict === "UNKNOWN");
+  // Отсутствие fail/warn не значит согласие всех: UNKNOWN, неотвеченный запрос и
+  // невалидное мнение — тоже не «согласие», их нельзя молчать сюда же.
+  const allAgreed =
+    worst === null && unanswered.length === 0 && invalid.length === 0 && !unknownVerdict &&
+    verdicts.length > 0 && verdicts.every((verdict) => verdict === "ACCEPT");
   const rows: Array<[string, string]> = [
-    ["запросов оркестратора", String(asks)],
+    ["запросов оркестратора", String(asks.length)],
     ["вердиктов получено", String(answers.length)],
     ["своих инструментов", String(tools)],
     ["специалистов в обмене", String(specialists.length)]
   ];
   if (verdicts.length > 0) rows.push(["вердикты", verdicts.join(" · ")]);
+  if (unanswered.length > 0) rows.push(["без ответа", unanswered.join(", ")]);
+  if (invalid.length > 0) rows.push(["мнение невалидно", invalid.map((node) => node.title).join(", ")]);
 
   return (
     <div className="gfacts__card">
       <h3 className="gfacts__name">Обмен целиком</h3>
       <p className="gfacts__role">
-        {worst === null
-          ? "Все опрошенные специалисты согласились с планом без возражений."
-          : `Не всё прошло гладко: ${worst.label} на ходе ${worst.seq}.`}
+        {worst !== null
+          ? `Не всё прошло гладко: ${worst.label} на ходе ${worst.seq}.`
+          : allAgreed
+            ? "Все опрошенные специалисты приняли план без возражений."
+            : unanswered.length > 0
+              ? "Оркестратор спросил специалиста, но ответа в этом обмене нет — незавершённый диалог, не согласие."
+              : invalid.length > 0
+                ? "Есть невалидное мнение — оно не считается согласием."
+                : unknownVerdict
+                  ? "Есть вердикт UNKNOWN — данных не хватило, это не согласие."
+                  : "Явных возражений нет, но обмен не сводится к простому согласию — см. вердикты ниже."}
         {" "}Нажмите на узел, чтобы оставить только его ходы.
       </p>
       <dl className="gfacts__rows">
@@ -72,8 +92,15 @@ function NodeFacts({ model, selected }: { model: GraphModel; selected: string })
   }
   if (node.risk !== null) rows.push(["риск", RISK_TEXT[node.risk] ?? node.risk]);
   if (node.confidence !== null) {
-    rows.push(["уверенность", `${Math.round(node.confidence * 10)} из 10, как передал агент`]);
+    const level = node.confidence >= 0.7 ? "высокая" : node.confidence >= 0.4 ? "средняя" : "низкая";
+    rows.push([
+      "самооценка модели",
+      node.confidenceCalibrated
+        ? node.confidence.toFixed(2)
+        : `${level} (${node.confidence.toFixed(2)}, не калибрована по исходам)`
+    ]);
   }
+  if (node.valid === false) rows.push(["мнение", "невалидно"]);
 
   return (
     <div className="gfacts__card">

@@ -21,8 +21,9 @@ export const config = defineConfig({
     }
   },
   server: {
+    port: 15173,
     proxy: {
-      "/api": "http://127.0.0.1:8765"
+      "/api": "http://127.0.0.1:19865"
     }
   }
 });

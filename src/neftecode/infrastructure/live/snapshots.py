@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from neftecode.application.contracts import LiveForecast, LiveSnapshot
+from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import parse_scenario
@@ -116,23 +117,37 @@ def select_forecast_dict(snapshot: dict, trust) -> dict:
     функция для `bind_snapshot` и для отображения прогноза (demo/gateway/decision-service),
     чтобы решение и показанный прогноз никогда не расходились.
 
-    Для срезов старого формата (без `forecast_no_pak`, собранных до этого исправления) —
-    падаем обратно на `snapshot["forecast"]`, чтобы не ломать обратную совместимость; такие
-    срезы стоит пересобрать командой `uv run neftecode snapshot --all`.
+    Старый срез без `forecast_no_pak` нельзя безопасно использовать в fallback-режиме:
+    основной прогноз может зависеть от потерявшего доверие ПАК. Такой срез нужно пересобрать.
     """
     fallback_mode = getattr(trust, "fallback_mode", None)
     if fallback_mode is None:
         fallback_mode = trust.get("fallback", False) if isinstance(trust, dict) else False
-    key = "forecast_no_pak" if fallback_mode and "forecast_no_pak" in snapshot else "forecast"
-    return snapshot[key]
+    usable = getattr(trust, "usable", None)
+    if usable is None:
+        usable = trust.get("usable") if isinstance(trust, dict) else None
+    if usable is False:
+        return snapshot.get("forecast_no_pak", snapshot["forecast"])
+    if fallback_mode and "forecast_no_pak" not in snapshot:
+        raise ForecastBindingError(
+            "В срезе нет независимого прогноза без ПАК; пересоберите срезы командой "
+            "`uv run neftecode snapshot --all`"
+        )
+    key = "forecast_no_pak" if fallback_mode else "forecast"
+    forecast = snapshot[key]
+    if forecast.get("available") is not True:
+        raise ForecastBindingError(
+            forecast.get("reason") or "Обязательный прогноз недоступен; решение не выдаётся"
+        )
+    return forecast
 
 
 def bind_snapshot(raw: dict, state: dict, snapshot: dict, response_model: dict | None, trust_cfg: dict):
     """Связывает срез со сценарием, выбирая прогноз по пересчитанному доверию к текущему
     состоянию (`state`) через `select_forecast_dict` (см. её докстринг про дефект #1)."""
     trust = DataTrustAgent(trust_cfg).assess(state)
-    forecast = LiveForecast.from_dict(select_forecast_dict(snapshot, trust))
-    if not trust.usable or not forecast.available:
+    if not trust.usable:
         return parse_scenario(raw), raw
+    forecast = LiveForecast.from_dict(select_forecast_dict(snapshot, trust))
     live = LiveSnapshot(state.get("decision_time") or snapshot["at"], state, trust.to_dict(), trust_cfg=trust_cfg)
     return LocalForecastScenarioBinder(response_model).bind(raw, forecast, live)

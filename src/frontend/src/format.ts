@@ -59,6 +59,29 @@ export function percent(value: unknown, digits = 1): string {
   return `${num(value * 100, digits)} %`;
 }
 
+// additive_dose в payload — массовая доля к массе исходных компонентов (0.03 = 3%),
+// НЕ кг/т. Экран показывает кг/т компонентов = доля × 1000.
+export function additiveDoseKgPerT(fraction: unknown): number | null {
+  return isNumber(fraction) ? fraction * 1000 : null;
+}
+
+// Меньше цифр не хватает для ненулевой малой дозы: 0.03 кг/т при одном знаке
+// после запятой выглядел бы как 0,0 — неотличимо от нуля.
+export function doseDigits(kgPerT: number): number {
+  const abs = Math.abs(kgPerT);
+  if (abs === 0) return 0;
+  if (abs >= 1) return 1;
+  if (abs >= 0.1) return 2;
+  if (abs >= 0.01) return 3;
+  return 4;
+}
+
+export function doseText(fraction: unknown): string {
+  const kg = additiveDoseKgPerT(fraction);
+  if (kg === null) return "—";
+  return withUnit(kg, "кг/т", doseDigits(kg));
+}
+
 export function hours(value: unknown): string {
   if (!isNumber(value)) return "—";
   return `${num(value, 2)} ч`;

@@ -10,6 +10,7 @@ export interface GraphPanelProps {
   events: AgentEvent[];
   agentic: Agentic | null;
   running: boolean;
+  selectedPlanId?: string | null;
 }
 
 function toneWord(kind: string): string {
@@ -19,9 +20,12 @@ function toneWord(kind: string): string {
   return "итог";
 }
 
-export function GraphPanel({ events, agentic, running }: GraphPanelProps) {
+export function GraphPanel({ events, agentic, running, selectedPlanId = null }: GraphPanelProps) {
   const [selected, setSelected] = useState<string | null>(null);
-  const model = useMemo(() => buildGraph(events, agentic), [events, agentic]);
+  const model = useMemo(
+    () => buildGraph(events, agentic, selectedPlanId),
+    [events, agentic, selectedPlanId]
+  );
   const reveal = useLiveReveal(model.steps, !running);
   const head = model.edges[reveal - 1] ?? null;
   const live = running || reveal < model.steps;
@@ -35,9 +39,11 @@ export function GraphPanel({ events, agentic, running }: GraphPanelProps) {
   if (model.steps === 0 || specialists === 0) {
     return (
       <Note>
-        Обмена между агентами не было: оркестратор не нашёл ни одного допустимого плана и
-        закрыл цикл сам, не вызывая специалистов. Схема рисуется только там, где есть кого
-        и о чём спрашивать; сами ходы оркестратора целиком показаны ниже, в «Ходе диалога».
+        Обмена между агентами не было: оркестратор не консультировался со специалистами.
+        Это не означает, что допустимых планов не нашлось — при подтверждении текущего
+        режима или удержании плана оркестратор вправе не спрашивать специалистов. Схема
+        рисуется только там, где есть кого и о чём спрашивать; сами ходы оркестратора
+        целиком показаны ниже, в «Ходе диалога».
       </Note>
     );
   }

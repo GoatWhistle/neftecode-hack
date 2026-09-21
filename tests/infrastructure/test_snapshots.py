@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from neftecode.application.services.trust import DataTrustAgent
+from neftecode.application.ports.live import ForecastBindingError
 from neftecode.bootstrap import run_demo_decision
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots, write_snapshot
@@ -301,3 +302,36 @@ def test_z5_end_to_end_decision_on_2026_07_24_with_frozen_pak_must_hold():
         "устаревший прогноз last_pak_bc 14.93/20.94, сохранённый в срезе на момент его сборки, "
         "и проигнорировал инъекцию frozen_pak."
     )
+
+
+def test_b1_available_sources_with_unavailable_forecast_refuse_instead_of_deciding():
+    item = snapshot()
+    item["forecast"] = {"model": "last_pak", "value": None, "lower": None, "upper": None,
+                        "available": False, "reason": "модель временно недоступна"}
+    demo = Demo(BASELINE, run_demo_decision, trust_cfg(), 120, snapshots=[item])
+    result = demo.run(snapshot="норма")
+    assert result["ok"] is False and result["rejected"] is True
+    assert "модель временно недоступна" in result["reason"]
+    assert "decision" not in result
+
+
+def test_b1_old_snapshot_without_no_pak_forecast_requires_rebuild():
+    item = snapshot()
+    item.pop("forecast_no_pak")
+    frozen_state = apply_source_failure(copy.deepcopy(item["state"]), "frozen_pak")
+    with pytest.raises(ForecastBindingError, match="пересоберите срезы"):
+        bind_snapshot(copy.deepcopy(BASELINE), frozen_state, item, None, trust_cfg())
+    demo = Demo(BASELINE, run_demo_decision, trust_cfg(), 120, snapshots=[item])
+    result = demo.run(fault="frozen_pak", snapshot="норма")
+    assert result["ok"] is False and result["rejected"] is True
+    assert "пересоберите срезы" in result["reason"]
+
+
+def test_b1_unusable_sources_still_produce_a_data_refusal_without_forecast():
+    item = snapshot()
+    item["forecast"]["available"] = False
+    item["forecast_no_pak"]["available"] = False
+    demo = Demo(BASELINE, run_demo_decision, trust_cfg(), 120, snapshots=[item])
+    result = demo.run(fault="both_broken", snapshot="норма")
+    assert result["ok"] is True
+    assert result["decision"]["status"] == "refuse"

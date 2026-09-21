@@ -7,6 +7,7 @@ from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET, rank
 from neftecode.domain.advisory.response_guard import moves_temperature, weak_response_raw
 from neftecode.domain.production.scenario import Scenario
 from neftecode.application.contracts import DataRejection, DecisionCommand, DecisionResult
+from neftecode.application.cancellation import check_cancelled
 from neftecode.application.ports import RobustnessEvaluator, TankEstimateEvaluator
 from neftecode.application.ports.tank_estimate import TankEstimateFactory
 from ..progress import emit
@@ -40,6 +41,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                trust_cfg: dict | None = None, raw_scenario: dict | None = None,
                initial_tanks=None, current_operation: dict | None = None,
                data_rejection: DataRejection | None = None) -> dict:
+        check_cancelled()
         trace: list[dict] = []
         state = state or {}
         if data_rejection is not None:
@@ -60,6 +62,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                                     current_operation=current_operation)
 
         emit("stage", stage="candidates", state="running")
+        check_cancelled()
         outcome = self._search(budget, confirmed, initial_tanks, current_operation)
         emit("stage", stage="candidates", state="done", evaluated=outcome.evaluated,
              rounds=len(outcome.rounds), feasible=len(outcome.feasible))
@@ -89,6 +92,7 @@ class MakeDecision(SearchMixin, LookaheadMixin):
     def release(self, selected: dict, selected_plan_obj, feasible, by_id, trace: list[dict], *, confirmed=(),
                 budget: int = DEFAULT_BUDGET, raw_scenario: dict | None = None, initial_tanks=None,
                 current_operation: dict | None = None) -> dict:
+        check_cancelled()
         lookahead = None
         emit("stage", stage="forecast", state="running")
         try:

@@ -59,6 +59,36 @@ export interface NextStep {
   caveat?: string;
 }
 
+export interface StepOrigin {
+  time_hours: number;
+  controls: Record<string, string | null>;
+  recipe: string | null;
+  throughput_tph: string | null;
+  additive_dose: string | null;
+}
+
+export interface PlanOrigin {
+  immediate_action: StepOrigin | null;
+  steps: StepOrigin[];
+  rule: string;
+}
+
+export interface ChainBlock {
+  id: "avt" | "hydrotreating" | "blending";
+  label: string;
+  controllable: boolean;
+  controllable_reason: string;
+  controls: Record<string, boolean>;
+  model_basis: "scenario" | "data_beta" | "scenario_kinetics" | "mass_balance";
+  model_basis_note: string;
+  beta_mgkg_per_c?: number;
+}
+
+export interface Chain {
+  mode: "live" | "scenario";
+  blocks: ChainBlock[];
+}
+
 export interface Explanation {
   status: string;
   reason: string;
@@ -74,6 +104,8 @@ export interface Explanation {
   alternatives?: Alternative[];
   comparison_rule?: string;
   limits: string[];
+  plan_origin?: PlanOrigin | null;
+  chain?: Chain | null;
 }
 
 export interface ForecastPoint {

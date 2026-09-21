@@ -3,6 +3,8 @@ import threading
 from http.client import HTTPConnection
 from pathlib import Path
 
+import pytest
+
 from neftecode.bootstrap import run_demo_decision
 from neftecode.presentation.demo import Demo
 from neftecode.services.common import ServiceHTTPServer, make_handler
@@ -29,6 +31,18 @@ def get(server, path, request_id="gateway-integration"):
     payload = json.loads(response.read())
     connection.close()
     return response.status, payload
+
+
+def get_sse(server, path):
+    connection = HTTPConnection("127.0.0.1", server.server_port, timeout=20)
+    connection.request("GET", path)
+    response = connection.getresponse()
+    body = response.read().decode("utf-8")
+    content_type = response.getheader("Content-Type")
+    connection.close()
+    events = [block.splitlines()[0].removeprefix("event: ")
+              for block in body.strip().split("\n\n") if block.startswith("event: ")]
+    return response.status, content_type, events, body
 
 
 def test_gateway_legacy_decide_matches_local_decision():
@@ -145,3 +159,48 @@ def test_gateway_waits_long_enough_for_an_agentic_decision():
     service = GatewayService()
     assert service.decision_timeout_s >= 600
     assert service.client.timeout_s == 10.0
+
+
+@pytest.mark.parametrize("fault,status", [("healthy", "hold"), ("both_broken", "refuse")])
+def test_gateway_stream_is_real_sse_until_screen_and_end(fault, status):
+    class StubGateway(GatewayService):
+        def scenarios(self, request_id="gateway"):
+            return ["baseline"]
+
+        def raw(self, name, request_id="gateway"):
+            return json.loads((ROOT / "config/scenarios/baseline.json").read_text(encoding="utf-8"))
+
+        def _decide(self, canonical, raw, request_id):
+            return {"state": "ready", "decision": {"status": status}, "fault": canonical["fault"]}
+
+    gateway, thread = start(StubGateway(), "gateway-service", make_gateway_handler)
+    try:
+        http_status, content_type, events, body = get_sse(
+            gateway, f"/api/stream?scenario=baseline&snapshot=synthetic&fault={fault}")
+        assert http_status == 200 and content_type.startswith("text/event-stream")
+        assert events[0] == "phase" and events[-2:] == ["screen", "end"]
+        assert f'"status": "{status}"' in body
+    finally:
+        gateway.shutdown(); gateway.server_close(); thread.join(timeout=3)
+
+
+def test_gateway_stream_reports_infrastructure_failure_as_sse():
+    class BrokenGateway(GatewayService):
+        def scenarios(self, request_id="gateway"):
+            return ["baseline"]
+
+        def raw(self, name, request_id="gateway"):
+            return json.loads((ROOT / "config/scenarios/baseline.json").read_text(encoding="utf-8"))
+
+        def _decide(self, canonical, raw, request_id):
+            raise RuntimeError("decision service unavailable")
+
+    gateway, thread = start(BrokenGateway(), "gateway-service", make_gateway_handler)
+    try:
+        status, content_type, events, body = get_sse(
+            gateway, "/api/stream?scenario=baseline&snapshot=synthetic")
+        assert status == 200 and content_type.startswith("text/event-stream")
+        assert events == ["phase", "failed"]
+        assert "decision service unavailable" in body and "event: screen" not in body
+    finally:
+        gateway.shutdown(); gateway.server_close(); thread.join(timeout=3)

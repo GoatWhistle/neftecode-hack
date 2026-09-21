@@ -3,7 +3,7 @@ from dataclasses import replace
 import pytest
 
 from neftecode.application.agentic import decision as decision_module
-from neftecode.application.agentic.contracts import AgentSettings
+from neftecode.application.agentic.contracts import AgentConstraint, AgentSettings
 from neftecode.application.contracts import DataRejection
 from neftecode.application.ports.llm import LLMError
 from neftecode.domain.advisory.entities import CheckResult, GateResult
@@ -131,6 +131,60 @@ def test_invalid_orchestrator_selection_does_not_restore_a_vetoed_legacy_plan():
     assert decision["selected_plan"]["plan_id"] != "hold"
     assert decision["agentic"]["vetoed_candidates"] == {"hold": ["quality"]}
     assert_released_plan_passes_the_gate(decision)
+
+
+@pytest.mark.parametrize("failed_stage", ["release", "guard"])
+def test_failure_after_veto_never_restores_the_vetoed_legacy_plan(monkeypatch, failed_stage):
+    class KeepAfterVeto:
+        def run(self, *, session, **kwargs):
+            session.veto(["hold"], "quality")
+            return type("Run", (), {
+                "opinions": [],
+                "final": decision_module.OrchestratorFinal(
+                    action="keep_legacy", candidate_id=None, reason_codes=("keep",),
+                    summary="keep", evidence_refs=()),
+            })()
+
+    maker = agentic_for("baseline", ScriptedLLM([]))
+    maker.orchestrator = KeepAfterVeto()
+    if failed_stage == "release":
+        original_release = maker.maker.release
+        calls = {"count": 0}
+
+        def fail_after_legacy(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] > 1:
+                raise RuntimeError("release")
+            return original_release(*args, **kwargs)
+
+        monkeypatch.setattr(maker.maker, "release", fail_after_legacy)
+    else:
+        monkeypatch.setattr(maker, "_guard", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("guard")))
+
+    decision = maker.decide(budget=400, raw_scenario=raw("baseline"))
+
+    assert decision["status"] == REFUSE
+    assert decision["selected_plan"] is None
+    assert decision["agentic"]["vetoed_candidates"] == {"hold": ["quality"]}
+    assert "resolution_error:RuntimeError" in decision["agentic"]["fallback_reason"]
+    assert any(entry.get("decision") == "recovery_failed" for entry in decision["agentic"]["trace"])
+
+
+def test_orchestrator_failure_preserves_numeric_tightening():
+    class FailingAfterTightening:
+        def run(self, *, session, **kwargs):
+            session.add_constraints([AgentConstraint("max_changes", None, 0)])
+            raise RuntimeError("provider crashed")
+
+    maker = agentic_for("sour_crude", ScriptedLLM([]))
+    maker.orchestrator = FailingAfterTightening()
+    decision = maker.decide(budget=400, raw_scenario=raw("sour_crude"))
+
+    assert decision["agentic"]["constraints_applied"] == [{"type": "max_changes", "value": 0}]
+    assert decision["agentic"]["fallback_reason"] == "orchestrator_error:RuntimeError"
+    if decision["status"] != REFUSE:
+        assert decision["selected_plan"]["changes"] == 0
+        assert_released_plan_passes_the_gate(decision)
 
 
 def test_specialist_failure_does_not_fail_the_decision():
