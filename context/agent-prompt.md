@@ -137,14 +137,16 @@
 ## Распределение задач пула
 
 **Агент (сервер):**
-Z0, Z1, Z2, Z4, Z5, Z6, Z7, Z8; I1, I2, I3, I4; O1 (сервер: `source` у каждого значения плана
+Z0, Z1, Z2, Z4, Z5, Z6, Z7, Z8, Z9; I1, I2, I3, I4; O1 (сервер: `source` у каждого значения плана
 в payload); O2 (сервер: явное `agentic`-состояние при отключённых агентах вместо `null`, например
-`{"mode": "disabled", "outcome": "skipped"}`, с сохранением совместимости); A1–A8; T1–T7, T9;
-E1–E4; выбранные G; D1–D3.
+`{"mode": "disabled", "outcome": "skipped"}`, с сохранением совместимости); N1 (сервер: признак
+некалиброванной самооценки у `confidence`); N2 (сервер: `controllable` и `model_basis` у блоков
+цепочки); A1–A8; T1–T7, T9; E1–E4; выбранные G; D1–D3; N3.
 
 **Передаётся фронту через handoff:**
 Z3 (тестовая инфраструктура фронта), O1-фронт (подпись = `source`), O2-фронт (этап «пропущено»),
-O3 (контрактные тесты фронта), O4 и подпись Stop после A7, T8 (UI парка).
+O3 (контрактные тесты фронта), O4 и подпись Stop после A7, T8 (UI парка), N1-фронт (убрать число
+«уверенности»), N2-фронт (управляемость блоков на схеме).
 
 **Фронтовая часть I4:** если причина прогона агентов за 0,6 с окажется на фронте, опиши её в
 handoff, а не исправляй сам.
@@ -169,9 +171,11 @@ handoff, а не исправляй сам.
 до коммита.
 
 Что можно параллельно:
-- Этап 0: Z0 → Z1 → Z2 последовательно и сам; затем Z4 ∥ Z5 ∥ Z6 ∥ Z7 ∥ Z8.
+- Этап 0: Z0 → Z1 → Z2 последовательно и сам; затем Z4 ∥ Z5 ∥ Z6 ∥ Z7 ∥ Z8 ∥ Z9. Z9 — только
+  чтение и сверка (субагент `Explore`/`general-purpose` без правок кода); каждое найденное
+  расхождение добавь в `task-progress.md` новой строкой с ID и сообщи человеку до этапа 1.
 - Этап 1: I2 ∥ I4; I1 после Z5; I3 после I2.
-- Этап 2: O1-сервер ∥ O2-сервер; затем handoff.
+- Этап 2: O1-сервер ∥ O2-сервер ∥ N1-сервер ∥ N2-сервер; затем handoff.
 - Этап 3: только последовательно A1 → A8 (все шаги трогают одни и те же пути расчёта).
 - Этап 4: T1 (решения) → T2 → (T3 ∥ T4) → T5 → (T6 ∥ T7) → T9.
 - Этап 5: E1 → (E2 ∥ E3) → E4.
@@ -214,6 +218,10 @@ handoff, а не исправляй сам.
   `context/independent-evaluation-2026-09-20.json` посчитан с `"budget": 400`, `DEFAULT_BUDGET` = 1200
   (`src/neftecode/domain/advisory/optimizer.py`).
 - #9: `src/neftecode/evaluation/agent_value.py:39`.
+- N1: `confidence` в `src/neftecode/application/agentic/contract_opinions.py:89` — самооценка LLM;
+  на экране `src/frontend/src/ui/Opinions.tsx` (`ConfidenceBar`).
+- N2: `src/neftecode/infrastructure/live/binding.py:65` отключает ходы АВТ в live; модель АВТ и
+  кинетика ГО в сценариях — `source: scenario`; в live эффект T6 берётся из β.
 - Резервуар: `src/neftecode/domain/production/inventory.py` (вместимость не проверяется),
   `config/scenarios/*.json` (`main` 4000 т, `usable_capacity_t: null`), `config/parameters.json`
   (`tank_inventory_t`, `tank_capacity_t`, `tank_level_window_hours`),
