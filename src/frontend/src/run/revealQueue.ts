@@ -4,7 +4,6 @@ export interface RevealQueue {
   push: (id: string) => void;
   flush: () => void;
   clear: () => void;
-  onDrained: (run: () => void) => void;
 }
 
 function reducedMotion(): boolean {
@@ -15,26 +14,14 @@ export function createRevealQueue(emit: (id: string) => void): RevealQueue {
   const pending: string[] = [];
   let timer: number | null = null;
   let lastAt = 0;
-  let drained: (() => void) | null = null;
-
-  const settle = (): void => {
-    if (pending.length > 0 || timer !== null) return;
-    const done = drained;
-    drained = null;
-    done?.();
-  };
 
   const release = (): void => {
     timer = null;
     const id = pending.shift();
-    if (id === undefined) {
-      settle();
-      return;
-    }
+    if (id === undefined) return;
     lastAt = performance.now();
     emit(id);
     schedule();
-    settle();
   };
 
   const schedule = (): void => {
@@ -53,7 +40,6 @@ export function createRevealQueue(emit: (id: string) => void): RevealQueue {
     timer = null;
     pending.length = 0;
     lastAt = 0;
-    drained = null;
   };
 
   return {
@@ -68,12 +54,7 @@ export function createRevealQueue(emit: (id: string) => void): RevealQueue {
       const rest = pending.splice(0, pending.length);
       for (const id of rest) emit(id);
       lastAt = performance.now();
-      settle();
     },
-    clear,
-    onDrained: (run: () => void) => {
-      drained = run;
-      settle();
-    }
+    clear
   };
 }

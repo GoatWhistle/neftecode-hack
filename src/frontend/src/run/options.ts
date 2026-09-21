@@ -1,3 +1,5 @@
+import type { ScreenPayload } from "../types";
+
 export interface SnapshotOption {
   key: string;
   title: string;
@@ -43,7 +45,7 @@ export interface Conditions {
 }
 
 export const FAULT_LABELS: Record<string, string> = {
-  healthy: "все источники исправны",
+  healthy: "без внесённых отказов",
   frozen_pak: "поточный анализатор завис",
   stale_lab: "лаборатория устарела",
   both_broken: "лаборатория и анализатор недоступны",
@@ -63,9 +65,9 @@ function text(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
-export async function fetchOptions(scenario?: string): Promise<RunOptions> {
+export async function fetchOptions(scenario?: string, signal?: AbortSignal): Promise<RunOptions> {
   const query = scenario ? `?scenario=${encodeURIComponent(scenario)}` : "";
-  const response = await fetch(`/api/options${query}`);
+  const response = await fetch(`/api/options${query}`, signal ? { signal } : {});
   if (!response.ok) throw new Error(`сервер ответил ${response.status}`);
   const data = (await response.json()) as Partial<RunOptions> & { defaults?: Partial<RunDefaults> };
   return {
@@ -118,4 +120,23 @@ export function queryOf(conditions: Conditions): string {
     if (value !== "") params.set(key, value);
   }
   return `?${params.toString()}`;
+}
+
+export interface SourcesSummary {
+  usable: number;
+  total: number;
+  text: string;
+  degraded: string[];
+}
+
+export function sourcesSummary(payload: ScreenPayload | null): SourcesSummary | null {
+  const sources = payload?.sources ?? [];
+  if (sources.length === 0) return null;
+  const degraded = sources.filter((item) => !item.usable).map((item) => item.name);
+  const usable = sources.length - degraded.length;
+  const text =
+    degraded.length === 0
+      ? `источники по результату: пригодны все ${sources.length}`
+      : `источники по результату: непригодны ${degraded.join(", ")} (${usable} из ${sources.length} пригодны)`;
+  return { usable, total: sources.length, text, degraded };
 }

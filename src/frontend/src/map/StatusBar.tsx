@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { duration } from "../format";
 import { STATE_WORD } from "../run/railStatus";
+import { modeOf } from "../run/mode";
 import { ORDER, reachedState } from "../run/sequence";
 import type { RunState, StageState } from "../run/types";
 import { useLiveClock } from "../useLiveClock";
@@ -97,6 +98,7 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
   const node = current ? nodeById(current.id) : null;
   const stale = running && silence !== null && silence >= STALE_MS;
   const showReplay = !running && canReplay === true && onReplay !== undefined;
+  const mode = modeOf(run);
 
   if (run.status === "idle" || !away) return null;
 
@@ -129,8 +131,10 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
           последний ответ сервера {duration(silence ?? 0)} назад
         </p>
       ) : null}
-      {!run.live ? (
-        <p className="statusbar__stale">повтор записи, паузы сжаты</p>
+      {mode ? (
+        <p className={`statusbar__mode statusbar__mode--${mode.kind}`} title={mode.detail ?? undefined}>
+          {mode.text}
+        </p>
       ) : null}
       <span className="statusbar__gap" />
       <button

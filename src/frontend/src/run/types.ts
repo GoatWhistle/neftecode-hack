@@ -20,7 +20,7 @@ export interface RunPhase {
   elapsedMs: number;
 }
 
-export type RunStatus = "idle" | "running" | "done" | "failed";
+export type RunStatus = "idle" | "running" | "done" | "failed" | "stopped";
 
 export interface AgentEvent {
   seq: number;
@@ -67,6 +67,7 @@ export interface StageFacts {
 
 export interface RunState {
   status: RunStatus;
+  query: string | null;
   phases: RunPhase[];
   stages: Record<string, StageState>;
   stageSource: Record<string, StageSource>;
@@ -83,6 +84,7 @@ export interface RunState {
 
 export const EMPTY_RUN: RunState = {
   status: "idle",
+  query: null,
   phases: [],
   stages: {},
   stageSource: {},

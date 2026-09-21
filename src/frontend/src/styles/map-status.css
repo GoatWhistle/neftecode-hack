@@ -111,6 +111,30 @@
   white-space: nowrap;
 }
 
+.statusbar__mode {
+  margin: 0;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  padding-inline-start: var(--space-3);
+  border-inline-start: 1px solid var(--line-soft);
+}
+
+.statusbar__mode--live {
+  color: var(--pass);
+}
+
+.statusbar__mode--offline,
+.statusbar__mode--replay {
+  color: var(--accent-ink);
+}
+
+.statusbar__mode--pending {
+  color: var(--unknown);
+}
+
 .statusbar__gap {
   flex: 1 1 auto;
 }
@@ -195,4 +219,47 @@
   .statusbar {
     display: none;
   }
+}
+
+.modeline {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--muted);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+}
+
+.modeline__word {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.modeline__value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.modeline--live .modeline__value {
+  color: var(--pass);
+}
+
+.modeline--offline .modeline__value,
+.modeline--replay .modeline__value {
+  color: var(--accent-ink);
+}
+
+.modeline--pending .modeline__value,
+.modeline--waiting .modeline__value {
+  color: var(--unknown);
+}
+
+.modeline__detail {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
 }

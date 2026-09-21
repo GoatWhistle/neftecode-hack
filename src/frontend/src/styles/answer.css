@@ -62,3 +62,161 @@
   font-size: 16px;
   font-weight: 500;
 }
+
+.answer__verdict--refuse,
+.answer__verdict--broken {
+  color: var(--fail);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+}
+
+.answer__verdict--stopped {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.answer__qualifier {
+  margin: var(--space-2) 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--unknown);
+}
+
+.answer__line {
+  margin: var(--space-2) 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: var(--measure-lead);
+}
+
+.answer__line--need {
+  color: var(--muted);
+}
+
+.answer__risks {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+  max-width: var(--measure-lead);
+}
+
+.answer__risk {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid var(--line-soft);
+  background: var(--vellum);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.answer__risk--high {
+  border-left-color: var(--fail);
+  background: color-mix(in srgb, var(--fail) 8%, var(--paper));
+  color: var(--fail);
+  font-weight: 500;
+}
+
+.answer__risk--medium {
+  border-left-color: var(--unknown);
+  background: color-mix(in srgb, var(--unknown) 8%, var(--paper));
+  color: var(--text);
+}
+
+.answer__checks {
+  margin: var(--space-4) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-3);
+}
+
+.answer__check {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-top: 3px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.answer__check--pass { border-top-color: var(--pass); }
+.answer__check--warn { border-top-color: var(--unknown); }
+.answer__check--fail { border-top-color: var(--fail); }
+.answer__check--unknown { border-top-color: var(--mercury); }
+
+.answer__check-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.answer__check-value {
+  margin: var(--space-1) 0 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.answer__check--pass .answer__check-value { color: var(--pass); }
+.answer__check--warn .answer__check-value { color: var(--unknown); }
+.answer__check--fail .answer__check-value { color: var(--fail); }
+.answer__check--unknown .answer__check-value { color: var(--muted); }
+
+.answer__check-detail {
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.answer__audit {
+  margin: var(--space-4) 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.answer__audit code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.progress {
+  margin: 0 0 var(--space-5);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--vellum);
+  padding: var(--space-3) var(--space-4);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.progress--stopped {
+  color: var(--muted);
+}
+
+.progress__head {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.progress__list {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.progress__item {
+  margin: 0;
+}

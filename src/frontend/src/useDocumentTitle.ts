@@ -5,7 +5,8 @@ import type { RunState } from "./run/types";
 const BRAND = "CUTPOINT";
 
 export function titleOf(run: RunState): string {
-  if (run.status === "failed") return `Сбой прогона — ${BRAND}`;
+  if (run.status === "failed") return `Расчёт не завершён — ${BRAND}`;
+  if (run.status === "stopped") return `Расчёт остановлен — ${BRAND}`;
   if (run.status === "running") {
     const done = STAGES.filter((stage) => run.stages[stage.id] === "done").length;
     const step = Math.min(done + 1, STAGES.length);

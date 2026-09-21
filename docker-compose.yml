@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: src/neftecode/Dockerfile
+    image: backend:latest
+    container_name: backend
+    restart: unless-stopped
+    environment:
+      NEFTECODE_HOST: "0.0.0.0"
+      NEFTECODE_PORT: "8765"
+      LLM_PROVIDER: "${LLM_PROVIDER:-scripted}"
+      LLM_REQUEST_TIMEOUT_SECONDS: "${LLM_REQUEST_TIMEOUT_SECONDS:-30}"
+      LLM_MAX_RETRIES: "${LLM_MAX_RETRIES:-0}"
+      AGENT_TIMEOUT_SECONDS: "${AGENT_TIMEOUT_SECONDS:-180}"
+      ZAI_API_KEY: "${ZAI_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      LOCAL_LLM_BASE_URL: "${LOCAL_LLM_BASE_URL:-}"
+      LOCAL_LLM_MODEL: "${LOCAL_LLM_MODEL:-}"
+    volumes:
+      - artifacts:/app/artifacts
+    expose:
+      - "8765"
+
+  frontend:
+    build:
+      context: src/frontend
+      dockerfile: Dockerfile
+    image: frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${CUTPOINT_PORT:-8080}:80"
+
+volumes:
+  artifacts:

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import errno
+import os
 import json
 from pathlib import Path
 import threading
@@ -180,10 +181,12 @@ def make_handler(service: DemoService, static: StaticFiles | None = None):
     return Handler
 
 
-def serve(service: DemoService, port: int = 8765, static: Path | str | None = None):
+def serve(service: DemoService, port: int = 8765, static: Path | str | None = None,
+          host: str | None = None):
     files = StaticFiles(resolve_static_dir(service.root, static))
+    host = host or os.environ.get("NEFTECODE_HOST") or "127.0.0.1"
     try:
-        httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(service, files))
+        httpd = ThreadingHTTPServer((host, port), make_handler(service, files))
     except OSError as exc:
         if exc.errno != errno.EADDRINUSE:
             raise
@@ -191,11 +194,14 @@ def serve(service: DemoService, port: int = 8765, static: Path | str | None = No
                               f"у шлюза neftecode-stack). Укажите другой: neftecode serve --port {port + 1}") from exc
     if not files.available():
         print(files.missing_message(), flush=True)
-    print(f"Демонстрация: http://127.0.0.1:{port}/", flush=True)
+    shown = "127.0.0.1" if host in ("0.0.0.0", "::") else host
+    print(f"Демонстрация: http://{shown}:{port}/", flush=True)
     print(f"Статика фронтенда: {files.directory}", flush=True)
     print(f"Сценарии: {', '.join(service.scenarios())}; срез по умолчанию: {service.default_snapshot()}", flush=True)
     print("Первое решение считается в фоне; страница открывается сразу и покажет его, когда оно готово.", flush=True)
-    print("Остановить — Ctrl+C. Сервер слушает только localhost.", flush=True)
+    print("Остановить — Ctrl+C. " + ("Сервер слушает все интерфейсы: открывать только в доверенной сети."
+                                      if host in ("0.0.0.0", "::")
+                                      else f"Сервер слушает только {host}."), flush=True)
     threading.Thread(target=service.warm_up, name="warm-up", daemon=True).start()
     try:
         httpd.serve_forever()

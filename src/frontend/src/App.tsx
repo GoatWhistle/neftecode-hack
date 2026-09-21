@@ -1,15 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfigStage } from "./run/ConfigStage";
 import { useRun } from "./run/useRun";
 import { reachedState } from "./run/sequence";
 import type { Conditions, RunOptions } from "./run/options";
-import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf } from "./run/options";
+import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf, sourcesSummary } from "./run/options";
 import { SCENARIO_LABEL } from "./run/orchRead";
 import { PipelineMap } from "./map/PipelineMap";
 import { INPUT_SCENARIO } from "./map/graph";
 import { Summary } from "./map/Summary";
 import { StatusBar } from "./map/StatusBar";
 import { OperatorAnswer } from "./ui/OperatorAnswer";
+import { RunProgressNote } from "./run/RunProgressNote";
+import { ModeLine } from "./run/ModeLine";
+import { Evidence } from "./evidence/Evidence";
+import { AgentContribution } from "./agents/AgentContribution";
+import { PlanCompare } from "./compare/PlanCompare";
+import { outcomeOf } from "./run/verdict";
 import { Logo } from "./ui/Logo";
 import { useDocumentTitle } from "./useDocumentTitle";
 
@@ -23,56 +29,75 @@ export function App() {
   const [options, setOptions] = useState<RunOptions | null>(null);
   const [conditions, setConditions] = useState<Conditions>(BLANK);
   const [optionsError, setOptionsError] = useState<string | null>(null);
-  const { run, start, stop, replay, canReplay, pending } = useRun();
+  const { run, start, stop, reset, replay, canReplay, pending } = useRun();
+  const [launched, setLaunched] = useState<Conditions | null>(null);
+  const optionsRun = useRef(0);
   const [open, setOpen] = useState<string | null>(INPUT_SCENARIO);
   const payload = run.payload;
+  const outcome = outcomeOf(run.status, payload, run.error, run.status === "stopped");
   useDocumentTitle(run);
+
+  const optionsAbort = useRef<AbortController | null>(null);
+
+  const requestOptions = useCallback(
+    async (scenario?: string): Promise<RunOptions | null> => {
+      optionsAbort.current?.abort();
+      const controller = new AbortController();
+      optionsAbort.current = controller;
+      optionsRun.current += 1;
+      const ticket = optionsRun.current;
+      try {
+        const next = await fetchOptions(scenario, controller.signal);
+        if (ticket !== optionsRun.current) return null;
+        return next;
+      } catch {
+        if (ticket !== optionsRun.current || controller.signal.aborted) return null;
+        throw new Error("options");
+      }
+    },
+    []
+  );
 
   const loadOptions = useCallback(async (): Promise<boolean> => {
     setOptionsError(null);
     try {
-      const next = await fetchOptions();
+      const next = await requestOptions();
+      if (!next) return false;
       setOptions(next);
       setConditions(conditionsOf(next));
       return true;
     } catch {
       return false;
     }
-  }, []);
+  }, [requestOptions]);
 
   useEffect(() => {
-    let live = true;
-    fetchOptions()
-      .then((next) => {
-        if (!live) return;
-        setOptions(next);
-        setConditions(conditionsOf(next));
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, []);
+    void loadOptions();
+  }, [loadOptions]);
 
-  const pickScenario = useCallback((name: string) => {
-    fetchOptions(name)
-      .then((next) => {
-        setOptions(next);
-        setConditions((prev) => {
-          const result = conditionsResultOf(next, prev.fault);
-          if (result.faultReset && result.previousFault) {
-            const label = FAULT_LABELS[result.previousFault] ?? result.previousFault;
-            setOptionsError(
-              `Отказ «${label}» в этом сценарии недоступен — сброшен на «все источники исправны».`
-            );
-          } else {
-            setOptionsError(null);
-          }
-          return result.conditions;
-        });
-      })
-      .catch(() => setOptionsError("Сценарий не загружен: сервер условий не ответил."));
-  }, []);
+  const pickScenario = useCallback(
+    (name: string) => {
+      requestOptions(name)
+        .then((next) => {
+          if (!next) return;
+          setOptions(next);
+          setConditions((prev) => {
+            const result = conditionsResultOf(next, prev.fault);
+            if (result.faultReset && result.previousFault) {
+              const label = FAULT_LABELS[result.previousFault] ?? result.previousFault;
+              setOptionsError(
+                `Отказ «${label}» в этом сценарии недоступен — сброшен на «${FAULT_LABELS.healthy}».`
+              );
+            } else {
+              setOptionsError(null);
+            }
+            return result.conditions;
+          });
+        })
+        .catch(() => setOptionsError("Сценарий не загружен: сервер условий не ответил."));
+    },
+    [requestOptions]
+  );
 
   const change = useCallback((patch: Partial<Conditions>) => {
     setConditions((prev) => ({ ...prev, ...patch }));
@@ -80,34 +105,44 @@ export function App() {
 
   const launch = useCallback(() => {
     setOpen((current) => (current === INPUT_SCENARIO ? null : current));
-    start(queryOf(conditions));
+    const frozen: Conditions = { ...conditions };
+    setLaunched(frozen);
+    start(queryOf(frozen));
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }, [conditions, start]);
 
   const reopenConditions = useCallback(() => {
-    stop();
+    reset();
+    setLaunched(null);
     setOpen(INPUT_SCENARIO);
-  }, [stop]);
+  }, [reset]);
+
+  const shown = launched ?? conditions;
+  const sources = sourcesSummary(payload);
 
   const inputCaption = (() => {
-    if (!conditions.scenario) return "условия не загружены";
-    const snapshot = options?.snapshots.find((item) => item.key === conditions.snapshot);
-    const fault = FAULT_LABELS[conditions.fault] ?? conditions.fault;
-    const scenario = SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario;
-    const tank = options?.defaults.tanks.find((item) => item.id === conditions.tank);
+    if (!shown.scenario) return "условия не загружены";
+    const snapshot = options?.snapshots.find((item) => item.key === shown.snapshot);
+    const fault = FAULT_LABELS[shown.fault] ?? shown.fault;
+    const scenario = SCENARIO_LABEL[shown.scenario] ?? shown.scenario;
+    const tank = options?.defaults.tanks.find((item) => item.id === shown.tank);
     const tankText = tank
       ? tank.on_demand
         ? `${tank.id} — нарабатывают по необходимости`
-        : `${tank.id} — ${conditions.tank_available === "1" ? "в работе" : "выведен"}`
+        : `${tank.id} — ${shown.tank_available === "1" ? "в работе" : "выведен"}`
       : null;
-    const parts = [scenario, snapshot?.title ?? conditions.snapshot, fault];
+    const parts = [scenario, snapshot?.title ?? shown.snapshot, fault];
     if (tankText) parts.push(tankText);
+    if (sources) parts.push(sources.text);
     return parts.join(" · ");
   })();
 
   const inputMeta =
     run.status === "idle"
       ? "до пуска · условия можно менять"
-      : "условия зафиксированы на время прогона";
+      : launched
+        ? "условия зафиксированы при пуске; поля формы на прогон уже не влияют"
+        : "условия зафиксированы на время прогона";
 
   useEffect(() => {
     if (run.status !== "running" && open === null) return;
@@ -135,7 +170,18 @@ export function App() {
       <div className="layout">
         <main className="stages" aria-live="polite" aria-relevant="additions">
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
-          {payload ? <OperatorAnswer payload={payload} /> : null}
+          <div className="work">
+            <div className="work__lead">
+              {outcome ? <OperatorAnswer outcome={outcome} /> : null}
+              {payload ? <PlanCompare payload={payload} /> : null}
+              {payload ? <Evidence payload={payload} /> : null}
+            </div>
+            <div className="work__side">
+              {run.status !== "idle" ? <RunProgressNote run={run} /> : null}
+              {run.status !== "idle" ? <ModeLine run={run} /> : null}
+              {run.status !== "idle" ? <AgentContribution run={run} /> : null}
+            </div>
+          </div>
           <PipelineMap
             run={run}
             inputCaption={inputCaption}
@@ -155,6 +201,7 @@ export function App() {
                 onReopen={reopenConditions}
                 onRetry={loadOptions}
                 pending={pending}
+                payload={payload}
               />
             }
           />

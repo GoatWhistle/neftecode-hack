@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { ScreenPayload } from "../types";
 import type { Conditions, RunOptions } from "./options";
 import { FAULT_LABELS } from "./options";
 import type { RunStatus } from "./types";
@@ -19,6 +20,7 @@ export interface ConfigStageProps {
   onReopen: () => void;
   onRetry?: () => Promise<boolean>;
   pending?: boolean;
+  payload?: ScreenPayload | null;
 }
 
 export function ConfigStage({
@@ -32,7 +34,8 @@ export function ConfigStage({
   onReset,
   onReopen,
   onRetry,
-  pending
+  pending,
+  payload
 }: ConfigStageProps) {
   const [retrying, setRetrying] = useState(false);
   const [retryFailed, setRetryFailed] = useState(false);
@@ -135,7 +138,7 @@ export function ConfigStage({
           ) : null}
         </div>
 
-          <ConfigBrief options={options} conditions={conditions} tank={tank} />
+          <ConfigBrief options={options} conditions={conditions} tank={tank} payload={payload ?? null} />
         </div>
       )}
 

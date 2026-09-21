@@ -1,11 +1,13 @@
+import type { ScreenPayload } from "../types";
 import type { Conditions, RunOptions, TankOption } from "./options";
-import { FAULT_LABELS } from "./options";
+import { FAULT_LABELS, sourcesSummary } from "./options";
 import { SCENARIO_LABEL } from "./orchRead";
 
 export interface ConfigBriefProps {
   options: RunOptions;
   conditions: Conditions;
   tank: TankOption | null;
+  payload?: ScreenPayload | null;
 }
 
 interface Line {
@@ -17,12 +19,15 @@ function snapshotTitle(options: RunOptions, key: string): string {
   return options.snapshots.find((item) => item.key === key)?.title ?? key;
 }
 
-export function ConfigBrief({ options, conditions, tank }: ConfigBriefProps) {
+export function ConfigBrief({ options, conditions, tank, payload }: ConfigBriefProps) {
+  const sources = sourcesSummary(payload ?? null);
   const lines: Line[] = [
     { term: "Сценарий", value: SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario },
     { term: "Момент", value: snapshotTitle(options, conditions.snapshot) },
-    { term: "Источники", value: FAULT_LABELS[conditions.fault] ?? conditions.fault }
+    { term: "Внесённый отказ", value: FAULT_LABELS[conditions.fault] ?? conditions.fault }
   ];
+
+  if (sources) lines.push({ term: "Качество источников", value: sources.text });
 
   if (tank) {
     lines.push({
@@ -48,6 +53,10 @@ export function ConfigBrief({ options, conditions, tank }: ConfigBriefProps) {
           </div>
         ))}
       </dl>
+      <p className="brief__note">
+        «Внесённый отказ» — искусственная инъекция в срез, а не оценка исправности приборов.
+        Фактическую пригодность источников показывает только результат расчёта.
+      </p>
       <p className="brief__note">
         Сервер получает ровно эти условия. Числа пределов и производительности берутся из полей
         слева как есть — интерфейс их не пересчитывает.

@@ -23,3 +23,53 @@
 .stages > .stage:first-of-type {
   padding-block-start: var(--space-5);
 }
+
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
+  gap: var(--space-6);
+  align-items: start;
+  margin-block-start: var(--space-5);
+}
+
+.work__lead {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.work__side {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+  position: sticky;
+  top: calc(44px + var(--space-4));
+}
+
+.work__wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .work {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .work__side {
+    position: static;
+  }
+}
+
+@media print {
+  .work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .work__side {
+    position: static;
+  }
+}

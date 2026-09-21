@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PipelineMap } from "../map/PipelineMap";
 import { Summary } from "../map/Summary";
 import { StatusBar } from "../map/StatusBar";
-import { FAULT_LABELS, conditionsOf, fetchOptions, queryOf } from "../run/options";
+import { FAULT_LABELS, conditionsOf, fetchOptions, queryOf, sourcesSummary } from "../run/options";
 import type { Conditions, RunOptions } from "../run/options";
 import { SCENARIO_LABEL } from "../run/orchRead";
-import { ORDER, reachedState } from "../run/sequence";
+import { reachedState } from "../run/sequence";
+import { runProgress } from "../run/progress";
 import { useRun } from "../run/useRun";
 import { Logo } from "../ui/Logo";
 import { OperatorAnswer } from "../ui/OperatorAnswer";
@@ -68,7 +69,8 @@ const BLANK: Conditions = {
 function statusText(status: string): string {
   if (status === "running") return "Пайплайн работает";
   if (status === "done") return "Расчёт завершён";
-  if (status === "failed") return "Ошибка прогона";
+  if (status === "failed") return "Расчёт не завершён";
+  if (status === "stopped") return "Расчёт остановлен";
   return "Готов к запуску";
 }
 
@@ -83,6 +85,9 @@ export function AgentPresentationMock() {
   const pipelineRef = useRef<HTMLElement | null>(null);
   const { run, start, stop, replay, canReplay, pending } = useRun();
   const payload = run.payload;
+  const presetRun = useRef(0);
+  const presetAbort = useRef<AbortController | null>(null);
+  const [launched, setLaunched] = useState<Conditions | null>(null);
 
   const selectPreset = useCallback((key: PresetKey) => {
     const preset = PRESETS[key];
@@ -91,8 +96,14 @@ export function AgentPresentationMock() {
     setOptionsError(null);
     setOpen(null);
     stop();
-    fetchOptions(preset.scenario)
+    presetRun.current += 1;
+    const ticket = presetRun.current;
+    presetAbort.current?.abort();
+    const controller = new AbortController();
+    presetAbort.current = controller;
+    fetchOptions(preset.scenario, controller.signal)
       .then((next) => {
+        if (ticket !== presetRun.current) return;
         const prepared = conditionsOf(next, preset.fault);
         const snapshot = next.snapshots.some((item) => item.key === preset.snapshot)
           ? preset.snapshot
@@ -102,11 +113,14 @@ export function AgentPresentationMock() {
         setConditions({ ...prepared, scenario: preset.scenario, snapshot, fault });
       })
       .catch(() => {
+        if (ticket !== presetRun.current || controller.signal.aborted) return;
         setOptions(null);
         setConditions(BLANK);
         setOptionsError("Сервер условий не ответил. Запустите neftecode serve и повторите запрос.");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (ticket === presetRun.current) setLoading(false);
+      });
   }, [stop]);
 
   useEffect(() => {
@@ -125,23 +139,26 @@ export function AgentPresentationMock() {
   const launch = useCallback(() => {
     if (!options || !conditions.scenario) return;
     setOpen(null);
-    start(queryOf(conditions));
+    const frozen: Conditions = { ...conditions };
+    setLaunched(frozen);
+    start(queryOf(frozen));
   }, [conditions, options, start]);
 
+  const shown = launched ?? conditions;
+
   const snapshotTitle = useMemo(() => {
-    return options?.snapshots.find((item) => item.key === conditions.snapshot)?.title ?? conditions.snapshot;
-  }, [conditions.snapshot, options]);
+    return options?.snapshots.find((item) => item.key === shown.snapshot)?.title ?? shown.snapshot;
+  }, [shown.snapshot, options]);
 
   const inputCaption = useMemo(() => {
-    const scenario = SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario;
-    const fault = FAULT_LABELS[conditions.fault] ?? conditions.fault;
-    return `${scenario || "условия загружаются"} · ${snapshotTitle || "момент не выбран"} · ${fault}`;
-  }, [conditions, snapshotTitle]);
+    const scenario = SCENARIO_LABEL[shown.scenario] ?? shown.scenario;
+    const fault = FAULT_LABELS[shown.fault] ?? shown.fault;
+    const sources = sourcesSummary(payload);
+    const tail = sources ? ` · ${sources.text}` : "";
+    return `${scenario || "условия загружаются"} · ${snapshotTitle || "момент не выбран"} · ${fault}${tail}`;
+  }, [shown, snapshotTitle, payload]);
 
-  const complete = ORDER.filter((id) => {
-    const state = run.stages[id];
-    return state === "done" || state === "skipped";
-  }).length;
+  const progress = runProgress(run, payload);
   const running = run.status === "running";
   const provider = payload?.decision.agentic?.provider;
   const model = payload?.decision.agentic?.model;
@@ -167,7 +184,7 @@ export function AgentPresentationMock() {
             <div className={`lr-run-state lr-run-state--${run.status}`}>
               <i />
               <span>{statusText(run.status)}</span>
-              {run.status !== "idle" ? <small>{complete} из {ORDER.length} этапов</small> : null}
+              {run.status !== "idle" ? <small>{progress.headline}</small> : null}
             </div>
           </div>
 
@@ -188,8 +205,8 @@ export function AgentPresentationMock() {
           <div className="lr-launch__bottom">
             <div className="lr-selected">
               <span>Условия прогона</span>
-              <strong>{(SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario) || "загружаются"}</strong>
-              <small>{snapshotTitle || "момент решения загружается"} · {FAULT_LABELS[conditions.fault] ?? conditions.fault}</small>
+              <strong>{(SCENARIO_LABEL[shown.scenario] ?? shown.scenario) || "загружаются"}</strong>
+              <small>{snapshotTitle || "момент решения загружается"} · {FAULT_LABELS[shown.fault] ?? shown.fault}</small>
             </div>
             {running ? (
               <button type="button" className="lr-stop" onClick={stop}>Остановить</button>
@@ -207,7 +224,7 @@ export function AgentPresentationMock() {
 
         {payload ? (
           <div className="lr-answer" ref={answerRef}>
-            <OperatorAnswer payload={payload} />
+            <OperatorAnswer outcome={{ kind: "result", payload }} />
           </div>
         ) : null}
 

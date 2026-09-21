@@ -8,7 +8,10 @@
 @import "./vocab.css";
 @import "./map.css";
 @import "./map-drawer.css";
+@import "./agent-contribution.css";
+@import "./compare.css";
 @import "./map-live.css";
+@import "./evidence.css";
 @import "./print.css";
 @import "./map-print.css";
 

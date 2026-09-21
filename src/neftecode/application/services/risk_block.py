@@ -97,9 +97,11 @@ def _trust_items(decision: dict) -> list[dict]:
         degraded = [name for name, source in (report.get("sources") or {}).items()
                     if not source.get("usable")]
         if degraded:
+            primary = report.get("primary")
+            tail = (f"; решение опирается на {primary}" if primary
+                    else "; пригодного источника не осталось")
             items.append({"kind": "source_degraded", "level": "medium",
-                          "text": ("Источник вне доверия: " + ", ".join(degraded)
-                                   + f"; решение опирается на {report.get('primary')}"),
+                          "text": "Источник вне доверия: " + ", ".join(degraded) + tail,
                           "sources": degraded})
         suspect = report.get("suspect_values") or []
         if suspect:

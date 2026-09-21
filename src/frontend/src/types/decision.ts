@@ -144,6 +144,10 @@ export interface Robustness {
   not_applicable: number;
   share_holding: number | null;
   fragile: boolean;
+  mandatory_declared?: number;
+  mandatory_evaluated?: number;
+  mandatory_failed?: number;
+  mandatory_failure_names?: string[];
   results: RobustnessResult[];
   verdict?: string;
   limits?: string[];

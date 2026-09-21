@@ -20,6 +20,7 @@ export interface RunControls {
   run: RunState;
   start: (query: string) => void;
   stop: () => void;
+  reset: () => void;
   replay: () => void;
   canReplay: boolean;
   replaying: boolean;
@@ -36,6 +37,7 @@ export function useRun(): RunControls {
   const queued = useRef<Record<string, StageState>>({});
   const recorder = useRef(createTapeRecorder());
   const tape = useRef<RunTape | null>(null);
+  const lastQuery = useRef<string | null>(null);
 
   const reveal = useMemo(
     () =>
@@ -75,18 +77,21 @@ export function useRun(): RunControls {
         for (const id of LATE_STAGES) {
           if (sources[id] === undefined) sources[id] = "payload";
         }
-        return { ...prev, payload, stageSource: sources };
+        return {
+          ...prev,
+          payload,
+          stageSource: sources,
+          status: prev.status === "running" ? "done" : prev.status
+        };
       });
       for (const id of LATE_STAGES) enqueue(id, stageRan(id, payload) ? "done" : "skipped");
-      reveal.onDrained(() => {
-        setRun((prev) => (prev.status === "running" ? { ...prev, status: "done" } : prev));
-      });
     },
-    [enqueue, reveal]
+    [enqueue]
   );
 
   const run_ = useCallback(
-    (source: (handlers: StreamHandlers, signal: AbortSignal) => Promise<void>, live: boolean) => {
+    (source: (handlers: StreamHandlers, signal: AbortSignal) => Promise<void>, live: boolean,
+     query: string | null) => {
       abort.current?.abort();
       reveal.clear();
       states.current = {};
@@ -96,7 +101,7 @@ export function useRun(): RunControls {
       if (live) recorder.current.reset();
       const controller = new AbortController();
       abort.current = controller;
-      setRun({ ...EMPTY_RUN, status: "running", live });
+      setRun({ ...EMPTY_RUN, status: "running", live, query });
       const fail = (message: string): void => {
         reveal.clear();
         setPending(false);
@@ -177,7 +182,8 @@ export function useRun(): RunControls {
 
   const start = useCallback(
     (query: string) => {
-      run_((handlers, signal) => streamDecision(query, handlers, signal), true);
+      lastQuery.current = query;
+      run_((handlers, signal) => streamDecision(query, handlers, signal), true, query);
     },
     [run_]
   );
@@ -185,10 +191,23 @@ export function useRun(): RunControls {
   const replay = useCallback(() => {
     if (!canReplay(tape.current)) return;
     const recorded = tape.current;
-    run_((handlers, signal) => playTape(recorded, handlers, signal), false);
+    const query = lastQuery.current;
+    run_((handlers, signal) => playTape(recorded, handlers, signal), false, query);
   }, [run_]);
 
   const stop = useCallback(() => {
+    abort.current?.abort();
+    reveal.clear();
+    states.current = {};
+    queued.current = {};
+    setPending(false);
+    setReplaying(false);
+    setRun((prev) =>
+      prev.status === "running" ? { ...prev, status: "stopped" } : EMPTY_RUN
+    );
+  }, [reveal]);
+
+  const reset = useCallback(() => {
     abort.current?.abort();
     reveal.clear();
     states.current = {};
@@ -202,6 +221,7 @@ export function useRun(): RunControls {
     run,
     start,
     stop,
+    reset,
     replay,
     canReplay: hasTape,
     replaying,
