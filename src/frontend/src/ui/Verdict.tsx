@@ -41,6 +41,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
   const names = payload.explanation.component_names ?? {};
   const controls = Object.entries(action.controls ?? {});
   const recipe = Object.entries(action.recipe ?? {});
+  const stepOrigin = payload.explanation.plan_origin?.immediate_action ?? null;
 
   return (
     <div className="final__action">
@@ -58,7 +59,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
               <span className="final__unit">{controlUnit(key)}</span>
             </dd>
             <span className="final__origin">
-              <OriginBadge origin="derived" />
+              <OriginBadge origin={stepOrigin?.controls[key]} />
             </span>
           </div>
         ))}
@@ -70,7 +71,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
             <span className="final__unit">т/ч</span>
           </dd>
           <span className="final__origin">
-            <OriginBadge origin="derived" />
+            <OriginBadge origin={stepOrigin?.throughput_tph} />
           </span>
         </div>
         <div className="final__control">
@@ -79,7 +80,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
             {doseText(action.additive_dose)}
           </dd>
           <span className="final__origin">
-            <OriginBadge origin="derived" />
+            <OriginBadge origin={stepOrigin?.additive_dose} />
           </span>
         </div>
       </dl>

@@ -38,7 +38,7 @@ export function OriginLegend() {
       <OriginBadge origin="given" />
       <span className="origin-legend__text">требование ТЗ или ответ эксперта</span>
       <OriginBadge origin="derived" />
-      <span className="origin-legend__text">выведено из данных завода</span>
+      <span className="origin-legend__text">рассчитано (не измерение); сценарный расчёт тоже помечается так</span>
       <OriginBadge origin="measured" />
       <span className="origin-legend__text">измерение с установки</span>
       <OriginBadge origin="scenario" />

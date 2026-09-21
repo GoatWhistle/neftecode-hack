@@ -12,6 +12,13 @@ import { Logo } from "../ui/Logo";
 import { OperatorAnswer } from "../ui/OperatorAnswer";
 import "../styles/presentation-mock.css";
 
+const MODEL_BASIS_LABEL: Record<string, string> = {
+  scenario: "сценарий",
+  data_beta: "β по данным",
+  scenario_kinetics: "кинетика сценария",
+  mass_balance: "материальный баланс"
+};
+
 type PresetKey = "normal" | "risk" | "bad-data";
 
 interface Preset {
@@ -169,7 +176,20 @@ export function AgentPresentationMock() {
         <Logo className="lr-logo" />
         <div className="lr-header__copy">
           <strong>Живой цикл принятия решения</strong>
-          <span>АВТ → гидроочистка → смешение</span>
+          {payload?.explanation.chain ? (
+            <span>
+              {payload.explanation.chain.blocks.map((block, i) => (
+                <span key={block.id} title={`${block.controllable_reason} · ${block.model_basis_note}`}>
+                  {i > 0 ? " → " : ""}
+                  {block.controllable ? block.label : `${block.label} (ходы отключены)`}
+                  {" "}
+                  ({MODEL_BASIS_LABEL[block.model_basis]})
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span>АВТ → гидроочистка → смешение</span>
+          )}
         </div>
         <a href="/">Расширенные условия</a>
       </header>
