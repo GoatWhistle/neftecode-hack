@@ -152,3 +152,160 @@ Vite/React в этом проекте), чтобы `npm test` запускалс
 нет; агенты включены (`LLM_PROVIDER=scripted`) → `agentic_state` нет, `decision.agentic` как раньше.
 
 Статус: сервер готов; ⏳ ожидает фронта.
+
+## N2 — управляемость и основание блоков цепочки
+
+Источник: `context/task-pool.md`, этап 2, N2 (внешняя критика, п. 10). В live ходы АВТ отключены
+(`src/neftecode/infrastructure/live/binding.py:65`, отклик качества на них не измерен), а на экране
+АВТ стоит в цепочке наравне с ГО и смешением.
+
+Критерий готовности (сервер): в payload у каждого блока цепочки есть `controllable` и
+`model_basis`; объяснение не приписывает АВТ эффекта из данных. Выполнено.
+
+Критерий готовности (фронт): на экране у каждого блока цепочки видно, двигает ли его советчик в
+текущем режиме и на чём стоит его модель; АВТ в live не выглядит управляемым наравне с ГО.
+
+Контракт: новое поле `explanation.chain` (есть и в решении, и в отказе; при `state: "error"`
+объяснения нет). Старые поля не менялись. Сервер: `src/neftecode/application/services/chain_blocks.py`
+(`chain_view`), подключено в `explain.py` и `refusal.py`.
+
+```ts
+interface ChainBlock {
+  id: "avt" | "hydrotreating" | "blending";
+  label: string;                        // "АВТ" | "Гидроочистка" | "Смешение"
+  controllable: boolean;                // двигает ли советчик блок в текущем режиме
+  controllable_reason: string;          // коротко: почему да / почему нет
+  controls: Record<string, boolean>;    // по уставкам: какая перебирается (для смешения — recipe/throughput_tph/additive_dose)
+  model_basis: "scenario" | "data_beta" | "scenario_kinetics" | "mass_balance";
+  model_basis_note: string;             // коротко: на чём стоит модель блока
+  beta_mgkg_per_c?: number;             // только при model_basis = "data_beta"
+}
+interface Chain { mode: "live" | "scenario"; blocks: ChainBlock[] }  // порядок: avt, hydrotreating, blending
+// Explanation: chain?: Chain
+```
+
+Значения `model_basis`: `scenario` — АВТ, сценарная линейная модель, эффекта из данных нет;
+`data_beta` — ГО в live внутри области отклика, эффект хода T6 = β по данным; `scenario_kinetics` —
+ГО в сценарном режиме или в live вне области отклика; `mass_balance` — смешение, сера по
+материальному балансу (T95 и цетановое — линейное сценарное правило, плотность — аддитивность
+объёмов). `mode = "live"`, когда сценарий привязан к live-измерениям; если срез выбран, но доверие
+к данным не позволило привязку, `mode = "scenario"` — так и есть по расчёту.
+
+Фактический JSON, срез 05.01.2026 08:00 (`/api/decide`, baseline, `LLM_PROVIDER=scripted`):
+
+```json
+{"mode": "live", "blocks": [
+  {"id": "avt", "label": "АВТ", "controllable": false,
+   "controllable_reason": "В live-контуре ходы АВТ не предлагаются: время прохождения через промежуточные ёмкости и измеренный отклик товарного качества на эти ходы не подтверждены.",
+   "controls": {"avt_furnace_outlet_temp_c": false, "crude_feed_rate_tph": false},
+   "model_basis": "scenario",
+   "model_basis_note": "сценарная линейная модель с заданными коэффициентами; отклик установки по данным не измерен, эффект из данных АВТ не приписывается"},
+  {"id": "hydrotreating", "label": "Гидроочистка", "controllable": true,
+   "controllable_reason": "советчик перебирает ходы уставок: ht_reactor_inlet_temp_c",
+   "controls": {"ht_feed_flow_m3h": false, "ht_reactor_inlet_temp_c": true},
+   "model_basis": "data_beta",
+   "model_basis_note": "эффект хода T6 — β = -0.4227 мг/кг на °C по данным завода (artifacts/response_model.json); коэффициент кинетики пересчитан из β (k = −β/S₀)",
+   "beta_mgkg_per_c": -0.4227},
+  {"id": "blending", "label": "Смешение", "controllable": true,
+   "controllable_reason": "советчик перебирает рецепт, выпуск и дозу присадки",
+   "controls": {"recipe": true, "throughput_tph": true, "additive_dose": true},
+   "model_basis": "mass_balance",
+   "model_basis_note": "сера — материальный баланс по массовым долям; T95 и цетановое число — линейное сценарное правило, плотность — аддитивность объёмов"}]}
+```
+
+В сценарном режиме (срез `synthetic`) все три блока `controllable: true`, у АВТ `scenario`, у ГО
+`scenario_kinetics`, у смешения `mass_balance`.
+
+Текст объяснения тоже уточнён: в live утверждения `control.avt_*` теперь звучат «уставка
+регулятора … не меняется — ход не рассматривался …; эффект этого хода на качество не оценивался»
+со ссылкой `policy.disabled_control_moves`, а не «сохранить уставку регулятора», которое читалось
+как выбор советчика.
+
+Что поменять на фронте и где:
+
+- `src/frontend/src/types/explanation.ts`, `interface Explanation` — добавить `chain?: Chain` и
+  типы выше.
+- Схема цепочки как строка «АВТ → гидроочистка → смешение» есть в
+  `src/frontend/src/mock/AgentPresentationMock.tsx` (шапка `lr-header__copy`, строка 172): вывести
+  три блока из `explanation.chain.blocks`, неуправляемый блок показать приглушённым с подписью
+  «ходы отключены» и `controllable_reason` в подсказке, под каждым — метка основания модели
+  (`scenario` → «сценарий», `data_beta` → «β по данным», `scenario_kinetics` → «кинетика
+  сценария», `mass_balance` → «материальный баланс»).
+- `src/frontend/src/stages/StateStage.tsx`, блок `readouts` с `operation.controls`: уставки,
+  у которых `chain.blocks[*].controls[key] === false`, пометить «не двигается советчиком» — сейчас
+  уставки АВТ и ГО показаны одинаково.
+- Карта конвейера `src/frontend/src/map/graph.ts` — это этапы решения (state → … → decision),
+  а не установки цепочки; её трогать не нужно.
+- Если `chain` нет (старый payload, `state: "error"`), ничего не показывать вместо выдумывания
+  управляемости.
+
+Статус: ⏳ ожидает фронта.
+
+## O1 — источник значений плана
+
+Источник: `context/task-pool.md`, этап 2, строка O1; `context/agent-prompt.md`, «Ключевые факты» #8.
+
+Задача: подпись происхождения у значений выбранного плана берётся из payload, а не пишется
+жёстко `origin="derived"`.
+
+Критерий готовности: срез 05.01 — у уставок АВТ подпись «scenario», у T6 — «measured»
+(«измерение с установки»); без F9 у расхода сырья ГО — «scenario». Значения, которые реально
+выведены расчётом (выпуск, стоимость тонны, худшая точка по сере, запас до предела), остаются derived.
+
+Контракт (сервер готов, только добавление): новое поле `explanation.plan_origin` в payload
+`/api/decide` (и в экранах `screen`/`scenes`). Поле есть и при решении, и при отказе.
+
+- `plan_origin.immediate_action` — `object | null`: источники значений `decision.immediate_action`
+  (`null`, если действия нет).
+- `plan_origin.steps` — `array`: по одному объекту на каждый `decision.selected_plan.steps[i]`, в том же
+  порядке и с тем же `time_hours` (при отказе — `[]`).
+- Объект шага: `controls: Record<string, OriginKey>` (ключи те же, что в `controls` шага),
+  `recipe: OriginKey | null`, `throughput_tph: OriginKey | null`, `additive_dose: OriginKey | null`,
+  `time_hours: number`. Значения — ключи из `src/frontend/src/provenance.ts` (`OriginKey`):
+  `scenario`, `measured`, `derived`, `given`. `null` — значения в шаге нет.
+- `plan_origin.rule` — `string`: правило словами.
+
+Правило на сервере (`src/neftecode/application/services/explain_types.py`, `plan_origin_view`):
+значение плана, равное текущему значению сценария (после привязки среза), наследует его `source`;
+значение, которое выбрал расчёт (отличается от текущего), — `derived`. Рецепт сравнивается целиком
+с текущим рецептом сценария; доза присадки — с нулём (в сценарии её нет). На срезе с F9 расход
+сырья ГО — `derived`: это F9·1000/ρ, пересчёт измерения, а не число сценария.
+
+Пример (срез 05.01 без F9, решение hold, фактический вывод `/api/decide`):
+
+```json
+"plan_origin": {
+  "immediate_action": {
+    "time_hours": 0.0,
+    "controls": {"crude_feed_rate_tph": "scenario", "avt_furnace_outlet_temp_c": "scenario",
+                 "ht_reactor_inlet_temp_c": "measured", "ht_feed_flow_m3h": "scenario"},
+    "recipe": "scenario", "throughput_tph": "scenario", "additive_dose": "scenario"
+  },
+  "steps": [{"time_hours": 0.0, "controls": {"...": "как выше"}, "recipe": "scenario",
+             "throughput_tph": "scenario", "additive_dose": "scenario"}],
+  "rule": "Значение плана, совпадающее с текущим значением сценария, наследует его источник ..."
+}
+```
+
+С F9 отличие одно: `"ht_feed_flow_m3h": "derived"`.
+
+Что поменять на фронте:
+- `src/frontend/src/types/explanation.ts`: добавить `plan_origin?: PlanOrigin | null` в `Explanation`
+  (`PlanOrigin { immediate_action: StepOrigin | null; steps: StepOrigin[]; rule: string }`,
+  `StepOrigin` — как `OperationOrigin` плюс `time_hours`). Поле необязательное: старые сохранённые
+  экраны его не содержат.
+- `src/frontend/src/ui/Verdict.tsx`, `ActionBlock`: три `<OriginBadge origin="derived" />` заменить на
+  `payload.explanation.plan_origin?.immediate_action?.controls[key]`, `...?.throughput_tph`,
+  `...?.additive_dose`. Нет поля — показывать «не определено» (`OriginBadge` с `null`), а не derived.
+- `src/frontend/src/stages/ChoiceStage.tsx`: бейджи у «Выпуск за горизонт» и «Стоимость тонны» —
+  результат расчёта, оставить `derived`. В таблице «Шаги плана по времени» можно добавить бейдж у
+  каждого чипа уставки из `plan_origin.steps[i].controls[key]` (сопоставлять по индексу или `time_hours`).
+- `src/frontend/src/stages/ForecastStage.tsx`: «Худшая точка по сере» и «Запас до предела» — расчёт,
+  оставить `derived`; «Предел» — `given`, как сейчас. Значений плана здесь нет, правка не нужна.
+- Контрактный тест фронта (O3): на срезе 05.01 подпись T6 — «измерение», АВТ — «сценарий».
+
+Серверные тесты: `tests/infrastructure/test_snapshots.py::test_o1_plan_values_on_2026_01_05_carry_their_real_source`
+(05.01 с F9 и без F9), `tests/application/test_explain.py` (удержанное значение наследует источник,
+выбранное расчётом — derived, отказ — пустой план).
+
+Статус: сервер готов; ⏳ ожидает фронта.

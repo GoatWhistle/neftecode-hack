@@ -109,3 +109,43 @@ def current_operation_view(decision: dict, scenario: Scenario, state: dict | Non
         view["measurements"] = {tag: (dict(item) if isinstance(item, dict) else None)
                                 for tag, item in (state.get("measurements") or {}).items()}
     return view
+
+
+PLAN_ORIGIN_RULE = ("Значение плана, совпадающее с текущим значением сценария, наследует его источник "
+                    "(scenario, measured, derived, given); значение, которое выбрал расчёт, — derived.")
+
+
+def _same(value, current) -> bool:
+    return _finite(value) and _finite(current) and abs(value - current) < 1e-9
+
+
+def _origin(value, current, source: str) -> str | None:
+    if value is None:
+        return None
+    return source if _same(value, current) else "derived"
+
+
+def plan_step_origin(step: dict, scenario: Scenario) -> dict:
+    currents = {name: spec["current"] for stage in scenario.stages.values()
+                for name, spec in stage.controls.items()}
+    operation = scenario.current_operation
+    controls = {name: (_origin(value, currents[name].value, currents[name].source) if name in currents
+                       else "derived")
+                for name, value in (step.get("controls") or {}).items()}
+    recipe = step.get("recipe")
+    keys = set(recipe or {}) | set(operation.recipe)
+    held = all(_same(recipe.get(key, 0.0), operation.recipe.get(key, 0.0)) for key in keys) if recipe else False
+    return {"time_hours": step.get("time_hours"), "controls": controls,
+            "recipe": None if not recipe else ("scenario" if held else "derived"),
+            "throughput_tph": _origin(step.get("throughput_tph"), operation.throughput.value,
+                                      operation.throughput.source),
+            # В сценарии дозы присадки нет: текущая доза — 0 (см. current_operation_view).
+            "additive_dose": _origin(step.get("additive_dose"), 0.0, "scenario")}
+
+
+def plan_origin_view(decision: dict, scenario: Scenario) -> dict:
+    action = decision.get("immediate_action")
+    steps = (decision.get("selected_plan") or {}).get("steps") or []
+    return {"immediate_action": plan_step_origin(action, scenario) if action else None,
+            "steps": [plan_step_origin(step, scenario) for step in steps],
+            "rule": PLAN_ORIGIN_RULE}

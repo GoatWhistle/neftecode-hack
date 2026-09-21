@@ -5,9 +5,10 @@ from neftecode.domain.shared.primitives import PASS, UNKNOWN
 from neftecode.domain.production.scenario import Scenario
 from neftecode.domain.shared.primitives import PRODUCT_LIMITS
 
+from .chain_blocks import chain_view
 from .explain_types import (BAD_DATA, Evidence, ExplanationError, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE,
                             NO_FEASIBLE_PLAN, REFUSAL_KINDS, Statement, _finite, current_operation_view,
-                            operating_margin_warnings)
+                            operating_margin_warnings, plan_origin_view)
 from .refusal import explain_refusal
 
 __all__ = ["BAD_DATA", "Evidence", "ExplanationError", "LAB_DELAY_HOURS", "MODEL_NOT_APPLICABLE",
@@ -49,6 +50,7 @@ def explain_decision(decision: dict, scenario: Scenario, state: dict | None = No
         actuations = {name: (stage_id, spec.get("actuation"))
                       for stage_id, stage in scenario.stages.items()
                       for name, spec in stage.controls.items()}
+        disabled = set(scenario.policy.get("disabled_control_moves") or ())
         for name, value in sorted(action.get("controls", {}).items()):
             stage_id, actuation = actuations.get(name, (None, None))
             evidence = [Evidence("scenario", f"controls.{name}", value, "уставка из плана")]
@@ -56,7 +58,13 @@ def explain_decision(decision: dict, scenario: Scenario, state: dict | None = No
             if actuation is not None:
                 lag = scenario.stages[stage_id].response_lag_hours.value
                 current = standing.get(name, scenario.stages[stage_id].controls[name]["current"].value)
-                if abs(value - current) < 1e-9:
+                if abs(value - current) < 1e-9 and name in disabled:
+                    text = (f"{name}: уставка регулятора {value:g} не меняется — ход не рассматривался "
+                            f"({actuation.loop}); эффект этого хода на качество не оценивался")
+                    evidence.append(Evidence("policy", "policy.disabled_control_moves", None,
+                                             scenario.policy.get("disabled_control_moves_note")
+                                             or "ход отключён политикой сценария"))
+                elif abs(value - current) < 1e-9:
                     text = f"{name}: сохранить уставку регулятора {value:g} ({actuation.loop})"
                 else:
                     text = (f"{name}: {actuation.instruction} с {current:g} до {value:g} ({actuation.loop}); "
@@ -128,7 +136,9 @@ def explain_decision(decision: dict, scenario: Scenario, state: dict | None = No
         "reason": decision.get("reason"),
         "statements": [s.to_dict() for s in statements],
         "current_operation": current_operation_view(decision, scenario, state),
+        "plan_origin": plan_origin_view(decision, scenario),
         "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
+        "chain": chain_view(scenario),
         "warnings": warnings,
         "risk": risk_block(decision, warnings),
         "checks_passed": sum(1 for c in checks if c["status"] == PASS),

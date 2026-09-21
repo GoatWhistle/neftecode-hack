@@ -1,8 +1,9 @@
 from neftecode.application.services.risk_block import risk_block
 from neftecode.domain.production.scenario import Scenario
 
+from .chain_blocks import chain_view
 from .explain_types import (AGENT_REJECTED, BAD_DATA, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN,
-                            REFUSAL_KINDS, current_operation_view)
+                            REFUSAL_KINDS, current_operation_view, plan_origin_view)
 
 
 def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
@@ -53,7 +54,9 @@ def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = Non
         "reason": decision.get("reason"),
         "next_steps": next_steps,
         "current_operation": current_operation_view(decision, scenario, state),
+        "plan_origin": plan_origin_view(decision, scenario),
         "component_names": {tank.tank_id: tank.name for tank in scenario.tanks},
+        "chain": chain_view(scenario),
         "risk": risk_block(decision, []),
         "limits": [
             "Отказ не снимается ослаблением жёстких ограничений: предел серы 10 мг/кг и другие "

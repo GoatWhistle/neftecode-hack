@@ -255,3 +255,38 @@ def test_operating_margin_warning_follows_the_plant_practice():
         if warned:
             assert warnings[0]["operating_margin_mgkg"] == 1.0 and warnings[0]["observed_margin_mgkg"] < 1.0
             assert "Q&A 15.09" in warnings[0]["text"]
+
+
+def test_a_held_plan_value_keeps_the_source_of_the_current_value():
+    # O1: значение плана, равное текущему значению сценария, наследует его источник вместо
+    # жёсткого «derived» на экране.
+    decision, scenario = decide(SOUR)
+    origin = explain(decision, scenario)["plan_origin"]
+    currents = {name: spec["current"] for stage in scenario.stages.values() for name, spec in stage.controls.items()}
+    steps = decision["selected_plan"]["steps"]
+    assert [item["time_hours"] for item in origin["steps"]] == [step["time_hours"] for step in steps]
+    for step, item in zip(steps, origin["steps"]):
+        for name, value in step["controls"].items():
+            same = abs(value - currents[name].value) < 1e-9
+            assert item["controls"][name] == (currents[name].source if same else "derived"), name
+    action = origin["immediate_action"]
+    assert action["controls"]["ht_reactor_inlet_temp_c"] == currents["ht_reactor_inlet_temp_c"].source
+    assert action == origin["steps"][0]
+
+
+def test_a_value_chosen_by_the_calculation_stays_derived():
+    decision, scenario = decide(SOUR)
+    action = decision["immediate_action"]
+    action["controls"]["ht_reactor_inlet_temp_c"] = 352.0
+    action["throughput_tph"] = scenario.current_operation.throughput.value + 5.0
+    action["additive_dose"] = 0.2
+    action["recipe"] = {key: 0.0 for key in action["recipe"]} | {"main": 1.0}
+    origin = explain(decision, scenario)["plan_origin"]["immediate_action"]
+    assert origin["controls"]["ht_reactor_inlet_temp_c"] == "derived"
+    assert (origin["throughput_tph"], origin["additive_dose"], origin["recipe"]) == ("derived",) * 3
+
+
+def test_a_refusal_has_no_plan_values_to_attribute():
+    decision, scenario = decide(NO_FEASIBLE)
+    origin = explain(decision, scenario)["plan_origin"]
+    assert origin["immediate_action"] is None and origin["steps"] == []
