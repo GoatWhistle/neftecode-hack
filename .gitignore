@@ -21,3 +21,16 @@ node_modules/
 .env
 .env.*
 .playwright-mcp/
+
+# Локальные инструкции, журналы и рабочие материалы; публичные документы — docs/research.
+/context/
+/.claude/
+/.idea/
+/AGENTS.md
+/COMPETITORS.md
+/DESIGN.md
+/PRODUCT.md
+/PIPELINE_PLAN.md
+/RESPONSE_MODEL_T6.md
+/trace.tmp.json
+/src/frontend/*.log

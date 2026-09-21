@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 
-SCRIPT = Path(__file__).resolve().parents[2] / "context/forecast-research/rolling.py"
+SCRIPT = Path(__file__).resolve().parents[2] / "research/forecast/rolling.py"
 SPEC = importlib.util.spec_from_file_location("forecast_research_rolling", SCRIPT)
 rolling = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

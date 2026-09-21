@@ -153,7 +153,7 @@ def estimate_response(signals: pd.DataFrame, online: pd.DataFrame, train_end, de
               f"(0.05-50 mg/kg, not frozen >=1 h); ci = month-block bootstrap "
               f"90% ({boot} draws, seed {SEED}); weak = 0.5*beta, strong = beta * max past realized/estimate ratio (cap {STRONG_CAP}); "
               f"drift = same ARX per half-year (realized) on the primary estimate's rows; estimated at training on the tau grid, the live decision takes the "
-              f"latest tau <= decision time. Method of context/response-research/t6/response_model.py, unchanged.")
+              f"latest tau <= decision time. Method of research/response/t6/response_model.py, unchanged.")
     keep = {k: v for k, v in declared.items()
             if k not in ("tau", "beta_mgkg_per_c", "ci", "n_rows", "drift", "model_fingerprint", "t6_range_c",
                          "f9_range_tph", "weak_strong", "method")}

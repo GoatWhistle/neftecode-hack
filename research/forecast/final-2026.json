@@ -1,0 +1,51 @@
+{
+  "schema_version": "v1",
+  "run_policy": {
+    "command": "AGENTIC_DECISION_ENABLED=0 .venv/bin/neftecode train --root . --out artifacts",
+    "runs_after_selection": 1,
+    "selection_file": "research/forecast/selection.json",
+    "selection_evidence_sha256": "ef83c7a0d8f8513886c9934c98ce08e2606df34c6715bd7908c545f3b2c1f627",
+    "selection_was_frozen": true,
+    "result_changed_selection_or_parameters": false,
+    "evaluation_model_fingerprint": "7b89a7436115b25f8bff08d23917aca034dd2d89aba9ce09f204c4c7ca0c946d",
+    "deployed_model_fingerprint_after_metadata_hardening": "ba9329aa771f9b8d9a60a82561710c1424e9f9356126f5d249b123a9df884091"
+  },
+  "period": "2026",
+  "total_targets": 249,
+  "paired_available_targets": 233,
+  "baseline": {
+    "method": "last_pak",
+    "mae_mgkg": 1.8015779551965996,
+    "rmse_mgkg": 2.5684934150934158,
+    "point_exceedance_recall": 0.23529411764705882,
+    "exceed_upper": 0.06866952789699571,
+    "two_sided_coverage": 0.8669527896995708,
+    "mean_upper_margin_mgkg": 4.282728876044635,
+    "mean_interval_width_mgkg": 7.193101868463006,
+    "log1p_radius": 0.3863091452234815
+  },
+  "winner": {
+    "method": "last_pak_bc",
+    "bias_window_pairs": 20,
+    "min_pairs": 5,
+    "mae_mgkg": 1.6160461118228957,
+    "rmse_mgkg": 2.422156243419759,
+    "point_exceedance_recall": 0.3235294117647059,
+    "exceed_upper": 0.060085836909871244,
+    "two_sided_coverage": 0.871244635193133,
+    "mean_upper_margin_mgkg": 3.631783203475783,
+    "mean_interval_width_mgkg": 6.268979429206065,
+    "log1p_radius": 0.32000745119406027
+  },
+  "paired_mae_winner_minus_baseline": {
+    "difference_mgkg": -0.18553184337370388,
+    "ci95": [
+      -0.3023472867682253,
+      -0.07061266890155392
+    ],
+    "bootstrap_draws": 2000,
+    "seed": 42,
+    "share_winner_better": 0.9995
+  },
+  "interpretation": "The frozen winner improved point error and narrowed the interval on 2026, but both upper bounds exceeded the 5% target. The 2026 result is descriptive and did not change the selected method, N=20, min_pairs=5, or interval algorithm."
+}

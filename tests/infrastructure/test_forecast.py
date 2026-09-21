@@ -12,7 +12,7 @@ from neftecode.infrastructure.ml.forecast import calibrate, interval, metrics, p
 
 def test_shipped_forecast_selection_is_the_frozen_pre2026_evidence():
     cfg = json.loads(Path("config/experiment.json").read_text(encoding="utf-8"))
-    frozen = json.loads(Path("context/forecast-research/selection.json").read_text(encoding="utf-8"))
+    frozen = json.loads(Path("research/forecast/selection.json").read_text(encoding="utf-8"))
     selection = validate_forecast_selection(cfg)
     for key in ("selected_before_2026", "selected", "baseline", "bias_window_pairs",
                 "min_pairs", "development_end", "evidence", "evidence_sha256"):
@@ -118,7 +118,7 @@ def test_preregistered_rolling_choice_does_not_rewrite_validation_audit():
             "method": "preregistered_rolling_v1", "selected_before_2026": True,
             "selected": "last_pak_bc", "baseline": "last_pak",
             "bias_window_pairs": 20, "min_pairs": 5, "development_end": "2026-01-01",
-            "evidence": "context/forecast-research/rolling-f4.json",
+            "evidence": "research/forecast/rolling-f4.json",
             "evidence_sha256": "ef83c7a0d8f8513886c9934c98ce08e2606df34c6715bd7908c545f3b2c1f627",
         },
     }

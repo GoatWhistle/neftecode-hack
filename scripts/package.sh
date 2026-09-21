@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Собирает локальный комплект сдачи. Ничего никуда не отправляет.
 #
-# В архив входят: исходный код, конфигурации, сценарии, тесты, рабочий контекст, README и
+# В архив входят: исходный код, конфигурации, сценарии, тесты, документация и исследования, README и
 # результаты прогона из artifacts/. Не входят: выданные данные task/ (331 МБ, условия
 # распространения не согласованы), виртуальное окружение, кэши и служебные файлы.
 #
@@ -25,50 +25,38 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "  ВНИМАНИЕ: есть незакоммиченные изменения. Комплект соберётся из рабочего дерева."
 fi
 
-rm -rf "$STAGE"
+if [ -e "$STAGE" ]; then
+  echo "ОШИБКА: каталог комплекта уже существует: $STAGE" >&2
+  exit 1
+fi
 mkdir -p "$STAGE"
 
 echo "Копирование отслеживаемых файлов"
-git ls-files -z | tar --null -T - -cf - | tar -x -C "$STAGE"
+python3 scripts/submission_files.py | tar --null -T - -cf - | tar -x -C "$STAGE"
 
 echo "Проверка: обязательные файлы попали в комплект"
 MISSING_TRACKED=0
 INCOMPLETE_ARTIFACTS=0
-UNTRACKED_COPIED=0
 for required in README.md pyproject.toml uv.lock .python-version \
                 src/frontend/dist/index.html \
+                src/frontend/dist/assets/index.js \
+                src/frontend/dist/assets/index.css \
                 src/neftecode/evaluation/independent.py \
                 src/neftecode/evaluation/agent_value.py \
                 tests/evaluation/test_independent.py \
                 tests/evaluation/test_agent_value.py \
-                context/independent-evaluation-2026-09-20.json \
-                context/agent-value-evaluation-2026-09-20.json \
-                context/organizer-clarifications.md; do
+                research/results/independent-evaluation-2026-09-20.json \
+                research/results/agent-value-evaluation-2026-09-20.json \
+                docs/organizer-clarifications.md; do
   if [ -e "$STAGE/$required" ]; then
     continue
   fi
-  if [ -e "$ROOT/$required" ]; then
-    echo "  ВНИМАНИЕ: $required есть в рабочем дереве, но НЕ добавлен в Git." >&2
-    echo "            В комплект скопирован из рабочего дерева. Перед сдачей выполните:" >&2
-    echo "            git add $required" >&2
-    mkdir -p "$STAGE/$(dirname "$required")"
-    cp -R "$ROOT/$required" "$STAGE/$required"
-    UNTRACKED_COPIED=1
-  else
-    echo "  ОШИБКА: $required отсутствует в рабочем дереве" >&2
-    MISSING_TRACKED=1
-  fi
+  echo "  ОШИБКА: обязательный $required отсутствует в отслеживаемом комплекте" >&2
+  MISSING_TRACKED=1
 done
 if [ "$MISSING_TRACKED" -ne 0 ]; then
   echo "  Комплект неполон: соберите недостающие файлы перед сдачей." >&2
   exit 1
-fi
-
-if [ -d "$ROOT/src/frontend/dist" ] && [ ! -d "$STAGE/src/frontend/dist/assets" ] \
-   && [ -d "$ROOT/src/frontend/dist/assets" ]; then
-  echo "  ВНИМАНИЕ: src/frontend/dist/assets не в Git, скопирован из рабочего дерева." >&2
-  cp -R "$ROOT/src/frontend/dist/assets" "$STAGE/src/frontend/dist/"
-  UNTRACKED_COPIED=1
 fi
 
 echo "Копирование результатов прогона"
@@ -84,9 +72,7 @@ for item in $REQUIRED_ARTIFACTS; do
     MISSING_REQUIRED=1
   fi
 done
-# snapshots — отдельная проверка, а не простое artifacts/*: независимая проверка нашла, что каталог
-# был в OPTIONAL_ARTIFACTS, поэтому пустой комплект без единого замороженного среза собирался
-# успешно. Обязателен: хотя бы один файл среза внутри, не просто существование каталога.
+# Для запуска сохранённых сцен нужен хотя бы один непустой набор срезов.
 if [ ! -d "artifacts/snapshots" ] || [ -z "$(find artifacts/snapshots -type f -print -quit 2>/dev/null)" ]; then
   echo "  ОШИБКА: artifacts/snapshots пуст или отсутствует — нет ни одного замороженного среза." >&2
   MISSING_REQUIRED=1
@@ -133,7 +119,7 @@ for item in artifacts/*; do
 done
 
 echo "Проверка: в комплекте нет тяжёлых исходных данных и кэшей"
-for forbidden in task .venv __pycache__ .pytest_cache catboost_info node_modules .env; do
+for forbidden in task .venv __pycache__ .pytest_cache catboost_info node_modules .env .git .claude .idea context AGENTS.md COMPETITORS.md trace.tmp.json; do
   if find "$STAGE" -name "$forbidden" -print -quit | grep -q .; then
     echo "  ОШИБКА: в комплект попал $forbidden" >&2
     exit 1
@@ -162,11 +148,6 @@ SIZE="$(du -h "$ARCHIVE" | cut -f1)"
 echo
 echo "Комплект собран: $ARCHIVE ($SIZE)"
 echo "Файлов внутри: $(tar -tzf "$ARCHIVE" | wc -l | tr -d ' ')"
-if [ "$UNTRACKED_COPIED" -ne 0 ]; then
-  echo
-  echo "ВНИМАНИЕ: часть обязательных файлов взята из рабочего дерева, а не из Git."
-  echo "Перед сдачей закоммитьте их, иначе следующая сборка на чистом клоне их не найдёт."
-fi
 if [ "$INCOMPLETE_ARTIFACTS" -ne 0 ]; then
   echo
   echo "ВНИМАНИЕ: комплект собран БЕЗ обязательных артефактов обучения."

@@ -12,7 +12,7 @@ from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
 
 SCENARIOS = Path("config/scenarios")
-COMMITTED_SUMMARY = Path("context/benchmark-audit-2026-09-19.json")
+COMMITTED_SUMMARY = Path("tests/fixtures/evaluation/benchmark-audit-2026-09-19.json")
 BUDGET = 300
 
 

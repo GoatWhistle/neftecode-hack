@@ -6,7 +6,7 @@
 - колонки телеметрии, которые целиком являются заглушкой 307 (`mask_stubs`,
   `DEAD_COLUMN_STUB_SHARE`, `STUB_VALUE`);
 - временные интервалы, где заглушка 307 стоит одновременно во многих колонках строки
-  (массовый сбой опроса, см. `context/task-review/data-facts.md`);
+  (массовый сбой опроса, см. `research/data/data-facts.md`);
 - временные интервалы «зависания» поточного анализатора серы (ПАК) — N подряд неизменных
   показаний, порог берётся тем же способом, что при обучении (`derive_source_rules`,
   `_untrusted_runs` в `infrastructure/data/rules.py`);
@@ -20,7 +20,7 @@
 Запуск:
 
     uv run python scripts/excluded_periods.py --root <каталог с task/> \
-        --out context/excluded-periods.json
+        --out research/data/excluded-periods.json
 
 Если `task/<root>` не содержит исходных файлов, скрипт не выдумывает интервалы: он
 завершается с понятным сообщением и (если указан `--allow-missing`) пишет артефакт
@@ -96,7 +96,7 @@ def build_registry(task: Path, cfg: dict, row_stub_threshold: int) -> dict:
         window = stub_count.loc[b["from"]:b["to"]]
         b["max_columns_at_307"] = int(window.max())
         b["reason"] = (f"Массовый сбой опроса: одновременно ровно 307 в {row_stub_threshold}+ "
-                        "колонках телеметрии в одной строке (см. context/task-review/data-facts.md).")
+                        "колонках телеметрии в одной строке (см. research/data/data-facts.md).")
 
     rules = derive_source_rules(signals, lab, online, cfg["train_end"], cfg)
     full_cfg = {**cfg, **rules}
@@ -146,7 +146,7 @@ def build_registry(task: Path, cfg: dict, row_stub_threshold: int) -> dict:
             "интервалов простоя лаборатории; при необходимости реестр строится по тем же данным "
             "отдельным проходом по времени готовности каждой пробы.",
             "Покрытие плотности ПАК (24-2000:D15) — данные есть только с 2025-03-05 "
-            "(см. context/task-review/data-facts.md); load_sources() не читает D15, поэтому этот "
+            "(см. research/data/data-facts.md); load_sources() не читает D15, поэтому этот "
             "скрипт не переcчитывает интервал отсутствия — это не детектируемое исключение, а "
             "изначальный пробел источника.",
         ],

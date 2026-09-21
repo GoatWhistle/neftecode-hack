@@ -8,10 +8,10 @@
  "response_onset_hours": 2.0,
  "observed_plateau_window_hours": [3.0, 8.0],
  "horizon_response_share": 0.66,
- "horizon_response_source": "Organisers (18.09.2026): correction starts after 0.5-2 h and there is no passport response time, therefore the conservative operational onset is 2 h. The observed 3-8 h window is a rare plateau window, not the onset. beta is the mean cumulative ARX response in that 3-8 h window; within the 3 h case horizon at most 0.66 of beta*dT is credited because the APC delivers 0.62-0.66 of the commanded T6 step by 3 h (FS = 0.66, F1 first stage on SELECT, context/response-research/t6/response_model.py, RESPONSE_MODEL_T6.md section 5); beyond the horizon (look-ahead) the full beta applies",
+ "horizon_response_source": "Organisers (18.09.2026): correction starts after 0.5-2 h and there is no passport response time, therefore the conservative operational onset is 2 h. The observed 3-8 h window is a rare plateau window, not the onset. beta is the mean cumulative ARX response in that 3-8 h window; within the 3 h case horizon at most 0.66 of beta*dT is credited because the APC delivers 0.62-0.66 of the commanded T6 step by 3 h (FS = 0.66, F1 first stage on SELECT, research/response/t6/response_model.py, docs/response-model.md section 5); beyond the horizon (look-ahead) the full beta applies",
  "flow_beta": null,
  "flow_beta_note": "F9 lags enter the ARX only as a control; no identified sustained flow effect (F9 vs F26 as flow tag changes beta by <0.002)",
- "method_reference": "context/response-research/t6/response_model.py, RESPONSE_MODEL_T6.md; production-реализация в src/neftecode/infrastructure/response/estimate.py считает q01(F9) причинно по данным до tau - 6 h",
+ "method_reference": "research/response/t6/response_model.py, docs/response-model.md; production-реализация в src/neftecode/infrastructure/response/estimate.py считает q01(F9) причинно по данным до tau - 6 h",
  "history": {
   "note": "2026-09-17 до исправления утечки q01(F9): beta -0.4332. Пересчёт 2026-09-18 с q01 только до tau - 6 h: beta -0.4226, ci [-0.4767, -0.389], weak_strong [-0.211, -0.721], n_rows 49069, feed_floor 133.457, t6_range [342.9, 386.1], f9_range [149.8, 256.7]."
  }

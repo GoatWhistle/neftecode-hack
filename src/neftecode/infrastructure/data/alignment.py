@@ -43,7 +43,7 @@ FROZEN_FORECAST_SELECTION = {
     "bias_window_pairs": 20,
     "min_pairs": 5,
     "development_end": "2026-01-01",
-    "evidence": "context/forecast-research/rolling-f4.json",
+    "evidence": "research/forecast/rolling-f4.json",
     "evidence_sha256": "ef83c7a0d8f8513886c9934c98ce08e2606df34c6715bd7908c545f3b2c1f627",
 }
 

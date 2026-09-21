@@ -35,7 +35,7 @@ def test_independent_study_compares_all_strategies_in_every_fixed_environment():
 
 
 def test_committed_independent_summary_matches_the_current_fixed_study():
-    committed = json.loads(Path("context/independent-evaluation-2026-09-20.json").read_text(
+    committed = json.loads(Path("research/results/independent-evaluation-2026-09-20.json").read_text(
         encoding="utf-8"))
     report = run_independent_study(raw(), budget=committed["budget"], scenario_parser=parse_scenario)
     by_name = {item["environment"]: item for item in report["environments"]}
