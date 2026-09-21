@@ -229,7 +229,7 @@ export function AgentPresentationMock() {
               <small>{snapshotTitle || "момент решения загружается"} · {FAULT_LABELS[shown.fault] ?? shown.fault}</small>
             </div>
             {running ? (
-              <button type="button" className="lr-stop" onClick={stop}>Остановить</button>
+              <button type="button" className="lr-stop" onClick={stop}>Остановить отображение</button>
             ) : (
               <button type="button" className="lr-start" disabled={loading || options === null} onClick={launch}>
                 {loading ? "Загружаю условия…" : run.status === "done" ? "Запустить ещё раз" : "▶ Запустить пайплайн"}

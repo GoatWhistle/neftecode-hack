@@ -100,8 +100,8 @@ export function ForecastStage({ payload, index, state, source, lamp, lampTitle, 
               label="Запас до предела"
               value={num(margin, 3)}
               unit="мг/кг"
-              tone={margin !== null && margin >= 1 ? "pass" : "unknown"}
-              hint="технологический запас на установке — 1 мг/кг"
+              tone={margin !== null && margin > 0 ? "pass" : "unknown"}
+              hint="разница между худшей точкой и пределом; технологический отступ политики в payload не передавался"
               badge={<OriginBadge origin="derived" />}
             />
             <Readout label="Точек на горизонте" value={String(points.length)} hint="шагов проверки" />
