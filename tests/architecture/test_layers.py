@@ -209,3 +209,24 @@ def test_cli_dispatcher_covers_the_public_commands():
     from neftecode.presentation.cli import COMMANDS
 
     assert set(HANDLERS) == set(COMMANDS)
+
+
+def test_all_condition_adapters_use_the_single_advice_use_case():
+    use_case = PACKAGE / "application" / "use_cases" / "advise_under_conditions.py"
+    composition = PACKAGE / "composition" / "decision.py"
+    service = PACKAGE / "services" / "decision_service.py"
+    gateway = PACKAGE / "services" / "gateway_service.py"
+    assert use_case.is_file()
+    assert "neftecode.application.use_cases.advise_under_conditions" in set(imports(composition))
+    assert "neftecode.application.use_cases.advise_under_conditions" in set(imports(service))
+    assert "MakeDecision" not in service.read_text(encoding="utf-8")
+    assert '"/api/stream"' in gateway.read_text(encoding="utf-8")
+
+
+def test_cancellation_port_stays_in_application_and_transport_only_signals_it():
+    cancellation = PACKAGE / "application" / "cancellation.py"
+    assert cancellation.is_file()
+    assert not any(name.startswith(("neftecode.infrastructure", "neftecode.presentation", "neftecode.services"))
+                   for name in imports(cancellation))
+    assert "CancellationToken" in (PACKAGE / "presentation" / "web" / "progress.py").read_text(encoding="utf-8")
+    assert "CancellationToken" not in (PACKAGE / "services" / "gateway_service.py").read_text(encoding="utf-8")
