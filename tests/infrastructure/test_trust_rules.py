@@ -8,7 +8,8 @@ from neftecode.infrastructure.config.trust_rules import (ORIGIN_DERIVED, ORIGIN_
                                                          load_trust_rules, source_rules_artifact,
                                                          write_source_rules)
 from neftecode.infrastructure.data.data import frozen_rule
-from neftecode.presentation.demo import Demo, healthy_state
+from neftecode.application.conditions import healthy_state
+from neftecode.presentation.demo import Demo
 from neftecode.services.common import Request
 from neftecode.services.decision_service import DecisionService
 

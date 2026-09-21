@@ -26,7 +26,8 @@ Gateway намеренно не проксирует демонстрацион�
 `neftecode.presentation.web.server`. Поэтому frontend с `useRun/stream.ts` запускайте
 через `neftecode serve`; адрес gateway от `neftecode-stack` совместим с legacy
 `/api/decide`, но не с live-прогрессом экрана. Это два разных способа запуска, а не два
-названия одного сервера.
+названия одного сервера. Разбор условий из query-строки (`presentation/web/query.py`) и их
+применение (`application/conditions`) у обоих общие.
 
 ## Запуск и настройки
 

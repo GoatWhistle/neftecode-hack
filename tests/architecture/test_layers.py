@@ -135,6 +135,34 @@ def test_deterministic_reviews_do_not_share_names_with_llm_agents():
     assert not classes(decision) & classes(PACKAGE / "application" / "agentic")
 
 
+CONDITION_FUNCTIONS = {"apply_change", "apply_changes", "apply_source_failure", "canonical_conditions",
+                       "changes_from", "defaults_for", "healthy_state", "state_under"}
+CONDITION_TABLES = {"CHANGES", "PANEL_NUMBERS", "SOURCE_FAULTS"}
+
+
+def test_conditions_logic_lives_only_in_application():
+    """A3: правки сценария, инъекции отказов и canonical/defaults — в application/conditions.
+
+    presentation и services только разбирают query-строку и вызывают application: они не определяют
+    ни функций применения условий (в том числе любых `apply_*`), ни таблиц правок и отказов.
+    """
+    conditions = PACKAGE / "application" / "conditions"
+    for name in ("canonical.py", "changes.py", "faults.py"):
+        assert (conditions / name).is_file(), name
+    assert not (PACKAGE / "presentation" / "web" / "conditions.py").exists()
+    for layer in ("presentation", "services"):
+        for path in layer_sources(layer):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    assert node.name not in CONDITION_FUNCTIONS and not node.name.startswith("apply_"), \
+                        f"{path}: {node.name} — логика условий расчёта принадлежит application/conditions"
+                elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                    names = {t.id for t in targets if isinstance(t, ast.Name)}
+                    assert not names & CONDITION_TABLES, f"{path}: {names & CONDITION_TABLES}"
+
+
 def test_composition_is_only_used_by_external_entry_points():
     for layer in ("domain", "application", "infrastructure", "evaluation", "presentation"):
         for path in layer_sources(layer):

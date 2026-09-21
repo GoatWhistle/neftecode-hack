@@ -36,7 +36,8 @@ import pytest
 from neftecode.bootstrap import run_demo_decision
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.snapshots import write_snapshot
-from neftecode.presentation.demo import Demo, apply_source_failure, snapshot_key
+from neftecode.application.conditions import apply_source_failure
+from neftecode.presentation.demo import Demo, snapshot_key
 from neftecode.services.common import Request, ServiceHTTPServer, make_handler
 from neftecode.services.data_service import DataService
 from neftecode.services.decision_service import DecisionService

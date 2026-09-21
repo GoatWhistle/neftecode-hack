@@ -6,8 +6,9 @@ import pytest
 
 from neftecode.bootstrap import run_demo_decision
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
-from neftecode.presentation.demo import (CHANGES, SOURCE_FAULTS, Demo, DemoError, apply_change,
-                                         apply_source_failure, healthy_state, scenes)
+from neftecode.application.conditions import (CHANGES, SOURCE_FAULTS, ConditionsError, apply_change,
+                                              apply_source_failure, healthy_state)
+from neftecode.presentation.demo import Demo, scenes
 
 BASELINE = Path("config/scenarios/baseline.json")
 BUDGET = 300
@@ -53,7 +54,7 @@ def test_lowering_the_stock_reaches_the_inventory_check(demo):
     scarce = demo.run([{"change": "tank_inventory", "value": 5.0, "target": "main"}])
     assert plenty["screen"]["inventories"]["main"] == 4000.0
     assert scarce["screen"]["inventories"]["main"] == 5.0
-    with pytest.raises(DemoError, match="по необходимости"):
+    with pytest.raises(ConditionsError, match="по необходимости"):
         demo.run([{"change": "tank_inventory", "value": 5.0, "target": "reserve"}])
 
 
@@ -101,17 +102,17 @@ def test_making_every_tank_unavailable_is_refused(demo):
 
 
 def test_an_unsupported_change_is_refused_by_name():
-    with pytest.raises(DemoError, match="не умеет менять"):
+    with pytest.raises(ConditionsError, match="не умеет менять"):
         apply_change(raw(), "погода", 1.0)
 
 
 def test_a_tank_change_without_a_target_is_refused():
-    with pytest.raises(DemoError, match="нужно указать резервуар"):
+    with pytest.raises(ConditionsError, match="нужно указать резервуар"):
         apply_change(raw(), "tank_inventory", 100.0)
 
 
 def test_an_unknown_tank_is_refused():
-    with pytest.raises(DemoError, match="не описан"):
+    with pytest.raises(ConditionsError, match="не описан"):
         apply_change(raw(), "tank_inventory", 100.0, target="ghost")
 
 
@@ -138,7 +139,7 @@ def test_a_healthy_state_carries_no_injection_label():
 
 
 def test_an_unknown_fault_is_refused():
-    with pytest.raises(DemoError, match="Неизвестный отказ"):
+    with pytest.raises(ConditionsError, match="Неизвестный отказ"):
         apply_source_failure(healthy_state(), "молния")
 
 

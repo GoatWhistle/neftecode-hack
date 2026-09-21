@@ -5,7 +5,8 @@ import pytest
 
 from neftecode.bootstrap import make_demo_service
 from neftecode.presentation.web.server import make_handler
-from neftecode.presentation.web.conditions import DemoServerError, changes_from, defaults_for
+from neftecode.application.conditions import ConditionsError, changes_from, defaults_for
+from neftecode.presentation.web.query import DemoServerError, parse_conditions
 from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_static_dir
 
 ROOT = Path(".")
@@ -46,34 +47,34 @@ def test_unchanged_fields_produce_no_changes(service):
     values = query(crude_sulfur_wt_pct=defaults["crude_sulfur_wt_pct"],
                    throughput_tph=defaults["throughput_tph"],
                    tank="reserve", tank_inventory=600.0, tank_available=1)
-    assert changes_from(values, raw) == []
+    assert changes_from(parse_conditions(values), raw) == []
 
 
 def test_an_edited_field_becomes_a_change(service):
     raw = service.raw("baseline")
-    changes = changes_from(query(crude_sulfur_wt_pct=2.4), raw)
+    changes = changes_from(parse_conditions(query(crude_sulfur_wt_pct=2.4)), raw)
     assert changes == [{"change": "crude_sulfur_wt_pct", "value": 2.4}]
 
 
 def test_a_tank_edit_carries_its_target(service):
     raw = service.raw("baseline")
-    changes = changes_from(query(tank="main", tank_inventory=10.0), raw)
+    changes = changes_from(parse_conditions(query(tank="main", tank_inventory=10.0)), raw)
     assert changes == [{"change": "tank_inventory", "value": 10.0, "target": "main"}]
 
 
 def test_switching_a_tank_off_becomes_a_change(service):
     raw = service.raw("baseline")
-    changes = changes_from(query(tank="reserve", tank_available=0), raw)
+    changes = changes_from(parse_conditions(query(tank="reserve", tank_available=0)), raw)
     assert changes == [{"change": "tank_available", "value": False, "target": "reserve"}]
 
 
 def test_an_empty_field_is_left_alone(service):
-    assert changes_from({"crude_sulfur_wt_pct": [""]}, service.raw("baseline")) == []
+    assert changes_from(parse_conditions({"crude_sulfur_wt_pct": [""]}), service.raw("baseline")) == []
 
 
 def test_a_non_numeric_field_is_refused_by_name(service):
     with pytest.raises(DemoServerError, match="ожидается число"):
-        changes_from(query(crude_sulfur_wt_pct="много"), service.raw("baseline"))
+        parse_conditions(query(crude_sulfur_wt_pct="много"))
 
 
 
@@ -129,7 +130,7 @@ def test_a_negative_stock_is_refused(service):
 
 
 def test_an_unknown_fault_is_refused(service):
-    with pytest.raises(DemoServerError, match="Неизвестный отказ"):
+    with pytest.raises(ConditionsError, match="Неизвестный отказ"):
         service.decide(query(scenario="baseline", fault="молния"))
 
 

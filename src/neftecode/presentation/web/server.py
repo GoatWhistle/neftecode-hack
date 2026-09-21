@@ -10,9 +10,10 @@ from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
-from neftecode.presentation.demo import SOURCE_FAULTS, Demo, DemoError, snapshot_key, snapshot_title
-from .conditions import (DecisionCache, DemoServerError, as_query, cache_key, canonical_conditions,
-                         changes_from, defaults_for)
+from neftecode.application.conditions import SOURCE_FAULTS, canonical_conditions, changes_from, defaults_for
+from neftecode.presentation.demo import Demo, DemoError, snapshot_key, snapshot_title
+from .cache import DecisionCache, cache_key
+from .query import DemoServerError, parse_conditions
 from .progress import decision_stream
 from .static import StaticError, StaticFiles, resolve_static_dir
 from .ui import error_payload
@@ -56,24 +57,23 @@ class DemoService:
 
     def canonical(self, values: dict) -> dict:
         name = (values.get("scenario") or [self.scenarios()[0]])[0]
-        return canonical_conditions(values, self.raw(name), name, self.default_snapshot())
+        raw, default_snapshot = self.raw(name), self.default_snapshot()
+        return canonical_conditions(parse_conditions(values), raw, name, default_snapshot)
 
     def decide(self, values: dict) -> dict:
         canonical = self.canonical(values)
-        return self.cache.get(cache_key(canonical), lambda: self._decide(as_query(canonical)))
+        return self.cache.get(cache_key(canonical), lambda: self._decide(canonical))
 
     def recompute(self, values: dict) -> dict:
         canonical = self.canonical(values)
-        payload = self._decide(as_query(canonical))
+        payload = self._decide(canonical)
         self.cache.put(cache_key(canonical), payload)
         return payload
 
-    def _decide(self, values: dict) -> dict:
-        name = values["scenario"][0]
-        raw = self.raw(name)
-        fault = values["fault"][0]
-        snapshot = values["snapshot"][0]
-        result = self.demo_factory(raw, self.budget).run(changes_from(values, raw), fault, snapshot=snapshot)
+    def _decide(self, canonical: dict) -> dict:
+        raw = self.raw(canonical["scenario"])
+        result = self.demo_factory(raw, self.budget).run(changes_from(canonical, raw), canonical["fault"],
+                                                         snapshot=canonical["snapshot"])
         payload = dict(result["screen"])
         payload["defaults"] = defaults_for(raw)
         payload["applied"] = result.get("applied", [])

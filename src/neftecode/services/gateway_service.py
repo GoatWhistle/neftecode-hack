@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Mapping
-import copy
 import os
 from pathlib import Path
 
-from neftecode.presentation.demo import (SOURCE_FAULTS, apply_change, healthy_state, apply_source_failure,
-                                         snapshot_key, snapshot_title, state_origin_label)
+from neftecode.application.conditions import (SOURCE_FAULTS, apply_changes, canonical_conditions, changes_from,
+                                               defaults_for, state_under)
+from neftecode.presentation.demo import snapshot_key, snapshot_title, state_origin_label
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.live.snapshots import load_snapshots, select_forecast_dict
-from neftecode.presentation.web.server import (FIRST_SNAPSHOT, DecisionCache, DemoServerError,
-                                               as_query, cache_key, canonical_conditions, changes_from, defaults_for)
+from neftecode.presentation.web.cache import DecisionCache, cache_key
+from neftecode.presentation.web.query import DemoServerError, parse_conditions
+from neftecode.presentation.web.server import FIRST_SNAPSHOT
 from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_static_dir
 from neftecode.presentation.web.ui import error_payload, Screen
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
@@ -88,17 +89,16 @@ class GatewayService:
     def decide(self, values, request_id="gateway"):
         names = self.scenarios(request_id); name = (values.get("scenario") or [names[0]])[0]
         raw = self.raw(name, request_id)
-        canonical = canonical_conditions(values, raw, name, self.default_snapshot())
-        return self.cache.get(cache_key(canonical), lambda: self._decide(as_query(canonical), raw, request_id))
+        default_snapshot = self.default_snapshot()
+        canonical = canonical_conditions(parse_conditions(values), raw, name, default_snapshot)
+        return self.cache.get(cache_key(canonical), lambda: self._decide(canonical, raw, request_id))
 
-    def _decide(self, values, raw, request_id):
-        fault = values["fault"][0]
-        chosen = self.snapshot(values["snapshot"][0])
-        base = copy.deepcopy(chosen["state"]) if chosen is not None else healthy_state()
-        state = apply_source_failure(base, fault)
-        changes = changes_from(values, raw)
+    def _decide(self, canonical, raw, request_id):
+        chosen = self.snapshot(canonical["snapshot"])
+        state = state_under(chosen, canonical["fault"])
+        changes = changes_from(canonical, raw)
         env = self.client.request("POST", self.decision_url + "/v1/decisions",
-                                  {"scenario": _changed(raw, changes), "state": state,
+                                  {"scenario": apply_changes(raw, changes), "state": state,
                                    "budget": DEFAULT_BUDGET,
                                    "trust_config": self.trust_cfg, "trust_origin": self.trust_origin,
                                    "snapshot": chosen},
@@ -161,13 +161,6 @@ class GatewayService:
                 "/api/options": legacy(lambda r: self.options_payload((r.query.get("scenario") or [None])[0], r.request_id)),
                 "/": lambda r: self.asset("/")}
         return StaticRoutes(api, lambda r: self.asset(r.path))
-
-
-def _changed(raw, changes):
-    value = copy.deepcopy(raw)
-    for change in changes:
-        value = apply_change(value, change["change"], change.get("value"), change.get("target"))
-    return value
 
 
 def make_gateway_handler(service: GatewayService, settings: ServiceSettings | None = None):

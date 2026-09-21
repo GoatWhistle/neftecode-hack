@@ -98,6 +98,12 @@ gateway-service
 
 - `contracts.py` — входы и выходы сценариев использования.
 - `ports/` — интерфейсы для моделей, данных, сценариев и сохранения результатов.
+- `conditions/changes.py` — правки сценария (`apply_change`, `apply_changes`, таблица `CHANGES`).
+- `conditions/faults.py` — инъекции отказов источников (`SOURCE_FAULTS`: `frozen_pak`, `stale_lab`,
+  `both_broken`, `missing_telemetry`), синтетическое исправное состояние и `state_under` — состояние
+  среза с наложенным отказом.
+- `conditions/canonical.py` — значения панели по умолчанию (`defaults_for`), полные условия расчёта
+  (`canonical_conditions`, по ним кэшируется решение) и правки из условий (`changes_from`).
 - `services/trust.py` — проверка доверия к данным.
 - `services/explain.py` — перевод решения в понятный текст.
 - `services/robustness.py` — устойчивость выбранного плана к ошибкам коэффициентов (`RobustnessCheck`).
@@ -134,8 +140,9 @@ gateway-service
 ### `presentation/`, `services/`, `bootstrap.py`
 
 - `presentation/cli.py` только разбирает аргументы командной строки.
-- `presentation/demo.py` управляет демонстрационными сценами.
-- `presentation/web/` формирует экран и старый локальный HTTP-интерфейс.
+- `presentation/demo.py` управляет демонстрационными сценами; условия применяет через `application/conditions`.
+- `presentation/web/` формирует экран и старый локальный HTTP-интерфейс; `web/query.py` только разбирает
+  query-строку условий в простые значения, `web/cache.py` — кэш решений по canonical-условиям.
 - `services/` содержит четыре отдельных HTTP-процесса.
 - `bootstrap.py` сохраняет публичную точку запуска и совместимые функции.
 - `composition/decision.py` подключает парсер, ядро, robustness и экран.

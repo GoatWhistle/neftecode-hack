@@ -225,6 +225,7 @@ src/neftecode/
     production/               # сценарий, процесс, смешение, запасы, экономика
     advisory/                 # планы, gate, оптимизация и решение
   application/
+    conditions/               # условия расчёта: правки сценария, инъекции отказов, canonical/defaults
     ports/                    # контракты внешних источников и адаптеров
     services/                 # доверие к данным, объяснение, устойчивость и оценка резервуара
     use_cases/                # MakeDecision, PlanOperation, GetLiveAdvice, ReplayDecisions
@@ -238,7 +239,7 @@ src/neftecode/
   presentation/
     cli.py                    # аргументы и команды
     demo.py                   # демонстрационные сцены
-    web/                      # HTTP и HTML
+    web/                      # HTTP и HTML; query.py — только разбор query-строки условий
   services/                   # отдельные HTTP-процессы и общий supervisor
   composition/               # внешняя сборка зависимостей и обработчики CLI
   bootstrap.py               # совместимая точка запуска CLI

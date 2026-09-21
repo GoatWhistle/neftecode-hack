@@ -9,7 +9,8 @@ from neftecode.domain.shared.primitives import ContractError
 from neftecode.domain.monitoring.entities import Observation, PlantState
 from neftecode.domain.shared.actions import PendingAction
 from neftecode.bootstrap import run_demo_decision
-from neftecode.presentation.demo import Demo, apply_change
+from neftecode.application.conditions import apply_change
+from neftecode.presentation.demo import Demo
 from neftecode.application.services.explain import explain
 from neftecode.domain.advisory.gate import TrajectoryPoint, check_plan
 from neftecode.domain.production.inventory import InventoryLedger
