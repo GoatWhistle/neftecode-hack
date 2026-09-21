@@ -28,5 +28,32 @@ curl "http://127.0.0.1:19866/api/decide?scenario=baseline&fault=healthy&snapshot
   `decision.agentic` отсутствует.
 
 Негативные/изменённые примеры (тестовые мутации, НЕ реальный вывод сервера) — файлы с
-суффиксом `.mutated.json`, если появятся; каждый такой файл явно помечен в комментарии теста,
-который его использует, и не выдаётся за реальный прогон backend.
+суффиксом `.mutated*.json`; каждый такой файл явно помечен в комментарии теста, который его
+использует, и не выдаётся за реальный прогон backend.
+
+- `decide-baseline-2026-01-05.mutated-old-contract.json` — тестовая мутация: тот же срез 05.01,
+  вручную вырезаны `plan_origin`/`chain`/`confidence_kind`/`confidence_calibrated`, эмулирует
+  старый payload до O1/N2/N1. Используется `ui/OldContract.test.tsx`.
+
+- `stream-baseline-2026-01-05.sse` — полная запись `/api/stream?scenario=baseline&...` того же
+  сервера, `curl -N`, без правки вручную: phase → stage(×N) → agent(×N) → screen → end.
+  Используется `run/stream.test.ts` как основной (позитивный) прогон; там же — два производных
+  негативных потока (404 без тела, обрыв до `screen`), явно помеченных в тесте как не-запись.
+
+## F6 — маршруты (O3, пункт 3)
+
+Фронт вызывает ровно два маршрута: `/api/stream` (`run/stream.ts`) и `/api/options`
+(`run/options.ts`) — проверено `grep -rn "fetch(\`/api" src/run`, не по памяти.
+Оба реально запрошены у неизменённого `serve` этой базы (не у `neftecode-stack`, у которого
+`/api/stream` не реализован — известный дефект #10, серверная сторона):
+
+```sh
+curl -s --max-time 5 "http://127.0.0.1:19865/api/options?scenario=baseline"
+# → 200, реальный JSON с scenarios/faults/snapshots/decision_timeout_s
+curl -s --max-time 60 -N "http://127.0.0.1:19865/api/stream?scenario=baseline&fault=healthy&snapshot=20260105-080000"
+# → 200, SSE: phase → stage → agent → screen(decision.status=hold) → end
+```
+
+Оба ответа — реальные, не переписанный вручную список путей. Это подтверждает, что фронт
+получает options и screen по SSE у своего `serve`; про 404 `/api/stream` у стека это ничего
+не говорит и не объявляет его исправленным — тот дефект чинит A6 на сервере.

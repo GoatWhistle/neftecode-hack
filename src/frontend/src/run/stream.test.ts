@@ -1,0 +1,88 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { streamDecision } from "./stream";
+import type { StreamHandlers } from "./stream";
+
+const here = dirname(fileURLToPath(import.meta.url));
+// Реальная запись /api/stream своего backend (LLM_PROVIDER=scripted), см. fixtures/README.md —
+// не переписанный вручную список событий, а фактический прогон scenario=baseline, snapshot=20260105-080000.
+const RECORDED_SSE = readFileSync(
+  join(here, "..", "fixtures", "stream-baseline-2026-01-05.sse"),
+  "utf-8"
+);
+
+function bodyFrom(text: string): ReadableStream<Uint8Array> {
+  const bytes = new TextEncoder().encode(text);
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    }
+  });
+}
+
+function handlers(): StreamHandlers & { calls: Record<string, unknown[]> } {
+  const calls: Record<string, unknown[]> = {
+    phase: [], tick: [], agent: [], stage: [], screen: [], failed: [], end: []
+  };
+  return {
+    calls,
+    onPhase: (p) => calls.phase!.push(p),
+    onTick: (ms) => calls.tick!.push(ms),
+    onAgent: (e) => calls.agent!.push(e),
+    onStage: (stage, ms, state, facts) => calls.stage!.push({ stage, ms, state, facts }),
+    onScreen: (payload, ms) => calls.screen!.push({ payload, ms }),
+    onFailed: (msg) => calls.failed!.push(msg),
+    onEnd: () => calls.end!.push(true)
+  };
+}
+
+describe("streamDecision — реальная запись /api/stream (F6)", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(bodyFrom(RECORDED_SSE), { status: 200 })
+    ));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("разбирает phase/stage/agent/screen/end из настоящего прогона", async () => {
+    const h = handlers();
+    await streamDecision("?scenario=baseline", h, new AbortController().signal);
+
+    expect(h.calls.phase!.length).toBeGreaterThan(0);
+    expect(h.calls.stage!.length).toBeGreaterThan(0);
+    expect(h.calls.agent!.length).toBeGreaterThan(0);
+    expect(h.calls.screen!.length).toBe(1);
+    expect(h.calls.end!.length).toBe(1);
+    expect(h.calls.failed!.length).toBe(0);
+
+    const screen = h.calls.screen![0] as { payload: { state: string; decision: { status: string } } };
+    expect(screen.payload.state).toBe("decision");
+    expect(screen.payload.decision.status).toBe("hold");
+  });
+
+  it("сообщает об HTTP-ошибке до старта этапов, а не молчит", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    const h = handlers();
+    await expect(
+      streamDecision("?scenario=baseline", h, new AbortController().signal)
+    ).rejects.toThrow(/404/);
+  });
+
+  it("обрыв потока до screen оставляет решение непереданным, а не додумывает его", async () => {
+    // Негативный тестовый поток (не запись backend): обрезаем реальную запись до первого
+    // «screen», чтобы проверить путь «соединение прервалось раньше решения».
+    const cut = RECORDED_SSE.slice(0, RECORDED_SSE.indexOf("event: screen"));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(bodyFrom(cut), { status: 200 })));
+    const h = handlers();
+    await streamDecision("?scenario=baseline", h, new AbortController().signal);
+    expect(h.calls.screen!.length).toBe(0);
+    expect(h.calls.stage!.length).toBeGreaterThan(0);
+    expect(h.calls.failed!.length).toBe(1);
+  });
+});
