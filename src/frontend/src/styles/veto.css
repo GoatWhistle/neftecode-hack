@@ -9,17 +9,17 @@
 
 .veto__title {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ag-label);
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--muted);
 }
 
 .veto__none {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
   color: var(--muted);
   max-width: var(--measure);
 }
@@ -38,7 +38,7 @@
   align-items: baseline;
   flex-wrap: wrap;
   gap: var(--space-2);
-  font-size: 14px;
+  font-size: var(--ag-body);
 }
 
 .veto__plan {
@@ -60,6 +60,6 @@
   border: 1px solid var(--fail);
   border-radius: var(--radius-pill);
   padding: 2px var(--space-3);
-  font-size: 12px;
+  font-size: var(--ag-label);
   color: var(--fail);
 }

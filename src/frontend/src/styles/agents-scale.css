@@ -1,0 +1,70 @@
+.dialogue,
+.agents__sec,
+.mode,
+.final,
+.opinions,
+.acon-wrap,
+.agents {
+  --ag-rubric: 12px;
+  --ag-label: 11px;
+  --ag-body: 14px;
+  --ag-title: 17px;
+  --ag-track: 0.12em;
+  --ag-lead: 1.45;
+}
+
+.ag-rubric {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  font-size: var(--ag-rubric);
+  font-weight: 600;
+  letter-spacing: var(--ag-track);
+  text-transform: uppercase;
+  color: var(--carbon);
+}
+
+.ag-rubric::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.ag-label {
+  margin: 0;
+  font-size: var(--ag-label);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ag-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--ag-label);
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.ag-lead {
+  margin: 0;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
+  color: var(--muted);
+  max-width: var(--measure);
+}
+
+.dialogue code,
+.agents__sec code,
+.mode code,
+.agfinal code,
+.opinions code,
+.consult code,
+.severity code {
+  font-size: var(--ag-label);
+  letter-spacing: 0;
+}

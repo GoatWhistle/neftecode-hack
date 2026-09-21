@@ -144,15 +144,19 @@ export function GateStage({ payload, index, state, source, lamp, lampTitle, bare
                 </tbody>
               </table>
             </Scroller>
-          ) : (
-            <Note>Ни одно жёсткое ограничение не нарушено и ни одно не осталось непроверенным.</Note>
-          )}
-
-          {broken.length > shownBroken.length ? (
-            <Note>
-              Показаны первые {shownBroken.length} из {broken.length}; остальные — в JSON ниже.
-            </Note>
           ) : null}
+
+          <div className="notes-rail">
+            {broken.length === 0 ? (
+              <Note>Ни одно жёсткое ограничение не нарушено и ни одно не осталось непроверенным.</Note>
+            ) : null}
+
+            {broken.length > shownBroken.length ? (
+              <Note>
+                Показаны первые {shownBroken.length} из {broken.length}; остальные — в JSON ниже.
+              </Note>
+            ) : null}
+          </div>
 
           <Fields>
             <Field label="План допустим">{gate?.feasible ? "да" : "нет"}</Field>

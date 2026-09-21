@@ -8,7 +8,8 @@ import { JsonPanel } from "./Json";
 const ACTIONS: Record<string, string> = {
   select: "выбрать план",
   refuse: "отказаться от рекомендации",
-  hold: "сохранить режим"
+  hold: "сохранить режим",
+  keep_legacy: "оставить план детерминированного контура"
 };
 
 export function VetoMap({ vetoes }: { vetoes: Record<string, string[]> | undefined }) {
@@ -55,11 +56,11 @@ export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
   const constraints = agentic?.constraints_applied ?? [];
 
   return (
-    <div className="final">
-      <h4 className="final__title">Чем закончился диалог</h4>
+    <div className="agfinal">
+      <h4 className="agents__heading">Чем закончился диалог</h4>
       {final ? (
         <>
-          <p className="final__summary">{final.summary}</p>
+          <p className="agfinal__summary">{final.summary}</p>
           <Fields>
             <Field label="Действие">{ACTIONS[final.action] ?? final.action}</Field>
             <Field label="План">{final.candidate_id ?? "план не выбран"}</Field>
@@ -68,7 +69,7 @@ export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
             </Field>
           </Fields>
           {final.evidence_refs && final.evidence_refs.length > 0 ? (
-            <p className="final__evidence">
+            <p className="agfinal__evidence">
               На чём основано: {final.evidence_refs.map((ref) => <code key={ref}>{ref}</code>)}
             </p>
           ) : null}
@@ -80,7 +81,7 @@ export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
       <VetoMap vetoes={agentic?.vetoed_candidates} />
 
       {constraints.length > 0 ? (
-        <p className="final__constraints">
+        <p className="agfinal__constraints">
           Ограничения, наложенные агентами по ходу поиска:{" "}
           {constraints.map((item) => (
             <span key={`${item.type}-${item.limit}`} className="opinion__constraint">
@@ -100,7 +101,7 @@ export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
           </Field>
           <Field label="По ролям">
             {Object.entries(budget.llm_calls_by_role ?? {})
-              .map(([role, count]) => `${role}: ${count}`)
+              .map(([role, count]) => `${ROLE_TEXT[role] ?? role}: ${count}`)
               .join(", ") || "не передавались"}
           </Field>
           <Field label="Токены">

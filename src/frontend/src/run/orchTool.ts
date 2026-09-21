@@ -1,6 +1,7 @@
 import type { AgentEvent } from "./types";
 import { TRUNCATION_MARK, boolAt, constraintText, decimal, limitText, numberAt, objectsAt,
   parseObject, plural, rankKeyText, salvage, stringAt, stringsAt } from "./orchRead";
+import { VERDICT_TEXT } from "../agents/vocab";
 
 export interface OrchFact {
   label: string;
@@ -24,6 +25,7 @@ export interface OrchReading {
   resultTruncated: boolean;
   inputRaw: string | null;
   resultRaw: string | null;
+  resultFull: string | null;
   resultParsed: boolean;
   resultPartial: boolean;
   failed: boolean;
@@ -141,7 +143,11 @@ function consultFacts(result: Record<string, unknown> | null): OrchFact[] {
     ? (opinion as Record<string, unknown>)
     : null;
   const verdict = stringAt(source, "verdict");
-  if (verdict !== null) out.push({ label: "вердикт специалиста", value: verdict });
+  if (verdict !== null) {
+    const said = VERDICT_TEXT[verdict];
+    out.push({ label: "вердикт специалиста",
+      value: said === undefined ? verdict : `${verdict} — ${said}` });
+  }
   const risk = stringAt(source, "risk_level");
   if (risk !== null) out.push({ label: "уровень риска", value: risk });
   const vetoed = stringsAt(result, "vetoed_now");
@@ -157,7 +163,9 @@ function consultFacts(result: Record<string, unknown> | null): OrchFact[] {
 export function readOrchTool(event: AgentEvent): OrchReading {
   const tool = event.tool_name ?? "инструмент без имени";
   const inputRaw = event.tool_input_summary ?? null;
-  const resultRaw = event.tool_result_summary ?? null;
+  const summaryRaw = event.tool_result_summary ?? null;
+  const fullRaw = event.tool_result_full ?? null;
+  const resultRaw = fullRaw !== null && fullRaw.length >= (summaryRaw?.length ?? 0) ? fullRaw : summaryRaw;
   const input = parseObject(inputRaw ?? undefined);
   const whole = parseObject(resultRaw ?? undefined);
   const rescued = whole === null ? salvage(resultRaw ?? undefined) : null;
@@ -189,7 +197,8 @@ export function readOrchTool(event: AgentEvent): OrchReading {
     inputTruncated: inputRaw !== null && input === null && cut(inputRaw),
     resultTruncated: resultRaw !== null && whole === null && cut(resultRaw),
     inputRaw,
-    resultRaw,
+    resultRaw: summaryRaw,
+    resultFull: fullRaw,
     resultParsed: whole !== null,
     resultPartial: whole === null && rescued !== null,
     failed,

@@ -137,13 +137,15 @@ export function TrustStage({ payload, index, state, source, lamp, lampTitle, bar
             <Field label="Причина отказа от данных">{report?.refusal_reason ?? "нет"}</Field>
           </Fields>
 
-          {report?.rule ? <Note>{report.rule}</Note> : null}
+          <div className="notes-rail">
+            {report?.rule ? <Note>{report.rule}</Note> : null}
 
-          <Note>
-            Значения в этой таблице — единственные на странице, снятые с источников измерения. Всё остальное
-            либо требование ТЗ, либо наш расчёт, либо допущение сценария; каждое помечено своим бейджем.
-            {payload.state_origin ? ` Происхождение состояния: ${payload.state_origin}.` : ""}
-          </Note>
+            <Note>
+              Значения в этой таблице — единственные на странице, снятые с источников измерения. Всё остальное
+              либо требование ТЗ, либо наш расчёт, либо допущение сценария; каждое помечено своим бейджем.
+              {payload.state_origin ? ` Происхождение состояния: ${payload.state_origin}.` : ""}
+            </Note>
+          </div>
         </>
       )}
 

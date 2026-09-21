@@ -39,8 +39,8 @@
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-card);
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
   color: var(--text);
   max-width: var(--measure);
 }
@@ -52,8 +52,9 @@
 
 .plate__line {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: var(--ag-body);
+  font-weight: 500;
+  line-height: var(--ag-lead);
   max-width: var(--measure);
 }
 
@@ -61,7 +62,9 @@
 .plate__codes,
 .plate__detail {
   margin: var(--space-1) 0 0;
-  font-size: 13px;
+  font-size: var(--ag-label);
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
   max-width: var(--measure);
   overflow-wrap: anywhere;
@@ -75,8 +78,8 @@
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--ag-body);
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--text);
 }
 
@@ -96,7 +99,9 @@
 
 .budget__caption {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ag-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--muted);
   max-width: var(--measure);
 }
@@ -115,17 +120,20 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  font-size: 13px;
+  font-size: var(--ag-body);
 }
 
 .budget__label {
-  min-width: 210px;
-  font-variant-numeric: tabular-nums;
+  min-width: min(210px, 100%);
+  font-variant-numeric: tabular-nums lining-nums;
+  overflow-wrap: anywhere;
 }
 
 .budget__bar {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
+  min-width: 0;
 }
 
 .budget__cell {
@@ -139,12 +147,12 @@
 }
 
 .budget__origin {
-  font-size: 12px;
+  font-size: var(--ag-label);
   color: var(--muted);
 }
 
 .budget__spent {
-  font-size: 12px;
+  font-size: var(--ag-label);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--fail);
@@ -156,7 +164,9 @@
 
 .budget__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ag-label);
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
   max-width: var(--measure);
 }

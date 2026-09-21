@@ -1,11 +1,34 @@
 /* Компактный ответ оператору над схемой — finalization-plan.md, пункт 2. */
 
 .answer {
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--muted);
   border-radius: var(--radius-card);
   background: var(--paper);
   padding: var(--space-5);
   margin-bottom: var(--space-6);
+  border-inline-start-width: 4px;
+  border-inline-start-color: var(--line-soft);
+}
+
+.answer:not(:has(.answer__checks)) {
+  max-width: calc(var(--measure-lead) + var(--space-5) * 2);
+}
+
+.answer:has(.answer__verdict--refuse),
+.answer:has(.answer__verdict--broken) {
+  border-inline-start-color: var(--fail);
+}
+
+.answer:has(.answer__verdict--stopped) {
+  border-inline-start-color: var(--muted);
+}
+
+.answer:has(.answer__verdict--warn) {
+  border-inline-start-color: var(--accent-line);
+}
+
+.answer:has(.answer__verdict--ok) {
+  border-inline-start-color: var(--pass);
 }
 
 .answer__verdict {
@@ -21,9 +44,6 @@
 .answer__verdict--refuse {
   color: var(--fail);
   font-weight: 400;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 8px;
 }
 
 .answer__action {
@@ -67,9 +87,6 @@
 .answer__verdict--broken {
   color: var(--fail);
   font-weight: 400;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 8px;
 }
 
 .answer__verdict--stopped {
@@ -87,13 +104,22 @@
 }
 
 .answer__line {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-3) 0 0;
   font-size: 15px;
   line-height: 1.5;
   max-width: var(--measure-lead);
 }
 
+.answer__line--cause {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text);
+}
+
 .answer__line--need {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
   color: var(--muted);
 }
 

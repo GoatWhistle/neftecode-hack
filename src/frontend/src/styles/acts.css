@@ -28,22 +28,22 @@
 
 .provider__name {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: var(--ag-body);
   color: var(--text);
 }
 
 .provider__status {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--ag-label);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--muted);
 }
 
 .provider__label {
   flex: 1 0 100%;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
   color: var(--muted);
   max-width: var(--measure);
   padding-bottom: var(--space-2);
@@ -57,7 +57,98 @@
 }
 
 .dialogue__acts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+}
+
+.dialogue__act {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.dialogue__actor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--ag-label);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dialogue__actor-mark {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--carbon);
+}
+
+.dialogue__act--orchestrator .dialogue__actor {
+  color: var(--carbon);
+  font-weight: 600;
+}
+
+.dialogue__act--orchestrator .dialogue__actor-mark {
+  background: var(--carbon);
+}
+
+.dialogue__act--quality .dialogue__actor-mark {
+  border-radius: 50%;
+}
+
+.dialogue__act--reliability .dialogue__actor-mark {
+  border-radius: 50%;
+  background: var(--carbon);
+}
+
+.dialogue__act--system .dialogue__actor-mark {
+  border-style: dashed;
+}
+
+.dialogue__act--quality > .consult,
+.dialogue__act--reliability > .consult {
+  margin-left: var(--space-4);
+}
+
+.dialogue__actor--same .dialogue__actor-name {
+  visibility: hidden;
+}
+
+.dialogue__actor--same {
+  height: 7px;
+}
+
+.dialogue__act--live > .dialogue__actor {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.dialogue__act--live > .dialogue__actor .dialogue__actor-name {
+  visibility: visible;
+}
+
+.dialogue__act--live > .dialogue__actor::after {
+  content: "идёт сейчас";
+  font-weight: 400;
+  color: var(--accent-ink);
+}
+
+.dialogue__act--live > .dialogue__actor .dialogue__actor-mark {
+  border-color: var(--accent-line);
+  background: var(--accent-line);
+}
+
+@media (max-width: 900px) {
+  .dialogue__act--quality > .consult,
+  .dialogue__act--reliability > .consult {
+    margin-left: 0;
+  }
 }

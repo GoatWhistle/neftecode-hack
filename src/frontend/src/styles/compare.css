@@ -6,22 +6,12 @@
 }
 
 .cmp__rubric {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
   margin: 0;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--carbon);
-}
-
-.cmp__rubric::after {
-  content: "";
-  flex: 1 1 auto;
-  height: 1px;
-  background: var(--muted);
 }
 
 .cmp__frame {
@@ -41,6 +31,17 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .cmp {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .cmp__table {
+    min-width: 720px;
+  }
 }
 
 .cmp__table thead th {

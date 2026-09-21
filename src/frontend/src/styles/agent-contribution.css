@@ -6,29 +6,19 @@
 }
 
 .acon-wrap__rubric {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ag-rubric);
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--ag-track);
   text-transform: uppercase;
   color: var(--carbon);
-}
-
-.acon-wrap__rubric::after {
-  content: "";
-  flex: 1 1 auto;
-  height: 1px;
-  background: var(--muted);
 }
 
 .acon-wrap__lead {
   margin: 0;
   max-width: var(--measure);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
   color: var(--muted);
 }
 
@@ -46,15 +36,15 @@
 
 .acon-wrap__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
   align-items: stretch;
   min-width: 0;
 }
 
-@media (max-width: 1100px) {
+@media (min-width: 1100px) {
   .acon-wrap__grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -124,8 +114,10 @@
 
 .acard__steps {
   display: grid;
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--space-3) var(--space-4);
   margin: 0 0 auto;
+  align-items: start;
 }
 
 .acard__step {
@@ -144,10 +136,12 @@
 
 .acard__step dd {
   margin: 0;
+  max-width: var(--measure-lead);
   font-size: 13px;
   line-height: 1.45;
   color: var(--carbon);
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .acard__flag {

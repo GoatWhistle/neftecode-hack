@@ -1,20 +1,6 @@
 import type { AgentEvent } from "../run/types";
 import { readOrchTool } from "../run/orchTool";
-
-function Raw({ label, text, truncated }: { label: string; text: string; truncated: boolean }) {
-  return (
-    <div className="orch-raw">
-      <p className="orch-raw__note">
-        {truncated
-          ? `${label}: сводка обрезана сервером, разобрать не удалось — показан текст как есть`
-          : `${label}: разобрать не удалось — показан текст как есть`}
-      </p>
-      <p className="orch-raw__text">
-        <code>{text}</code>
-      </p>
-    </div>
-  );
-}
+import { RawJson } from "./RawJson";
 
 export function OrchTool({ event }: { event: AgentEvent }) {
   const read = readOrchTool(event);
@@ -22,7 +8,7 @@ export function OrchTool({ event }: { event: AgentEvent }) {
   return (
     <li className={`orch-tool${read.failed ? " orch-tool--failed" : ""}`}>
       <p className="orch-tool__head">
-        <span className="orch-tool__seq">№{event.seq}</span>
+        <span className="orch-tool__seq">{event.seq < 10 ? `0${event.seq}` : event.seq}</span>
         <span className="orch-tool__verb">{read.title}</span>
         {read.asked !== null ? <span className="orch-tool__arg">{read.asked}</span> : null}
         <span className="orch-tool__name">{read.tool}</span>
@@ -81,15 +67,13 @@ export function OrchTool({ event }: { event: AgentEvent }) {
         <p className="orch-tool__codes">коды причин: {event.reason_codes.join(", ")}</p>
       ) : null}
 
-      {read.inputRaw !== null && read.asked === null && read.question === null
-        && !read.inputTruncated && read.inputRaw !== "{}" ? (
-        <Raw label="аргументы" text={read.inputRaw} truncated={false} />
+      {read.inputRaw !== null && read.inputRaw !== "{}"
+        && (read.inputTruncated || (read.asked === null && read.question === null)) ? (
+        <RawJson label="аргументы вызова" text={read.inputRaw} serverLimit={200} />
       ) : null}
-      {read.inputTruncated ? <Raw label="аргументы" text={read.inputRaw ?? ""} truncated /> : null}
 
-      {read.resultRaw !== null && !read.resultParsed && !read.failed
-        && (read.facts.length === 0 || read.resultPartial) ? (
-        <Raw label="ответ инструмента" text={read.resultRaw} truncated={read.resultTruncated} />
+      {read.resultRaw !== null && !read.failed ? (
+        <RawJson label="ответ инструмента" text={read.resultRaw} full={read.resultFull} />
       ) : null}
     </li>
   );

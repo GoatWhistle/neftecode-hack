@@ -35,6 +35,7 @@ export function App() {
   const [open, setOpen] = useState<string | null>(INPUT_SCENARIO);
   const payload = run.payload;
   const outcome = outcomeOf(run.status, payload, run.error, run.status === "stopped");
+  const phase = run.status === "idle" ? "idle" : outcome ? "answer" : "run";
   useDocumentTitle(run);
 
   const optionsAbort = useRef<AbortController | null>(null);
@@ -170,18 +171,24 @@ export function App() {
       <div className="layout">
         <main className="stages" aria-live="polite" aria-relevant="additions">
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
-          <div className="work">
-            <div className="work__lead">
-              {outcome ? <OperatorAnswer outcome={outcome} /> : null}
-              {payload ? <PlanCompare payload={payload} /> : null}
-              {payload ? <Evidence payload={payload} /> : null}
+          {phase !== "idle" ? (
+            <div className="work" data-phase={phase}>
+              <div className="work__rail">
+                <RunProgressNote run={run} />
+                <ModeLine run={run} />
+              </div>
+              {outcome ? (
+                <div className="work__lead">
+                  <OperatorAnswer outcome={outcome} />
+                  {payload ? <PlanCompare payload={payload} /> : null}
+                  {payload ? <Evidence payload={payload} /> : null}
+                </div>
+              ) : null}
+              <div className="work__side">
+                <AgentContribution run={run} />
+              </div>
             </div>
-            <div className="work__side">
-              {run.status !== "idle" ? <RunProgressNote run={run} /> : null}
-              {run.status !== "idle" ? <ModeLine run={run} /> : null}
-              {run.status !== "idle" ? <AgentContribution run={run} /> : null}
-            </div>
-          </div>
+          ) : null}
           <PipelineMap
             run={run}
             inputCaption={inputCaption}

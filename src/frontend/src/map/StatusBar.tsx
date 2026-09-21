@@ -149,8 +149,17 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
         </svg>
       </button>
       {showReplay ? (
-        <button type="button" className="statusbar__button" onClick={onReplay}>
-          ▶ Ещё раз
+        <button
+          type="button"
+          className="statusbar__button statusbar__button--icon"
+          onClick={onReplay}
+          aria-label="Повторить прогон"
+          title="Ещё раз"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path d="M13.2 8 A5.2 5.2 0 1 1 11.5 4.1" />
+            <path d="M11.2 1.4 V4.4 H8.2" />
+          </svg>
         </button>
       ) : null}
       {running ? (

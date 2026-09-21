@@ -86,11 +86,13 @@ export function CandidatesStage({ payload, index, state, source, lamp, lampTitle
             </table>
           </Scroller>
 
-          <Note>
-            Число проверенных планов — это фактический перебор. Объявленный бюджет поиска на экран
-            намеренно не вынесен: он расходуется не полностью и завысил бы полноту перебора.
-          </Note>
-          {trace?.note ? <Note>{trace.note}</Note> : null}
+          <div className="notes-rail">
+            <Note>
+              Число проверенных планов — это фактический перебор. Объявленный бюджет поиска на экран
+              намеренно не вынесен: он расходуется не полностью и завысил бы полноту перебора.
+            </Note>
+            {trace?.note ? <Note>{trace.note}</Note> : null}
+          </div>
         </>
       )}
 

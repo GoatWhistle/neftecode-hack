@@ -41,6 +41,7 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
   const trace = ordered(payload.decision.trace ?? []);
   const severity = severityOf(trace);
   const running = state === "running";
+  const opinionCount = agentic?.opinions?.length ?? 0;
 
   return (
     <Section
@@ -54,47 +55,71 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
       lampTitle={lampTitle}
       bare={bare}
     >
-      <AgenticMode agentic={agentic} />
+      <div className="agents__stage">
+        <section className="agents__sec">
+          <h3 className="agents__heading">Режим работы</h3>
+          <AgenticMode agentic={agentic} />
+        </section>
 
-      <AgentDialogue events={events} running={running} facts={facts} agentic={agentic}
-        elapsedMs={elapsedMs} lastFrameAt={lastFrameAt} />
-
-      <div className="agents__block">
-        <h3 className="agents__heading">Ответы агентов</h3>
-        <p className="agents__lead">
-          Каждый специалист отвечает на своём участке: вердикт, риск, уверенность, затем обоснования
-          с кодами причин.
-        </p>
-        <Opinions agentic={agentic} />
-      </div>
-
-      <AgentFinal agentic={agentic} />
-
-      {trace.length === 0 ? (
-        <Empty>Сводная трасса участников не передавалась.</Empty>
-      ) : (
-        <div className="agents__block">
-          <h3 className="agents__heading">Сводка по участникам</h3>
+        <section className="agents__sec">
+          <h3 className="agents__heading">
+            Ход диалога
+            {events.length > 0 ? <span className="agents__count">{events.length}</span> : null}
+          </h3>
           <p className="agents__lead">
-            Шесть участников трассы: что каждый проверил и чем закончил. Карточки одного размера,
-            длинные разборы вынесены под сетку.
+            Кто к кому обратился, какой инструмент выбрал сам агент и чем закончился каждый ход.
           </p>
-          <div className="agents">
-            {trace.map((event) => (
-              <AgentCard key={event.agent} event={event} />
-            ))}
-          </div>
-          {severity ? <SeverityBars factors={severity} /> : null}
-        </div>
-      )}
+          <AgentDialogue events={events} running={running} facts={facts} agentic={agentic}
+            elapsedMs={elapsedMs} lastFrameAt={lastFrameAt} />
+        </section>
 
-      <Note>
-        В трассе нет ни текста промптов, ни ключей, ни скрытых рассуждений: события несут только
-        сводку вызова и результата. Это решение по безопасности аудита, а не обрезанная выдача.
-      </Note>
+        <section className="agents__sec">
+          <h3 className="agents__heading">
+            Ответы агентов
+            {opinionCount > 0 ? <span className="agents__count">{opinionCount}</span> : null}
+          </h3>
+          <p className="agents__lead">
+            Каждый специалист отвечает на своём участке: вердикт, риск, уверенность, затем обоснования
+            с кодами причин.
+          </p>
+          <Opinions agentic={agentic} />
+        </section>
 
-      <JsonPanel title={`JSON: полная трасса агентного слоя. Событий: ${events.length}`}
-        value={agentic?.trace ?? payload.decision.trace} openTo={1} />
+        <section className="agents__sec">
+          <AgentFinal agentic={agentic} />
+        </section>
+
+        <section className="agents__sec">
+          <h3 className="agents__heading">
+            Сводка по участникам
+            {trace.length > 0 ? <span className="agents__count">{trace.length}</span> : null}
+          </h3>
+          {trace.length === 0 ? (
+            <Empty>Сводная трасса участников не передавалась.</Empty>
+          ) : (
+            <>
+              <p className="agents__lead">
+                Что каждый участник проверил и чем закончил. Высота карточки — по её содержимому;
+                разбор раскрывается на месте.
+              </p>
+              <div className="agents">
+                {trace.map((event) => (
+                  <AgentCard key={event.agent} event={event} />
+                ))}
+              </div>
+              {severity ? <SeverityBars factors={severity} /> : null}
+            </>
+          )}
+        </section>
+
+        <Note>
+          В трассе нет ни текста промптов, ни ключей, ни скрытых рассуждений: события несут только
+          сводку вызова и результата. Это решение по безопасности аудита, а не обрезанная выдача.
+        </Note>
+
+        <JsonPanel title={`JSON: полная трасса агентного слоя. Событий: ${events.length}`}
+          value={agentic?.trace ?? payload.decision.trace} openTo={1} />
+      </div>
     </Section>
   );
 }

@@ -1,11 +1,16 @@
 import type { AgentEvent, StageFacts } from "../run/types";
 import type { ProviderBand } from "../run/agentMeters";
 import type { OrchestratorAct } from "../run/agentActs";
+import type { OrchMove } from "../run/orchSteps";
 import { chronicle } from "../run/orchSteps";
 import { callMeter } from "../run/agentMeters";
 import { resolutionText } from "../run/agentVocab";
 import { AGENT_NAMES } from "../run/agentEvents";
 import { OrchTool } from "./OrchTool";
+
+function pad(value: number): string {
+  return value < 10 ? `0${value}` : String(value);
+}
 
 const FINAL_TEXT: Record<string, string> = {
   accepted: "ответ принят по схеме",
@@ -42,6 +47,32 @@ export interface OrchMovesProps {
   deterministic: boolean;
   facts: StageFacts | undefined;
   band: ProviderBand | null;
+  offset: number;
+}
+
+function MoveCall({ move, deterministic, band }: { move: OrchMove; deterministic: boolean;
+  band: ProviderBand | null }) {
+  const call = move.call;
+  if (call === null) return null;
+  const meter = callMeter(call, deterministic);
+  const origin = callOrigin(call, band);
+  const parts = [meter.latency, meter.usage, meter.finish].filter((part) => part !== "");
+  return (
+    <p className={`orch-move__call${meter.measured ? "" : " orch-move__call--unmeasured"}`}>
+      <span className="orch-move__seq">{pad(call.seq)}</span>
+      {meter.measured ? (
+        <>
+          обращение к модели
+          <span className="orch-move__meter">{parts.join(" · ")}</span>
+        </>
+      ) : (
+        <span className="orch-move__meter">
+          {deterministic ? "ход рассчитан политикой, модель не вызывалась" : parts.join(" · ")}
+        </span>
+      )}
+      {origin !== null ? <span className="orch-move__origin">{origin}</span> : null}
+    </p>
+  );
 }
 
 function callOrigin(event: AgentEvent, band: ProviderBand | null): string | null {
@@ -52,64 +83,59 @@ function callOrigin(event: AgentEvent, band: ProviderBand | null): string | null
   return `${provider ?? "провайдер не передан"} · ${model ?? "модель не передана"}`;
 }
 
-export function OrchMoves({ act, deterministic, facts, band }: OrchMovesProps) {
-  const log = chronicle(act, facts);
+export function OrchMoves({ act, deterministic, facts, band, offset }: OrchMovesProps) {
+  const log = chronicle(act, facts, offset);
   const name = AGENT_NAMES[log.agent] ?? log.agent;
+  const span = log.limit === null
+    ? "предел шагов сервер не передал"
+    : `предел ${log.limit} шагов на отрезок`;
+  const from = log.firstStep ?? 1;
+  const range = log.total <= 1 ? `ход ${pad(from)}` : `ходы ${pad(from)}–${pad(from + log.total - 1)}`;
+  const head = `${log.resumed ? "цикл продолжен" : "цикл рассуждения"}, ${range} · ${span}`;
 
   return (
-    <section className={`orch orch--${log.agent}`}>
-      <h4 className="orch__title">{name} работает циклом</h4>
+    <section className={`orch orch--${log.agent}${log.resumed ? " orch--resumed" : ""}`}
+      aria-label={`${name}: ${head}`}>
+      <h5 className="orch__title">{head}</h5>
       <ol className="orch__moves">
-        {log.moves.map((move) => {
-          const meter = move.call === null ? null : callMeter(move.call, deterministic);
-          return (
-            <li className="orch-move" key={move.key}>
-              <p className="orch-move__step">
-                {move.step === null
-                  ? "вне нумерации ходов"
-                  : log.limit === null
-                    ? `ход ${move.step}, предел ходов не передан`
-                    : `ход ${move.step} из ${log.limit}`}
-              </p>
-              <div className="orch-move__body">
-                {meter !== null && move.call !== null ? (
-                  <p className={`orch-move__call${meter.measured ? "" : " orch-move__call--unmeasured"}`}>
-                    <span className="orch-move__seq">№{move.call.seq}</span>
-                    обращение к модели
-                    <span className="orch-move__meter">
-                      {[meter.latency, meter.usage, meter.finish]
-                        .filter((part) => part !== "")
-                        .join(" · ")}
-                    </span>
-                    {callOrigin(move.call, band) !== null ? (
-                      <span className="orch-move__origin">{callOrigin(move.call, band)}</span>
-                    ) : null}
-                  </p>
-                ) : null}
+        {log.moves.map((move) => (
+          <li key={move.key}
+            className={`orch-move${move.bare ? " orch-move--bare" : ""}${
+              move.lone ? " orch-move--lone" : ""}`}>
+            <p className="orch-move__step">
+              <b>{pad(move.order)}</b>
+              ход
+              {move.step === null ? (
+                <span className="orch-move__raw">номера шага сервер не передал</span>
+              ) : (
+                <span className="orch-move__raw">шаг {pad(move.step)} в трассе</span>
+              )}
+            </p>
+            <div className="orch-move__body">
+              <MoveCall move={move} deterministic={deterministic} band={band} />
 
-                {move.tools.length > 0 ? (
-                  <ol className="orch-move__tools">
-                    {move.tools.map((tool) => <OrchTool key={tool.seq} event={tool} />)}
-                  </ol>
-                ) : null}
+              {move.tools.length > 0 ? (
+                <ol className="orch-move__tools">
+                  {move.tools.map((tool) => <OrchTool key={tool.seq} event={tool} />)}
+                </ol>
+              ) : null}
 
-                {move.resolutions.map((event) => (
-                  <Decision key={event.seq} event={event} text={resolutionText(event.decision)} />
-                ))}
-                {move.finals.map((event) => (
-                  <Decision key={event.seq} event={event}
-                    text={FINAL_TEXT[event.decision ?? ""] ?? event.decision ?? "итог без пометки"} />
-                ))}
-                {move.others.map((event) => (
-                  <p className="orch-move__other" key={event.seq}>
-                    событие {event.kind}
-                    {event.decision ? `: ${event.decision}` : ", без пометки решения"}
-                  </p>
-                ))}
-              </div>
-            </li>
-          );
-        })}
+              {move.resolutions.map((event) => (
+                <Decision key={event.seq} event={event} text={resolutionText(event.decision)} />
+              ))}
+              {move.finals.map((event) => (
+                <Decision key={event.seq} event={event}
+                  text={FINAL_TEXT[event.decision ?? ""] ?? event.decision ?? "итог без пометки"} />
+              ))}
+              {move.others.map((event) => (
+                <p className="orch-move__other" key={event.seq}>
+                  событие {event.kind}
+                  {event.decision ? `: ${event.decision}` : ", без пометки решения"}
+                </p>
+              ))}
+            </div>
+          </li>
+        ))}
       </ol>
     </section>
   );

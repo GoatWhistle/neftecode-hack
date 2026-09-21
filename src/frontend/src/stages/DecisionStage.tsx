@@ -43,14 +43,24 @@ export function DecisionStage({ payload, index, state, source, lamp, lampTitle, 
       <VerdictHead payload={payload} refused={refused} />
 
       {deployment === undefined ? (
-        <Note tone="warn">
-          Готовность к промышленному применению сервер не передавал: судить по этому прогону нельзя.
-        </Note>
+        <div className="gatebar">
+          <p className="gatebar__head">Готовность не подтверждена</p>
+          <p className="gatebar__text">
+            Готовность к промышленному применению сервер не передавал: судить по этому прогону нельзя.
+          </p>
+        </div>
       ) : !deployment.ready ? (
-        <Note tone="warn">
-          Промышленное применение пока заблокировано: {deployment.required_inputs.map((item) => item.label).join("; ")}.
-          Числа 4000 т и 30 т/ч остаются только сценарными допущениями.
-        </Note>
+        <div className="gatebar">
+          <p className="gatebar__head">Промышленное применение заблокировано</p>
+          <ul className="gatebar__list">
+            {deployment.required_inputs.map((item) => (
+              <li key={item.label}>{item.label}</li>
+            ))}
+          </ul>
+          <p className="gatebar__text">
+            Числа 4000 т и 30 т/ч остаются только сценарными допущениями.
+          </p>
+        </div>
       ) : null}
 
       {refused ? (

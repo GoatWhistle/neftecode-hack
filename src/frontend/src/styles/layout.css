@@ -26,10 +26,46 @@
 
 .work {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
-  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5) var(--space-6);
   align-items: start;
-  margin-block-start: var(--space-5);
+  margin-block: var(--space-5) var(--space-6);
+}
+
+.work__rail {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.work__rail > .progress {
+  margin: 0;
+  flex: 1 1 340px;
+  min-width: 0;
+  max-width: var(--measure);
+  border-radius: var(--radius-card);
+  border-color: var(--muted);
+  background: var(--paper);
+  padding: var(--space-3) var(--space-4);
+}
+
+.work__rail > .modeline {
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: var(--measure-lead);
+}
+
+.work[data-phase="answer"] {
+  grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
+}
+
+@media (min-width: 1900px) {
+  .work[data-phase="answer"] {
+    grid-template-columns: minmax(0, 1180px) minmax(360px, 1fr);
+  }
 }
 
 .work__lead {
@@ -42,10 +78,17 @@
 .work__side {
   min-width: 0;
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-5);
   align-content: start;
+}
+
+.work[data-phase="answer"] .work__side {
   position: sticky;
   top: calc(44px + var(--space-4));
+}
+
+.work[data-phase="answer"] .acon-wrap__grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .work__wide {
@@ -53,23 +96,47 @@
   min-width: 0;
 }
 
+.work__rail > .progress,
+.work__rail > .modeline {
+  animation: work-rail-in 220ms var(--ease) both;
+}
+
+.work__rail > .modeline {
+  animation-delay: 60ms;
+}
+
+@keyframes work-rail-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work__rail > .progress,
+  .work__rail > .modeline {
+    animation: none;
+  }
+}
+
 @media (max-width: 1180px) {
-  .work {
+  .work[data-phase="answer"] {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-5);
   }
 
-  .work__side {
+  .work[data-phase="answer"] .work__side {
     position: static;
   }
 }
 
 @media print {
-  .work {
+  .work,
+  .work[data-phase="answer"] {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .work__side {
+  .work[data-phase="answer"] .work__side {
     position: static;
   }
 }
