@@ -34,6 +34,7 @@ class DemoService:
     default_snapshot_key: str | None = None
     decision_timeout_s: float = 660.0
     cache: DecisionCache = field(default_factory=DecisionCache)
+    provenance: Callable[[], dict] = field(default=lambda: {"code": None, "model": None})
 
     def snapshot_options(self) -> list[tuple[str, str]]:
         options = [(snapshot_key(item), snapshot_title(item)) for item in reversed(self.snapshots)]
@@ -83,7 +84,7 @@ class DemoService:
         payload["snapshot"] = result.get("snapshot")
         payload["binding"] = result.get("binding")
         payload["decision_timeout_s"] = self.decision_timeout_s
-        payload["run_meta"] = build_run_meta(self.root, canonical, payload, self.snapshots, raw, snapshot_key)
+        payload["run_meta"] = build_run_meta(self.provenance(), canonical, payload, self.snapshots, raw, snapshot_key)
         return payload
 
     def loading_payload(self, name: str) -> dict:

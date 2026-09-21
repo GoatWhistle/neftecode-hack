@@ -60,7 +60,8 @@ function refusalLines(payload: ScreenPayload): VerdictLine[] {
       typeof step.available_in_hours === "number" && Number.isFinite(step.available_in_hours)
         ? ` (появится через ${step.available_in_hours} ч)`
         : "";
-    lines.push({ kind: "need", text: `Для повторного расчёта нужно: ${step.need}${wait}.` });
+    const caveat = step.caveat ? ` ${step.caveat}` : "";
+    lines.push({ kind: "need", text: `Для повторного расчёта нужно: ${step.need}${wait}.${caveat}` });
   }
   if (steps.length === 0) {
     lines.push({

@@ -1,4 +1,5 @@
 from functools import partial
+from neftecode.infrastructure.artifacts.provenance import code_version, model_version
 from pathlib import Path
 
 from neftecode.application.ports.live import ForecastBindingError
@@ -72,4 +73,5 @@ def make_demo_service(root: Path, budget: int = DEFAULT_BUDGET, out: Path | None
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
                                                                      snapshots, response_model, factory),
                        FileScenarioRepository(root / "config/scenarios"), budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
-                       decision_timeout_s=decision_wait_seconds(root))
+                       decision_timeout_s=decision_wait_seconds(root),
+                       provenance=lambda: {"code": code_version(str(root)), "model": model_version(str(root))})

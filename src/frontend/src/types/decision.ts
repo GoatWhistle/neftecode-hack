@@ -226,6 +226,116 @@ export interface DeploymentReadiness {
   required_inputs: DeploymentInput[];
 }
 
+export interface SeverityComponent {
+  term: string;
+  excess: number;
+  unit: string;
+  scale: number;
+  value: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface SeverityLimit {
+  kind: "passport" | "model_region" | "scenario";
+  label: string;
+  known: boolean;
+  unit?: string;
+  bounds?: number[];
+  bound?: number;
+  headroom?: number;
+  max_severity_index?: number;
+  index_headroom?: number;
+  note: string;
+}
+
+export interface SeverityProfileInfo {
+  version: string;
+  source: string;
+  origin: string;
+  reference_temp_c: number;
+  temp_scale_c: number;
+  reference_flow_m3h: number;
+  flow_scale_m3h: number;
+  applicability: string;
+}
+
+export interface SeverityMode {
+  available: boolean;
+  index: number | null;
+  reason?: string;
+  components?: SeverityComponent[];
+  profile_version?: string;
+  profile_id?: string;
+  profile?: SeverityProfileInfo;
+  temp_c?: number;
+  flow_m3h?: number;
+  limits?: SeverityLimit[];
+  scope?: string;
+}
+
+export interface SeverityBlock {
+  current: SeverityMode | null;
+  selected: SeverityMode | null;
+  current_inputs_origin?: Record<string, string>;
+  comparable: boolean;
+  delta: number | null;
+  rule: string;
+}
+
+export interface TradeoffPoint {
+  candidate_id: string;
+  production_t: number;
+  cost_per_tonne: number;
+  severity_index: number;
+  changes: number;
+  on_front: boolean;
+  dominated_by: string | null;
+  selected: boolean;
+  is_hold: boolean;
+  recipe: Record<string, number>;
+  throughput_tph: number | null;
+  additive_dose: number | null;
+  moves: Array<{ name: string; from: number; to: number }>;
+  gate_passed: boolean;
+  stress_checked: boolean;
+  robustness?: Record<string, number | boolean | null> | null;
+  equivalent_count: number;
+  equivalent_ids: string[];
+}
+
+export interface TradeoffMap {
+  version: string;
+  status: "ok" | "empty" | "unknown_metrics";
+  criteria: Array<{ key: string; label: string; unit: string; goal: "min" | "max" }>;
+  precision: number;
+  horizon_hours: number | null;
+  severity_profile: string | null;
+  pool: {
+    admissible: number;
+    comparable: number;
+    front: number;
+    front_distinct: number;
+    dominated: number;
+    distinct_points: number;
+    excluded_unknown: Array<{ candidate_id: string; missing: string[] }>;
+    excluded_unknown_count: number;
+    points_shown: number;
+    points_truncated: boolean;
+    evaluated: number | null;
+    search_budget: number | null;
+    rounds: number | null;
+  };
+  selected_id: string | null;
+  selected_on_front: boolean | null;
+  selection_note: string | null;
+  selection_reason: string | null;
+  hold: { id: string; admissible: boolean; note: string | null };
+  points: TradeoffPoint[];
+  scope: string;
+  stress_scope: string;
+}
+
 export interface Decision {
   status: string;
   reason: string;
@@ -250,4 +360,6 @@ export interface Decision {
   note: string | null;
   decision_id: string | null;
   agentic: Agentic | null;
+  severity?: SeverityBlock | null;
+  tradeoff?: TradeoffMap | null;
 }

@@ -18,6 +18,32 @@ export interface ScreenDefaults {
   [key: string]: unknown;
 }
 
+export interface RunMeta {
+  schema: string;
+  created_at: string | null;
+  conditions_requested: Record<string, unknown> | null;
+  conditions_applied: {
+    changes: Array<{ change: string; value: number | boolean; target?: string }>;
+    snapshot: string | null;
+    fault: string | null;
+    injection: string | null;
+    decision_time: string | null;
+  } | null;
+  input_fingerprint: string | null;
+  input_parts: Record<string, unknown> | null;
+  code: { commit: string | null; dirty: boolean | null; note: string | null } | null;
+  model: { response_model_sha256: string | null; training_fingerprint: string | null } | null;
+  provider: {
+    provider: string | null;
+    model: string | null;
+    deterministic_policy: boolean | null;
+    mode: string | null;
+    outcome: string | null;
+  } | null;
+  horizon_hours: number | null;
+  severity_profile: string | null;
+}
+
 export interface ScreenPayload {
   state: string;
   title: string;
@@ -32,6 +58,12 @@ export interface ScreenPayload {
   forecast: Forecast | null;
   forecast_used: boolean | null;
   defaults?: ScreenDefaults;
+  applied?: Array<{ change: string; value: number | boolean; target?: string }>;
+  injection?: string | null;
+  snapshot?: string | null;
+  binding?: Record<string, unknown> | null;
+  run_meta?: RunMeta | null;
+  decision_timeout_s?: number;
   agentic_state?: { mode: string; outcome: string; reason: string; note: string };
 }
 

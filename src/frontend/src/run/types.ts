@@ -1,4 +1,5 @@
 import type { ScreenPayload } from "../types";
+import type { RecordInfo } from "./hydrate";
 
 export type StageState = "pending" | "running" | "done" | "skipped" | "failed";
 
@@ -81,6 +82,7 @@ export interface RunState {
   lastFrameAt: number | null;
   error: string | null;
   live: boolean;
+  record: RecordInfo | null;
 }
 
 export const EMPTY_RUN: RunState = {
@@ -97,7 +99,8 @@ export const EMPTY_RUN: RunState = {
   serverMs: null,
   lastFrameAt: null,
   error: null,
-  live: false
+  live: false,
+  record: null
 };
 
 export function stageStateOf(run: RunState, id: string): StageState {

@@ -8,6 +8,8 @@ import { SCENARIO_LABEL } from "../run/orchRead";
 import { reachedState } from "../run/sequence";
 import { runProgress } from "../run/progress";
 import { useRun } from "../run/useRun";
+import type { PresetKey } from "../run/presets";
+import { PRESETS, PRESET_ORDER } from "../run/presets";
 import { Logo } from "../ui/Logo";
 import { OperatorAnswer } from "../ui/OperatorAnswer";
 import "../styles/presentation-mock.css";
@@ -18,46 +20,6 @@ const MODEL_BASIS_LABEL: Record<string, string> = {
   scenario_kinetics: "кинетика сценария",
   mass_balance: "материальный баланс"
 };
-
-type PresetKey = "normal" | "risk" | "bad-data";
-
-interface Preset {
-  label: string;
-  title: string;
-  note: string;
-  scenario: string;
-  snapshot: string;
-  fault: string;
-}
-
-const PRESETS: Record<PresetKey, Preset> = {
-  normal: {
-    label: "Норма",
-    title: "Не вмешиваться без причины",
-    note: "Устойчивый период: система должна обосновать сохранение режима.",
-    scenario: "baseline",
-    snapshot: "20260105-080000",
-    fault: "healthy"
-  },
-  risk: {
-    label: "Риск качества",
-    title: "Найти допустимый компромисс",
-    note: "Сернистое сырьё, задержка отклика и ограниченный резерв компонента.",
-    scenario: "sour_crude",
-    snapshot: "20260724-030000",
-    fault: "healthy"
-  },
-  "bad-data": {
-    label: "Плохие данные",
-    title: "Отказаться от рискованного совета",
-    note: "Лаборатория и поточный анализатор недоступны одновременно.",
-    scenario: "baseline",
-    snapshot: "20260416-101000",
-    fault: "both_broken"
-  }
-};
-
-const PRESET_ORDER: PresetKey[] = ["normal", "risk", "bad-data"];
 
 const BLANK: Conditions = {
   scenario: "",

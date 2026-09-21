@@ -14,7 +14,7 @@ export interface VerdictHeadProps {
 // CONFIRMED_SCOPE ("confirmed_model"), других значений backend не производит. Независимая проверка
 // нашла "synthetic_scenario" сырым текстом на основном экране.
 const SCOPE_TEXT: Record<string, string> = {
-  synthetic_scenario: "сценарные данные, не измерения завода",
+  synthetic_scenario: "сценарная рекомендация; часть входов задана допущениями — происхождение каждого числа указано рядом",
   confirmed_model: "подтверждено детерминированной моделью"
 };
 
@@ -93,7 +93,7 @@ export function ActionBlock({ payload, action }: ActionBlockProps) {
               return (
                 <li key={key} className="final__blend-row">
                   <span className="final__blend-name">{names[key] ?? key}</span>
-                  <span className="final__blend-share">{num(value, 3)}</span>
+                  <span className="final__blend-share">{num(value * 100, 1)} % масс.</span>
                   <span className="final__blend-stock">{line.text}</span>
                 </li>
               );

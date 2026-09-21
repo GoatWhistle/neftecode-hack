@@ -1,0 +1,62 @@
+/* Сцены, парное сравнение, протокол и запись (U1, U4) */
+.scenes { border: 1px solid var(--muted); border-radius: var(--radius-card); background: var(--paper); padding: var(--space-4) var(--space-5); margin-block: var(--space-4); }
+.scenes__head { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: baseline; justify-content: space-between; }
+.scenes__title { margin: 0; font-size: 22px; font-weight: 400; }
+.scenes__advanced, .whatif__link { font: inherit; font-size: 14px; background: none; border: 0; color: var(--accent-ink); text-decoration: underline; cursor: pointer; padding: 0; }
+.scenes__advanced:hover, .whatif__link:hover { color: var(--carbon); }
+.scenes__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.scenes__card { display: grid; gap: 2px; text-align: left; font: inherit; color: var(--text); background: var(--vellum); border: 1.5px solid var(--muted); border-radius: var(--radius-sm); padding: var(--space-3); cursor: pointer; transition: background var(--motion-hover) var(--ease); }
+.scenes__card:hover:not(:disabled) { background: var(--row-hover); }
+.scenes__card.is-active { border-color: var(--carbon); background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--carbon); }
+.scenes__card:disabled { opacity: 0.6; cursor: default; }
+.scenes__label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.scenes__name { font-weight: 500; }
+.scenes__note { color: var(--muted); font-size: 13px; }
+.scenes__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-top: var(--space-3); }
+.scenes__start, .whatif__btn, .protocol__btn { font: inherit; font-size: 15px; border-radius: var(--radius-pill); border: 1.5px solid var(--carbon); padding: 8px 20px; cursor: pointer; }
+.scenes__start, .whatif__btn { background: var(--carbon); color: var(--paper); }
+.protocol__btn { background: var(--paper); color: var(--carbon); }
+.scenes__start:disabled, .whatif__btn:disabled, .protocol__btn:disabled { opacity: 0.45; cursor: default; }
+.scenes__error { margin: var(--space-3) 0 0; color: var(--fail); }
+.protocol { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-left: auto; }
+.protocol__msg { margin: 0; font-size: 13px; color: var(--muted); }
+.protocol__msg--error { color: var(--fail); flex-basis: 100%; }
+
+.record-banner { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: baseline; border: 1.5px dashed var(--accent-line); background: var(--vellum); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-3); font-size: 14px; }
+.record-banner__badge { background: var(--accent-line); color: var(--paper); border-radius: var(--radius-pill); padding: 1px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.record-banner__note { color: var(--muted); flex-basis: 100%; font-size: 13px; }
+
+.answer-slot { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+.answer-slot .answer { margin-bottom: 0; }
+.whatif, .pair { border: 1px solid var(--muted); border-radius: var(--radius-card); background: var(--paper); padding: var(--space-4) var(--space-5); }
+.whatif__title, .pair__title { margin: 0; font-size: 18px; font-weight: 500; }
+.pair__title { font-size: 22px; font-weight: 400; }
+.whatif__head { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: baseline; justify-content: space-between; }
+.whatif__pinned { margin: 0; font-size: 14px; display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: baseline; }
+.whatif__lead { margin: var(--space-2) 0 var(--space-3); color: var(--muted); font-size: 14px; max-width: var(--measure); }
+.whatif__fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.whatif__field { display: grid; gap: 4px; font-size: 14px; align-content: start; }
+.whatif__field > span:first-child { color: var(--muted); }
+.whatif__field small { color: var(--muted); font-size: 12px; }
+.whatif__pair { display: flex; gap: var(--space-2); }
+.whatif__field select, .whatif__field input { font: inherit; border: 1.5px solid var(--muted); border-radius: var(--radius-sm); padding: 6px 8px; background: var(--paper); color: var(--text); min-width: 0; }
+.whatif__summary { margin: var(--space-3) 0; font-size: 14px; }
+
+.pair__kicker { margin: var(--space-3) 0 4px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.pair__diff, .pair__warn-list { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.pair__warn-list { color: var(--accent-ink); margin-top: var(--space-2); }
+.pair__warn { margin: var(--space-2) 0 0; color: var(--accent-ink); font-size: 14px; }
+.pair__wrap { overflow-x: auto; margin-top: var(--space-3); }
+.pair__table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.pair__table th, .pair__table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--field); vertical-align: top; }
+.pair__table thead th { color: var(--muted); font-weight: 500; }
+.pair__table tr.is-changed th, .pair__table tr.is-changed td { background: var(--vellum); }
+.pair__note { display: block; color: var(--accent-ink); font-size: 12px; }
+.pair__scope { margin: var(--space-3) 0 0; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .scenes, .whatif, .pair { padding: var(--space-3); }
+  .scenes__grid { grid-template-columns: minmax(0, 1fr); }
+  .protocol { margin-left: 0; }
+  .pair__table th, .pair__table td { padding: 6px 6px; }
+}
