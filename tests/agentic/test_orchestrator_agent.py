@@ -27,6 +27,44 @@ def test_keep_legacy_returns_the_legacy_decision_unchanged():
     assert decision["agentic"]["legacy_decision_id"] == decision["decision_id"]
 
 
+def test_keep_legacy_on_the_first_turn_is_a_short_two_event_run_not_an_anomaly():
+    """Регрессия T02/I4 (task-pool.md, problems.md #11): наблюдался прогон агентного этапа за
+    0,6 с с 2 событиями в трассе на той же модели, что и обычный прогон 2:11. Причина — не кэш,
+    не гонка потоков и не оборванный вызов: модель вправе вызвать finalize(keep_legacy) прямо на
+    первом шаге, не спрашивая специалистов (orchestrator.py не требует их согласия для этой ветки,
+    в отличие от refuse). Трасса тогда состоит ровно из двух событий: llm_call и final. Фиксируем
+    структуру такого прогона и явный диагностический маркер, который отличает его от сбоя."""
+    decision = agentic_decide("baseline", ScriptedLLM([finalize("keep_legacy", ("legacy_ok",))]))
+    trace = decision["agentic"]["trace"]
+    # Основа прогона — ровно то, что видели в браузере: один вызов модели и её финальный ответ.
+    # Третье событие — наш диагностический маркер (см. ниже), не ещё один вызов LLM.
+    assert [(e["agent"], e["kind"]) for e in trace[:2]] == [("orchestrator", "llm_call"), ("orchestrator", "final")]
+    assert decision["agentic"]["outcome"] == "confirmed_legacy"
+    assert decision["agentic"]["opinions"] == []
+    assert decision["agentic"]["keep_legacy_grounded"] is False
+    assert trace[-1]["decision"] == "keep_legacy_ungrounded"
+    assert trace[-1]["reason_codes"] == ["no_specialist_consultation"]
+
+
+def test_keep_legacy_after_a_consult_is_marked_grounded():
+    def consult_then_keep(role, messages, tools):
+        if role == "quality":
+            if not tool_results(messages):
+                return respond(call("get_quality_margins", candidate_id="hold"))
+            return respond(call("submit_opinion", verdict="OK", risk_level="low", confidence=0.8,
+                                evidence_refs=["get_quality_margins:hold"],
+                                candidate_verdicts={"hold": "OK"}, reasons=[]))
+        if not tool_results(messages):
+            return respond(call("ask_quality_agent", candidate_ids=["hold"]))
+        return finalize("keep_legacy", ("legacy_ok",), refs=("ask_quality_agent:hold",))
+
+    decision = agentic_decide("baseline", PolicyLLM(consult_then_keep))
+    assert decision["agentic"]["outcome"] == "confirmed_legacy"
+    assert decision["agentic"]["opinions"] != []
+    assert decision["agentic"]["keep_legacy_grounded"] is True
+    assert not any(e for e in decision["agentic"]["trace"] if e.get("decision") == "keep_legacy_ungrounded")
+
+
 def test_demo_policy_paths_differ_by_situation():
     calm = agentic_decide("baseline", demo_llm())
     sour = agentic_decide("sour_crude", demo_llm())

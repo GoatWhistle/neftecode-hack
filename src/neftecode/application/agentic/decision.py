@@ -143,6 +143,16 @@ class AgenticMakeDecision:
             return self._refuse(final, session, legacy, request, trace), "refused", None
         if final.action == "keep_legacy":
             if legacy_id is None or legacy_id in allowed:
+                if not opinions:
+                    # Диагностика T02/I4: оркестратор вправе завершиться keep_legacy без единой
+                    # консультации специалиста (orchestrator.py правило 4 говорит "если специалисты
+                    # согласны", но код это не проверяет) — тогда трасса состоит буквально из
+                    # llm_call + final и весь агентный этап занимает время одного вызова модели.
+                    # Это не сбой, не кэш и не гонка потоков: явно помечаем случай, чтобы такой
+                    # короткий прогон не выглядел как аномалия при аудите трассы.
+                    trace.add("system", 0, "resolution", decision="keep_legacy_ungrounded",
+                              reason_codes=("no_specialist_consultation",))
+                info["keep_legacy_grounded"] = bool(opinions)
                 return legacy, "confirmed_legacy", None
             trace.add("system", 0, "resolution", decision="legacy_excluded", candidate_ids=(legacy_id,),
                       reason_codes=("legacy_excluded_by_agents",))
