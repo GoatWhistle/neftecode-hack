@@ -94,6 +94,14 @@ def test_flag_off_demo_decision_is_byte_identical_to_legacy():
     assert "agentic" not in result["decision"]
 
 
+def test_flag_off_screen_marks_the_agent_stage_as_skipped():
+    result = run_demo_decision(raw("sour_crude"), {}, 400, TRUST_CFG,
+                               decision_factory=build_decision_factory({"AGENTIC_DECISION_ENABLED": "0"}))
+    state = result["screen"]["agentic_state"]
+    assert (state["mode"], state["outcome"], state["reason"]) == ("disabled", "skipped", "agents_disabled")
+    assert "agentic" not in result["screen"]["decision"]
+
+
 def test_flag_on_with_scripted_provider_runs_the_agent_layer(tmp_path):
     factory = build_decision_factory({"AGENTIC_DECISION_ENABLED": "1", "LLM_PROVIDER": "scripted"},
                                      dotenv_path=tmp_path / "missing.env")
@@ -102,6 +110,8 @@ def test_flag_on_with_scripted_provider_runs_the_agent_layer(tmp_path):
     decision = result["decision"]
     assert decision["agentic"]["outcome"] == "selected"
     assert result["screen"]["status_label"]
+    assert "agentic_state" not in result["screen"]
+    assert result["screen"]["decision"]["agentic"] == decision["agentic"]
     json.dumps(clean(decision), ensure_ascii=False)
 
 

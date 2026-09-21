@@ -9,7 +9,7 @@ from neftecode.domain.production.inventory import initial_state
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.infrastructure.artifacts import write_json
 from neftecode.infrastructure.config.scenario import load_scenario, parse_scenario
-from neftecode.presentation.web.ui import STATES, Screen, UiError, error_payload
+from neftecode.presentation.web.ui import AGENTS_SKIPPED, STATES, Screen, UiError, error_payload
 
 SCENARIOS = Path("config/scenarios")
 BUDGET = 300
@@ -31,6 +31,21 @@ def test_the_payload_carries_the_decision_itself():
     _, decision, payload = built()
     assert payload["decision"]["decision_id"] == decision["decision_id"]
     assert payload["decision"]["production_t"] == decision["production_t"]
+
+
+def test_without_the_agent_layer_the_agent_stage_is_explicitly_skipped():
+    _, decision, payload = built()
+    assert "agentic" not in decision
+    assert payload["agentic_state"] == AGENTS_SKIPPED
+    assert payload["decision"] is decision
+
+
+def test_with_the_agent_layer_the_payload_keeps_its_old_shape():
+    _, decision, _ = built()
+    agentic = {"mode": "agentic", "outcome": "selected", "fallback_reason": None}
+    payload = Screen({**decision, "agentic": agentic}, {}).payload()
+    assert "agentic_state" not in payload
+    assert payload["decision"]["agentic"] == agentic
 
 
 def test_the_payload_is_pure_json():

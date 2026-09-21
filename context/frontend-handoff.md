@@ -85,3 +85,70 @@ Vite/React в этом проекте), чтобы `npm test` запускалс
   отсутствующего признака — как у некалиброванного.
 
 Статус: сервер — готово (поля в payload, тесты `tests/agentic`); фронт — ⏳ ожидает.
+
+## O2 — явное состояние агентов
+
+Источник: `context/task-pool.md`, этап 2, O2; `context/problems.md` #7.
+
+Задача (фронт): при выключенных агентах этап 07 «Агенты» показывается как «пропущено», лампа не
+горит «пройден», а режим агентов не выдаётся за работу LLM.
+
+Критерий готовности: при `AGENTIC_DECISION_ENABLED=0` стадия 07 в состоянии `skipped`, лампа не
+`pass`, заголовок режима — «агентный режим выключен», а не «отказ на проверке данных» и не
+«Внешняя LLM».
+
+Как было. При `AGENTIC_DECISION_ENABLED=0` ключа `decision.agentic` в payload нет вовсе (на фронте
+`payload.decision.agentic === undefined`). `stageRan("agents")` возвращает `true`, `agentsLamp`
+видит 8 детерминированных участников в `decision.trace` и горит `pass`.
+
+Контракт (сервер, сделано). Новое поле верхнего уровня экрана, рядом с `decision`, а не внутри него:
+
+- поле: `payload.agentic_state`;
+- тип: `{ mode: "disabled"; outcome: "skipped"; reason: "agents_disabled"; note: string } | undefined`;
+- есть только тогда, когда агентный слой не участвовал (`decision.agentic` отсутствует); когда агенты
+  работали, поля нет, состояние по-прежнему в `decision.agentic` (там ничего не менялось);
+- сервер: `src/neftecode/presentation/web/ui.py` (`AGENTS_SKIPPED`, `agentic_state`, `Screen.payload`) —
+  одинаково для demo, stack (gateway), `advise` и `screen`.
+
+```json
+{
+  "state": "decision",
+  "decision": { "status": "hold", "trace": [ ... ] },
+  "agentic_state": {
+    "mode": "disabled",
+    "outcome": "skipped",
+    "reason": "agents_disabled",
+    "note": "Агентный слой не участвовал (выключен, AGENTIC_DECISION_ENABLED=0): решение принял детерминированный код, LLM не вызывалась"
+  }
+}
+```
+
+Почему не `decision.agentic = {...}` и не `decision.agentic_state`. `decision` при выключенных агентах
+обязан совпадать с детерминированным ядром побитово (`test_flag_off_demo_decision_is_byte_identical_to_legacy`)
+и по составу ключей (`test_http_payload_keeps_the_decision_json_shape`). И объект в `decision.agentic`
+фронт сейчас прочитал бы неверно: `run/mode.ts` (`modeOf`) показал бы «Внешняя LLM: провайдер не задан»,
+`ui/AgenticMode.tsx` (`toneOf`) — «отказ на проверке данных» (outcome `skipped` проверяется раньше).
+Отдельное поле ничего из старого не ломает: пока фронт его не читает, экран такой же, как до O2.
+
+Что поменять на фронте:
+
+1. `src/frontend/src/types/index.ts` — добавить в `ScreenPayload` необязательное
+   `agentic_state?: { mode: string; outcome: string; reason: string; note: string }`.
+2. `src/frontend/src/run/sequence.ts`, `stageRan`, ветка `"agents"` — первой строкой
+   `if (payload.agentic_state?.outcome === "skipped") return false;`. Отсюда этап получает `skipped`
+   и в `run/useRun.ts`, и в `run/progress.ts`.
+3. `src/frontend/src/stages.ts`, `agentsLamp` — до разбора трассы:
+   `if (payload.agentic_state) return { lamp: "unknown", title: "агенты выключены" };`
+   (8 участников в `decision.trace` — детерминированное ядро, не агенты).
+4. `src/frontend/src/ui/AgenticMode.tsx` — при `!agentic && agentic_state?.mode === "disabled"` вместо
+   «Режим работы агентов не передавался» показать тон `off` и `agentic_state.note`
+   (компоненту нужно передать `agentic_state` из `stages/AgentsStage.tsx`).
+5. `src/frontend/src/run/mode.ts`, `modeOf` — при `agentic === null && payload.agentic_state` вернуть
+   «Агенты выключены» вместо «Режим не передан».
+6. `src/frontend/src/map/nodeFacts.ts`, `agentsCaption` — при `agentic_state` подпись
+   `не привлекались · агенты выключены`.
+
+Проверка на сервере: `AGENTIC_DECISION_ENABLED=0` → `agentic_state.outcome == "skipped"`, `decision.agentic`
+нет; агенты включены (`LLM_PROVIDER=scripted`) → `agentic_state` нет, `decision.agentic` как раньше.
+
+Статус: сервер готов; ⏳ ожидает фронта.

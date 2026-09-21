@@ -38,12 +38,12 @@
 |---|---|---|---|---|---|
 | O1 | Backend отдаёт `source` каждого значения плана (сервер) | ⏳ ожидает | | | |
 | O1-фронт | Подпись = `source` | ⏳ ожидает | | | |
-| O2 | `agentic == null` → «пропущено» (сервер) | ⏳ ожидает | | | |
-| N1 | Сервер: признак некалиброванной самооценки у `confidence` (владелец добавил 21.09) | ✅ выполнено | `<см. след. коммит>` | `CONFIDENCE_LABEL` (`confidence_kind: llm_self_report`, `confidence_calibrated: false`) в `Opinion.to_dict` и `opinion_summary` — доходит до `agentic.opinions[]` экрана, трассы и ответа оркестратору; от LLM поле не требуется (`OPINION_FIELDS` без изменений); `confidence` в логике решения не используется. 2 новых теста; `uv run pytest -q tests/agentic tests/presentation` — 389 passed; в worktree полный — 1372 passed, 2 skipped | 2026-09-21 |
+| O2 | `agentic == null` → «пропущено» (сервер) | ✅ выполнено | `<см. след. коммит>` | При отключённых агентах ключа `decision.agentic` нет (не `null`); `decision` заморожен побитово, поэтому явное состояние — новое поле экрана `agentic_state = {mode: disabled, outcome: skipped, reason, note}` (`presentation/web/ui.py`, `Screen.payload`), при включённых агентах поля нет. Реальный `decide` baseline: `=0` → `skipped`, `scripted` → `decision.agentic` без изменений. 5 новых тестов; полный `LLM_PROVIDER=scripted uv run pytest -q` (N1+O2 на main) — 1377 passed | 2026-09-21 |
+| N1 | Сервер: признак некалиброванной самооценки у `confidence` (владелец добавил 21.09) | ✅ выполнено | `a804e3f` | `CONFIDENCE_LABEL` (`confidence_kind: llm_self_report`, `confidence_calibrated: false`) в `Opinion.to_dict` и `opinion_summary` — доходит до `agentic.opinions[]` экрана, трассы и ответа оркестратору; от LLM поле не требуется (`OPINION_FIELDS` без изменений); `confidence` в логике решения не используется. 2 новых теста; `uv run pytest -q tests/agentic tests/presentation` — 389 passed; в worktree полный — 1372 passed, 2 skipped | 2026-09-21 |
 | N1-фронт | Убрать число «уверенности» | 📤 передано фронту | | `frontend-handoff.md`, раздел «N1 — самооценка уверенности агента» | 2026-09-21 |
 | N2 | Сервер: `controllable` и `model_basis` у блоков цепочки (владелец добавил 21.09) | ⏳ ожидает | | | |
 | N2-фронт | Управляемость блоков на схеме | ⏳ ожидает | | | |
-| O2-фронт | Этап «пропущено» | ⏳ ожидает | | | |
+| O2-фронт | Этап «пропущено» | 📤 передано фронту | | `frontend-handoff.md`, раздел «O2 — явное состояние агентов» | 2026-09-21 |
 | O3 | Контрактные тесты фронта | ⏳ ожидает | | | |
 | O4 | Подпись «Остановить отображение» до A7 | ⏳ ожидает | | | |
 
