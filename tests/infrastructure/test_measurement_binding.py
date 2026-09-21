@@ -75,6 +75,24 @@ def test_without_a_temperature_reading_the_setpoint_stays_scenario_and_is_not_ad
     assert temps <= {348.0}, "без измерения температура не варьируется"
 
 
+def test_a_measured_t6_without_a_measured_f9_does_not_open_the_setpoint_range():
+    # Дефект #3 (пул I2): T6 измерен и внутри диапазона исследования, но F9 не измерен —
+    # ход T6 не должен предлагаться, потому что область применимости модели отклика
+    # зависит от F9, а сценарный F9 не подтверждает применимость.
+    bound = bind_measurements(raw(), measured(t6=367.8, f9=None), DENSITY, response(), forecast())
+    temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
+    assert temp["current"]["source"] == "measured"
+    assert temp["current"]["value"] == pytest.approx(367.8)
+    assert temp["min"]["value"] == temp["max"]["value"] == temp["current"]["value"] == pytest.approx(367.8)
+    assert temp["min"]["source"] == "scenario"
+    assert "F9 не измерен" in temp["min"]["note"]
+    assert "ход T6 не разрешён: ht.F9 не измерен" in bound["measurement_binding"]["notes"]
+    assert ht(bound)["model"]["provenance"] == "scenario"
+    plans, _ = PlanOperation(parse_scenario(bound)).build_plans(budget=60)
+    temps = {step.controls.get("ht_reactor_inlet_temp_c") for plan in plans for step in plan.steps}
+    assert temps <= {367.8}, "без измеренного F9 T6 не варьируется, несмотря на измеренный T6 в области"
+
+
 def test_outside_the_studied_region_the_measurement_is_kept_but_no_numeric_advice_is_given():
     bound = bind_measurements(raw(), measured(t6=296.8, f9=156.0), DENSITY, response(), forecast())
     temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
@@ -90,6 +108,77 @@ def test_outside_the_studied_region_the_advice_carries_an_explicit_warning():
     warnings = bound["measurement_binding"]["warnings"]
     assert len(warnings) == 1 and "ht.T6 = 296.8" in warnings[0] and "ht.F9" not in warnings[0]
     assert bind_measurements(raw(), measured(), DENSITY, response(), forecast())["measurement_binding"]["warnings"] == []
+
+
+def test_t6_above_the_upper_bound_of_the_studied_region_also_closes_the_range():
+    # I3: t6 вне области применимости отклика сверху (диапазон [342.9, 386.1]); F9 в области.
+    # Симметрично уже покрытому случаю "ниже нижней границы" — код использует одну и ту же
+    # проверку _in_range для обеих сторон, но обе стороны должны быть явно накрыты тестами.
+    bound = bind_measurements(raw(), measured(t6=390.0, f9=206.1), DENSITY, response(), forecast())
+    temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
+    assert temp["current"]["source"] == "measured"
+    assert temp["min"]["value"] == temp["max"]["value"] == pytest.approx(390.0)
+    assert temp["min"]["source"] == "scenario"
+    assert "вне области" in temp["min"]["note"]
+    warnings = bound["measurement_binding"]["warnings"]
+    assert len(warnings) == 1 and "ht.T6 = 390" in warnings[0] and "ht.F9" not in warnings[0]
+
+
+def test_f9_outside_its_own_range_closes_t6_even_when_t6_itself_is_in_range():
+    # I3: T6 внутри своего диапазона, но F9 вне f9_range_tph — область применимости отклика по T6
+    # определяется совместно (t6_range И f9_range), поэтому ход всё равно не открывается,
+    # а предупреждение должно называть именно F9, а не T6.
+    bound = bind_measurements(raw(), measured(t6=367.8, f9=260.0), DENSITY, response(), forecast())
+    temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
+    assert temp["current"]["source"] == "measured"
+    assert temp["min"]["value"] == temp["max"]["value"] == pytest.approx(367.8)
+    assert temp["min"]["source"] == "scenario"
+    assert "вне области" in temp["min"]["note"]
+    assert ht(bound)["model"]["provenance"] == "scenario"
+    warnings = bound["measurement_binding"]["warnings"]
+    assert len(warnings) == 1
+    assert "ht.F9 = 260" in warnings[0] and "ht.T6" not in warnings[0]
+
+
+@pytest.mark.parametrize("t6, f9", [(342.9, 150.3), (386.1, 256.7)])
+def test_values_exactly_on_the_studied_region_boundary_stay_in_region(t6, f9):
+    # I3: границы диапазона включены (_in_range использует <=), обе стороны диапазона должны
+    # открывать ход, а не только внутренние точки.
+    bound = bind_measurements(raw(), measured(t6=t6, f9=f9), DENSITY, response(), forecast())
+    temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
+    assert temp["current"]["source"] == "measured"
+    assert temp["min"]["source"] == temp["max"]["source"] == "derived"
+    assert temp["min"]["value"] == pytest.approx(t6 - 2.0)
+    assert temp["max"]["value"] == pytest.approx(t6 + 2.0)
+    assert ht(bound)["model"]["provenance"] == "derived"
+    assert bound["measurement_binding"]["warnings"] == []
+
+
+def test_without_a_measured_f9_the_feed_flow_setpoint_stays_scenario_and_is_not_advised():
+    # I3: ветка ht_feed_flow_m3h при f9 is None (строки 131-136 binding.py) — раньше проверялся
+    # только эффект отсутствия F9 на ход T6 (I2), но не собственная ветка расхода.
+    bound = bind_measurements(raw(), measured(f9=None), DENSITY, response(), forecast())
+    flow = ht(bound)["controls"]["ht_feed_flow_m3h"]
+    assert flow["current"]["source"] == "scenario"
+    assert flow["current"]["value"] == pytest.approx(256.0)
+    assert flow["min"]["value"] == flow["max"]["value"] == flow["current"]["value"] == pytest.approx(256.0)
+    assert "измерение отсутствует, числовая уставка не предлагается" in flow["min"]["note"]
+    assert "ht.F9: измерение отсутствует" in bound["measurement_binding"]["notes"]
+
+
+@pytest.mark.parametrize("tag_kwargs", [{"t6": math.nan}, {"f9": math.nan}])
+def test_a_present_but_non_finite_reading_is_treated_as_not_measured(tag_kwargs):
+    # I3, «источник вне доверия»: в текущем коде bind_measurements/_reading нет отдельного понятия
+    # доверия к источнику T6/F9 (нет stale/invalid-флага для отдельного измерения на этом слое) —
+    # устаревшие по возрасту точки уже отфильтрованы раньше, в measurements_at (age > max_age -> None).
+    # Единственная проверка внутри bind_measurements — это конечность значения (_finite_number).
+    # Нефинитное (NaN) значение при этом трактуется так же, как отсутствующее измерение (та же ветка
+    # кода, что и tag is None) — фиксируем это тестом, а не выдумываем отдельную ветку "не в доверии".
+    bound_nan = bind_measurements(raw(), measured(**tag_kwargs), DENSITY, response(), forecast())
+    none_kwargs = {k: None for k in tag_kwargs}
+    bound_none = bind_measurements(raw(), measured(**none_kwargs), DENSITY, response(), forecast())
+    assert ht(bound_nan)["controls"] == ht(bound_none)["controls"]
+    assert ht(bound_nan)["model"]["provenance"] == ht(bound_none)["model"]["provenance"] == "scenario"
 
 
 def test_feed_flow_is_the_measured_mass_flow_converted_by_density_and_not_varied():

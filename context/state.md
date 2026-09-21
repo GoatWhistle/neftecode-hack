@@ -407,3 +407,22 @@ payload несёт только до пяти ближайших альтерн�
 `no_feasible` (confirmed_legacy при отказе — нейтральный тон, сравнения нет). Плюс два
 зафиксированных payload: scripted с непустыми opinions и fallback по исчерпанной квоте Z.AI.
 `npm run build` (tsc + vite) проходит.
+
+## Этап 0 пула задач закрыт (2026-09-21)
+
+Работа по `context/agent-prompt.md` и `context/task-pool.md`. Все 9 задач этапа 0 (Z0–Z8)
+выполнены, детали и коммиты — `context/task-progress.md`. README.md и PIPELINE_PLAN.md
+заменены на локальные версии из `stash@{0}` (стал честнее и короче старого английского
+README). `problems.md` обновлён: #4/#5 закрыты, #7 частично, добавлены #10 (стек 404
+`/api/stream`) и #11 (T02). `organizer-clarifications.md`/`parameters.json` получили
+given-факты резервуара (5000 м³, паспорт 12 ч, слив 24 ч, ответ 21.09.2026).
+
+Z4 и Z5 намеренно оставляют `pytest` красным: это регрессионные тесты, фиксирующие
+дефект #1 (прогноз не пересчитывается после инъекции отказа ПАК) на двух путях —
+`tests/architecture/test_path_equivalence.py` (demo/gateway расходятся с live) и
+`tests/infrastructure/test_snapshots.py` (срез 24.07 + `frozen_pak` должен дать hold
+по `catboost_no_pak`, а даёт план по устаревшему `last_pak_bc`). Зачинит их I1 этапа 1.
+Полный прогон: 3 failed (эти два теста), 1357 passed, 2 skipped (skip не связаны).
+
+Следующий шаг — этап 1 (I1–I4): I1 чинит саму регрессию, после чего Z4/Z5 обязаны
+позеленеть без изменений в тестах.

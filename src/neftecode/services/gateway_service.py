@@ -8,7 +8,8 @@ from pathlib import Path
 
 from neftecode.presentation.demo import (SOURCE_FAULTS, apply_change, healthy_state, apply_source_failure,
                                          snapshot_key, snapshot_title, state_origin_label)
-from neftecode.infrastructure.live.snapshots import load_snapshots
+from neftecode.application.services.trust import DataTrustAgent
+from neftecode.infrastructure.live.snapshots import load_snapshots, select_forecast_dict
 from neftecode.presentation.web.server import (FIRST_SNAPSHOT, DecisionCache, DemoServerError,
                                                as_query, cache_key, canonical_conditions, changes_from, defaults_for)
 from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_static_dir
@@ -103,11 +104,13 @@ class GatewayService:
                                    "snapshot": chosen},
                                   timeout_s=self.decision_timeout_s, headers={"X-Request-ID": request_id})
         result = env.data
+        active_forecast = (select_forecast_dict(chosen, DataTrustAgent(self.trust_cfg).assess(state))
+                           if chosen is not None else None)
         screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", []),
                         rule_origin=result.get("trust_origin", self.trust_origin),
                         state_origin=state_origin_label(state, chosen),
                         decision_time=state.get("decision_time"),
-                        forecast=(chosen or {}).get("forecast"),
+                        forecast=active_forecast,
                         forecast_used=((result.get("binding") or {}).get("measurement_binding") is not None)
                         if chosen is not None else None).payload()
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")

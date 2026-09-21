@@ -16,7 +16,7 @@ from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenar
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.application.use_cases.get_live_advice import binding_summary, decision_context
 from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder, load_response_model
-from neftecode.infrastructure.live.snapshots import bind_snapshot
+from neftecode.infrastructure.live.snapshots import bind_snapshot, select_forecast_dict
 from neftecode.evaluation.robustness import RobustnessCheck
 from neftecode.evaluation.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
@@ -107,13 +107,15 @@ class DecisionService:
         if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
             raise ServiceError("budget должен быть положительным целым", 422, "invalid_budget")
         evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
+        trust_for_forecast = DataTrustAgent(trust_cfg).assess(state or {})
+        active_forecast = select_forecast_dict(snapshot, trust_for_forecast) if snapshot is not None else None
         maker = (MakeDecision(scenario, robustness_evaluator=evaluator,
                               tank_estimate_factory=default_tank_estimate_factory, scenario_parser=parse_scenario)
                  if self.decision_factory is None
                  else self.decision_factory(scenario, evaluator, tank_estimate_factory=default_tank_estimate_factory,
                                             scenario_parser=parse_scenario) if snapshot is None
                  else self.decision_factory(scenario, evaluator,
-                                            decision_context(snapshot.get("at"), snapshot.get("forecast"), raw),
+                                            decision_context(snapshot.get("at"), active_forecast, raw),
                                             tank_estimate_factory=default_tank_estimate_factory,
                                             scenario_parser=parse_scenario))
         decision = maker.decide(state=state or {}, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)

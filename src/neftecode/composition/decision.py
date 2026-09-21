@@ -15,7 +15,7 @@ from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenar
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.live.advisor import load_response_model
 from neftecode.infrastructure.llm.config import decision_wait_seconds
-from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots
+from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots, select_forecast_dict
 from neftecode.presentation.demo import Demo, state_origin_label
 from neftecode.presentation.web.server import DemoService
 from neftecode.presentation.web.ui import Screen, error_payload
@@ -34,6 +34,7 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
                 "screen": error_payload(str(exc))}
     emit("phase", key="scenario", state="done")
     trust = DataTrustAgent(trust_cfg).assess(state)
+    active_forecast = select_forecast_dict(snapshot, trust) if snapshot is not None else None
     emit("stage", stage="state", inventories={key: value.inventory_t
                                               for key, value in initial_state(scenario).items()})
     emit("stage", stage="trust", sources=[source.to_dict() for source in trust.sources.values()],
@@ -42,7 +43,7 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
     evaluator = RobustnessCheck(scenario, raw, scenario_parser=parse_scenario)
     maker = (factory(scenario, evaluator, tank_estimate_factory=default_tank_estimate_factory,
                      scenario_parser=parse_scenario) if snapshot is None else
-             factory(scenario, evaluator, decision_context(snapshot.get("at"), snapshot.get("forecast"), raw),
+             factory(scenario, evaluator, decision_context(snapshot.get("at"), active_forecast, raw),
                     tank_estimate_factory=default_tank_estimate_factory, scenario_parser=parse_scenario))
     emit("phase", key="solving", state="running")
     decision = maker.decide(state=state, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw)
@@ -55,8 +56,8 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
         rule_origin=trust_origin,
         state_origin=state_origin_label(state, snapshot),
         decision_time=state.get("decision_time"),
-        forecast=(snapshot or {}).get("forecast"),
-        forecast_used=(bool(trust.usable and ((snapshot or {}).get("forecast") or {}).get("available"))
+        forecast=active_forecast,
+        forecast_used=(bool(trust.usable and (active_forecast or {}).get("available"))
                        if snapshot is not None else None),
     ).payload()
     return {"ok": True, "rejected": False, "scenario_id": scenario.scenario_id,
