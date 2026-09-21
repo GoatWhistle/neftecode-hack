@@ -4,6 +4,7 @@ from neftecode.application.ports.llm import LLMClient, ToolSpec
 
 from .budget import AgentBudget
 from .context import build_context
+from .contract_opinions import CONFIDENCE_LABEL
 from .contracts import AgentSettings, Opinion, OrchestratorFinal, compact, parse_final
 from .loop import AgentTrace, LoopResult, run_tool_loop
 from .quality import QualityAgent
@@ -44,7 +45,7 @@ CONSULT_SCHEMA = {"type": "object", "additionalProperties": False, "required": [
 
 def opinion_summary(opinion: Opinion) -> dict:
     return {"role": opinion.role, "verdict": opinion.verdict, "risk_level": opinion.risk_level,
-            "confidence": opinion.confidence, "valid": opinion.valid,
+            "confidence": opinion.confidence, **CONFIDENCE_LABEL, "valid": opinion.valid,
             "reasons": [{"code": r.code, "text": r.text[:200], "candidate_id": r.candidate_id} for r in opinion.reasons],
             "candidate_verdicts": dict(opinion.candidate_verdicts),
             "proposed_constraints": [c.to_dict() for c in opinion.proposed_constraints],

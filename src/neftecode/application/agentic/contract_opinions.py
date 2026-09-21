@@ -79,6 +79,11 @@ class ReasonItem:
         return {"code": self.code, "text": self.text, "candidate_id": self.candidate_id}
 
 
+# Уверенность мнения — самооценка LLM, а не вероятность: её никто не калибровал по исходам.
+# Признак ставит сервер рядом с числом; от LLM это поле не требуется и в OPINION_FIELDS не входит.
+CONFIDENCE_LABEL = {"confidence_kind": "llm_self_report", "confidence_calibrated": False}
+
+
 @dataclass(frozen=True)
 class Opinion:
 
@@ -106,7 +111,7 @@ class Opinion:
     def to_dict(self) -> dict:
         return {"role": self.role, "verdict": self.verdict, "risk_level": self.risk_level,
                 "reasons": [r.to_dict() for r in self.reasons], "confidence": self.confidence,
-                "requested_checks": list(self.requested_checks),
+                **CONFIDENCE_LABEL, "requested_checks": list(self.requested_checks),
                 "proposed_constraints": [c.to_dict() for c in self.proposed_constraints],
                 "rejected_constraints": list(self.rejected_constraints),
                 "preferred_candidates": list(self.preferred_candidates),

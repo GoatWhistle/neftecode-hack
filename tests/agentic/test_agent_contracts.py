@@ -5,7 +5,7 @@ import pytest
 
 from neftecode.application.agentic.budget import AgentBudget, BudgetExhausted
 from neftecode.application.agentic.contracts import (AgentConstraint, AgentSettings, AgentTraceEvent,
-                                                      ContractViolation, Opinion, compact, extract_json_object,
+                                                      ContractViolation, OPINION_FIELDS, Opinion, compact, extract_json_object,
                                                       parse_constraint, parse_constraints, parse_final, parse_opinion)
 
 CANDIDATES = ("hold", "c0025")
@@ -124,6 +124,15 @@ def test_long_text_is_truncated_not_trusted():
 def test_unknown_opinion_is_marked_invalid():
     unknown = Opinion.unknown("quality", "llm_error_timeout", "timeout")
     assert unknown.verdict == "UNKNOWN" and unknown.valid is False and unknown.vetoed == ()
+
+
+def test_confidence_is_labelled_as_uncalibrated_self_report_by_the_server():
+    # N1: число уверенности — самооценка LLM, не вероятность. Признак ставит сервер, от LLM он не требуется.
+    parsed = parse_opinion("quality", opinion(), candidates=CANDIDATES, evidence=EVIDENCE)
+    for item in (parsed.to_dict(), Opinion.unknown("quality", "llm_error_timeout", "timeout").to_dict()):
+        assert item["confidence_kind"] == "llm_self_report" and item["confidence_calibrated"] is False
+    assert parsed.to_dict()["confidence"] == 0.7
+    assert not {"confidence_kind", "confidence_calibrated"} & OPINION_FIELDS
 
 
 
