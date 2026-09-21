@@ -1,8 +1,8 @@
 import type { NodeRect } from "./useNodeRects";
 
-export const INSET = 3;
+export const INSET = 2;
 export const ARROW = 8;
-export const LOOP_REACH = 22;
+export const LOOP_REACH = 30;
 export const EXIT_DROP = 44;
 export const LANE = 16;
 
@@ -106,8 +106,8 @@ export function betweenRows(from: NodeRect, to: NodeRect): Array<[number, number
 export function loopPath(rect: NodeRect): Array<[number, number]> {
   const edge = round(rect.left + rect.width);
   const out = round(edge + LOOP_REACH);
-  const upper = round(rect.top + rect.height * 0.34);
-  const lower = round(rect.top + rect.height * 0.66);
+  const upper = round(rect.top + rect.height * 0.26);
+  const lower = round(rect.top + rect.height * 0.74);
   return [
     [edge + INSET, lower],
     [out, lower],

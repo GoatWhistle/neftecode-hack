@@ -20,7 +20,6 @@
   contain: none;
 }
 
-.stages > .stage:first-of-type,
-.stages > .config:first-child {
+.stages > .stage:first-of-type {
   padding-block-start: var(--space-5);
 }

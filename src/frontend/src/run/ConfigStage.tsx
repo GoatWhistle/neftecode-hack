@@ -16,6 +16,7 @@ export interface ConfigStageProps {
   onScenario: (name: string) => void;
   onStart: () => void;
   onReset: () => void;
+  onReopen: () => void;
   onRetry?: () => Promise<boolean>;
   pending?: boolean;
 }
@@ -29,12 +30,12 @@ export function ConfigStage({
   onScenario,
   onStart,
   onReset,
+  onReopen,
   onRetry,
   pending
 }: ConfigStageProps) {
   const [retrying, setRetrying] = useState(false);
   const [retryFailed, setRetryFailed] = useState(false);
-  const [reopened, setReopened] = useState(false);
   const retry = useCallback(() => {
     if (!onRetry) return;
     setRetrying(true);
@@ -47,31 +48,14 @@ export function ConfigStage({
 
   const running = status === "running";
   const waiting = running && pending === true;
-  const folded = options !== null && status !== "idle" && !reopened;
   const tank = options?.defaults.tanks.find((item) => item.id === conditions.tank) ?? null;
 
-  const launch = useCallback(() => {
-    setReopened(false);
-    onStart();
-  }, [onStart]);
-
-  const reopen = useCallback(() => {
-    setReopened(true);
-    onReset();
-  }, [onReset]);
-
   return (
-    <section id="config" className={`config ${folded ? "config--folded" : ""}`}>
-      <header className="config__head">
-        <span className="config__step">0</span>
-        <h2 className="config__title">Условия прогона</h2>
-        {folded ? null : (
-          <p className="config__lead">
-            Соберите условия и запустите расчёт. Остальные восемь этапов появятся по мере того, как
-            сервер их отдаст: пока запуска не было, показывать там нечего.
-          </p>
-        )}
-      </header>
+    <section id="config" className="config">
+      <p className="config__lead">
+        Соберите условия и запустите расчёт. Остальные восемь этапов схемы появятся по мере того,
+        как сервер их отдаст: пока запуска не было, показывать там нечего.
+      </p>
 
       {options === null ? (
         <div className="config__offline">
@@ -93,89 +77,77 @@ export function ConfigStage({
           ) : null}
         </div>
       ) : (
-        <>
-          <div className="config__fold" inert={folded ? true : undefined}>
-            <div className="config__fold-inner">
-              <div className="config__body">
-                <div className="config__groups">
-                  <fieldset className="config__group" disabled={running}>
-                    <legend className="config__legend">Какой прогон</legend>
-                    <div className="config__grid">
-                      <Select label="Сценарий" value={conditions.scenario} disabled={running}
-                        onChange={onScenario}
-                        options={options.scenarios.map((name) => ({
-                          value: name,
-                          label: SCENARIO_LABEL[name] ?? name
-                        }))} />
+        <div className="config__body">
+        <div className="config__groups">
+          <fieldset className="config__group" disabled={running}>
+            <legend className="config__legend">Какой прогон</legend>
+            <div className="config__grid">
+              <Select label="Сценарий" value={conditions.scenario} disabled={running}
+                onChange={onScenario}
+                options={options.scenarios.map((name) => ({
+                  value: name,
+                  label: SCENARIO_LABEL[name] ?? name
+                }))} />
 
-                      <Select label="Момент решения" value={conditions.snapshot} disabled={running}
-                        onChange={(value) => onChange({ snapshot: value })}
-                        options={options.snapshots.map((item) => ({ value: item.key, label: item.title }))} />
+              <Select label="Момент решения" value={conditions.snapshot} disabled={running}
+                onChange={(value) => onChange({ snapshot: value })}
+                options={options.snapshots.map((item) => ({ value: item.key, label: item.title }))} />
 
-                      <Select label="Отказ источника" value={conditions.fault} disabled={running}
-                        onChange={(value) => onChange({ fault: value })}
-                        options={options.faults.map((name) => ({
-                          value: name,
-                          label: FAULT_LABELS[name] ?? name
-                        }))} />
+              <Select label="Отказ источника" value={conditions.fault} disabled={running}
+                onChange={(value) => onChange({ fault: value })}
+                options={options.faults.map((name) => ({
+                  value: name,
+                  label: FAULT_LABELS[name] ?? name
+                }))} />
 
-                      <NumberField label="Производительность" unit="т/ч" step="1"
-                        value={conditions.throughput_tph} disabled={running}
-                        onChange={(value) => onChange({ throughput_tph: value })} />
-                    </div>
-                  </fieldset>
-
-                  <fieldset className="config__group" disabled={running}>
-                    <legend className="config__legend">Пределы продукта</legend>
-                    <div className="config__grid">
-                      <NumberField label="Сера сырья" unit="% масс." step="0.01"
-                        value={conditions.crude_sulfur_wt_pct} disabled={running}
-                        onChange={(value) => onChange({ crude_sulfur_wt_pct: value })} />
-                      <NumberField label="Предел серы продукта" unit="мг/кг" step="0.5"
-                        value={conditions.product_sulfur_mgkg} disabled={running}
-                        onChange={(value) => onChange({ product_sulfur_mgkg: value })} />
-                      <NumberField label="Предел T95" unit="°C" step="1"
-                        value={conditions.product_t95_c} disabled={running}
-                        onChange={(value) => onChange({ product_t95_c: value })} />
-                      <NumberField label="Минимум цетанового числа" step="0.5"
-                        value={conditions.product_cetane_number} disabled={running}
-                        onChange={(value) => onChange({ product_cetane_number: value })} />
-                    </div>
-                  </fieldset>
-
-                  {options.defaults.tanks.length > 0 ? (
-                    <fieldset className="config__group" disabled={running}>
-                      <legend className="config__legend">Резервуар</legend>
-                      <div className="config__grid">
-                        <TankField conditions={conditions} tanks={options.defaults.tanks} tank={tank}
-                          disabled={running} onChange={onChange} />
-                      </div>
-                    </fieldset>
-                  ) : null}
-                </div>
-
-                <ConfigBrief options={options} conditions={conditions} tank={tank} />
-              </div>
+              <NumberField label="Производительность" unit="т/ч" step="1"
+                value={conditions.throughput_tph} disabled={running}
+                onChange={(value) => onChange({ throughput_tph: value })} />
             </div>
-          </div>
+          </fieldset>
 
-          {folded ? (
-            <ConfigBrief options={options} conditions={conditions} tank={tank} folded />
+          <fieldset className="config__group" disabled={running}>
+            <legend className="config__legend">Пределы продукта</legend>
+            <div className="config__grid">
+              <NumberField label="Сера сырья" unit="% масс." step="0.01"
+                value={conditions.crude_sulfur_wt_pct} disabled={running}
+                onChange={(value) => onChange({ crude_sulfur_wt_pct: value })} />
+              <NumberField label="Предел серы продукта" unit="мг/кг" step="0.5"
+                value={conditions.product_sulfur_mgkg} disabled={running}
+                onChange={(value) => onChange({ product_sulfur_mgkg: value })} />
+              <NumberField label="Предел T95" unit="°C" step="1"
+                value={conditions.product_t95_c} disabled={running}
+                onChange={(value) => onChange({ product_t95_c: value })} />
+              <NumberField label="Минимум цетанового числа" step="0.5"
+                value={conditions.product_cetane_number} disabled={running}
+                onChange={(value) => onChange({ product_cetane_number: value })} />
+            </div>
+          </fieldset>
+
+          {options.defaults.tanks.length > 0 ? (
+            <fieldset className="config__group" disabled={running}>
+              <legend className="config__legend">Откуда берём</legend>
+              <div className="config__grid">
+                <TankField conditions={conditions} tanks={options.defaults.tanks} tank={tank}
+                  disabled={running} onChange={onChange} />
+              </div>
+            </fieldset>
           ) : null}
-        </>
+        </div>
+
+          <ConfigBrief options={options} conditions={conditions} tank={tank} />
+        </div>
       )}
 
       <div className="config__actions">
-        {folded ? null : (
-          <button
-            type="button"
-            className={`config__start ${waiting ? "config__start--waiting" : ""}`}
-            disabled={running || options === null}
-            onClick={launch}
-          >
-            {waiting ? "Запускаю…" : running ? "Идёт расчёт…" : "▶ Пуск"}
-          </button>
-        )}
+        <button
+          type="button"
+          className={`config__start ${waiting ? "config__start--waiting" : ""}`}
+          disabled={running || options === null}
+          onClick={onStart}
+        >
+          {waiting ? "Запускаю…" : running ? "Идёт расчёт…" : "▶ Пуск"}
+        </button>
         {running ? (
           <>
             <button
@@ -192,7 +164,7 @@ export function ConfigStage({
           </>
         ) : null}
         {status !== "idle" && !running ? (
-          <button type="button" className="config__ghost config__ghost--enter" onClick={reopen}>
+          <button type="button" className="config__ghost config__ghost--enter" onClick={onReopen}>
             Новый прогон
           </button>
         ) : null}

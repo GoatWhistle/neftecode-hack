@@ -23,8 +23,8 @@
   border-top-color: transparent;
 }
 
-.config {
-  padding-block: var(--space-7);
+.drawer .config {
+  padding-block-start: var(--space-4);
 }
 
 .stage__head {

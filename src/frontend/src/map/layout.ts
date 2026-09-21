@@ -13,6 +13,15 @@ export interface MapRow {
   terminals?: string[];
 }
 
+export type LaneTone = "data" | "decision" | "agents";
+
+export interface MapLane {
+  key: string;
+  contour: string;
+  tone: LaneTone;
+  rows: MapRow[];
+}
+
 const ROWS_4: readonly MapRow[] = [
   {
     key: "row-data",
@@ -122,8 +131,28 @@ export function useMapColumns(): MapColumns {
   return columns;
 }
 
-export function mapRows(columns: MapColumns = 4): readonly MapRow[] {
-  return ROWS_BY_COLUMNS[columns];
+const LANE_TONE: Record<string, LaneTone> = {
+  "Контур данных": "data",
+  "Контур решения": "decision",
+  "Слой агентов": "agents"
+};
+
+export function mapLanes(columns: MapColumns = 4): MapLane[] {
+  const lanes: MapLane[] = [];
+  for (const row of ROWS_BY_COLUMNS[columns]) {
+    const last = lanes[lanes.length - 1];
+    if (last && last.contour === row.contour) {
+      last.rows.push(row);
+      continue;
+    }
+    lanes.push({
+      key: `lane-${lanes.length}-${row.key}`,
+      contour: row.contour,
+      tone: LANE_TONE[row.contour] ?? "data",
+      rows: [row]
+    });
+  }
+  return lanes;
 }
 
 export function rowOf(id: string, columns: MapColumns = 4): MapRow | undefined {

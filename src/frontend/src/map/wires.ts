@@ -10,7 +10,6 @@ import {
   exitSideStub,
   exitStub,
   headOf,
-  LANE,
   loopPath,
   midOf,
   pathLength,
@@ -37,11 +36,6 @@ export interface Wire {
   labelDy?: number;
 }
 
-const FLOW_SHIFT: Record<string, number> = {
-  "e-decision-hold": -LANE,
-  "e-decision-recommend": LANE
-};
-
 function pointsFor(
   edge: MapEdge,
   rects: Record<string, NodeRect>,
@@ -59,7 +53,7 @@ function pointsFor(
   const rowB = rowOf(edge.to, columns);
   const ltr = directionOf(edge.from, columns) === "ltr";
   if (rowA && rowB && rowA.key === rowB.key) {
-    return columns === 1 ? betweenRows(from, to) : sameRowFlow(from, to, ltr, FLOW_SHIFT[edge.id] ?? 0);
+    return columns === 1 ? betweenRows(from, to) : sameRowFlow(from, to, ltr, 0);
   }
   return betweenRows(from, to);
 }

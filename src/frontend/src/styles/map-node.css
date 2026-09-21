@@ -135,6 +135,52 @@
   font-weight: 700;
 }
 
+.mapnode__word--icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.mapnode__word--done {
+  color: var(--pass);
+}
+
+.mapnode__word--running {
+  color: var(--accent-ink);
+}
+
+.mapnode__word--icon svg {
+  width: clamp(20px, 1.35vw, 26px);
+  height: clamp(20px, 1.35vw, 26px);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.mapnode__word--pending svg,
+.mapnode__word--skipped svg {
+  stroke-width: 1.6;
+}
+
+.mapnode__word--input-await {
+  color: var(--accent-ink);
+}
+
+.mapnode__word--input-await svg {
+  stroke-width: 1.9;
+  stroke-linejoin: round;
+}
+
+.mapnode__word--input-locked {
+  color: var(--pass);
+}
+
+.mapnode__word--running svg circle {
+  stroke-width: 1.6;
+}
+
 .mapnode--failed {
   border-width: 3px;
   border-style: double;
@@ -156,8 +202,22 @@
 
 .mapnode--input {
   border-style: dashed;
-  min-height: auto;
-  grid-template-rows: auto auto auto;
+}
+
+.mapnode--input-open {
+  border-width: 2px;
+  border-color: var(--accent-line);
+}
+
+.mapnode--input-open .mapnode__order,
+.mapnode--input-open .mapnode__word {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.mapnode--input-locked .mapnode__order {
+  color: var(--pass);
+  font-weight: 700;
 }
 
 .mapnode--terminal {

@@ -5,6 +5,7 @@
   align-items: start;
 }
 
+
 .ctl {
   display: flex;
   flex-direction: column;
@@ -34,13 +35,18 @@
   font-size: 15px;
   line-height: 1.2;
   color: var(--text);
-  background: var(--field);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  background: var(--paper);
+  border: 1px solid var(--muted);
+  border-radius: var(--radius-card);
   min-height: var(--config-control-h);
-  padding: 0 11px;
+  padding: 0 12px;
   min-width: 0;
   text-align: left;
+  transition: border-color var(--motion-hover) var(--ease);
+}
+
+.ctl__control:hover:not(:disabled) {
+  border-color: var(--carbon);
 }
 
 .ctl__control--number {
@@ -70,6 +76,7 @@
 }
 
 .ctl__value {
+  font-family: var(--font-mono);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -78,11 +85,16 @@
 
 .ctl__caret {
   flex: none;
-  width: 7px;
-  height: 7px;
-  border-right: 1px solid var(--muted);
-  border-bottom: 1px solid var(--muted);
+  width: 9px;
+  height: 9px;
+  border-right: 1.5px solid var(--carbon);
+  border-bottom: 1.5px solid var(--carbon);
   transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform var(--motion-hover) var(--ease);
+}
+
+.ctl__control--select[aria-expanded="true"] .ctl__caret {
+  transform: rotate(225deg) translate(-2px, -2px);
 }
 
 .ctl__unit {
@@ -108,7 +120,7 @@
 }
 
 .ctl__control:disabled .ctl__caret {
-  border-color: var(--line-soft);
+  border-color: var(--muted);
 }
 
 .ctl__list {
@@ -122,12 +134,13 @@
   max-height: 264px;
   overflow-y: auto;
   background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border: 2px solid var(--carbon);
+  border-radius: var(--radius-card);
   animation: enter-fade var(--motion-hover) var(--ease) both;
 }
 
 .ctl__option {
+  font-family: var(--font-mono);
   padding: 8px 9px;
   font-size: 14px;
   line-height: 1.3;

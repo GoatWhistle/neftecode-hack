@@ -6,6 +6,7 @@ import type { Conditions, RunOptions } from "./run/options";
 import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf } from "./run/options";
 import { SCENARIO_LABEL } from "./run/orchRead";
 import { PipelineMap } from "./map/PipelineMap";
+import { INPUT_SCENARIO } from "./map/graph";
 import { Summary } from "./map/Summary";
 import { StatusBar } from "./map/StatusBar";
 import { OperatorAnswer } from "./ui/OperatorAnswer";
@@ -23,7 +24,7 @@ export function App() {
   const [conditions, setConditions] = useState<Conditions>(BLANK);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const { run, start, stop, replay, canReplay, pending } = useRun();
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(INPUT_SCENARIO);
   const payload = run.payload;
   useDocumentTitle(run);
 
@@ -78,21 +79,41 @@ export function App() {
   }, []);
 
   const launch = useCallback(() => {
+    setOpen((current) => (current === INPUT_SCENARIO ? null : current));
     start(queryOf(conditions));
   }, [conditions, start]);
+
+  const reopenConditions = useCallback(() => {
+    stop();
+    setOpen(INPUT_SCENARIO);
+  }, [stop]);
 
   const inputCaption = (() => {
     if (!conditions.scenario) return "условия не загружены";
     const snapshot = options?.snapshots.find((item) => item.key === conditions.snapshot);
     const fault = FAULT_LABELS[conditions.fault] ?? conditions.fault;
     const scenario = SCENARIO_LABEL[conditions.scenario] ?? conditions.scenario;
-    return `${scenario} · ${snapshot?.title ?? conditions.snapshot} · ${fault}`;
+    const tank = options?.defaults.tanks.find((item) => item.id === conditions.tank);
+    const tankText = tank
+      ? tank.on_demand
+        ? `${tank.id} — нарабатывают по необходимости`
+        : `${tank.id} — ${conditions.tank_available === "1" ? "в работе" : "выведен"}`
+      : null;
+    const parts = [scenario, snapshot?.title ?? conditions.snapshot, fault];
+    if (tankText) parts.push(tankText);
+    return parts.join(" · ");
   })();
+
+  const inputMeta =
+    run.status === "idle"
+      ? "до пуска · условия можно менять"
+      : "условия зафиксированы на время прогона";
 
   useEffect(() => {
     if (run.status !== "running" && open === null) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      if (document.querySelector(".ctl__list")) return;
       if (open !== null) {
         setOpen(null);
         return;
@@ -113,21 +134,30 @@ export function App() {
 
       <div className="layout">
         <main className="stages" aria-live="polite" aria-relevant="additions">
-          <ConfigStage
-            options={options}
-            conditions={conditions}
-            status={run.status}
-            error={run.error ?? optionsError}
-            onChange={change}
-            onScenario={pickScenario}
-            onStart={launch}
-            onReset={stop}
-            onRetry={loadOptions}
-            pending={pending}
-          />
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
           {payload ? <OperatorAnswer payload={payload} /> : null}
-          <PipelineMap run={run} inputCaption={inputCaption} open={open} onOpen={setOpen} />
+          <PipelineMap
+            run={run}
+            inputCaption={inputCaption}
+            open={open}
+            onOpen={setOpen}
+            inputMeta={inputMeta}
+            inputPanel={
+              <ConfigStage
+                options={options}
+                conditions={conditions}
+                status={run.status}
+                error={run.error ?? optionsError}
+                onChange={change}
+                onScenario={pickScenario}
+                onStart={launch}
+                onReset={stop}
+                onReopen={reopenConditions}
+                onRetry={loadOptions}
+                pending={pending}
+              />
+            }
+          />
           {payload ? <Summary payload={payload} state={reachedState(run.stages, "decision")} /> : null}
         </main>
       </div>

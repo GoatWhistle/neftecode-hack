@@ -15,6 +15,11 @@ export function spentOf(run: RunState, id: string, state: StageState, liveMs: nu
   return null;
 }
 
+export function instant(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function focusNode(board: HTMLElement, id: string): void {
   const target = board.querySelector<HTMLElement>(`[data-map-node="${id}"]`);
   target?.focus();

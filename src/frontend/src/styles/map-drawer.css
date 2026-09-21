@@ -10,12 +10,27 @@
   z-index: 2;
   display: grid;
   grid-template-rows: 0fr;
+  margin-block-start: 0;
   min-width: 0;
-  transition: grid-template-rows 240ms var(--ease);
+  transition: grid-template-rows 240ms var(--ease),
+    margin-block-start 240ms var(--ease);
 }
 
 .map__slot[data-open="true"] {
   grid-template-rows: 1fr;
+  margin-block-start: var(--map-stub-band);
+}
+
+.map__slot--up {
+  margin-block-start: 0;
+  margin-block-end: 0;
+  transition: grid-template-rows 240ms var(--ease),
+    margin-block-end 240ms var(--ease);
+}
+
+.map__slot--up[data-open="true"] {
+  margin-block-start: 0;
+  margin-block-end: var(--space-4);
 }
 
 .map__slot > * {
@@ -28,6 +43,11 @@
   border: 1px solid var(--carbon);
   border-radius: var(--radius-card);
   min-width: 0;
+}
+
+.map__slot:not([data-open="true"]) .drawer {
+  border-color: transparent;
+  border-width: 0;
 }
 
 .drawer__inner {
@@ -79,17 +99,29 @@
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: start;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   background: transparent;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-sm);
   color: var(--muted);
   font: inherit;
-  font-size: 13px;
   cursor: pointer;
   transition: color var(--motion-hover) var(--ease),
     border-color var(--motion-hover) var(--ease);
+}
+
+.drawer__close svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  fill: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -145,7 +177,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .map__slot {
+  .map__slot,
+  .map__slot--up {
     transition: none;
   }
 

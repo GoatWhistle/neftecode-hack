@@ -5,36 +5,10 @@
   --config-label: 11px;
   --config-track: 0.1em;
   --config-control-h: 42px;
-  --motion-fold: 240ms;
-}
-
-.config__head {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: var(--space-1) var(--space-3);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.config__step {
-  grid-row: 1 / span 2;
-  font-family: var(--font-mono);
-  font-size: 26px;
-  color: var(--muted);
-  line-height: 1;
-  padding-top: 4px;
-}
-
-.config__title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 300;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
 }
 
 .config__lead {
-  margin: var(--space-1) 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.4;

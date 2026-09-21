@@ -33,10 +33,10 @@ export const MAP_NODES: readonly MapNode[] = [
   {
     id: INPUT_SCENARIO,
     kind: "input",
-    label: "Сценарий и срез",
-    artifact: "условия прогона",
+    label: "Условия прогона",
+    artifact: "сценарий · момент · источники",
     waiting: "что задано до пуска",
-    order: null
+    order: 0
   },
   {
     id: "state",
@@ -141,7 +141,6 @@ export const MAP_EDGES: readonly MapEdge[] = [
   { id: "e-gate-agents", from: "gate", to: "agents", kind: "flow" },
   { id: "e-agents-decision", from: "agents", to: "decision", kind: "flow" },
   { id: "e-decision-hold", from: "decision", to: TERMINAL_HOLD, kind: "flow" },
-  { id: "e-decision-recommend", from: "decision", to: TERMINAL_RECOMMEND, kind: "flow" },
   {
     id: "e-candidates-loop",
     from: "candidates",

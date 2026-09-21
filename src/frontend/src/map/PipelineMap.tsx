@@ -1,14 +1,12 @@
-import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ORDER, reachedState } from "../run/sequence";
-import { STATE_WORD } from "../run/railStatus";
 import type { RunState, StageState } from "../run/types";
 import { useLiveClock } from "../useLiveClock";
-import { spanText } from "../format";
 import { activeExitEdge } from "./exits";
 import type { MapNode } from "./graph";
-import { MAP_NODES, TERMINAL_HOLD, TERMINAL_RECOMMEND, TERMINAL_REFUSE, nodeById } from "./graph";
-import { mapRows, useMapColumns } from "./layout";
+import { INPUT_SCENARIO, TERMINAL_HOLD, TERMINAL_RECOMMEND, TERMINAL_REFUSE } from "./graph";
+import { mapLanes, useMapColumns } from "./layout";
 import { InputNode } from "./InputNode";
 import { StageNode } from "./StageNode";
 import type { TerminalState } from "./TerminalNode";
@@ -18,15 +16,19 @@ import type { WireState } from "./WireLayer";
 import { WireLayer } from "./WireLayer";
 import type { Wire } from "./wires";
 import { buildWires } from "./wires";
-import { Drawer } from "./Drawer";
+import { INPUT_PANEL_ID } from "./InputSlot";
+import { MapBand, PANEL_ID } from "./MapBand";
+import { MapOutline } from "./MapOutline";
 import { focusNode, scrollToSummary, spentOf, usePrinting } from "./mapRuntime";
-import { scrollToDrawer } from "../run/autoscroll";
+import { useDrawerSlot } from "./useDrawerSlot";
 
 export interface PipelineMapProps {
   run: RunState;
   inputCaption: string;
   open: string | null;
   onOpen: (id: string | null) => void;
+  inputPanel?: ReactNode;
+  inputMeta?: string;
 }
 
 const TERMINAL_BY_STATUS: Record<string, string> = {
@@ -35,12 +37,21 @@ const TERMINAL_BY_STATUS: Record<string, string> = {
   refuse: TERMINAL_REFUSE
 };
 
-export const PANEL_ID = "map-drawer";
+export { PANEL_ID };
 
 const ARROW_NEXT = new Set(["ArrowRight", "ArrowDown"]);
 const ARROW_PREV = new Set(["ArrowLeft", "ArrowUp"]);
 
-export function PipelineMap({ run, inputCaption, open, onOpen }: PipelineMapProps) {
+const WALK = [INPUT_SCENARIO, ...ORDER];
+
+export function PipelineMap({
+  run,
+  inputCaption,
+  open,
+  onOpen,
+  inputPanel,
+  inputMeta
+}: PipelineMapProps) {
   const [board, setBoard] = useState<HTMLDivElement | null>(null);
   const measured = useNodeRects(board);
   const screenColumns = useMapColumns();
@@ -52,29 +63,21 @@ export function PipelineMap({ run, inputCaption, open, onOpen }: PipelineMapProp
   const status = run.payload?.decision.status ?? null;
   const takenTerminal = status ? (TERMINAL_BY_STATUS[status] ?? null) : null;
   const exitEdge = activeExitEdge(run.payload);
-  const rows = mapRows(columns);
+  const lanes = mapLanes(columns);
 
   const stateOfNode = useCallback(
     (id: string): StageState => reachedState(run.stages, id),
     [run.stages]
   );
 
-  const lastOpen = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (open === null && lastOpen.current !== null && board) {
-      focusNode(board, lastOpen.current);
-    }
-    lastOpen.current = open;
-  }, [open, board]);
-
-  const remeasure = useCallback(
-    (event: React.TransitionEvent<HTMLDivElement>) => {
-      window.dispatchEvent(new Event("resize"));
-      if (printing) return;
-      if (event.currentTarget.dataset["open"] === "true") scrollToDrawer(PANEL_ID);
-    },
-    [printing]
+  const stageOpen = open === INPUT_SCENARIO ? null : open;
+  const inputOpen = open === INPUT_SCENARIO ? open : null;
+  const { shown, onSlotTransitionEnd } = useDrawerSlot(stageOpen, board, PANEL_ID, printing);
+  const { shown: shownInput, onSlotTransitionEnd: onInputTransitionEnd } = useDrawerSlot(
+    inputOpen,
+    board,
+    INPUT_PANEL_ID,
+    printing
   );
 
   const onBoardKeyDown = useCallback(
@@ -82,10 +85,10 @@ export function PipelineMap({ run, inputCaption, open, onOpen }: PipelineMapProp
       if (!ARROW_NEXT.has(event.key) && !ARROW_PREV.has(event.key)) return;
       const current = (event.target as HTMLElement).dataset["mapNode"];
       if (!current) return;
-      const at = ORDER.indexOf(current);
+      const at = WALK.indexOf(current);
       if (at === -1) return;
       const step = ARROW_NEXT.has(event.key) ? 1 : -1;
-      const next = ORDER[at + step];
+      const next = WALK[at + step];
       if (!next || !board) return;
       event.preventDefault();
       focusNode(board, next);
@@ -129,7 +132,18 @@ export function PipelineMap({ run, inputCaption, open, onOpen }: PipelineMapProp
 
   const renderNode = (node: MapNode) => {
     if (node.kind === "input") {
-      return <InputNode key={node.id} node={node} caption={inputCaption} />;
+      if (!inputPanel) return <InputNode key={node.id} node={node} caption={inputCaption} />;
+      return (
+        <InputNode
+          key={node.id}
+          node={node}
+          caption={inputCaption}
+          locked={started}
+          expanded={open === node.id}
+          panelId={INPUT_PANEL_ID}
+          onSelect={pick}
+        />
+      );
     }
     if (node.kind === "terminal") {
       return (
@@ -171,60 +185,34 @@ export function PipelineMap({ run, inputCaption, open, onOpen }: PipelineMapProp
           height={measured.height}
           stateOf={wireState}
         />
-        {rows.map((row, index) => {
-          const rowOpen = row.cells.find((id) => (printing ? id !== "decision" : id === open));
-          const showContour = index === 0 || rows[index - 1]?.contour !== row.contour;
-          return (
-            <div key={row.key} className="map__band">
-              <div className={`map__row map__row--${row.direction}`}>
-                {showContour ? <p className="label map__contour">{row.contour}</p> : null}
-                <div className="map__cells">
-                  {row.cells.map((id) => {
-                    const node = nodeById(id);
-                    return node ? renderNode(node) : null;
-                  })}
-                  {row.terminals ? (
-                    <div className="map__terminals">
-                      {row.terminals.map((id) => {
-                        const node = nodeById(id);
-                        return node ? renderNode(node) : null;
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <div
-                className="map__slot"
-                data-open={rowOpen !== undefined}
-                onTransitionEnd={remeasure}
-              >
-                {rowOpen !== undefined ? (
-                  <Drawer
-                    id={rowOpen}
-                    panelId={PANEL_ID}
-                    run={run}
-                    state={stateOfNode(rowOpen)}
-                    onClose={() => onOpen(null)}
-                    focusOnMount={!printing}
-                  />
-                ) : null}
-              </div>
+        {lanes.map((lane) => (
+          <div key={lane.key} className="map__lane" data-tone={lane.tone}>
+            <p className="map__contour">{lane.contour}</p>
+            <div className="map__lane-body">
+              {lane.rows.map((row) => (
+                <MapBand
+                  key={row.key}
+                  row={row}
+                  run={run}
+                  printing={printing}
+                  stageOpen={stageOpen}
+                  shown={shown}
+                  inputOpen={inputOpen}
+                  shownInput={shownInput}
+                  inputPanel={inputPanel}
+                  inputMeta={inputMeta ?? ""}
+                  stateOf={stateOfNode}
+                  renderNode={renderNode}
+                  onClose={() => onOpen(null)}
+                  onSlotTransitionEnd={onSlotTransitionEnd}
+                  onInputTransitionEnd={onInputTransitionEnd}
+                />
+              ))}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
-      <ol className="sr-only">
-        {MAP_NODES.filter((node) => node.kind === "stage").map((node) => {
-          const state = stateOfNode(node.id);
-          const spent = spentOf(run, node.id, state, liveMs);
-          return (
-            <li key={node.id}>
-              {`этап ${node.order} из 8, ${node.label}, ${STATE_WORD[state]}`}
-              {spent === null ? "" : `, ${spanText(spent)}`}
-            </li>
-          );
-        })}
-      </ol>
+      <MapOutline run={run} liveMs={liveMs} stateOf={stateOfNode} />
     </section>
   );
 }

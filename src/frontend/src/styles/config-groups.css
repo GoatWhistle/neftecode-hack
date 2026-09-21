@@ -1,44 +1,3 @@
-.config__fold {
-  display: grid;
-  grid-template-rows: 1fr;
-  transition: grid-template-rows var(--motion-fold) var(--ease);
-}
-
-.config--folded .config__fold {
-  grid-template-rows: 0fr;
-}
-
-.config__fold-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.brief--folded {
-  margin-top: var(--space-4);
-  max-width: var(--dense-max);
-  animation: enter-fade var(--motion-fold) var(--ease) both;
-}
-
-.brief--folded .brief__list {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: var(--space-2) var(--space-5);
-}
-
-.config--folded .config__head {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .config__fold {
-    transition: none;
-  }
-
-  .brief--folded {
-    animation-duration: 0.01ms;
-  }
-}
-
 .config__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 288px);
@@ -46,6 +5,12 @@
   align-items: start;
   max-width: var(--dense-max);
   margin-top: var(--space-5);
+}
+
+.drawer .config__body {
+  max-width: none;
+  grid-template-columns: minmax(0, 1560px) minmax(280px, 360px);
+  justify-content: space-between;
 }
 
 .config__groups {
@@ -69,22 +34,22 @@
 .config__legend {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  width: 100%;
   padding: 0;
   margin-bottom: var(--space-4);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--carbon);
 }
 
-.config__legend::before {
+.config__legend::after {
   content: "";
-  width: 4px;
-  height: 4px;
-  flex: none;
-  background: var(--carbon);
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line-soft);
 }
 
 .brief {
@@ -159,7 +124,12 @@
     gap: var(--space-5);
   }
 
-  .brief {
+  .brief__list {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-2) var(--space-5);
+  }
+
+  .brief__note {
     max-width: var(--measure);
   }
 }

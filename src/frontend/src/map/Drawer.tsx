@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { duration } from "../format";
 import { ORDER } from "../run/sequence";
@@ -18,6 +19,10 @@ export interface DrawerProps {
   state: StageState;
   onClose: () => void;
   focusOnMount?: boolean;
+  inert?: boolean;
+  body?: ReactNode;
+  meta?: string;
+  closeLabel?: string;
 }
 
 function timeText(ms: number | null): string | null {
@@ -32,7 +37,18 @@ function startedAtOf(run: RunState, id: string): number | null {
   return run.stageAt[ORDER[position - 1] as string] ?? null;
 }
 
-export function Drawer({ id, panelId, run, state, onClose, focusOnMount = true }: DrawerProps) {
+export function Drawer({
+  id,
+  panelId,
+  run,
+  state,
+  onClose,
+  focusOnMount = true,
+  inert = false,
+  body,
+  meta,
+  closeLabel = "Закрыть панель этапа"
+}: DrawerProps) {
   const node = nodeById(id);
   const closeRef = useRef<HTMLButtonElement>(null);
   const startedAt = startedAtOf(run, id);
@@ -45,9 +61,9 @@ export function Drawer({ id, panelId, run, state, onClose, focusOnMount = true }
   const sourceText = state === "done" && source ? SOURCE_TEXT[source] : null;
 
   useEffect(() => {
-    if (!focusOnMount) return;
+    if (!focusOnMount || inert) return;
     closeRef.current?.focus({ preventScroll: true });
-  }, [id, focusOnMount]);
+  }, [id, focusOnMount, inert]);
 
   if (!node) return null;
 
@@ -56,9 +72,17 @@ export function Drawer({ id, panelId, run, state, onClose, focusOnMount = true }
   const spentText = timeText(spent);
   if (spentText !== null) parts.push(`длился ${spentText}`);
   if (sourceText) parts.push(sourceText);
+  const metaText = meta ?? parts.join(" · ");
 
   return (
-    <div className="drawer" id={panelId} role="region" aria-label={`Этап ${node.order}: ${node.label}`}>
+    <div
+      className="drawer"
+      id={panelId}
+      role="region"
+      aria-label={`Этап ${node.order}: ${node.label}`}
+      aria-hidden={inert || undefined}
+      inert={inert}
+    >
       <div className="drawer__inner">
         <header className="drawer__head">
           <h2 className="drawer__title">
@@ -66,22 +90,26 @@ export function Drawer({ id, panelId, run, state, onClose, focusOnMount = true }
             <span className="drawer__sep" aria-hidden="true">·</span>
             <span className="drawer__name">{node.label}</span>
           </h2>
-          <p className="drawer__meta">{parts.join(" · ")}</p>
-          <button type="button" className="drawer__close" onClick={onClose} ref={closeRef}>
-            закрыть
-            <span aria-hidden="true"> ×</span>
+          <p className="drawer__meta">{metaText}</p>
+          <button type="button" className="drawer__close" onClick={onClose} ref={closeRef}
+            aria-label={closeLabel}>
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M3.5 3.5 L12.5 12.5 M12.5 3.5 L3.5 12.5" />
+            </svg>
           </button>
         </header>
-        <StageBody
-          id={id}
-          index={node.order ?? 0}
-          state={state}
-          payload={run.payload}
-          facts={run.stageFacts[id]}
-          agentEvents={run.agentEvents}
-          elapsedMs={run.elapsedMs}
-          lastFrameAt={run.lastFrameAt}
-        />
+        {body ?? (
+          <StageBody
+            id={id}
+            index={node.order ?? 0}
+            state={state}
+            payload={run.payload}
+            facts={run.stageFacts[id]}
+            agentEvents={run.agentEvents}
+            elapsedMs={run.elapsedMs}
+            lastFrameAt={run.lastFrameAt}
+          />
+        )}
       </div>
     </div>
   );

@@ -131,8 +131,32 @@
     border-color var(--motion-hover) var(--ease);
 }
 
+.statusbar__button--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.statusbar__button--icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
 .statusbar__button--stop {
   border-color: var(--line);
+}
+
+.statusbar__button--stop svg {
+  fill: var(--fail);
+  stroke: var(--fail);
 }
 
 @media (hover: hover) and (pointer: fine) {

@@ -8,6 +8,10 @@
   --map-columns: 4;
   --map-node-h: clamp(128px, 9vw, 172px);
   --map-loop-room: clamp(96px, 6vw, 148px);
+  --map-lane-bar: 2px;
+  --map-lane-rule: #8a867c;
+  --map-lane-pad: clamp(14px, 1.4vw, 26px);
+  --map-stub-band: 64px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -40,14 +44,40 @@
   pointer-events: auto;
 }
 
-.map__contour {
-  color: var(--muted);
-  font-size: clamp(11px, 0.7vw, 14px);
-  letter-spacing: 0.14em;
+.map__lane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  border-inline-start: var(--map-lane-bar) solid var(--map-lane-rule);
+  padding-inline-start: var(--map-lane-pad);
 }
 
-.map__contour::before {
-  background: var(--muted);
+.map__lane[data-tone="agents"] {
+  --map-lane-bar: 3px;
+  border-inline-start-color: var(--accent-line);
+}
+
+.map__lane-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--map-row-gap);
+  min-width: 0;
+}
+
+.map__contour {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(11px, 0.7vw, 14px);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.map__lane[data-tone="agents"] .map__contour {
+  color: var(--accent-ink);
+  font-weight: 600;
 }
 
 .map__cells {
@@ -70,7 +100,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
-  align-content: start;
+  align-content: center;
 }
 
 .map__drawer {
@@ -81,9 +111,17 @@
   .map {
     --map-gap: var(--space-3);
     --map-loop-room: 96px;
+    --map-lane-pad: 12px;
   }
 
   .map__terminals {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .map {
+    --map-lane-pad: 10px;
+    --map-stub-band: 0px;
   }
 }

@@ -110,7 +110,9 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
   return (
     <div className="statusbar" role="status">
       <p className="statusbar__clock">
-        <span className="statusbar__word">{running ? "идёт" : "всего"}</span>
+        {running && node && current?.state === "running" ? null : (
+          <span className="statusbar__word">{running ? "идёт" : "всего"}</span>
+        )}
         <span className="statusbar__value">
           {duration(running ? liveMs : (run.serverMs ?? run.elapsedMs))}
         </span>
@@ -131,8 +133,16 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
         <p className="statusbar__stale">повтор записи, паузы сжаты</p>
       ) : null}
       <span className="statusbar__gap" />
-      <button type="button" className="statusbar__button" onClick={toMap}>
-        к схеме ↑
+      <button
+        type="button"
+        className="statusbar__button statusbar__button--icon"
+        onClick={toMap}
+        aria-label="Перейти к схеме"
+        title="К схеме"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M8 13 V3.4 M3.8 7.6 L8 3.2 L12.2 7.6" />
+        </svg>
       </button>
       {showReplay ? (
         <button type="button" className="statusbar__button" onClick={onReplay}>
@@ -142,11 +152,14 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
       {running ? (
         <button
           type="button"
-          className="statusbar__button statusbar__button--stop"
+          className="statusbar__button statusbar__button--icon statusbar__button--stop"
           onClick={onStop}
-          title="То же самое делает клавиша Escape"
+          aria-label="Остановить прогон"
+          title="Стоп · то же самое делает клавиша Escape"
         >
-          Стоп
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <rect x="4.4" y="4.4" width="7.2" height="7.2" rx="1" />
+          </svg>
         </button>
       ) : null}
     </div>

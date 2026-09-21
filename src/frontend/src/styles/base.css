@@ -30,9 +30,9 @@
   --line-soft: #d6d3c9;
   --text: var(--carbon);
   --muted: #5a564e;
-  --pass: #2f5d4f;
-  --fail: #8c3322;
-  --unknown: #6a4a11;
+  --pass: #1b7a3d;
+  --fail: #c1292e;
+  --unknown: #a35a00;
   --accent: #322d2a;
   --accent-line: #c8761a;
   --accent-ink: #8a4d0f;
@@ -129,7 +129,6 @@ a {
   display: flex;
   justify-content: center;
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--line);
 }
 
 .masthead__title {

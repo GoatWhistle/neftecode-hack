@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { EdgeKind } from "./graph";
 import type { Wire } from "./wires";
 
 export type WireState = "idle" | "drawn" | "alert";
@@ -10,12 +11,20 @@ export interface WireLayerProps {
   stateOf: (wire: Wire) => WireState;
 }
 
+const HEAD_SPAN: Record<EdgeKind, number> = {
+  flow: 6,
+  loop: 4.5,
+  back: 4.5,
+  exit: 4.5
+};
+
 function classOf(wire: Wire, state: WireState): string {
   return `wire wire--${wire.kind} wire--${state}`;
 }
 
-function arrow(x: number, y: number): string {
-  return `M ${x} ${y} L ${x - 7} ${y - 4} L ${x - 7} ${y + 4} Z`;
+function arrow(x: number, y: number, span: number): string {
+  const half = span * 0.52;
+  return `M ${x} ${y} L ${x - span} ${y - half} L ${x - span} ${y + half} Z`;
 }
 
 export function WireLayer({ wires, width, height, stateOf }: WireLayerProps) {
@@ -69,7 +78,11 @@ export function WireLayer({ wires, width, height, stateOf }: WireLayerProps) {
             ) : null}
             <path
               className="wire__head"
-              d={arrow(wire.head.x, wire.head.y)}
+              d={arrow(
+                wire.head.x,
+                wire.head.y,
+                state === "alert" ? HEAD_SPAN.flow : HEAD_SPAN[wire.kind]
+              )}
               transform={`rotate(${wire.head.angle} ${wire.head.x} ${wire.head.y})`}
             />
             {wire.label && wire.labelAt ? (

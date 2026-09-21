@@ -3,6 +3,7 @@ import type { RunState, StageState } from "../run/types";
 import { STATE_WORD } from "../run/railStatus";
 import type { MapNode } from "./graph";
 import { nodeCaption } from "./nodeFacts";
+import { StateMark } from "./StateMark";
 
 export interface StageNodeProps {
   node: MapNode;
@@ -40,7 +41,7 @@ export function StageNode({ node, state, spentMs, run, liveMs, started, expanded
     >
       <span className="mapnode__top">
         <span className="mapnode__order">{String(order).padStart(2, "0")}</span>
-        <span className="mapnode__word">{word}</span>
+        <StateMark state={state} />
       </span>
       <span className="mapnode__title">{node.label}</span>
       <span className="mapnode__artifact">{caption}</span>

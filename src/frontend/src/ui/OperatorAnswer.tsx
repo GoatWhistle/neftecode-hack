@@ -109,7 +109,6 @@ export function OperatorAnswer({ payload }: { payload: ScreenPayload }) {
 
   return (
     <section className="answer" aria-labelledby="answer-title">
-      <p className="answer__kicker">Ответ оператору</p>
       <p className={`answer__verdict ${refused ? "answer__verdict--refuse" : ""}`} id="answer-title">
         {payload.status_label}
       </p>
