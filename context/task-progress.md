@@ -23,7 +23,7 @@
 | ID | Задача | Статус | Коммит | Проверка | Дата |
 |---|---|---|---|---|---|
 | I1 | Срез хранит основной и no-PAK прогноз | ✅ выполнено | `<см. след. коммит>` | `build_snapshot` считает `forecast` и `forecast_no_pak`; `bind_snapshot`/`select_forecast_dict` выбирают по пересчитанному `trust.fallback_mode` — общая точка для demo/gateway/decision-service. Z4 и Z5 позеленели без изменения логики проверок (только фикстуры получили `forecast_no_pak`). Полный `uv run pytest -q`: 1360 passed, 2 skipped (было 1357+3 failed) | 2026-09-21 |
-| I2 | Ход T6 только при измеренных T6 и F9 | ⏳ ожидает | | | |
+| I2 | Ход T6 только при измеренных T6 и F9 | ✅ выполнено | `<см. след. коммит>` | `binding.py`: `f9 is None` больше не пропускает `in_region`; при измеренном T6 без F9 диапазон схлопывается в `min==max==current`, причина в `measurement_binding.notes`. Новый тест `test_measurement_binding.py`. `uv run pytest -q`: 1361 passed, 2 skipped | 2026-09-21 |
 | I3 | Отрицательные тесты области применимости | ⏳ ожидает | | | |
 | I4 | Разобрать прогон агентов 0,6 с | ⏳ ожидает | | | |
 

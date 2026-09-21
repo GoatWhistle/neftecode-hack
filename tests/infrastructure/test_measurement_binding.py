@@ -75,6 +75,24 @@ def test_without_a_temperature_reading_the_setpoint_stays_scenario_and_is_not_ad
     assert temps <= {348.0}, "без измерения температура не варьируется"
 
 
+def test_a_measured_t6_without_a_measured_f9_does_not_open_the_setpoint_range():
+    # Дефект #3 (пул I2): T6 измерен и внутри диапазона исследования, но F9 не измерен —
+    # ход T6 не должен предлагаться, потому что область применимости модели отклика
+    # зависит от F9, а сценарный F9 не подтверждает применимость.
+    bound = bind_measurements(raw(), measured(t6=367.8, f9=None), DENSITY, response(), forecast())
+    temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]
+    assert temp["current"]["source"] == "measured"
+    assert temp["current"]["value"] == pytest.approx(367.8)
+    assert temp["min"]["value"] == temp["max"]["value"] == temp["current"]["value"] == pytest.approx(367.8)
+    assert temp["min"]["source"] == "scenario"
+    assert "F9 не измерен" in temp["min"]["note"]
+    assert "ход T6 не разрешён: ht.F9 не измерен" in bound["measurement_binding"]["notes"]
+    assert ht(bound)["model"]["provenance"] == "scenario"
+    plans, _ = PlanOperation(parse_scenario(bound)).build_plans(budget=60)
+    temps = {step.controls.get("ht_reactor_inlet_temp_c") for plan in plans for step in plan.steps}
+    assert temps <= {367.8}, "без измеренного F9 T6 не варьируется, несмотря на измеренный T6 в области"
+
+
 def test_outside_the_studied_region_the_measurement_is_kept_but_no_numeric_advice_is_given():
     bound = bind_measurements(raw(), measured(t6=296.8, f9=156.0), DENSITY, response(), forecast())
     temp = ht(bound)["controls"]["ht_reactor_inlet_temp_c"]

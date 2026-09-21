@@ -87,7 +87,8 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
     envelope = response["envelope_dt_c"] if response else None
     in_region = (response is not None and t6 is not None
                  and _in_range(t6["value"], response.get("t6_range_c"))
-                 and (f9 is None or _in_range(f9["value"], response.get("f9_range_tph"))))
+                 and f9 is not None
+                 and _in_range(f9["value"], response.get("f9_range_tph")))
     if t6 is None:
         current = float(temp["current"]["value"])
         temp["current"] = {"value": current, "unit": "°C", "source": "scenario",
@@ -104,6 +105,13 @@ def bind_measurements(raw: dict, measured: dict, derived: dict, response: dict |
             temp["min"], temp["max"] = (_bound(current, "°C", "scenario", "отклик по данным не загружен; числовая уставка не предлагается")
                                         for _ in range(2))
             notes.append("отклик по данным не загружен")
+        elif f9 is None:
+            temp["min"], temp["max"] = (_bound(current, "°C", "scenario",
+                                               "ход T6 не разрешён: ht.F9 не измерен (расход сырья ГО сценарный, "
+                                               "не измеренный); область применимости отклика по T6 зависит от F9, "
+                                               "числовая уставка не предлагается")
+                                        for _ in range(2))
+            notes.append("ход T6 не разрешён: ht.F9 не измерен")
         elif not in_region:
             temp["min"], temp["max"] = (_bound(current, "°C", "scenario", "установка вне области, где оценён отклик; числовая уставка не предлагается")
                                         for _ in range(2))
