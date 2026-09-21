@@ -8,13 +8,12 @@ import { SCENARIO_LABEL } from "./run/orchRead";
 import { PipelineMap } from "./map/PipelineMap";
 import { INPUT_SCENARIO } from "./map/graph";
 import { Summary } from "./map/Summary";
+import { AFTER_ID, scrollToConditions, scrollToMap } from "./map/mapRuntime";
 import { StatusBar } from "./map/StatusBar";
 import { OperatorAnswer } from "./ui/OperatorAnswer";
-import { RunProgressNote } from "./run/RunProgressNote";
-import { ModeLine } from "./run/ModeLine";
 import { Evidence } from "./evidence/Evidence";
-import { AgentContribution } from "./agents/AgentContribution";
 import { PlanCompare } from "./compare/PlanCompare";
+import { Fold } from "./graph/Fold";
 import { outcomeOf } from "./run/verdict";
 import { Logo } from "./ui/Logo";
 import { useDocumentTitle } from "./useDocumentTitle";
@@ -32,7 +31,7 @@ export function App() {
   const { run, start, stop, reset, replay, canReplay, pending } = useRun();
   const [launched, setLaunched] = useState<Conditions | null>(null);
   const optionsRun = useRef(0);
-  const [open, setOpen] = useState<string | null>(INPUT_SCENARIO);
+  const [open, setOpen] = useState<string | null>(null);
   const payload = run.payload;
   const outcome = outcomeOf(run.status, payload, run.error, run.status === "stopped");
   const phase = run.status === "idle" ? "idle" : outcome ? "answer" : "run";
@@ -105,19 +104,22 @@ export function App() {
   }, []);
 
   const launch = useCallback(() => {
-    setOpen((current) => (current === INPUT_SCENARIO ? null : current));
+    setOpen(null);
     const frozen: Conditions = { ...conditions };
     setLaunched(frozen);
     start(queryOf(frozen));
-    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+    scrollToMap();
   }, [conditions, start]);
 
   const reopenConditions = useCallback(() => {
     reset();
     setLaunched(null);
-    setOpen(INPUT_SCENARIO);
+    setOpen(null);
+    scrollToConditions();
   }, [reset]);
 
+  const decisionState = reachedState(run.stages, "decision");
+  const settled = payload !== null && phase === "answer";
   const shown = launched ?? conditions;
   const sources = sourcesSummary(payload);
 
@@ -150,7 +152,7 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (document.querySelector(".ctl__list")) return;
-      if (open !== null) {
+      if (open !== null && open !== INPUT_SCENARIO) {
         setOpen(null);
         return;
       }
@@ -171,24 +173,6 @@ export function App() {
       <div className="layout">
         <main className="stages" aria-live="polite" aria-relevant="additions">
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
-          {phase !== "idle" ? (
-            <div className="work" data-phase={phase}>
-              <div className="work__rail">
-                <RunProgressNote run={run} />
-                <ModeLine run={run} />
-              </div>
-              {outcome ? (
-                <div className="work__lead">
-                  <OperatorAnswer outcome={outcome} />
-                  {payload ? <PlanCompare payload={payload} /> : null}
-                  {payload ? <Evidence payload={payload} /> : null}
-                </div>
-              ) : null}
-              <div className="work__side">
-                <AgentContribution run={run} />
-              </div>
-            </div>
-          ) : null}
           <PipelineMap
             run={run}
             inputCaption={inputCaption}
@@ -212,7 +196,24 @@ export function App() {
               />
             }
           />
-          {payload ? <Summary payload={payload} state={reachedState(run.stages, "decision")} /> : null}
+          {phase !== "idle" && (settled || (!payload && outcome)) ? (
+            <div className="after" id={AFTER_ID} data-phase={phase}>
+              {payload ? null : outcome ? (
+                <OperatorAnswer outcome={outcome} />
+              ) : null}
+              {payload ? <Summary payload={payload} state={decisionState} /> : null}
+              {payload ? (
+                <div className="after__support">
+                  <Fold title="Сравнение планов" hint="чем выбранный план лучше отклонённых">
+                    <PlanCompare payload={payload} />
+                  </Fold>
+                  <Fold title="Доказательства" hint="чем подтверждён каждый вывод">
+                    <Evidence payload={payload} />
+                  </Fold>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </main>
       </div>
 

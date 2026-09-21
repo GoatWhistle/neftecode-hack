@@ -9,6 +9,8 @@ import { AgentDialogue } from "../ui/AgentDialogue";
 import { Opinions } from "../ui/Opinions";
 import { AgentFinal } from "../ui/AgentFinal";
 import { SeverityBars } from "../ui/SeverityBars";
+import { GraphPanel } from "../graph/GraphPanel";
+import "../styles/graph.css";
 import type { StageProps } from "./StateStage";
 
 const ORDER = ["data", "optimizer", "lookahead", "quality", "reliability", "robustness"];
@@ -59,6 +61,19 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
         <section className="agents__sec">
           <h3 className="agents__heading">Режим работы</h3>
           <AgenticMode agentic={agentic} />
+        </section>
+
+        <section className="agents__sec">
+          <h3 className="agents__heading">
+            Карта обмена
+            {events.length > 0 ? <span className="agents__count">{events.length}</span> : null}
+          </h3>
+          <p className="agents__lead">
+            Схема прогона: оркестратор в центре, специалисты на своих дорожках. Дуга вверх —
+            запрос, дуга вниз — вердикт, петля у узла — инструмент, который агент выбрал сам.
+            Связи появляются по мере прихода событий. Нажмите на узел, чтобы оставить только его ходы.
+          </p>
+          <GraphPanel events={events} agentic={agentic ?? null} running={running} />
         </section>
 
         <section className="agents__sec">

@@ -123,6 +123,13 @@ export interface OptimizerRound {
   restriction_added?: unknown[];
 }
 
+export interface SelectionPolicy {
+  ranking: string[];
+  severity_cost_tolerance_fraction: number | null;
+  max_severity_index: number | null;
+  reliability_tradeoff: unknown;
+}
+
 export interface RobustnessResult {
   perturbation: string;
   path: string;
@@ -238,6 +245,7 @@ export interface Decision {
   refusal: Refusal | null;
   robustness: Robustness | null;
   lookahead: Lookahead | null;
+  selection_policy: SelectionPolicy | null;
   trace: TraceEvent[];
   note: string | null;
   decision_id: string | null;

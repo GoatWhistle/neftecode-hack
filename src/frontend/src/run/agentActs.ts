@@ -8,6 +8,12 @@ export interface ConstraintPick {
   value: string | null;
 }
 
+export interface OpinionReasonLine {
+  code: string;
+  text: string;
+  candidateId: string | null;
+}
+
 export interface OpinionDigest {
   verdict: string | null;
   riskLevel: string | null;
@@ -16,6 +22,8 @@ export interface OpinionDigest {
   constraints: Array<{ type: string; limit: string | null; value: number | null }>;
   preferred: string[];
   candidateVerdicts: Record<string, string>;
+  reasons: OpinionReasonLine[];
+  fromFull: boolean;
   truncated: boolean;
 }
 
@@ -80,21 +88,33 @@ function readFocus(summary: string | undefined): string | null {
   }
 }
 
+function readJson(raw: string | undefined): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function digest(event: AgentEvent | null): OpinionDigest | null {
   if (!event) return null;
-  const raw = event.tool_result_summary;
-  if (!raw) return { verdict: null, riskLevel: null, confidence: null, confidenceSent: false,
-    constraints: [], preferred: [], candidateVerdicts: {}, truncated: false };
-  let parsed: Record<string, unknown> | null = null;
-  try {
-    parsed = JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    parsed = null;
-  }
+  const summaryRaw = event.tool_result_summary;
+  const fullRaw = event.tool_result_full;
+  if (!summaryRaw && !fullRaw) return { verdict: null, riskLevel: null, confidence: null,
+    confidenceSent: false, constraints: [], preferred: [], candidateVerdicts: {}, reasons: [],
+    fromFull: false, truncated: false };
+  const fromSummary = readJson(summaryRaw);
+  const fromFullRaw = readJson(fullRaw);
+  const parsed = fromSummary ?? fromFullRaw;
+  const fromFull = fromSummary === null && fromFullRaw !== null;
   if (parsed === null) {
     const verdict = event.decision ? event.decision.split(":")[1] ?? null : null;
     return { verdict, riskLevel: null, confidence: null, confidenceSent: false, constraints: [],
-      preferred: [], candidateVerdicts: {}, truncated: true };
+      preferred: [], candidateVerdicts: {}, reasons: [], fromFull: false, truncated: true };
   }
   const confidence = parsed["confidence"];
   const constraints = Array.isArray(parsed["proposed_constraints"])
@@ -114,6 +134,17 @@ function digest(event: AgentEvent | null): OpinionDigest | null {
       verdicts[id] = String(value);
     }
   }
+  const reasons: OpinionReasonLine[] = Array.isArray(parsed["reasons"])
+    ? (parsed["reasons"] as unknown[])
+        .filter((item): item is Record<string, unknown> =>
+          item !== null && typeof item === "object" && !Array.isArray(item))
+        .map((item) => ({
+          code: typeof item["code"] === "string" ? item["code"] : "",
+          text: typeof item["text"] === "string" ? item["text"] : "",
+          candidateId: typeof item["candidate_id"] === "string" ? item["candidate_id"] : null
+        }))
+        .filter((item) => item.text !== "" || item.code !== "")
+    : [];
   return {
     verdict: typeof parsed["verdict"] === "string" ? parsed["verdict"] : null,
     riskLevel: typeof parsed["risk_level"] === "string" ? parsed["risk_level"] : null,
@@ -122,6 +153,8 @@ function digest(event: AgentEvent | null): OpinionDigest | null {
     constraints,
     preferred,
     candidateVerdicts: verdicts,
+    reasons,
+    fromFull,
     truncated: false
   };
 }

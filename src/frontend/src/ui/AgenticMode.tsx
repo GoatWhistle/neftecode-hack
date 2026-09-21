@@ -146,6 +146,18 @@ export function AgenticMode({ agentic }: { agentic: Agentic | null }) {
             ? (LEGACY_STATUS[agentic.legacy_status] ?? agentic.legacy_status)
             : "—"}
         </Field>
+        {agentic.keep_legacy_grounded === undefined ? null : (
+          <Field label="Подтверждение опирается на проверки">
+            {agentic.keep_legacy_grounded
+              ? "да: специалисты высказались по этому плану"
+              : "нет: допустимых планов не нашлось, подтверждать было нечего"}
+          </Field>
+        )}
+        {agentic.legacy_decision_id ? (
+          <Field label="Решение детерминированного контура">
+            <code>{agentic.legacy_decision_id}</code>
+          </Field>
+        ) : null}
       </Fields>
       <AgentChain agentic={agentic} />
       {agentic.note ? <Note>{agentic.note}</Note> : null}

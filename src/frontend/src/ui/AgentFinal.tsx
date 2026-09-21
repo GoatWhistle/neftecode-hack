@@ -2,6 +2,7 @@ import type { Agentic } from "../types";
 import { num } from "../format";
 import { ROLE_TEXT } from "../run/agentMeters";
 import { constraintTypeText, limitText } from "../run/orchRead";
+import { reasonCodesText } from "../run/agentVocab";
 import { Empty, Field, Fields, Note } from "./Primitives";
 import { JsonPanel } from "./Json";
 
@@ -65,7 +66,7 @@ export function AgentFinal({ agentic }: { agentic: Agentic | null }) {
             <Field label="Действие">{ACTIONS[final.action] ?? final.action}</Field>
             <Field label="План">{final.candidate_id ?? "план не выбран"}</Field>
             <Field label="Коды причин">
-              {final.reason_codes.length > 0 ? final.reason_codes.join(", ") : "не передавались"}
+              {final.reason_codes.length > 0 ? reasonCodesText(final.reason_codes) : "не передавались"}
             </Field>
           </Fields>
           {final.evidence_refs && final.evidence_refs.length > 0 ? (

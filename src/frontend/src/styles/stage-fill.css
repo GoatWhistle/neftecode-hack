@@ -20,6 +20,11 @@
   max-width: calc(var(--measure-lead) * 3);
 }
 
+.stage__body--bare > .empty,
+.stage__body--bare > .note {
+  width: fit-content;
+}
+
 .notes-rail:has(> :last-child:nth-child(1)) {
   max-width: var(--measure-lead);
 }

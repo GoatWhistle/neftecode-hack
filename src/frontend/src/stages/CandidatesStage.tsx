@@ -54,7 +54,10 @@ export function CandidatesStage({ payload, index, state, source, lamp, lampTitle
 
           <Scroller label="Отсев по раундам">
             <table className="grid">
-              <caption>Отсев по раундам: сколько запретов дало каждое семейство ограничений</caption>
+              <caption>
+                Отсев по раундам
+                <span className="grid__gloss">Сколько запретов дало каждое семейство ограничений.</span>
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">Раунд</th>

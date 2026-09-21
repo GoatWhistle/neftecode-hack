@@ -4,7 +4,7 @@ import type { OrchestratorAct } from "../run/agentActs";
 import type { OrchMove } from "../run/orchSteps";
 import { chronicle } from "../run/orchSteps";
 import { callMeter } from "../run/agentMeters";
-import { resolutionText } from "../run/agentVocab";
+import { reasonCodesText, resolutionText } from "../run/agentVocab";
 import { AGENT_NAMES } from "../run/agentEvents";
 import { OrchTool } from "./OrchTool";
 
@@ -28,7 +28,7 @@ function Decision({ event, text }: { event: AgentEvent; text: string }) {
       </p>
       <p className="orch-decision__text">{text}</p>
       {event.reason_codes && event.reason_codes.length > 0 ? (
-        <p className="orch-decision__codes">коды причин: {event.reason_codes.join(", ")}</p>
+        <p className="orch-decision__codes">коды причин: {reasonCodesText(event.reason_codes)}</p>
       ) : null}
       {event.candidate_ids && event.candidate_ids.length > 0 ? (
         <p className="orch-decision__ids">планы: {event.candidate_ids.join(", ")}</p>
@@ -96,7 +96,7 @@ export function OrchMoves({ act, deterministic, facts, band, offset }: OrchMoves
   return (
     <section className={`orch orch--${log.agent}${log.resumed ? " orch--resumed" : ""}`}
       aria-label={`${name}: ${head}`}>
-      <h5 className="orch__title">{head}</h5>
+      <h4 className="orch__title">{head}</h4>
       <ol className="orch__moves">
         {log.moves.map((move) => (
           <li key={move.key}

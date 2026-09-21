@@ -14,15 +14,12 @@ export interface MapBandProps {
   printing: boolean;
   stageOpen: string | null;
   shown: string | null;
-  inputOpen: string | null;
-  shownInput: string | null;
   inputPanel: ReactNode;
   inputMeta: string;
   stateOf: (id: string) => StageState;
   renderNode: (node: MapNode) => ReactNode;
   onClose: () => void;
   onSlotTransitionEnd: (event: TransitionEvent<HTMLDivElement>) => void;
-  onInputTransitionEnd: (event: TransitionEvent<HTMLDivElement>) => void;
 }
 
 export function MapBand({
@@ -31,36 +28,22 @@ export function MapBand({
   printing,
   stageOpen,
   shown,
-  inputOpen,
-  shownInput,
   inputPanel,
   inputMeta,
   stateOf,
   renderNode,
   onClose,
-  onSlotTransitionEnd,
-  onInputTransitionEnd
+  onSlotTransitionEnd
 }: MapBandProps) {
   const stageCells = row.cells.filter((id) => id !== INPUT_SCENARIO);
   const rowOpen = stageCells.find((id) => (printing ? id !== "decision" : id === stageOpen));
   const rowShown = stageCells.find((id) => (printing ? id !== "decision" : id === shown));
   const hasInput = row.cells.includes(INPUT_SCENARIO);
-  const upOpen = hasInput && (printing || inputOpen !== null);
-  const upShown = hasInput && (printing || shownInput !== null);
 
   return (
     <div className="map__band">
       {hasInput && inputPanel ? (
-        <InputSlot
-          run={run}
-          body={inputPanel}
-          meta={inputMeta}
-          open={upOpen}
-          shown={upShown}
-          printing={printing}
-          onClose={onClose}
-          onTransitionEnd={onInputTransitionEnd}
-        />
+        <InputSlot run={run} body={inputPanel} meta={inputMeta} />
       ) : null}
       <div className={`map__row map__row--${row.direction}`}>
         <div className="map__cells">

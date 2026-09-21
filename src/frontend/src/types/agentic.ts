@@ -50,6 +50,7 @@ export interface Agentic {
   model: string | null;
   note: string;
   deterministic_policy?: boolean;
+  keep_legacy_grounded?: boolean;
   provider_label?: string;
   opinions?: AgentOpinion[];
   llm_choice_overridden?: boolean;
