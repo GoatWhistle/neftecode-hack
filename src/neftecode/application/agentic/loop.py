@@ -119,7 +119,8 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
                     evidence.append(outcome.evidence_ref)
                 messages.append(LLMMessage("tool", outcome.text, tool_call_id=call.call_id))
                 trace.add(role, step, "tool", tool_name=call.name, tool_input_summary=outcome.input_summary,
-                          tool_result_summary=outcome.result_summary, candidate_ids=outcome.candidate_ids,
+                          tool_result_summary=outcome.result_summary, tool_result_full=outcome.result_full,
+                          candidate_ids=outcome.candidate_ids,
                           decision="ok" if outcome.ok else "error",
                           reason_codes=() if outcome.ok else (outcome.error.split(":")[0][:40],))
             if invalid_finals >= MAX_INVALID_FINALS:

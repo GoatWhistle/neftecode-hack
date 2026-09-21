@@ -70,6 +70,7 @@ function headline(agentic: Agentic): string {
 
 const VERDICT_TEXT: Record<string, string> = {
   ACCEPT: "принял",
+  REVISE: "просил пересмотреть",
   REJECT: "отклонил"
 };
 
@@ -85,22 +86,28 @@ function AgentChain({ agentic }: { agentic: Agentic }) {
   return (
     <ol className="mode__chain">
       <li>
-        <b>Ядро предложило:</b> {core}
+        <b>Ядро предложило</b>
+        <span>{core}</span>
       </li>
       <li>
-        <b>Специалисты проверили:</b>{" "}
-        {opinions
-          .map((o) => `${ROLE_TEXT[o.role] ?? o.role} — ${VERDICT_TEXT[o.verdict] ?? o.verdict}`)
-          .join("; ")}
+        <b>Специалисты проверили</b>
+        <span>
+          {opinions
+            .map((o) => `${ROLE_TEXT[o.role] ?? o.role} — ${VERDICT_TEXT[o.verdict] ?? o.verdict}`)
+            .join("; ")}
+        </span>
       </li>
       <li>
-        <b>Ограничения и вето:</b>{" "}
-        {constraints === 0 && vetoed === 0
-          ? "не добавлялись"
-          : `ограничений: ${constraints}, планов под вето: ${vetoed}`}
+        <b>Ограничения и вето</b>
+        <span>
+          {constraints === 0 && vetoed === 0
+            ? "не добавлялись"
+            : `ограничений: ${constraints}, планов под вето: ${vetoed}`}
+        </span>
       </li>
       <li>
-        <b>Итог:</b> {agentic.final?.summary ?? "—"}
+        <b>Итог</b>
+        <span>{agentic.final?.summary ?? "не передан"}</span>
       </li>
     </ol>
   );

@@ -1,0 +1,4 @@
+services:
+  backend:
+    environment:
+      LLM_PROVIDER: "scripted"

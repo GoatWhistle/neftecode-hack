@@ -86,6 +86,9 @@ class AgentSettings:
         return dict(self.__dict__)
 
 
+MAX_TRACE_FULL_CHARS = 2500
+
+
 def compact(value, limit: int) -> str:
     try:
         text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str, separators=(",", ":"))
@@ -104,6 +107,7 @@ class AgentTraceEvent:
     tool_name: str | None = None
     tool_input_summary: str | None = None
     tool_result_summary: str | None = None
+    tool_result_full: str | None = None
     decision: str | None = None
     reason_codes: tuple[str, ...] = ()
     candidate_ids: tuple[str, ...] = ()

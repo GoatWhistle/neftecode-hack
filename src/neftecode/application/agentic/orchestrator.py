@@ -5,7 +5,8 @@ from neftecode.application.ports.llm import LLMClient, ToolSpec
 from .budget import AgentBudget
 from .context import build_context
 from .contract_opinions import CONFIDENCE_LABEL
-from .contracts import AgentSettings, Opinion, OrchestratorFinal, compact, parse_final
+from .contracts import (MAX_TRACE_FULL_CHARS, AgentSettings, Opinion, OrchestratorFinal, compact,
+                        parse_final)
 from .loop import AgentTrace, LoopResult, run_tool_loop
 from .quality import QualityAgent
 from .reliability import ReliabilityAgent
@@ -85,7 +86,8 @@ class OrchestratorAgent:
                 vetoed = session.veto(opinion.vetoed, role) if opinion.valid else []
                 trace.add("system", 0, "resolution", decision=f"{role}:{opinion.verdict}",
                           candidate_ids=tuple(vetoed), reason_codes=tuple(r.code for r in opinion.reasons)[:5],
-                          tool_result_summary=compact(opinion_summary(opinion), 300))
+                          tool_result_summary=compact(opinion_summary(opinion), 300),
+                          tool_result_full=compact(opinion_summary(opinion), MAX_TRACE_FULL_CHARS))
                 return {"opinion": opinion_summary(opinion), "vetoed_now": vetoed,
                         "allowed_total": len(session.allowed_ids())}
             return handler

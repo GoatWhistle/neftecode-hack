@@ -4,6 +4,7 @@
 @import "./final.css";
 @import "./answer.css";
 @import "./motion.css";
+@import "./stage-fill.css";
 
 .stages {
   display: flex;

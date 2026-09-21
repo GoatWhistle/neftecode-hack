@@ -83,6 +83,7 @@ class ToolOutcome:
     evidence_ref: str | None
     input_summary: str
     result_summary: str
+    result_full: str
     candidate_ids: tuple[str, ...] = ()
     error: str | None = None
 
@@ -130,10 +131,10 @@ class ToolRegistry:
             text = json.dumps({"evidence_ref": ref, "truncated": True,
                                "partial": text[: max(0, self.max_result_chars - 120)]}, ensure_ascii=False)
         ids = arguments.get("candidate_ids") or ([arguments["candidate_id"]] if "candidate_id" in arguments else [])
-        return ToolOutcome(True, text, ref, compact(arguments, 200), compact(result, 300),
+        return ToolOutcome(True, text, ref, compact(arguments, 200), compact(result, 300), text,
                            tuple(str(i) for i in ids)[:5])
 
     @staticmethod
     def _error(name, arguments_text, error: str) -> ToolOutcome:
         text = json.dumps({"error": error[:200]}, ensure_ascii=False)
-        return ToolOutcome(False, text, None, str(arguments_text or "")[:200], text, (), error[:200])
+        return ToolOutcome(False, text, None, str(arguments_text or "")[:200], text, text, (), error[:200])

@@ -64,12 +64,16 @@ function Steps({ act, limit, deterministic }: { act: ConsultAct; limit: number |
       <p className="consult__steps-head">
         итераций специалиста: {limit === null ? steps.length : `${steps.length} из ${limit}`}
       </p>
-      {steps.map((step, index) => (
-        <section key={step.step} className="consult__step">
-          <h6 className="consult__step-title">шаг {index + 1}</h6>
-          <StepRow step={step} deterministic={deterministic} />
-        </section>
-      ))}
+      <ol className="consult__step-list">
+        {steps.map((step, index) => (
+          <li key={step.step} className="consult__step">
+            <span className="consult__step-title">
+              {index < 9 ? `0${index + 1}` : index + 1}
+            </span>
+            <StepRow step={step} deterministic={deterministic} />
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -125,12 +129,18 @@ export function ConsultCard({ act, deterministic, closed, facts, breakEvent }: C
   return (
     <article className={`consult consult--${act.role}`}>
       <header className="consult__head">
-        <span className="consult__index">консультация {act.index}</span>
+        <span className="consult__index">
+          консультация {act.index < 10 ? `0${act.index}` : act.index}
+        </span>
         <h4 className="consult__title">
-          Оркестратор → {AGENT_NAMES[act.role] ?? act.role}
-          {act.candidateIds.length > 0 ? `, планы ${act.candidateIds.join(", ")}` : ", планы не названы"}
+          Оркестратор → <b>{AGENT_NAMES[act.role] ?? act.role}</b>
+          <span className="consult__plans">
+            {act.candidateIds.length > 0 ? act.candidateIds.join(", ") : "планы не названы"}
+          </span>
         </h4>
-        <span className="consult__state">{state}</span>
+        <span className={`consult__state${state === "идёт" ? " consult__state--live" : ""}`}>
+          {state}
+        </span>
       </header>
 
       <div className="consult__body">

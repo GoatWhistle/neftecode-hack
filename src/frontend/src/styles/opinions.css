@@ -1,8 +1,9 @@
 .opinions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
   align-items: stretch;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .opinion {
@@ -14,6 +15,11 @@
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: var(--space-3);
   min-width: 0;
+}
+
+.opinion > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .opinion--fail {
@@ -35,9 +41,9 @@
 
 .opinion__role {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--ag-title);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  line-height: 1.25;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -45,7 +51,7 @@
 
 .opinion__scope {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--ag-body);
   color: var(--muted);
   flex: 1 1 auto;
   min-width: 0;
@@ -59,7 +65,7 @@
 }
 
 .opinion__metric dt {
-  font-size: 11px;
+  font-size: var(--ag-label);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -67,10 +73,12 @@
 
 .opinion__metric dd {
   margin: var(--space-1) 0 0;
-  font-size: 15px;
+  font-size: var(--ag-body);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
 }
 
 .opinion__conf {
@@ -104,7 +112,7 @@
 
 .opinion__label {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--ag-label);
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -132,22 +140,22 @@
 
 .opinion__text {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
   max-width: var(--measure);
 }
 
 .opinion__code {
   margin: var(--space-1) 0 0;
-  font-size: 12px;
+  font-size: var(--ag-label);
   color: var(--muted);
   overflow-wrap: anywhere;
 }
 
 .opinion__proposal {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--ag-body);
+  line-height: var(--ag-lead);
   color: var(--muted);
   max-width: var(--measure);
 }

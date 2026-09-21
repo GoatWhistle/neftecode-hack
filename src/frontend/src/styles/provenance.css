@@ -62,6 +62,8 @@
   background: var(--paper);
   font-size: 13px;
   color: var(--muted);
+  width: fit-content;
+  max-width: 100%;
 }
 
 .origin-legend__head {

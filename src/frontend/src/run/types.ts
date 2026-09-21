@@ -30,6 +30,7 @@ export interface AgentEvent {
   tool_name?: string;
   tool_input_summary?: string;
   tool_result_summary?: string;
+  tool_result_full?: string;
   decision?: string;
   reason_codes?: string[];
   candidate_ids?: string[];

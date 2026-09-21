@@ -9,7 +9,9 @@
 .vocab__caption,
 .vocab__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ag-label);
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
   max-width: var(--measure);
 }
@@ -30,7 +32,9 @@
   border: 1px dashed var(--line-soft);
   border-radius: var(--radius-pill);
   padding: 3px var(--space-3);
-  font-size: 12px;
+  font-size: var(--ag-label);
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
 }
 

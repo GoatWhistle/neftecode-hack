@@ -224,7 +224,10 @@
 .modeline {
   margin: 0;
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--space-3);
+  row-gap: 4px;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--muted);
   border-radius: var(--radius-card);
@@ -236,6 +239,10 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.modeline__detail {
+  grid-column: 2;
 }
 
 .modeline__value {
