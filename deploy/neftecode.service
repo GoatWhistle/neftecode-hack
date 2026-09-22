@@ -1,0 +1,27 @@
+[Unit]
+Description=CUTPOINT demonstration server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=neftecode
+Group=neftecode
+WorkingDirectory=/srv/neftecode
+Environment=NEFTECODE_HOST=127.0.0.1
+Environment=LLM_PROVIDER=scripted
+Environment=AGENTIC_DECISION_ENABLED=0
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/neftecode.env
+ExecStart=/srv/neftecode/.venv/bin/neftecode serve --port 8765
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/neftecode/artifacts
+
+[Install]
+WantedBy=multi-user.target

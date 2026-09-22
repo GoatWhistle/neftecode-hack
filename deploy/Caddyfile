@@ -1,0 +1,10 @@
+neftecode.goatwhistle.ru {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8765
+}
+
+http://[fd7a:115c:a1e0::3401:8bdd]:8080 {
+    bind fd7a:115c:a1e0::3401:8bdd
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8765
+}
