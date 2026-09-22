@@ -133,9 +133,18 @@ def test_run_meta_and_meaning_match_between_serve_and_stack(scripted_agents):
             assert ((remote["decision"]["selected_plan"] or {}).get("plan_id")
                     == (local["decision"]["selected_plan"] or {}).get("plan_id"))
             assert meta["provider"]["provider"] == local_meta["provider"]["provider"] == "scripted"
-        assert get_json(gateway, f"/api/decide?{RISK}")[1]["decision"]["status"] in {
-            "recommend_scenario", "refuse"
-        }
+        status, remote = get_json(gateway, f"/api/decide?{RISK}")
+        decision = remote["decision"]
+        assert decision["status"] in {"recommend_scenario", "refuse"}
+        if decision["status"] == "refuse":
+            # смысл отказа: конкретная причина (фазовая чувствительность парка), а не пустая заглушка;
+            # план не выбран и это не противоречит объяснению — см. task-pool.md «Доказательная база 21.09».
+            assert decision["refusal"]["kind"] == "tank_phase_sensitive"
+            assert decision["tank_estimate"]["failed_taus_h"]
+            assert decision["selected_plan"] is None
+            assert "фактический уровень" in decision["reason"]
+        else:
+            assert decision["selected_plan"] is not None
     finally:
         _stop(*servers)
 
