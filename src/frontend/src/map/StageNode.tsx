@@ -40,10 +40,9 @@ export function StageNode({ node, state, spentMs, run, liveMs, started, expanded
       onClick={() => onSelect(node.id)}
     >
       <span className="mapnode__top">
-        <span className="mapnode__order">{String(order).padStart(2, "0")}</span>
+        <span className="mapnode__title">{node.label}</span>
         <StateMark state={state} />
       </span>
-      <span className="mapnode__title">{node.label}</span>
       <span className="mapnode__artifact">{caption}</span>
       <span className="mapnode__foot">{time === null ? "" : time}</span>
     </button>

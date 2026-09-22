@@ -88,8 +88,6 @@ export function Drawer({
       <div className="drawer__inner">
         <header className="drawer__head">
           <h2 className="drawer__title">
-            <span className="drawer__order">{node.order}</span>
-            <span className="drawer__sep" aria-hidden="true">·</span>
             <span className="drawer__name">{node.label}</span>
           </h2>
           <p className="drawer__meta">{metaText}</p>

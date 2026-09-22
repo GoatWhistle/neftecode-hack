@@ -1,4 +1,4 @@
-import type { RiskItem, ScreenPayload } from "../types";
+import type { NextStep, RiskItem, ScreenPayload } from "../types";
 
 export type VerdictTone = "ok" | "warn" | "refuse" | "broken" | "stopped";
 
@@ -49,6 +49,48 @@ export function seriousRiskItems(payload: ScreenPayload): RiskItem[] {
   );
 }
 
+const AT_HOUR = /^(.*?) на (\d+(?:[.,]\d+)?) ч$/;
+
+function collapseSteps(steps: NextStep[]): NextStep[] {
+  const order: string[] = [];
+  const groups = new Map<string, { step: NextStep; hours: number[] }>();
+  const plain: NextStep[] = [];
+  for (const step of steps) {
+    const match = AT_HOUR.exec(step.need);
+    if (match === null) {
+      plain.push(step);
+      continue;
+    }
+    const head = match[1] ?? "";
+    const hour = Number((match[2] ?? "").replace(",", "."));
+    if (head === "" || !Number.isFinite(hour)) {
+      plain.push(step);
+      continue;
+    }
+    const found = groups.get(head);
+    if (found === undefined) {
+      order.push(head);
+      groups.set(head, { step, hours: [hour] });
+    } else {
+      found.hours.push(hour);
+    }
+  }
+  const merged = order.flatMap((head) => {
+    const group = groups.get(head);
+    if (group === undefined) return [];
+    if (group.hours.length < 2) return [group.step];
+    const first = Math.min(...group.hours);
+    const last = Math.max(...group.hours);
+    const span = hourWord(first) + " — " + hourWord(last);
+    return [{ ...group.step, need: `${head} на всём интервале ${span} ч` }];
+  });
+  return [...merged, ...plain];
+}
+
+function hourWord(hour: number): string {
+  return Number.isInteger(hour) ? String(hour) : String(hour).replace(".", ",");
+}
+
 function refusalLines(payload: ScreenPayload): VerdictLine[] {
   const lines: VerdictLine[] = [];
   const kind = payload.explanation.kind;
@@ -58,13 +100,17 @@ function refusalLines(payload: ScreenPayload): VerdictLine[] {
     text: reason ? `Причина отказа: ${reason}.` : "Причина отказа: расчёт отказал, подробности ниже."
   });
   const steps = payload.explanation.next_steps ?? [];
-  for (const step of steps) {
+  const seen = new Set<string>();
+  for (const step of collapseSteps(steps)) {
     const wait =
       typeof step.available_in_hours === "number" && Number.isFinite(step.available_in_hours)
         ? ` (появится через ${step.available_in_hours} ч)`
         : "";
     const caveat = step.caveat ? ` ${step.caveat}` : "";
-    lines.push({ kind: "need", text: `Для повторного расчёта нужно: ${step.need}${wait}.${caveat}` });
+    const text = `Для повторного расчёта нужно: ${step.need}${wait}.${caveat}`;
+    if (seen.has(text)) continue;
+    seen.add(text);
+    lines.push({ kind: "need", text });
   }
   if (steps.length === 0) {
     lines.push({

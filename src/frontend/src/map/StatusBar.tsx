@@ -125,7 +125,6 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
       </p>
       {node && current ? (
         <p className={`statusbar__stage statusbar__stage--${current.state}`}>
-          <span className="statusbar__order">{String(node.order ?? 0).padStart(2, "0")}</span>
           <span className="statusbar__name">{node.label}</span>
           <span className="statusbar__state">{STATE_WORD[current.state]}</span>
         </p>

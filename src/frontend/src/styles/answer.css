@@ -6,8 +6,6 @@
   background: var(--paper);
   padding: var(--space-5);
   margin-bottom: var(--space-6);
-  border-inline-start-width: 4px;
-  border-inline-start-color: var(--line-soft);
 }
 
 .answer:not(:has(.answer__checks)) {
@@ -166,7 +164,6 @@
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--line-soft);
   border-top: 3px solid var(--line-soft);
-  border-radius: var(--radius-sm);
   background: var(--paper);
 }
 
@@ -252,7 +249,7 @@
 
 .result-home { scroll-margin-top: 24px; outline: none; }
 .result-home, .calculation-map, .stages > .scenes, .stages > .after {
-  width: 100%; max-width: 1200px; margin-inline: auto; box-sizing: border-box;
+  width: 100%; max-width: var(--shell-max); margin-inline: auto; box-sizing: border-box;
 }
 .result-caption { margin: 8px 0; font-size: 14px; color: var(--muted); }
 .calculation-map__head { padding-block: 20px 12px; }

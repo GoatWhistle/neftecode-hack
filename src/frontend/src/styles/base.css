@@ -40,6 +40,15 @@
   --accent: #322d2a;
   --accent-line: #c8761a;
   --accent-ink: #8a4d0f;
+  --link-ink: var(--accent-ink);
+  --link-ink-strong: #6d3c0b;
+  --link-ink-active: #522d08;
+  --link-underline: rgba(138, 77, 15, 0.62);
+  --link-underline-quiet: rgba(50, 45, 42, 0.55);
+  --link-offset: 0.22em;
+  --link-offset-hover: 0.26em;
+  --link-thickness: 1.5px;
+  --link-thickness-hover: 2px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -51,8 +60,9 @@
   --measure-tight: 46ch;
   --measure: 78ch;
   --measure-lead: 62ch;
-  --dense-max: 1600px;
+  --dense-max: min(2200px, 100%);
   --map-max: 2320px;
+  --shell-max: 2280px;
   --radius-sm: 8px;
   --radius-card: 12px;
   --radius-nav: 16px;
@@ -110,6 +120,78 @@ a {
   outline-offset: 2px;
 }
 
+.ui-link,
+a.ui-link,
+button.ui-link,
+.whatif__link,
+.tmap__table button,
+.evp__table a[href] {
+  color: var(--link-ink);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  text-decoration-line: underline;
+  text-decoration-color: var(--link-underline);
+  text-decoration-thickness: var(--link-thickness);
+  text-underline-offset: var(--link-offset);
+  text-decoration-skip-ink: auto;
+  transition:
+    color var(--motion-hover) var(--ease),
+    text-decoration-color var(--motion-hover) var(--ease),
+    text-decoration-thickness var(--motion-hover) var(--ease),
+    text-underline-offset var(--motion-hover) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-link:hover:not(:disabled):not([aria-disabled="true"]),
+  .whatif__link:hover:not(:disabled),
+  .tmap__table button:hover:not(:disabled),
+  .evp__table a[href]:hover {
+    color: var(--link-ink-strong);
+    text-decoration-color: currentColor;
+    text-decoration-thickness: var(--link-thickness-hover);
+    text-underline-offset: var(--link-offset-hover);
+  }
+}
+
+.ui-link:focus-visible,
+.whatif__link:focus-visible,
+.tmap__table button:focus-visible,
+.evp__table a[href]:focus-visible {
+  outline: 2px solid var(--carbon);
+  outline-offset: 3px;
+  color: var(--link-ink-strong);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: var(--link-thickness-hover);
+}
+
+.ui-link:active:not(:disabled):not([aria-disabled="true"]),
+.whatif__link:active:not(:disabled),
+.tmap__table button:active:not(:disabled),
+.evp__table a[href]:active {
+  color: var(--link-ink-active);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: var(--link-thickness-hover);
+  text-underline-offset: var(--link-offset);
+}
+
+.ui-link:disabled,
+.ui-link[aria-disabled="true"],
+.whatif__link:disabled,
+.tmap__table button:disabled {
+  color: var(--muted);
+  text-decoration-color: var(--line-soft);
+  text-decoration-thickness: var(--link-thickness);
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ui-link--quiet,
+.tmap__table button {
+  color: var(--text);
+  text-decoration-color: var(--link-underline-quiet);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -161,4 +243,53 @@ a {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
+}
+
+.boundary {
+  max-width: var(--measure-lead);
+  margin: var(--space-6) auto;
+  padding: var(--space-5);
+  border: 1px solid var(--muted);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+}
+
+.boundary__title {
+  margin: 0 0 var(--space-3);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.boundary__lead {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.boundary__reason {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--vellum);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--fail);
+  overflow-wrap: anywhere;
+}
+
+.boundary__again {
+  margin-top: var(--space-4);
+  font: inherit;
+  font-size: 15px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--carbon);
+  background: var(--carbon);
+  color: var(--paper);
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+.boundary__again:focus-visible {
+  outline: 2px solid var(--carbon);
+  outline-offset: 2px;
 }

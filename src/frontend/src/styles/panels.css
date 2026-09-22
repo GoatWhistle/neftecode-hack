@@ -67,7 +67,7 @@
 .panel__caret,
 .json__caret {
   display: inline-block;
-  color: var(--mercury);
+  color: var(--muted);
   flex: none;
   font-size: 12px;
   transition: transform var(--motion-hover) var(--ease);
@@ -213,4 +213,9 @@
   font-size: 13px;
   line-height: 1.45;
   max-width: var(--measure);
+}
+
+details > summary {
+  min-height: 24px;
+  padding-block: var(--space-1);
 }

@@ -184,4 +184,19 @@
     content: " (" attr(href) ")";
     font-size: 9pt;
   }
+
+  .fold::details-content,
+  .ev__block::details-content,
+  .gfacts__more::details-content {
+    display: block;
+    block-size: auto;
+    opacity: 1;
+    overflow: visible;
+    content-visibility: visible;
+  }
+
+  .fold__mark,
+  .ev__block > summary::before {
+    display: none;
+  }
 }

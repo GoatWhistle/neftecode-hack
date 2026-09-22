@@ -26,7 +26,7 @@
 .cns__key--hold { border-radius: 2px; }
 .cns__key--limit { border-radius: 0; border-top: 2px dashed var(--accent-ink); background: none; height: 0; width: 14px; }
 .cns__blocked, .cns__hint { margin: 0; font-size: 13px; color: var(--muted); }
-.cns__warn { margin: 0; padding: var(--space-2) var(--space-3); border-inline-start: 3px solid var(--unknown); background: var(--vellum); font-size: 13px; }
+.cns__warn { margin: 0; padding: var(--space-2) var(--space-3); color: var(--accent-ink); background: var(--vellum); font-size: 13px; }
 .cns__table { border-collapse: collapse; width: 100%; font-size: 13px; }
 .cns__table caption { text-align: left; color: var(--muted); padding-bottom: 4px; }
 .cns__table th, .cns__table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--field); }

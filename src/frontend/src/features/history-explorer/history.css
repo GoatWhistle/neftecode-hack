@@ -6,10 +6,58 @@
 .moment-row__kind { font-size: 14px; color: var(--muted); }
 .moment-row__kind--synthetic { color: var(--accent-ink); }
 .moment-row__label { font-size: 13px; color: var(--muted); }
-.moment-row__change { font: inherit; font-size: 14px; background: none; border: 0; padding: 4px 0; color: var(--accent-ink); text-decoration: underline; cursor: pointer; white-space: nowrap; }
-.moment-row__change:hover { color: var(--carbon); }
-.moment-row__change:disabled { opacity: .5; cursor: default; }
-.moment-stale { margin: var(--space-3) 0 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent-line); background: var(--vellum); font-size: 14px; }
+.moment-row__change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  max-width: fit-content;
+  flex: 0 0 auto;
+  justify-self: start;
+  align-self: center;
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  color: var(--carbon);
+  background: var(--paper);
+  border: 1.5px solid var(--muted);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition:
+    background var(--motion-hover) var(--ease),
+    border-color var(--motion-hover) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .moment-row__change:hover:not(:disabled) {
+    background: var(--field);
+    border-color: var(--carbon);
+  }
+}
+
+.moment-row__change:focus-visible {
+  outline: 2px solid var(--carbon);
+  outline-offset: 2px;
+}
+
+.moment-row__change:active:not(:disabled) {
+  background: var(--row-hover);
+}
+
+.moment-row__change:disabled {
+  color: var(--muted);
+  border-color: var(--line-soft);
+  cursor: default;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moment-row__change {
+    transition: none;
+  }
+}
+.moment-stale { margin: var(--space-3) 0 0; padding: var(--space-2) var(--space-3); color: var(--accent-ink); background: var(--vellum); font-size: 14px; }
 .moment-stale strong { font-weight: 500; }
 
 .history { box-sizing: border-box; width: 100%; max-width: 1160px; margin: var(--space-3) auto 0; min-width: 0; border: 1px solid var(--muted); border-radius: var(--radius-card); background: var(--paper); }
@@ -17,7 +65,7 @@
 .history input { font: inherit; color: inherit; background: var(--paper); border: 1.5px solid var(--muted); border-radius: var(--radius-sm); padding: 8px 10px; min-width: 0; width: 100%; box-sizing: border-box; }
 .history label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
 .history label input { color: var(--text); }
-.history button:focus-visible, .history input:focus-visible, .moment-row__change:focus-visible { outline: 3px solid var(--carbon); outline-offset: 3px; }
+.history button:focus-visible, .history input:focus-visible { outline: 3px solid var(--carbon); outline-offset: 3px; }
 .history details summary { cursor: pointer; padding-block: 6px; font-size: 14px; }
 
 .history__tabs { display: flex; gap: var(--space-4); padding: 0 var(--space-4); border-bottom: 1px solid var(--field); overflow-x: auto; }

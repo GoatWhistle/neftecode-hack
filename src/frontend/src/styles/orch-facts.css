@@ -208,8 +208,10 @@
 
 @media (hover: hover) and (pointer: fine) {
   .orch-raw__toggle:hover .orch-raw__label {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    text-decoration-line: underline;
+    text-decoration-color: var(--link-underline-quiet);
+    text-decoration-thickness: var(--link-thickness);
+    text-underline-offset: var(--link-offset);
   }
 }
 

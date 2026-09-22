@@ -63,28 +63,21 @@
     border-color: #000000;
   }
 
-  .mapnode--input-open .mapnode__order,
-  .mapnode--input-open .mapnode__word,
-  .mapnode--input-locked .mapnode__order {
+  .mapnode--input-open .mapnode__word {
     color: #000000;
   }
 
-  .mapnode--running .mapnode__order,
   .mapnode--running .mapnode__word {
     color: #000000;
     animation: none;
     opacity: 1;
   }
 
-  .mapnode--done .mapnode__order {
-    color: #000000;
-  }
 
   .mapnode--failed {
     border-color: #000000;
   }
 
-  .mapnode--failed .mapnode__order,
   .mapnode--failed .mapnode__word {
     color: #000000;
   }
@@ -109,6 +102,13 @@
   .map__slot--up {
     margin-block-start: 0;
     margin-block-end: var(--space-4);
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .map__slot--down {
+    margin-block-start: var(--space-4);
+    margin-block-end: 0;
     break-inside: avoid;
     page-break-inside: avoid;
   }

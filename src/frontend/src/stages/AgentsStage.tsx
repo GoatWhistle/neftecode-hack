@@ -1,4 +1,4 @@
-import type { SeverityFactors, TraceEvent } from "../types";
+import type { ScreenPayload, SeverityFactors, TraceEvent } from "../types";
 import type { AgentEvent, StageFacts } from "../run/types";
 import { Empty, Note } from "../ui/Primitives";
 import { Section } from "../ui/Section";
@@ -10,6 +10,7 @@ import { Opinions } from "../ui/Opinions";
 import { AgentFinal } from "../ui/AgentFinal";
 import { SeverityBars } from "../ui/SeverityBars";
 import { GraphPanel } from "../graph/GraphPanel";
+import { Fold, modeHint } from "../graph/Fold";
 import "../styles/graph.css";
 import type { StageProps } from "./StateStage";
 
@@ -23,6 +24,19 @@ function ordered(trace: TraceEvent[]): TraceEvent[] {
   });
 }
 
+function liveProvider(events: AgentEvent[]): { provider: string | null; model: string | null; calls: number } {
+  let provider: string | null = null;
+  let model: string | null = null;
+  let calls = 0;
+  for (const event of events) {
+    if (event.kind !== "llm_call") continue;
+    calls += 1;
+    if (event.provider) provider = event.provider;
+    if (event.model) model = event.model;
+  }
+  return { provider, model, calls };
+}
+
 function severityOf(trace: TraceEvent[]): SeverityFactors | null {
   for (const event of trace) {
     const factors = event["severity_factors"] as SeverityFactors | undefined;
@@ -31,7 +45,8 @@ function severityOf(trace: TraceEvent[]): SeverityFactors | null {
   return null;
 }
 
-export interface AgentsStageProps extends StageProps {
+export interface AgentsStageProps extends Omit<StageProps, "payload"> {
+  payload: ScreenPayload | null;
   events: AgentEvent[];
   facts: StageFacts | undefined;
   elapsedMs: number;
@@ -39,11 +54,17 @@ export interface AgentsStageProps extends StageProps {
 }
 
 export function AgentsStage({ payload, index, state, source, lamp, lampTitle, bare, events, facts, elapsedMs, lastFrameAt }: AgentsStageProps) {
-  const agentic = payload.decision.agentic;
-  const trace = ordered(payload.decision.trace ?? []);
+  const agentic = payload?.decision.agentic;
+  const trace = ordered(payload?.decision.trace ?? []);
   const severity = severityOf(trace);
   const running = state === "running";
   const opinionCount = agentic?.opinions?.length ?? 0;
+  const live = liveProvider(events);
+  const modeFold = running && agentic === undefined
+    ? live.model === null
+      ? "идёт прогон, модель ещё не отвечала"
+      : `идёт прогон · ${live.model} · вызовов: ${live.calls}`
+    : modeHint(agentic ?? null);
 
   return (
     <Section
@@ -58,79 +79,73 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
       bare={bare}
     >
       <div className="agents__stage">
-        <section className="agents__sec">
-          <h3 className="agents__heading">Режим работы</h3>
-          <AgenticMode agentic={agentic} agenticState={payload.agentic_state} />
-        </section>
+        <Fold title="Режим работы" hint={modeFold}>
+          <AgenticMode agentic={agentic ?? null} agenticState={payload?.agentic_state}
+            live={live} />
+        </Fold>
 
         <section className="agents__sec">
           <h3 className="agents__heading">
             Карта обмена
-            {events.length > 0 ? <span className="agents__count">{events.length}</span> : null}
           </h3>
           <p className="agents__lead">
-            Схема прогона: оркестратор в центре, специалисты на своих дорожках. Дуга вверх —
-            запрос, дуга вниз — вердикт, петля у узла — инструмент, который агент выбрал сам.
-            Связи появляются по мере прихода событий. Нажмите на узел, чтобы оставить только его ходы.
+            Схема прогона: оркестратор слева, специалисты на своих дорожках. Стрелка к специалисту —
+            запрос оркестратора, стрелка обратно — вердикт. Рядом с каждым узлом перечислены
+            инструменты, которые агент выбрал сам. Связи появляются по мере прихода событий.
+            Нажмите на узел, чтобы оставить только его ходы.
           </p>
           <GraphPanel
             events={events}
             agentic={agentic ?? null}
             running={running}
-            selectedPlanId={payload.decision.selected_plan?.plan_id ?? null}
+            selectedPlanId={payload?.decision.selected_plan?.plan_id ?? null}
           />
         </section>
 
-        <section className="agents__sec">
-          <h3 className="agents__heading">
-            Ход диалога
-            {events.length > 0 ? <span className="agents__count">{events.length}</span> : null}
-          </h3>
+        <Fold title="Ход диалога" hint="кто кого спросил, каким инструментом и чем закончил ход">
           <p className="agents__lead">
             Кто к кому обратился, какой инструмент выбрал сам агент и чем закончился каждый ход.
           </p>
-          <AgentDialogue events={events} running={running} facts={facts} agentic={agentic}
+          <AgentDialogue events={events} running={running} facts={facts} agentic={agentic ?? null}
             elapsedMs={elapsedMs} lastFrameAt={lastFrameAt} />
-        </section>
+        </Fold>
 
-        <section className="agents__sec">
-          <h3 className="agents__heading">
-            Ответы агентов
-            {opinionCount > 0 ? <span className="agents__count">{opinionCount}</span> : null}
-          </h3>
-          <p className="agents__lead">
-            Каждый специалист отвечает на своём участке: вердикт, риск, уверенность, затем обоснования
-            с кодами причин.
-          </p>
-          <Opinions agentic={agentic} />
-        </section>
+        {opinionCount > 0 ? (
+          <Fold title="Ответы агентов" hint="вердикт, риск и обоснования каждого специалиста">
+            <p className="agents__lead">
+              Каждый специалист отвечает на своём участке: вердикт, риск, уверенность, затем обоснования
+              с кодами причин.
+            </p>
+            <Opinions agentic={agentic ?? null} />
+          </Fold>
+        ) : null}
 
-        <section className="agents__sec">
-          <AgentFinal agentic={agentic} />
-        </section>
+        {agentic ? (
+          <Fold title="Итог агентного слоя" hint="к чему пришли агенты и на чём сошлись">
+            <AgentFinal agentic={agentic} />
+          </Fold>
+        ) : null}
 
-        <section className="agents__sec">
-          <h3 className="agents__heading">
-            Сводка по участникам
-            {trace.length > 0 ? <span className="agents__count">{trace.length}</span> : null}
-          </h3>
-          {trace.length === 0 ? (
-            <Empty>Сводная трасса участников не передавалась.</Empty>
-          ) : (
-            <>
-              <p className="agents__lead">
-                Что каждый участник проверил и чем закончил. Высота карточки — по её содержимому;
-                разбор раскрывается на месте.
-              </p>
-              <div className="agents">
-                {trace.map((event) => (
-                  <AgentCard key={event.agent} event={event} />
-                ))}
-              </div>
-              {severity ? <SeverityBars factors={severity} /> : null}
-            </>
-          )}
-        </section>
+        {trace.length === 0 ? (
+          running ? null : (
+            <Fold title="Сводка по участникам" hint="сводная трасса участников не передавалась">
+              <Empty>Сводная трасса участников не передавалась.</Empty>
+            </Fold>
+          )
+        ) : (
+          <Fold title="Сводка по участникам" hint="что каждый участник проверил и чем закончил">
+            <p className="agents__lead">
+              Что каждый участник проверил и чем закончил. Высота карточки — по её содержимому;
+              разбор раскрывается на месте.
+            </p>
+            <div className="agents">
+              {trace.map((event) => (
+                <AgentCard key={event.agent} event={event} />
+              ))}
+            </div>
+            {severity ? <SeverityBars factors={severity} /> : null}
+          </Fold>
+        )}
 
         <Note>
           В трассе нет ни текста промптов, ни ключей, ни скрытых рассуждений: события несут только
@@ -138,7 +153,7 @@ export function AgentsStage({ payload, index, state, source, lamp, lampTitle, ba
         </Note>
 
         <JsonPanel title={`JSON: полная трасса агентного слоя. Событий: ${events.length}`}
-          value={agentic?.trace ?? payload.decision.trace} openTo={1} />
+          value={agentic?.trace ?? payload?.decision.trace ?? events} openTo={1} />
       </div>
     </Section>
   );

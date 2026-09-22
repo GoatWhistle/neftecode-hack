@@ -18,6 +18,7 @@ import type { Wire } from "./wires";
 import { buildWires } from "./wires";
 import { MapBand, PANEL_ID } from "./MapBand";
 import { MapOutline } from "./MapOutline";
+import { OutcomeSlot } from "./OutcomeSlot";
 import { focusNode, scrollToSummary, spentOf, usePrinting } from "./mapRuntime";
 import { useDrawerSlot } from "./useDrawerSlot";
 
@@ -28,6 +29,9 @@ export interface PipelineMapProps {
   onOpen: (id: string | null) => void;
   inputPanel?: ReactNode;
   inputMeta?: string;
+  outcomePanel?: ReactNode;
+  outcomeMeta?: string;
+  outcomeTitle?: string;
 }
 
 const TERMINAL_BY_STATUS: Record<string, string> = {
@@ -49,7 +53,10 @@ export function PipelineMap({
   open,
   onOpen,
   inputPanel,
-  inputMeta
+  inputMeta,
+  outcomePanel,
+  outcomeMeta,
+  outcomeTitle
 }: PipelineMapProps) {
   const [board, setBoard] = useState<HTMLDivElement | null>(null);
   const measured = useNodeRects(board);
@@ -189,6 +196,13 @@ export function PipelineMap({
             </div>
           </div>
         ))}
+        {outcomePanel ? (
+          <OutcomeSlot
+            body={outcomePanel}
+            meta={outcomeMeta ?? ""}
+            title={outcomeTitle ?? "Итог прогона"}
+          />
+        ) : null}
       </div>
       <MapOutline run={run} liveMs={liveMs} stateOf={stateOfNode} />
     </section>

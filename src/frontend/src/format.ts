@@ -122,6 +122,14 @@ export function moment(value: string | null): string {
   });
 }
 
+export function snapshotMoment(key: string | null | undefined): string {
+  if (!key) return MISSING;
+  const match = key.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
+  if (match === null) return key;
+  const [, year, month, day, hour, minute] = match;
+  return moment(`${year}-${month}-${day}T${hour}:${minute}:00`);
+}
+
 export function pretty(value: unknown): string {
   return JSON.stringify(value, null, 2) ?? "null";
 }

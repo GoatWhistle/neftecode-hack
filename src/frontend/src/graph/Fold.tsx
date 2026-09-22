@@ -4,19 +4,15 @@ import type { Agentic } from "../types";
 export interface FoldProps {
   title: string;
   hint?: string;
-  count?: number;
   children: ReactNode;
 }
 
-export function Fold({ title, hint, count, children }: FoldProps) {
+export function Fold({ title, hint, children }: FoldProps) {
   return (
     <details className="fold">
       <summary className="fold__head">
         <span className="fold__mark" aria-hidden="true" />
         <span className="fold__title">{title}</span>
-        {typeof count === "number" && count > 0 ? (
-          <span className="fold__count">{count}</span>
-        ) : null}
         {hint === undefined ? null : <span className="fold__hint">{hint}</span>}
       </summary>
       <div className="fold__body">{children}</div>

@@ -3,6 +3,9 @@ import type { GraphEdge, GraphModel, GraphNode } from "./model";
 
 const STEP_MS = 420;
 const CATCHUP_MS = 130;
+const LIVE_MS = 300;
+const LIVE_FLOOR_MS = 150;
+const LIVE_BUDGET_MS = 2600;
 
 function nodeRadius(node: GraphNode): number {
   if (node.kind === "orchestrator") return 44;
@@ -17,19 +20,16 @@ interface Geometry {
   anchor: "start" | "middle" | "end";
 }
 
-function geometryOf(from: GraphNode, to: GraphNode, lift: number, rank: number): Geometry {
-  if (from.id === to.id) {
-    const r = nodeRadius(from);
-    const x = from.x + r + 26;
-    const y = from.y - r + 10 + rank * 27;
-    return {
-      path: `M ${from.x + r * 0.72} ${from.y - r * 0.52} C ${x - 8} ${from.y - r * 0.52}`
-        + ` ${x - 8} ${y} ${x - 5} ${y}`,
-      labelX: x + 5,
-      labelY: y + 4,
-      anchor: "start"
-    };
-  }
+interface ToolUse {
+  label: string;
+  times: number;
+  failed: boolean;
+}
+
+const TOOL_ROW = 21;
+const TOOL_GAP = 74;
+
+function geometryOf(from: GraphNode, to: GraphNode, lift: number): Geometry {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.max(1, Math.hypot(dx, dy));
@@ -90,17 +90,23 @@ export function AgentGraph({ model, selected, onSelect, reveal, live }: AgentGra
   const head = model.edges[reveal - 1] ?? null;
   const hot = live ? head : null;
 
-  const rankOf = useMemo(() => {
-    const seen = new Map<string, number>();
-    const out = new Map<string, number>();
+  const toolsOf = useMemo(() => {
+    const out = new Map<string, ToolUse[]>();
     for (const edge of model.edges) {
       if (edge.kind !== "tool") continue;
-      const used = seen.get(edge.from) ?? 0;
-      out.set(edge.id, used);
-      seen.set(edge.from, used + 1);
+      if (edge.order >= reveal) continue;
+      const list = out.get(edge.from) ?? [];
+      const seen = list.find((one) => one.label === edge.label);
+      if (seen === undefined) {
+        list.push({ label: edge.label, times: 1, failed: edge.tone === "fail" });
+      } else {
+        seen.times += 1;
+        if (edge.tone === "fail") seen.failed = true;
+      }
+      out.set(edge.from, list);
     }
     return out;
-  }, [model]);
+  }, [model, reveal]);
 
   const lanes = useMemo(
     () => model.nodes.filter((node) => node.kind === "specialist"),
@@ -144,21 +150,19 @@ export function AgentGraph({ model, selected, onSelect, reveal, live }: AgentGra
 
       <g className="agraph__edges">
         {model.edges.map((edge) => {
+          if (edge.kind === "tool") return null;
           const from = byId.get(edge.from);
           const to = byId.get(edge.to);
           if (from === undefined || to === undefined) return null;
           const shown = edge.order < reveal;
           const dim = selected !== null && selected !== edge.from && selected !== edge.to;
           const isHot = hot !== null && hot.id === edge.id;
-          const geo = geometryOf(from, to, edgeLift(edge), rankOf.get(edge.id) ?? 0);
-          const loop = edge.kind === "tool";
+          const geo = geometryOf(from, to, edgeLift(edge));
           const span = spanOf(edge);
-          const marker = loop
-            ? undefined
-            : edge.tone === "pass" ? "url(#agraph-head-pass)"
-              : edge.tone === "warn" ? "url(#agraph-head-warn)"
-                : edge.tone === "fail" ? "url(#agraph-head-fail)"
-                  : "url(#agraph-head)";
+          const marker = edge.tone === "pass" ? "url(#agraph-head-pass)"
+            : edge.tone === "warn" ? "url(#agraph-head-warn)"
+              : edge.tone === "fail" ? "url(#agraph-head-fail)"
+                : "url(#agraph-head)";
           return (
             <g key={edge.id}
               className={`agraph__edge agraph__edge--${edge.kind} agraph__edge--${edge.tone}${
@@ -166,13 +170,13 @@ export function AgentGraph({ model, selected, onSelect, reveal, live }: AgentGra
               <path className="agraph__halo" d={geo.path} pathLength={1} />
               <path className="agraph__wire" d={geo.path}
                 markerEnd={marker} pathLength={1} />
-              {isHot && !loop ? (
+              {isHot ? (
                 <circle className="agraph__spark" r="3.4">
                   <animateMotion dur="1.05s" repeatCount="indefinite" path={geo.path} />
                 </circle>
               ) : null}
               <text className="agraph__tag" x={geo.labelX} y={geo.labelY} textAnchor={geo.anchor}>
-                {loop ? null : <tspan className="agraph__ord">{padSeq(edge.seq)} </tspan>}
+                <tspan className="agraph__ord">{padSeq(edge.seq)} </tspan>
                 {edge.label}
                 {span === null ? null : <tspan className="agraph__when"> · {span}</tspan>}
               </text>
@@ -225,6 +229,35 @@ export function AgentGraph({ model, selected, onSelect, reveal, live }: AgentGra
                   {node.verdict}
                 </text>
               ) : null}
+              {(() => {
+                const used = toolsOf.get(node.id) ?? [];
+                if (used.length === 0) return null;
+                const x = radius + TOOL_GAP;
+                const stem = radius + 16;
+                const span = (used.length - 1) * TOOL_ROW;
+                const top = -span / 2;
+                return (
+                  <g className="agraph__tools" aria-hidden="true">
+                    {used.map((tool, row) => {
+                      const y = top + row * TOOL_ROW;
+                      const bend = stem + 14;
+                      return (
+                        <g key={tool.label} className={`agraph__tool-row${
+                          tool.failed ? " agraph__tool-row--fail" : ""}`}>
+                          <path className="agraph__tool-wire"
+                            d={`M ${radius + 3} 0 L ${stem} 0 C ${bend} 0 ${bend} ${y} ${x - 7} ${y}`} />
+                          <text className="agraph__tool" x={x} y={y + 4}>
+                            {tool.label}
+                            {tool.times > 1 ? (
+                              <tspan className="agraph__tool-times"> ×{tool.times}</tspan>
+                            ) : null}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })()}
             </g>
           );
         })}
@@ -271,7 +304,9 @@ export function useLiveReveal(total: number, settled: boolean): number {
     }
 
     const behind = total - shownRef.current;
-    const pace = settled ? STEP_MS : behind > 3 ? CATCHUP_MS : STEP_MS;
+    const pace = settled
+      ? (behind > 3 ? CATCHUP_MS : STEP_MS)
+      : Math.max(LIVE_FLOOR_MS, Math.min(LIVE_MS, LIVE_BUDGET_MS / behind));
     clear();
     timer.current = window.setInterval(() => {
       setShown((was) => {

@@ -36,14 +36,6 @@
   background: var(--line-soft);
 }
 
-.agents__count {
-  flex: none;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--muted);
-}
 
 .agents__lead {
   margin: 0;
@@ -204,8 +196,11 @@
 }
 
 .mode--scripted {
-  border-inline-start-width: 4px;
-  border-inline-start-color: var(--accent-line);
+  border-color: var(--accent-line);
+}
+
+.mode--live {
+  border-style: dashed;
 }
 
 .mode__headline {

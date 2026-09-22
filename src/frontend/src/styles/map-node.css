@@ -34,19 +34,15 @@
 
 .mapnode__top {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
-.mapnode__order {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  font-size: clamp(22px, 1.5vw, 32px);
-  line-height: 1;
-  font-weight: 400;
-  color: var(--muted);
+.mapnode__top > .mapnode__word {
+  flex: none;
 }
+
 
 .mapnode__word {
   font-size: clamp(11px, 0.75vw, 14px);
@@ -66,6 +62,12 @@
   font-size: clamp(16px, 1.15vw, 22px);
   font-weight: 500;
   line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mapnode__top > .mapnode__title {
+  flex: 1 1 auto;
 }
 
 
@@ -102,7 +104,6 @@
   opacity: 0.7;
 }
 
-.mapnode--skipped .mapnode__order,
 .mapnode--skipped .mapnode__word {
   color: var(--muted);
   font-style: italic;
@@ -115,11 +116,6 @@
   border-top-width: 3px;
 }
 
-.mapnode--running .mapnode__order {
-  color: var(--accent-ink);
-  font-weight: 600;
-  animation: map-blink 1200ms steps(1, end) infinite;
-}
 
 .mapnode--running .mapnode__word {
   color: var(--accent-ink);
@@ -130,10 +126,6 @@
   border-color: var(--carbon);
 }
 
-.mapnode--done .mapnode__order {
-  color: var(--pass);
-  font-weight: 700;
-}
 
 .mapnode__word--icon {
   display: inline-flex;
@@ -187,13 +179,6 @@
   border-color: var(--fail);
 }
 
-.mapnode--failed .mapnode__order {
-  color: var(--fail);
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
 
 .mapnode--failed .mapnode__word {
   color: var(--fail);
@@ -209,16 +194,11 @@
   border-color: var(--accent-line);
 }
 
-.mapnode--input-open .mapnode__order,
 .mapnode--input-open .mapnode__word {
   color: var(--accent-ink);
   font-weight: 600;
 }
 
-.mapnode--input-locked .mapnode__order {
-  color: var(--pass);
-  font-weight: 700;
-}
 
 .mapnode--terminal {
   min-height: auto;
@@ -256,11 +236,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mapnode--running .mapnode__order {
-    animation: none;
-    opacity: 1;
-  }
-
   .mapnode {
     transition: none;
   }

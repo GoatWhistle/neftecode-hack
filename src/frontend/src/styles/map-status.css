@@ -54,12 +54,6 @@
   border-left: 1px solid var(--line-soft);
 }
 
-.statusbar__order {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  font-size: 14px;
-  color: var(--muted);
-}
 
 .statusbar__name {
   min-width: 0;
@@ -77,24 +71,17 @@
   white-space: nowrap;
 }
 
-.statusbar__stage--running .statusbar__order,
 .statusbar__stage--running .statusbar__state {
   color: var(--accent-ink);
   font-weight: 600;
 }
 
-.statusbar__stage--failed .statusbar__order,
 .statusbar__stage--failed .statusbar__state {
   color: var(--fail);
   font-weight: 600;
 }
 
-.statusbar__stage--done .statusbar__order {
-  color: var(--pass);
-  font-weight: 700;
-}
 
-.statusbar__stage--skipped .statusbar__order,
 .statusbar__stage--skipped .statusbar__state {
   color: var(--muted);
   font-style: italic;

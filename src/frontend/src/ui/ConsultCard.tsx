@@ -199,9 +199,7 @@ export function ConsultCard({ act, deterministic, closed, facts, breakEvent }: C
   return (
     <article className={`consult consult--${act.role}`}>
       <header className="consult__head">
-        <span className="consult__index">
-          консультация {act.index < 10 ? `0${act.index}` : act.index}
-        </span>
+        <span className="consult__index">консультация</span>
         <h4 className="consult__title">
           Оркестратор → <b>{AGENT_NAMES[act.role] ?? act.role}</b>
           <span className="consult__plans">

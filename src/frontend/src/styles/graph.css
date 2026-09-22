@@ -456,6 +456,48 @@
   stroke-linejoin: round;
 }
 
+.agraph__tool-wire {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.agraph__tool-row--fail .agraph__tool-wire {
+  stroke: var(--fail);
+  opacity: 0.55;
+}
+
+.agraph__tool {
+  font-family: var(--font-mono);
+  font-size: calc(10.5px * var(--gs));
+  fill: var(--carbon);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.agraph__tool-row--fail .agraph__tool {
+  fill: var(--fail);
+}
+
+.agraph__tool-times {
+  fill: var(--muted);
+}
+
+.agraph__node:not(.is-shown) .agraph__tools {
+  opacity: 0;
+}
+
+.agraph__tools {
+  opacity: 1;
+  transition: opacity var(--motion-reveal) var(--ease) 180ms;
+}
+
+.agraph__node.is-dim .agraph__tools {
+  opacity: 0.14;
+}
+
 .agraph__edge--pass .agraph__tag {
   fill: var(--pass);
 }
@@ -546,16 +588,16 @@
 .fold__mark {
   flex: none;
   align-self: center;
-  width: 7px;
-  height: 7px;
-  border-inline-start: 2px solid var(--muted);
-  border-block-start: 2px solid var(--muted);
-  transform: rotate(135deg);
+  width: 9px;
+  height: 9px;
+  border-right: 1.5px solid var(--carbon);
+  border-bottom: 1.5px solid var(--carbon);
+  transform: rotate(45deg) translate(-1px, -1px);
   transition: transform var(--motion-panel) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fold[open] .fold__mark {
-  transform: rotate(225deg);
+  transform: rotate(225deg) translate(-1px, -1px);
 }
 
 .fold__title {
@@ -584,17 +626,9 @@
 }
 
 .fold__head::after {
-  content: "раскрыть";
+  content: "";
   flex: none;
   margin-inline-start: auto;
-  font-size: var(--ag-label, 11px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.fold[open] .fold__head::after {
-  content: "свернуть";
 }
 
 .fold__body {

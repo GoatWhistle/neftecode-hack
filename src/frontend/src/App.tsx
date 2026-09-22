@@ -5,6 +5,7 @@ import { reachedState } from "./run/sequence";
 import type { Conditions, RunOptions } from "./run/options";
 import { conditionsOf, conditionsResultOf, FAULT_LABELS, fetchOptions, queryOf, sourcesSummary } from "./run/options";
 import { SCENARIO_LABEL } from "./run/orchRead";
+import { snapshotMoment } from "./format";
 import { PipelineMap } from "./map/PipelineMap";
 import { INPUT_SCENARIO } from "./map/graph";
 import { Summary } from "./map/Summary";
@@ -220,7 +221,7 @@ export function App() {
       const next = await requestOptions(preset.scenario);
       if (!next) return;
       const missing = !next.snapshots.some((item) => item.key === preset.snapshot)
-        ? `срез ${preset.snapshot} недоступен на сервере`
+        ? `срез за ${snapshotMoment(preset.snapshot)} недоступен на сервере`
         : !next.faults.includes(preset.fault) ? `отказ «${preset.fault}» недоступен` : null;
       if (missing) {
         setOptionsError(`Сцена «${preset.label}» не запущена: ${missing}. Подмена другим срезом не выполняется.`);
@@ -340,6 +341,17 @@ export function App() {
         ? "условия зафиксированы при пуске; поля формы на прогон уже не влияют"
         : "условия зафиксированы на время прогона";
 
+  const outcomeMeta =
+    run.status === "idle"
+      ? "этап 8 · вердикт советчика появится здесь"
+      : run.status === "running"
+        ? "этап 8 · расчёт идёт"
+        : run.status === "stopped"
+          ? "этап 8 · отображение остановлено"
+          : outcome
+            ? `этап 8 · ${payload ? payload.status_label : "отказ"}`
+            : "этап 8 · протокол решения не получен";
+
   useEffect(() => {
     if (run.status !== "running" && open === null) return;
     const onKey = (event: KeyboardEvent) => {
@@ -406,38 +418,6 @@ export function App() {
             <ProtocolBar current={current} pinned={pinned} running={run.status === "running"} onOpen={openProtocol}
               research={research} />
           </SceneBar>
-          <div id={RESULT_ID} className="result-home" tabIndex={-1} aria-label="Результат запуска">
-          {run.record ? <RecordBanner info={run.record} /> : null}
-          <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
-          {run.status === "running" ? <div className="result-pending" role="status">
-            <strong>Расчёт выполняется</strong>
-            <p>Итог появится здесь. Ход проверки показан ниже в разделе «Схема и условия».</p>
-            <button className="protocol__btn" type="button" onClick={stop}>Остановить отображение</button>
-          </div> : null}
-          <CorePreview run={run} />
-          {phase !== "idle" && (payload || outcome) ? (
-            <div className="answer-slot">
-              <p className="result-caption">{run.status === "done" ? (run.record ? "Результат из записи" : "Расчёт завершён") : "Состояние запуска"}
-                {shown.snapshot === "synthetic" && !shown.at ? " · сценарные данные, не измерения завода"
-                  : payload?.decision_time ? ` · ${longMoment(payload.decision_time)}` : ""}</p>
-              <p className="result-caption">{SCENARIO_LABEL[shown.scenario] ?? shown.scenario} · {FAULT_LABELS[shown.fault] ?? shown.fault}</p>
-              {outcome ? <OperatorAnswer outcome={outcome} /> : null}
-              {settled && payload ? <AgentOutcome payload={payload} /> : null}
-              <WhatIf
-                pinned={pinned}
-                hasResult={current !== null}
-                running={run.status === "running"}
-                options={options}
-                onPin={() => setPinned(current)}
-                onUnpin={() => setPinned(null)}
-                onRun={runVariant}
-              />
-              {comparison && pinned && current ? (
-                <PairCompare comparison={comparison} labelA={`A · ${pinned.label}`} labelB={`B · ${current.label}`} />
-              ) : null}
-            </div>
-          ) : null}
-          </div>
           <section className="calculation-map" aria-labelledby="calculation-map-title">
             <header className="calculation-map__head">
               <h2 id="calculation-map-title">Схема и условия</h2>
@@ -465,6 +445,45 @@ export function App() {
                 payload={payload}
                 moment={momentRow(true)}
               />
+            }
+            outcomeTitle="Итог"
+            outcomeMeta={outcomeMeta}
+            outcomePanel={
+              <div id={RESULT_ID} className="result-home" tabIndex={-1} aria-label="Результат запуска">
+                {run.record ? <RecordBanner info={run.record} /> : null}
+                <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
+                {run.status === "idle" ? (
+                  <p className="result-caption">Итог появится здесь после запуска советчика.</p>
+                ) : null}
+                {run.status === "running" ? <div className="result-pending" role="status">
+                  <strong>Расчёт выполняется</strong>
+                  <p>Итог появится здесь, когда этапы выше закончатся.</p>
+                  <button className="protocol__btn" type="button" onClick={stop}>Остановить отображение</button>
+                </div> : null}
+                <CorePreview run={run} />
+                {phase !== "idle" && (payload || outcome) ? (
+                  <div className="answer-slot">
+                    <p className="result-caption">{run.status === "done" ? (run.record ? "Результат из записи" : "Расчёт завершён") : "Состояние запуска"}
+                      {shown.snapshot === "synthetic" && !shown.at ? " · сценарные данные, не измерения завода"
+                        : payload?.decision_time ? ` · ${longMoment(payload.decision_time)}` : ""}</p>
+                    <p className="result-caption">{SCENARIO_LABEL[shown.scenario] ?? shown.scenario} · {FAULT_LABELS[shown.fault] ?? shown.fault}</p>
+                    {outcome ? <OperatorAnswer outcome={outcome} /> : null}
+                    {settled && payload ? <AgentOutcome payload={payload} /> : null}
+                    <WhatIf
+                      pinned={pinned}
+                      hasResult={current !== null}
+                      running={run.status === "running"}
+                      options={options}
+                      onPin={() => setPinned(current)}
+                      onUnpin={() => setPinned(null)}
+                      onRun={runVariant}
+                    />
+                    {comparison && pinned && current ? (
+                      <PairCompare comparison={comparison} labelA={`A · ${pinned.label}`} labelB={`B · ${current.label}`} />
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             }
           />
           </section>

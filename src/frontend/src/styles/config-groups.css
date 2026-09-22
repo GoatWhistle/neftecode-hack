@@ -1,16 +1,16 @@
 .config__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 288px);
+  grid-template-columns: minmax(0, 1fr) minmax(240px, clamp(288px, 22vw, 420px));
   gap: var(--space-5);
   align-items: start;
-  max-width: var(--dense-max);
+  max-width: none;
   margin-top: var(--space-5);
 }
 
 .drawer .config__body {
   max-width: none;
-  grid-template-columns: minmax(0, 1560px) minmax(280px, 360px);
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, clamp(320px, 22vw, 460px));
+  gap: clamp(var(--space-5), 3vw, var(--space-7));
 }
 
 .config__groups {
@@ -137,12 +137,12 @@
 
 @media (max-width: 900px) {
   .config__grid {
-    --config-cols: 2;
+    --config-field: 200px;
   }
 }
 
 @media (max-width: 560px) {
   .config__grid {
-    --config-cols: 1;
+    --config-field: 100%;
   }
 }

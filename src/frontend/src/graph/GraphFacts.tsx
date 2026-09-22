@@ -169,7 +169,6 @@ export function GraphFacts({ model, selected, reveal }: GraphFactsProps) {
       <div className="gfacts__log">
         <h4 className="gfacts__rubric">
           Ходы
-          <span className="gfacts__count">{edges.length}</span>
         </h4>
         <ol className="gfacts__moves">
           {edges.map((edge) => (

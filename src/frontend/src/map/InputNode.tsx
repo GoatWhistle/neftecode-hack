@@ -16,10 +16,9 @@ export function InputNode({ node, caption, locked, expanded, panelId, onSelect }
     return (
       <div className="mapnode mapnode--input" data-map-node={node.id}>
         <span className="mapnode__top">
-          <span className="mapnode__order">00</span>
+          <span className="mapnode__title">{node.label}</span>
           <InputMark locked={locked === true} />
         </span>
-        <span className="mapnode__title">{node.label}</span>
         <span className="mapnode__artifact">{caption}</span>
         <span className="mapnode__foot" />
       </div>
@@ -39,10 +38,9 @@ export function InputNode({ node, caption, locked, expanded, panelId, onSelect }
       onClick={() => onSelect(node.id)}
     >
       <span className="mapnode__top">
-        <span className="mapnode__order">00</span>
+        <span className="mapnode__title">{node.label}</span>
         <InputMark locked={locked === true} />
       </span>
-      <span className="mapnode__title">{node.label}</span>
       <span className="mapnode__artifact">{caption}</span>
       <span className="mapnode__foot" />
     </button>

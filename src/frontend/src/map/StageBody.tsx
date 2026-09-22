@@ -2,7 +2,6 @@ import type { ScreenPayload } from "../types";
 import type { AgentEvent, StageFacts, StageState } from "../run/types";
 import { lampOf } from "../stages";
 import { hasLiveFacts, StageLive } from "../run/StageLive";
-import { AgentDialogue } from "../ui/AgentDialogue";
 import { StateStage } from "../stages/StateStage";
 import { TrustStage } from "../stages/TrustStage";
 import { CandidatesStage } from "../stages/CandidatesStage";
@@ -57,21 +56,27 @@ export function StageBody({ id, index, state, payload, facts, agentEvents, elaps
   const live = state === "pending" ? undefined : facts;
   const hasLive = hasLiveFacts(id, live);
 
+  if (id === "agents" && state !== "pending") {
+    return (
+      <AgentsStage
+        payload={null}
+        index={index}
+        state={state}
+        lamp="idle"
+        lampTitle="Диалог агентов идёт: карта и ходы дополняются по мере прихода событий."
+        bare
+        events={agentEvents}
+        facts={live}
+        elapsedMs={elapsedMs}
+        lastFrameAt={lastFrameAt}
+      />
+    );
+  }
+
   return (
     <div className="stage__body stage__body--bare">
-      {id === "agents" && state !== "pending" ? (
-        <AgentDialogue
-          events={agentEvents}
-          running={state === "running"}
-          facts={live}
-          agentic={null}
-          elapsedMs={elapsedMs}
-          lastFrameAt={lastFrameAt}
-        />
-      ) : (
-        <StageLive id={id} facts={live} />
-      )}
-      {!hasLive && id !== "agents" ? (
+      <StageLive id={id} facts={live} />
+      {!hasLive ? (
         <p className="outline__hint">
           {state === "pending"
             ? "Данные этого этапа ещё не передавались."

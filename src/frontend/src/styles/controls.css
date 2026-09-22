@@ -1,7 +1,7 @@
 .config__grid {
   display: grid;
-  grid-template-columns: repeat(var(--config-cols, 4), minmax(0, 1fr));
-  gap: var(--space-4) var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--config-field, 260px), 100%), 1fr));
+  gap: var(--space-4) clamp(var(--space-3), 1.2vw, var(--space-5));
   align-items: start;
 }
 
@@ -27,6 +27,7 @@
   position: relative;
   display: flex;
   min-width: 0;
+  max-width: var(--config-field-max, 340px);
 }
 
 .ctl__control {

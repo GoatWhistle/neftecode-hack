@@ -66,9 +66,19 @@ const VERDICT_WORD: Record<string, string> = {
 
 const TOOL_WORD: Record<string, string> = {
   get_quality_margins: "запас качества",
+  get_quality_trajectory: "качество по времени",
   get_setpoint_changes: "перестановки уставок",
   get_forecast_and_uncertainty: "прогноз и разброс",
   get_tank_projection: "проекция резервуара",
+  get_inventory_projection: "проекция резервуара",
+  get_lookahead: "часы до нарушения",
+  get_robustness: "устойчивость плана",
+  get_response_effect: "эффект температуры",
+  get_operating_state: "текущий режим",
+  get_control_margins: "запас до границ уставок",
+  get_outflow_utilization: "загрузка отбора",
+  check_hard_constraints: "обязательные проверки",
+  compare_operating_load: "нагрузка на оборудование",
   search_candidates: "поиск планов",
   rank_allowed: "ранжирование",
   inspect_candidate: "разбор плана",
@@ -76,14 +86,14 @@ const TOOL_WORD: Record<string, string> = {
 };
 
 const CANVAS_W = 880;
-const CANVAS_H = 470;
-const HUB_X = 140;
-const HUB_Y = 178;
-const LANE_X = 452;
+const CANVAS_H = 520;
+const HUB_X = 136;
+const HUB_Y = 196;
+const LANE_X = 378;
 
 function specialistSpot(index: number, total: number): { x: number; y: number } {
   if (total === 1) return { x: LANE_X, y: HUB_Y };
-  const gap = Math.min(230, 460 / Math.max(1, total - 1));
+  const gap = Math.min(232, 464 / Math.max(1, total - 1));
   const top = HUB_Y - (gap * (total - 1)) / 2;
   return { x: LANE_X, y: top + gap * index };
 }
@@ -235,7 +245,7 @@ export function buildGraph(
         to: event.agent,
         kind: "tool",
         tone: event.decision === "error" ? "fail" : "neutral",
-        label: TOOL_WORD[name] ?? name,
+        label: TOOL_WORD[name] ?? (name === "" ? "инструмент без имени" : name),
         detail: event.tool_result_summary ?? null,
         order: order++,
         seq: event.seq,

@@ -122,12 +122,30 @@ export interface AgenticStateInfo {
 
 export function AgenticMode({
   agentic,
-  agenticState
+  agenticState,
+  live
 }: {
   agentic: Agentic | null;
   agenticState?: AgenticStateInfo | undefined;
+  live?: { provider: string | null; model: string | null; calls: number } | undefined;
 }) {
   if (!agentic) {
+    if (live && (live.provider !== null || live.calls > 0)) {
+      return (
+        <div className="mode mode--live">
+          <p className="mode__headline">Агенты работают: провайдер и модель взяты из событий прогона</p>
+          <Fields>
+            <Field label="Провайдер">{live.provider ?? "не передан"}</Field>
+            <Field label="Модель">{live.model ?? "не передана"}</Field>
+            <Field label="Обращений к модели">{String(live.calls)}</Field>
+          </Fields>
+          <Note>
+            Режим и исход агентного слоя станут известны, когда прогон закончится: сейчас показано
+            только то, что уже пришло в событиях.
+          </Note>
+        </div>
+      );
+    }
     if (agenticState) {
       return (
         <div className="mode mode--off">

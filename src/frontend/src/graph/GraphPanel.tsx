@@ -31,12 +31,26 @@ export function GraphPanel({ events, agentic, running, selectedPlanId = null }: 
   const live = running || reveal < model.steps;
 
   if (model.absent !== null) {
-    return <Empty>{model.absent}</Empty>;
+    return (
+      <Empty>
+        {running
+          ? "Прогон идёт: событий от агентов ещё не приходило. Схема появится с первым ходом."
+          : model.absent}
+      </Empty>
+    );
   }
 
   const specialists = model.nodes.filter((node) => node.kind === "specialist").length;
 
   if (model.steps === 0 || specialists === 0) {
+    if (running) {
+      return (
+        <Note>
+          Оркестратор начал работу, но к специалистам ещё не обращался: схема появится с
+          первым запросом. Ходы, которые уже пришли, показаны ниже, в «Ходе диалога».
+        </Note>
+      );
+    }
     return (
       <Note>
         Обмена между агентами не было: оркестратор не консультировался со специалистами.
@@ -66,7 +80,6 @@ export function GraphPanel({ events, agentic, running, selectedPlanId = null }: 
           <li className="agmap__key-item agmap__key-item--pass">принял</li>
           <li className="agmap__key-item agmap__key-item--warn">просил доработать</li>
           <li className="agmap__key-item agmap__key-item--fail">отклонил</li>
-          <li className="agmap__key-item agmap__key-item--tool">свой инструмент</li>
         </ul>
       </div>
       <p className="agmap__narrow">
