@@ -11,7 +11,7 @@ import { canReplay, createTapeRecorder, playTape } from "./replay";
 import type { RecordInfo } from "./hydrate";
 import { hydrateRun, recordInfoOf } from "./hydrate";
 import type { RunRecord } from "./record";
-import { tapeOf } from "./record";
+import { buildRecord, tapeOf } from "./record";
 
 const FIRST_STAGE = ORDER[0] as string;
 
@@ -29,6 +29,7 @@ export interface RunControls {
   reset: () => void;
   replay: () => void;
   openRecord: (record: RunRecord, exportedAt: string | null) => void;
+  adopt: (record: RunRecord) => void;
   tapeSnapshot: () => RunTape | null;
   canReplay: boolean;
   replaying: boolean;
@@ -44,9 +45,16 @@ export function useRun(): RunControls {
   const states = useRef<Record<string, StageState>>({});
   const queued = useRef<Record<string, StageState>>({});
   const recorder = useRef(createTapeRecorder());
-  const tape = useRef<RunTape | null>(null);
-  const lastQuery = useRef<string | null>(null);
-  const recordInfo = useRef<RecordInfo | null>(null);
+  /**
+   * Единственный источник повтора: завершённая запись целиком (события, payload, query, дата,
+   * provider, run_id, подпись). Новый live-прогон сбрасывает его до своего успешного завершения,
+   * поэтому лента одного прогона не может быть показана под запросом другого.
+   */
+  const source = useRef<{ record: RunRecord; exportedAt: string | null } | null>(null);
+  const setSource = useCallback((next: { record: RunRecord; exportedAt: string | null } | null) => {
+    source.current = next;
+    setHasTape(next !== null && canReplay(tapeOf(next.record)));
+  }, []);
 
   const reveal = useMemo(
     () =>
@@ -99,8 +107,8 @@ export function useRun(): RunControls {
   );
 
   const run_ = useCallback(
-    (source: (handlers: StreamHandlers, signal: AbortSignal) => Promise<void>, live: boolean,
-     query: string | null) => {
+    (feed: (handlers: StreamHandlers, signal: AbortSignal) => Promise<void>, live: boolean,
+     query: string | null, info: RecordInfo | null) => {
       abort.current?.abort();
       reveal.clear();
       states.current = {};
@@ -110,8 +118,9 @@ export function useRun(): RunControls {
       if (live) recorder.current.reset();
       const controller = new AbortController();
       abort.current = controller;
-      setRun({ ...EMPTY_RUN, status: "running", live, query, record: live ? null : recordInfo.current });
+      setRun({ ...EMPTY_RUN, status: "running", live, query, record: info });
       const fail = (message: string): void => {
+        if (abort.current !== controller) return;
         reveal.clear();
         setPending(false);
         setRun((prev) => {
@@ -131,9 +140,12 @@ export function useRun(): RunControls {
 
       const tap = live ? recorder.current : null;
 
-      source(
+      const stale = (): boolean => controller.signal.aborted || abort.current !== controller;
+
+      feed(
         {
           onPhase: (event) => {
+            if (stale()) return;
             tap?.onPhase(event);
             setPending(false);
             setRun((prev) => {
@@ -142,10 +154,12 @@ export function useRun(): RunControls {
             });
           },
           onTick: (elapsedMs) => {
+            if (stale()) return;
             tap?.onTick(elapsedMs);
             setRun((prev) => ({ ...prev, elapsedMs, lastFrameAt: performance.now() }));
           },
           onStage: (stage, elapsedMs, state, facts) => {
+            if (stale()) return;
             tap?.onStage(stage, elapsedMs, state, facts);
             setPending(false);
             setRun((prev) => ({
@@ -158,6 +172,7 @@ export function useRun(): RunControls {
             enqueue(stage, (state ?? "done") as StageState);
           },
           onAgent: (event: AgentEvent) => {
+            if (stale()) return;
             tap?.onAgent(event);
             setPending(false);
             setRun((prev) => ({
@@ -168,13 +183,15 @@ export function useRun(): RunControls {
             enqueue("agents", "running");
           },
           onScreen: (payload, elapsedMs) => {
+            if (stale()) return;
             tap?.onScreen(payload, elapsedMs);
             setPending(false);
             setRun((prev) => ({ ...prev, serverMs: elapsedMs, elapsedMs }));
             unpack(payload);
             if (live) {
-              tape.current = recorder.current.snapshot();
-              setHasTape(true);
+              // Запись этого прогона; App заменяет её полной (условия, подпись) через adopt.
+              setSource({ record: buildRecord({ payload, form: null, query, label: "текущий прогон",
+                tape: recorder.current.snapshot(), durationMs: elapsedMs }), exportedAt: null });
             }
           },
           onFailed: fail,
@@ -186,24 +203,26 @@ export function useRun(): RunControls {
         fail(readable(reason));
       });
     },
-    [enqueue, reveal, unpack]
+    [enqueue, reveal, unpack, setSource]
   );
 
   const start = useCallback(
     (query: string) => {
-      lastQuery.current = query;
-      recordInfo.current = null;
-      run_((handlers, signal) => streamDecision(query, handlers, signal), true, query);
+      setSource(null);
+      run_((handlers, signal) => streamDecision(query, handlers, signal), true, query, null);
     },
-    [run_]
+    [run_, setSource]
   );
 
   const replay = useCallback(() => {
-    if (!canReplay(tape.current)) return;
-    const recorded = tape.current;
-    const query = lastQuery.current;
-    run_((handlers, signal) => playTape(recorded, handlers, signal), false, query);
+    const held = source.current;
+    const recorded = held ? tapeOf(held.record) : null;
+    if (!held || !canReplay(recorded)) return;
+    run_((handlers, signal) => playTape(recorded, handlers, signal), false, held.record.query,
+      recordInfoOf(held.record, held.exportedAt));
   }, [run_]);
+
+  const adopt = useCallback((record: RunRecord) => setSource({ record, exportedAt: null }), [setSource]);
 
   const openRecord = useCallback(
     (record: RunRecord, exportedAt: string | null) => {
@@ -215,16 +234,13 @@ export function useRun(): RunControls {
       queued.current = {};
       setPending(false);
       setReplaying(false);
-      recordInfo.current = info;
-      lastQuery.current = record.query;
-      tape.current = tapeOf(record);
-      setHasTape(canReplay(tape.current));
+      setSource({ record, exportedAt });
       setRun(restored);
     },
-    [reveal]
+    [reveal, setSource]
   );
 
-  const tapeSnapshot = useCallback(() => tape.current, []);
+  const tapeSnapshot = useCallback(() => (source.current ? tapeOf(source.current.record) : null), []);
 
   const stop = useCallback(() => {
     abort.current?.abort();
@@ -245,8 +261,9 @@ export function useRun(): RunControls {
     queued.current = {};
     setPending(false);
     setReplaying(false);
+    setSource(null);
     setRun(EMPTY_RUN);
-  }, [reveal]);
+  }, [reveal, setSource]);
 
   return {
     run,
@@ -255,6 +272,7 @@ export function useRun(): RunControls {
     reset,
     replay,
     openRecord,
+    adopt,
     tapeSnapshot,
     canReplay: hasTape,
     replaying,

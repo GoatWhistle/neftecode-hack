@@ -40,7 +40,7 @@ export function App() {
   const [options, setOptions] = useState<RunOptions | null>(null);
   const [conditions, setConditions] = useState<Conditions>(BLANK);
   const [optionsError, setOptionsError] = useState<string | null>(null);
-  const { run, start, stop, reset, replay, openRecord, tapeSnapshot, canReplay, pending } = useRun();
+  const { run, start, stop, reset, replay, openRecord, adopt, tapeSnapshot, canReplay, pending } = useRun();
   const [pinned, setPinned] = useState<RunRecord | null>(null);
   const [current, setCurrent] = useState<RunRecord | null>(null);
   const [sceneLoading, setSceneLoading] = useState(false);
@@ -172,12 +172,16 @@ export function App() {
     const preset = presetOf(shownForm);
     const label = nextLabel.current ?? (preset ? PRESETS[preset].label : (SCENARIO_LABEL[shownForm.scenario] ?? shownForm.scenario));
     nextLabel.current = null;
-    setCurrent(buildRecord({ payload: run.payload, form: shownForm, query: run.query, label,
-      tape: tapeSnapshot(), durationMs: run.serverMs }));
+    const record = buildRecord({ payload: run.payload, form: shownForm, query: run.query, label,
+      tape: tapeSnapshot(), durationMs: run.serverMs });
+    setCurrent(record);
+    adopt(record);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run.status, run.live, run.payload]);
 
   const openProtocol = useCallback((parsed: ParsedProtocol) => {
+    // parseProtocol уже проверил структуру и пробно восстановил и сравнил весь пакет A/B:
+    // дальше экран меняется целиком. Исключение здесь — только страховка без частичных изменений.
     const shown = parsed.b ?? parsed.a!;
     try {
       openRecord(shown, parsed.protocol.exported_at);
