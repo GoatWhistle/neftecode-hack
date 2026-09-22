@@ -15,10 +15,15 @@ function value(v: number | null | undefined, digits = 3): string {
   return v === null || v === undefined ? "нет числа" : num(v, digits);
 }
 
-function Evidence({ reason, decisionId }: { reason: ChoiceReason; decisionId: string | null }) {
+function Evidence({ reason, decisionId, candidateId }: {
+  reason: ChoiceReason; decisionId: string | null; candidateId: string;
+}) {
   const refs = reason.evidence ?? [];
   return (
     <div className="chc__evidence">
+      <p className="chc__muted chc__origin">
+        Запись <code>{decisionId ?? "без идентификатора"}</code> · вариант <code>{candidateId}</code>
+      </p>
       {refs.length > 0 ? (
         <table className="chc__table">
           <caption>
@@ -103,7 +108,7 @@ function Card({ card, title, decisionId, open, onToggle, vetoRoles }: {
                   <span className={`chc__cat chc__cat--${reason.category}`}>{CATEGORY_TEXT[reason.category] ?? reason.category}</span>
                   <span>{reason.text}</span>
                 </button>
-                {expanded ? <Evidence reason={reason} decisionId={decisionId} /> : null}
+                {expanded ? <Evidence reason={reason} decisionId={decisionId} candidateId={card.candidate_id} /> : null}
               </li>
             );
           })}

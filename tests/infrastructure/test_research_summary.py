@@ -62,3 +62,14 @@ def test_mismatched_selection_is_rejected(tmp_path):
     path.write_text(json.dumps(value), encoding="utf-8")
     with pytest.raises(ResearchSummaryError):
         build_forecast_summary(root)
+
+
+@pytest.mark.parametrize("field", ["total_targets", "paired_available_targets"])
+def test_fractional_counter_is_rejected_not_truncated(tmp_path, field):
+    root = _copy(tmp_path)
+    path = root / FINAL
+    value = json.loads(path.read_text(encoding="utf-8"))
+    value[field] = value[field] + 0.9
+    path.write_text(json.dumps(value), encoding="utf-8")
+    with pytest.raises(ResearchSummaryError, match="целое"):
+        build_forecast_summary(root)

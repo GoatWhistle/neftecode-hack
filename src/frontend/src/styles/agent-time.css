@@ -1,0 +1,5 @@
+.agt { display: grid; gap: 4px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--paper); font-size: 14px; margin: var(--space-2) 0; }
+.agt--preliminary { border-style: dashed; background: var(--vellum); }
+.agt--stopped { border-inline-start: 3px solid var(--unknown); }
+.agt__head, .agt__note { margin: 0; }
+.agt__note { color: var(--muted); font-size: 13px; }

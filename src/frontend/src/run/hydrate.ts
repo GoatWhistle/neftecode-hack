@@ -1,4 +1,4 @@
-import type { AgentEvent, RunState, StageState } from "./types";
+import type { AgentEvent, CoreEvent, RunState, StageState } from "./types";
 import { EMPTY_RUN } from "./types";
 import type { RunRecord } from "./record";
 import { advanceTo, LATE_STAGES, mergeFacts, mergePhase, ORDER, stageRan } from "./sequence";
@@ -34,6 +34,7 @@ export function hydrateRun(record: RunRecord, info: RecordInfo): RunState {
   let stageAt: RunState["stageAt"] = {};
   let phases: RunState["phases"] = [];
   const agentEvents: AgentEvent[] = [];
+  let core: CoreEvent | null = null;
   let elapsedMs = 0;
   let serverMs: number | null = null;
   for (const frame of record.events) {
@@ -52,6 +53,8 @@ export function hydrateRun(record: RunRecord, info: RecordInfo): RunState {
       elapsedMs = item.elapsedMs as number;
     } else if (frame.kind === "agent") {
       agentEvents.push(item.event as AgentEvent);
+    } else if (frame.kind === "core") {
+      core = item.core as CoreEvent;
     } else if (frame.kind === "screen") {
       serverMs = item.elapsedMs as number;
       elapsedMs = serverMs;
@@ -74,6 +77,7 @@ export function hydrateRun(record: RunRecord, info: RecordInfo): RunState {
     stageAt,
     stageFacts,
     agentEvents,
+    core,
     payload: record.payload,
     elapsedMs,
     serverMs,

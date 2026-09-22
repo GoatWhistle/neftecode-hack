@@ -84,6 +84,10 @@ def _relay(item: dict, elapsed_ms: int) -> Frame:
     kind = item.get("kind")
     if kind == "phase":
         return _phase(item.get("key", ""), item.get("state", "done"), elapsed_ms)
+    if kind == "core":
+        data = {key: value for key, value in item.items() if key != "kind"}
+        data["elapsed_ms"] = elapsed_ms
+        return Frame("core", data)
     if kind == "agent":
         return Frame("agent", {"event": item.get("event", {}), "elapsed_ms": elapsed_ms})
     if kind == "stage":

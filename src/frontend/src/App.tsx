@@ -14,6 +14,14 @@ import { OperatorAnswer } from "./ui/OperatorAnswer";
 import { Evidence } from "./evidence/Evidence";
 import { PlanCompare } from "./compare/PlanCompare";
 import { Consequences } from "./features/consequences/Consequences";
+import { AgentOutcome, CorePreview } from "./features/agent-time/AgentTime";
+import { ChoicePanel } from "./features/choice/ChoicePanel";
+import { influenceRefsOf } from "./features/choice/influence";
+import { EvidencePassport } from "./features/evidence-passport";
+import type { ResearchSummary } from "./features/evidence-passport";
+import { BUILD_RESEARCH } from "./features/evidence-passport/buildSummary";
+import { HistoryExplorer } from "./features/history-explorer/HistoryExplorer";
+import type { HistoryCatalog, HistoryOverview, HistorySelection } from "./features/history-explorer/types";
 import { Fold } from "./graph/Fold";
 import { outcomeOf } from "./run/verdict";
 import { Logo } from "./ui/Logo";
@@ -34,8 +42,21 @@ import { ProtocolError, type ParsedProtocol } from "./run/protocol";
 const BLANK: Conditions = {
   scenario: "", snapshot: "", fault: "healthy", crude_sulfur_wt_pct: "", product_sulfur_mgkg: "",
   product_t95_c: "", product_cetane_number: "", throughput_tph: "", tank: "", tank_inventory: "",
-  tank_available: ""
+  tank_available: "", at: ""
 };
+
+async function getJson<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+  const text = await response.text();
+  let data: (T & { error?: string }) | null = null;
+  try {
+    data = JSON.parse(text) as T & { error?: string };
+  } catch {
+    data = null;
+  }
+  if (!response.ok || data === null) throw new Error(data?.error ?? `сервер ответил ${response.status}`);
+  return data;
+}
 
 export function App() {
   const [options, setOptions] = useState<RunOptions | null>(null);
@@ -50,6 +71,11 @@ export function App() {
   const [launched, setLaunched] = useState<Conditions | null>(null);
   const optionsRun = useRef(0);
   const [open, setOpen] = useState<string | null>(null);
+  const [research, setResearch] = useState<ResearchSummary | null>(BUILD_RESEARCH);
+  const [catalog, setCatalog] = useState<HistoryCatalog | null>(null);
+  const [overview, setOverview] = useState<HistoryOverview | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyPick, setHistoryPick] = useState<HistorySelection | null>(null);
   const payload = run.payload;
   const outcome = outcomeOf(run.status, payload, run.error, run.status === "stopped");
   const phase = run.status === "idle" ? "idle" : outcome ? "answer" : "run";
@@ -93,6 +119,30 @@ export function App() {
     void loadOptions();
   }, [loadOptions]);
 
+  const loadCatalog = useCallback((offset = 0) => {
+    getJson<HistoryCatalog>(`/api/history?offset=${offset}&limit=100`)
+      .then((next) => { setCatalog(next); setHistoryError(null); })
+      .catch((reason: unknown) => setHistoryError(`Каталог истории не получен: ${reason instanceof Error ? reason.message : "ошибка"}`));
+  }, []);
+
+  useEffect(() => { loadCatalog(); }, [loadCatalog]);
+
+  // Выбор момента меняет только условия следующего запуска: A, текущий экран и fault не трогаются.
+  const pickHistory = useCallback((selection: HistorySelection) => {
+    setHistoryPick(selection);
+    setConditions((prev) => selection.kind === "snapshot"
+      ? { ...prev, snapshot: selection.snapshot, at: "" }
+      : { ...prev, snapshot: "", at: selection.requested_at });
+  }, []);
+
+  const loadOverview = useCallback((start: string, end: string, exclusionOffset = 0) => {
+    const query = new URLSearchParams({ start, end, points: "24", exclusion_offset: String(exclusionOffset) });
+    getJson<HistoryOverview>(`/api/history/overview?${query.toString()}`)
+      .then((next) => { setOverview(next); setHistoryError(null); })
+      .catch((reason: unknown) => setHistoryError(`Обзор периода не получен: ${reason instanceof Error ? reason.message : "ошибка"}`));
+  }, []);
+  const lastOverview = useRef<{ start: string; end: string } | null>(null);
+
   const pickScenario = useCallback(
     (name: string) => {
       requestOptions(name)
@@ -118,7 +168,10 @@ export function App() {
   );
 
   const change = useCallback((patch: Partial<Conditions>) => {
-    setConditions((prev) => ({ ...prev, ...patch }));
+    // Готовый срез и момент истории взаимоисключающие: выбор среза снимает момент.
+    const clearsMoment = patch.snapshot !== undefined && patch.snapshot !== "";
+    if (clearsMoment) setHistoryPick(null);
+    setConditions((prev) => ({ ...prev, ...patch, ...(clearsMoment ? { at: "" } : {}) }));
   }, []);
 
   const startWith = useCallback((frozen: Conditions, label: string | null) => {
@@ -158,7 +211,8 @@ export function App() {
       setOpen(null);
       setOptions(next);
       setOptionsError(null);
-      setConditions({ ...prepared, scenario: preset.scenario, snapshot: preset.snapshot, fault: preset.fault });
+      setHistoryPick(null);
+      setConditions({ ...prepared, scenario: preset.scenario, snapshot: preset.snapshot, fault: preset.fault, at: "" });
     } catch {
       setOptionsError("Сервер условий не ответил: сцена не загружена.");
     } finally {
@@ -176,6 +230,7 @@ export function App() {
     const record = buildRecord({ payload: run.payload, form: shownForm, query: run.query, label,
       tape: tapeSnapshot(), durationMs: run.serverMs });
     setCurrent(record);
+    setResearch(BUILD_RESEARCH);
     adopt(record);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run.status, run.live, run.payload]);
@@ -191,6 +246,7 @@ export function App() {
     }
     setPinned(parsed.b ? parsed.a : null);
     setCurrent(shown);
+    setResearch(parsed.research);
     built.current = shown.payload;
     setOpen(null);
     setLaunched({ ...BLANK, ...(shown.form as Partial<Conditions>) });
@@ -210,6 +266,12 @@ export function App() {
     scrollToConditions();
   }, [reset]);
 
+  const focusWhatIf = useCallback(() => {
+    const title = document.getElementById("whatif-title");
+    title?.scrollIntoView({ behavior: "smooth", block: "start" });
+    title?.closest("section")?.querySelector<HTMLElement>("button, select, input")?.focus();
+  }, []);
+
   const decisionState = reachedState(run.stages, "decision");
   const settled = payload !== null && phase === "answer";
   const shown = launched ?? conditions;
@@ -226,7 +288,8 @@ export function App() {
         ? `${tank.id} — нарабатывают по необходимости`
         : `${tank.id} — ${shown.tank_available === "1" ? "в работе" : "выведен"}`
       : null;
-    const parts = [scenario, snapshot?.title ?? shown.snapshot, fault];
+    const moment = shown.at ? `момент истории ${shown.at.replace("T", " ")}` : (snapshot?.title ?? shown.snapshot);
+    const parts = [scenario, moment, fault];
     if (tankText) parts.push(tankText);
     if (sources) parts.push(sources.text);
     return parts.join(" · ");
@@ -275,13 +338,41 @@ export function App() {
             onStart={launch}
             onAdvanced={() => setOpen(INPUT_SCENARIO)}
           >
-            <ProtocolBar current={current} pinned={pinned} running={run.status === "running"} onOpen={openProtocol} />
+            <ProtocolBar current={current} pinned={pinned} running={run.status === "running"} onOpen={openProtocol}
+              research={research} />
           </SceneBar>
+          <Fold title="Исторический момент" hint="готовые срезы и произвольный момент поставленного периода">
+            <HistoryExplorer
+              catalog={catalog}
+              selection={historyPick}
+              onSelect={pickHistory}
+              onMore={loadCatalog}
+              overview={overview}
+              onOverview={(start, end) => { lastOverview.current = { start, end }; loadOverview(start, end); }}
+              onExclusionsMore={(offset) => {
+                if (lastOverview.current) loadOverview(lastOverview.current.start, lastOverview.current.end, offset);
+              }}
+              disabled={run.status === "running"}
+              error={historyError}
+              recordTime={current?.origin === "record" ? current.payload.decision_time : null}
+            />
+          </Fold>
           {run.record ? <RecordBanner info={run.record} /> : null}
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
+          <CorePreview run={run} />
           {phase !== "idle" && (payload || outcome) ? (
             <div className="answer-slot">
               {outcome ? <OperatorAnswer outcome={outcome} /> : null}
+              {settled && payload ? <AgentOutcome payload={payload} /> : null}
+              {settled && payload ? (
+                <>
+                  <section className="answer-part" aria-label="Последствия во времени">
+                    <h3 className="answer-part__title">Последствия во времени</h3>
+                    <Consequences payload={payload} />
+                  </section>
+                  <ChoicePanel payload={payload} onChangeCondition={focusWhatIf} />
+                </>
+              ) : null}
               <WhatIf
                 pinned={pinned}
                 hasResult={current !== null}
@@ -330,11 +421,12 @@ export function App() {
                   <Fold title="Сравнение планов" hint="чем выбранный план лучше отклонённых">
                     <PlanCompare payload={payload} />
                   </Fold>
-                  <Fold title="Последствия во времени" hint="что станет с качеством: выбранный план и hold">
-                    <Consequences payload={payload} />
-                  </Fold>
                   <Fold title="Доказательства" hint="чем подтверждён каждый вывод">
                     <Evidence payload={payload} />
+                  </Fold>
+                  <Fold title="Паспорт доказательств" hint="данные, проверенное качество, вклад агентов; печать">
+                    <EvidencePassport run={run} research={research}
+                      influenceRefs={influenceRefsOf(payload.decision.choice)} />
                   </Fold>
                 </div>
               ) : null}

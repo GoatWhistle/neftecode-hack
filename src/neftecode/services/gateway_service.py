@@ -24,6 +24,10 @@ from neftecode.application.cancellation import check_cancelled
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.llm.config import decision_wait_seconds
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
+from neftecode.application.history.catalog import snapshot_catalog
+from neftecode.application.history.moment import check_moment
+from neftecode.application.history.time import HistoryError, local_moment
+from neftecode.infrastructure.history.overview import bounded_response
 from .common import (RawResponse, ServiceError, ServiceHTTPClient, ServiceSettings, StreamResponse,
                      make_handler, serve, encode_json)
 
@@ -51,6 +55,16 @@ class StaticRoutes(Mapping):
             return self[key]
         except KeyError:
             return default
+
+
+def _int(values, key, default):
+    raw = (values.get(key) or [None])[0]
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise HistoryError("invalid_budget", f"{key}: ожидается целое число, получено «{raw}»") from exc
 
 
 class GatewayService:
@@ -113,7 +127,11 @@ class GatewayService:
         return StreamResponse((frame.encode() for frame in decision_stream(compute)))
 
     def _decide(self, canonical, raw, request_id, live=False):
-        chosen = self.snapshot(canonical["snapshot"])
+        history = None
+        if canonical.get("at") is not None:
+            chosen, history = self._prepare_at(canonical, raw, request_id)
+        else:
+            chosen = self.snapshot(canonical["snapshot"])
         state = state_under(chosen, canonical["fault"])
         changes = changes_from(canonical, raw)
         body = {"scenario": apply_changes(raw, changes), "state": state, "budget": DEFAULT_BUDGET,
@@ -138,8 +156,66 @@ class GatewayService:
         screen["decision_timeout_s"] = self.decision_timeout_s
         # Модель и код сообщает decision-service, который считал; gateway их не выводит из своего диска.
         provenance = result.get("provenance") or {"code": None, "model": None}
-        screen["run_meta"] = build_run_meta(provenance, canonical, screen, self.snapshots, raw, snapshot_key)
+        if history is not None:
+            screen["history"] = history
+        snapshots = self.snapshots if history is None else [*self.snapshots, chosen]
+        screen["run_meta"] = build_run_meta(provenance, canonical, screen, snapshots, raw, snapshot_key)
         return screen
+
+    def _prepare_at(self, canonical, raw, request_id):
+        """Момент истории P4: срез готовит decision-service из data- и model-service; gateway не
+        читает task/ и модель. Дальше — тот же путь, что у готового среза."""
+        at = canonical["at"]
+        prepared = self.client.request("POST", self.decision_url + "/v1/history/prepare", {"at": at},
+                                       timeout_s=self.decision_timeout_s,
+                                       headers={"X-Request-ID": request_id}).data
+        chosen = prepared.get("snapshot") if isinstance(prepared, dict) else None
+        if not isinstance(chosen, dict) or not isinstance(chosen.get("state"), dict):
+            raise ServiceError("Decision service вернул неполный срез момента", 502, "invalid_upstream")
+        if local_moment(chosen["at"]) != local_moment(at):
+            raise HistoryError("moment_mismatch", "Подготовленное состояние не совпадает с выбранным моментом")
+        if chosen["state"].get("decision_time") != chosen["at"]:
+            raise HistoryError("state_time_mismatch", "Время измерений не совпадает со временем среза")
+        history = {"available": True, "reason": None, "requested_at": at, "effective_at": chosen["at"],
+                   "timezone": "source-local", "alignment": "exact_as_of", "grid_minutes": 10,
+                   "conditions": {"at": at, "snapshot": None, "fault": canonical["fault"],
+                                  "changes": changes_from(canonical, raw)},
+                   "coverage": prepared.get("coverage"), "exclusions": prepared.get("exclusions"),
+                   "trust_usable": prepared.get("trust_usable"), "provenance": prepared.get("provenance"),
+                   "preparation": prepared.get("preparation"),
+                   "note": "Исторические условия; последствия неисполненных действий здесь не наблюдаются."}
+        return chosen, history
+
+    def history_catalog(self, values, request_id="gateway"):
+        result = snapshot_catalog(self.snapshots, _int(values, "offset", 0), _int(values, "limit", 50))
+        coverage = self._coverage(request_id)
+        result["arbitrary"] = {"available": coverage.get("available") is True, "reason": coverage.get("reason")}
+        if coverage.get("available"):
+            result["coverage"] = {k: coverage[k] for k in ("start", "end", "model_valid_from")}
+            result["provenance"] = {"model_fingerprint": coverage.get("model_fingerprint"),
+                                    "prepared_by": "decision-service"}
+        return bounded_response(result)
+
+    def history_overview(self, values, request_id="gateway"):
+        coverage = self._coverage(request_id)
+        if not coverage.get("available"):
+            raise HistoryError("measurements_unavailable", coverage.get("reason") or "История недоступна")
+        first = lambda key: (values.get(key) or [""])[0]
+        start, end = first("start"), first("end")
+        check_moment(start, coverage), check_moment(end, coverage)
+        body = {"start": start, "end": end, "points": _int(values, "points", 24),
+                "exclusion_offset": _int(values, "exclusion_offset", 0),
+                "exclusion_limit": _int(values, "exclusion_limit", 50)}
+        result = self.client.request("POST", self.data_url + "/v1/history/overview", body,
+                                     headers={"X-Request-ID": request_id}).data
+        return bounded_response({**result, "coverage": {k: coverage[k] for k in ("start", "end", "model_valid_from")}})
+
+    def _coverage(self, request_id):
+        try:
+            return self.client.request("GET", self.decision_url + "/v1/history/coverage",
+                                       headers={"X-Request-ID": request_id}).data
+        except ServiceError as exc:
+            return {"available": False, "reason": f"Сервис истории недоступен: {exc}"}
 
     def _relay_decision(self, body, headers):
         """Потоковый расчёт decision-service: его этапы и события агентов передаются в текущий поток SSE
@@ -154,6 +230,8 @@ class GatewayService:
                 emit("stage", **{key: value for key, value in data.items() if key != "elapsed_ms"})
             elif event == "agent":
                 emit_agent_event(data.get("event") or {})
+            elif event == "core":
+                emit("core", **{key: value for key, value in data.items() if key != "elapsed_ms"})
             elif event == "failed":
                 raise ServiceError(str(data.get("message") or "decision-service прервал расчёт"), 502, "upstream_failed")
             elif event == "screen":
@@ -199,7 +277,20 @@ class GatewayService:
                     return RawResponse(encode_json({**error_payload(str(exc)), "defaults": {}}),
                                        "application/json; charset=utf-8", 200)
             return route
+        def history(call):
+            def route(request):
+                try:
+                    return RawResponse(encode_json(call(request)), "application/json; charset=utf-8")
+                except HistoryError as exc:
+                    return RawResponse(encode_json({"error": str(exc), "code": exc.code}),
+                                       "application/json; charset=utf-8", 422)
+                except ServiceError as exc:
+                    return RawResponse(encode_json({"error": str(exc), "code": getattr(exc, "code", None)}),
+                                       "application/json; charset=utf-8", 422 if exc.status < 500 else 502)
+            return route
         api = {"/v1/capabilities": lambda _r: {"service": "gateway-service", "legacy_api": True},
+                "/api/history": history(lambda r: self.history_catalog(r.query, r.request_id)),
+                "/api/history/overview": history(lambda r: self.history_overview(r.query, r.request_id)),
                 "/api/scenarios": legacy(lambda r: {"scenarios": self.scenarios(r.request_id)}),
                 "/api/defaults": legacy(lambda r: defaults_for(self.raw((r.query.get("scenario") or [self.scenarios(r.request_id)[0]])[0], r.request_id))),
                 "/api/decide": legacy(lambda r: self.decide(r.query, r.request_id)),

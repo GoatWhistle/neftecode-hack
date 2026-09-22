@@ -62,8 +62,12 @@ class ModelService:
     def models(self):
         bundle = self._load()
         available = bundle.get("candidates") or [*bundle["models"], "last_lab", "last_pak"]
+        config = bundle.get("config") or {}
         return {"models": sorted(set(str(name) for name in available)),
-                "selected": bundle.get("selected"), "fallback": bundle.get("fallback")}
+                "selected": bundle.get("selected"), "fallback": bundle.get("fallback"),
+                # P4: с какого момента модель и калибровка доступны, и отпечаток обучения.
+                "valid_from": config.get("calibration_end"),
+                "fingerprint": (bundle.get("manifest") or {}).get("fingerprint")}
 
     def forecast(self, body: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(body, dict):

@@ -1,12 +1,13 @@
 import type { ScreenPayload } from "../types";
 import type { StreamHandlers } from "./stream";
-import type { AgentEvent, PhaseEvent, StageFacts } from "./types";
+import type { AgentEvent, CoreEvent, PhaseEvent, StageFacts } from "./types";
 
 export const REPLAY_PAUSE_CAP_MS = 2000;
 
 interface PhaseFrame { kind: "phase"; atMs: number; phase: PhaseEvent }
 interface TickFrame { kind: "tick"; atMs: number; elapsedMs: number }
 interface AgentFrame { kind: "agent"; atMs: number; event: AgentEvent }
+interface CoreFrame { kind: "core"; atMs: number; core: CoreEvent }
 interface StageFrame {
   kind: "stage";
   atMs: number;
@@ -17,7 +18,7 @@ interface StageFrame {
 }
 interface ScreenFrame { kind: "screen"; atMs: number; payload: ScreenPayload; elapsedMs: number }
 
-export type ReplayFrame = PhaseFrame | TickFrame | AgentFrame | StageFrame | ScreenFrame;
+export type ReplayFrame = PhaseFrame | TickFrame | AgentFrame | CoreFrame | StageFrame | ScreenFrame;
 
 export interface RunTape {
   frames: ReplayFrame[];
@@ -27,6 +28,7 @@ export interface TapeRecorder {
   onPhase: (phase: PhaseEvent) => void;
   onTick: (elapsedMs: number) => void;
   onAgent: (event: AgentEvent) => void;
+  onCore: (event: CoreEvent) => void;
   onStage: (stage: string, elapsedMs: number, state: string | undefined, facts: StageFacts) => void;
   onScreen: (payload: ScreenPayload, elapsedMs: number) => void;
   snapshot: () => RunTape;
@@ -46,6 +48,7 @@ export function createTapeRecorder(): TapeRecorder {
     onPhase: (phase) => frames.push({ kind: "phase", atMs: stamp(), phase }),
     onTick: (elapsedMs) => frames.push({ kind: "tick", atMs: stamp(), elapsedMs }),
     onAgent: (event) => frames.push({ kind: "agent", atMs: stamp(), event }),
+    onCore: (core) => frames.push({ kind: "core", atMs: stamp(), core }),
     onStage: (stage, elapsedMs, state, facts) =>
       frames.push({ kind: "stage", atMs: stamp(), stage, elapsedMs, state, facts }),
     onScreen: (payload, elapsedMs) => frames.push({ kind: "screen", atMs: stamp(), payload, elapsedMs }),
@@ -75,7 +78,7 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
 
 export async function playTape(
   tape: RunTape,
-  handlers: Pick<StreamHandlers, "onPhase" | "onTick" | "onAgent" | "onStage" | "onScreen">,
+  handlers: Pick<StreamHandlers, "onPhase" | "onTick" | "onAgent" | "onCore" | "onStage" | "onScreen">,
   signal: AbortSignal
 ): Promise<void> {
   let previousAt = 0;
@@ -88,6 +91,7 @@ export async function playTape(
     if (frame.kind === "phase") handlers.onPhase(frame.phase);
     else if (frame.kind === "tick") handlers.onTick(frame.elapsedMs);
     else if (frame.kind === "agent") handlers.onAgent(frame.event);
+    else if (frame.kind === "core") handlers.onCore?.(frame.core);
     else if (frame.kind === "stage") handlers.onStage(frame.stage, frame.elapsedMs, frame.state, frame.facts);
     else handlers.onScreen(frame.payload, frame.elapsedMs);
   }

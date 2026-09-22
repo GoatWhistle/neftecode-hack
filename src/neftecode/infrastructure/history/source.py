@@ -5,6 +5,7 @@ from pathlib import Path
 from threading import Lock
 
 from neftecode.application.history.catalog import snapshot_catalog, snapshot_id
+from neftecode.application.history.moment import check_moment
 from neftecode.application.history.prepare import HistoryError, local_moment
 import pandas as pd
 from neftecode.infrastructure.data.data import load_sources
@@ -80,15 +81,7 @@ class LocalHistorySource:
                 "model_valid_from": bundle["config"]["calibration_end"]}
 
     def _check_time(self, at: str):
-        when = local_moment(at)
-        coverage = self.coverage()
-        if when < local_moment(coverage["start"]) or when > local_moment(coverage["end"]):
-            raise HistoryError("outside_coverage", "Момент вне поставленного периода телеметрии")
-        valid = local_moment(coverage["model_valid_from"] + "T00:00:00"
-                             if len(coverage["model_valid_from"]) == 10 else coverage["model_valid_from"])
-        if when < valid:
-            raise HistoryError("model_not_available", "На этот момент модель и калибровка ещё не были доступны")
-        return when
+        return check_moment(at, self.coverage())
 
     def prepare_at(self, at: str) -> tuple[dict, dict]:
         when = self._check_time(at)

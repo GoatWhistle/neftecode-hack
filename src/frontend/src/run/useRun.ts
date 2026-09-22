@@ -171,6 +171,12 @@ export function useRun(): RunControls {
             }));
             enqueue(stage, (state ?? "done") as StageState);
           },
+          onCore: (core) => {
+            if (stale()) return;
+            tap?.onCore(core);
+            setPending(false);
+            setRun((prev) => ({ ...prev, core, elapsedMs: core.elapsedMs }));
+          },
           onAgent: (event: AgentEvent) => {
             if (stale()) return;
             tap?.onAgent(event);

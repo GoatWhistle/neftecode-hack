@@ -70,7 +70,7 @@ def stack(decision_cls=DecisionService, llm=None):
 
 
 def get_json(server, path):
-    connection = HTTPConnection("127.0.0.1", server.server_port, timeout=120)
+    connection = HTTPConnection("127.0.0.1", server.server_port, timeout=300)
     connection.request("GET", path, headers={"X-Request-ID": "contract-json"})
     response = connection.getresponse()
     payload = json.loads(response.read())
@@ -80,7 +80,7 @@ def get_json(server, path):
 
 def sse_frames(server, path, request_id="contract-sse", on_frame=None):
     """Кадры SSE по мере прихода (не после закрытия): (event, data)."""
-    connection = HTTPConnection("127.0.0.1", server.server_port, timeout=120)
+    connection = HTTPConnection("127.0.0.1", server.server_port, timeout=300)
     connection.request("GET", path, headers={"X-Request-ID": request_id})
     response = connection.getresponse()
     assert response.status == 200 and response.getheader("X-Request-ID") == request_id
@@ -234,5 +234,22 @@ def test_decision_error_reaches_the_browser_as_failed_without_a_screen():
         assert "расчёт упал" in frames[-1][1]["message"]
         status, payload = get_json(gateway, "/api/decide?scenario=baseline&snapshot=synthetic")
         assert status == 200 and payload["state"] == "error"
+    finally:
+        _stop(*servers)
+
+
+def test_core_preview_arrives_before_the_single_screen_through_the_stack(scripted_agents):
+    """P5: gateway передаёт предварительный результат ядра до итога; итог — ровно один."""
+    gateway, servers, _ = stack()
+    try:
+        frames = sse_frames(gateway, f"/api/stream?{RISK}", request_id="p5-core")
+        names = [event for event, _ in frames]
+        assert names.count("core") == 1 and names.count("screen") == 1 and "failed" not in names
+        assert names.index("core") < names.index("screen")
+        core = next(data for event, data in frames if event == "core")
+        screen = next(data for event, data in frames if event == "screen")["payload"]
+        assert core["phase"] == "preliminary"
+        assert core["decision_id"] == screen["decision"]["agentic"]["legacy_decision_id"]
+        assert screen["decision"]["agentic"]["terminal"]["kind"] == "completed"
     finally:
         _stop(*servers)

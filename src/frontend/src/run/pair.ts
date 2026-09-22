@@ -45,6 +45,7 @@ export interface PairComparison {
 const CONDITION_LABELS: Record<string, string> = {
   scenario: "Сценарий",
   snapshot: "Момент решения",
+  at: "Момент истории (местное время источника)",
   fault: "Внесённый отказ источника",
   crude_sulfur_wt_pct: "Сера сырья, % масс.",
   product_sulfur_mgkg: "Сера продукта, мг/кг",

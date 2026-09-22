@@ -32,6 +32,8 @@ function upload(text: string): void {
 
 const calls = (spy: ReturnType<typeof vi.fn>) => spy.mock.calls.map(([url]) => String(url));
 
+import { catalog as historyCatalog } from "../features/history-explorer/fixtures";
+
 describe("импорт протокола в смонтированное приложение", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
@@ -39,7 +41,9 @@ describe("импорт протокола в смонтированное при
     fetchSpy = vi.fn(async (url: string) =>
       String(url).startsWith("/api/options")
         ? new Response(JSON.stringify(options), { status: 200 })
-        : new Response(null, { status: 500 }));
+        : String(url).startsWith("/api/history")
+          ? new Response(JSON.stringify(historyCatalog), { status: 200 })
+          : new Response(null, { status: 500 }));
     vi.stubGlobal("fetch", fetchSpy);
     window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener() {},
       removeEventListener() {} })) as unknown as typeof window.matchMedia;

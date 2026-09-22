@@ -101,8 +101,18 @@ def load_snapshots(out: Path) -> list[dict]:
         except (OSError, ValueError) as exc:
             raise ValueError(f"Срез {path} не читается ({type(exc).__name__}: {exc}): удалите файл или "
                              f"пересоберите срезы командой `uv run neftecode snapshot --all`") from exc
-        items.append(_validate(value, str(path), expected))
-    return sorted(items, key=lambda item: item["at"])
+        items.append((path, _validate(value, str(path), expected)))
+    # Идентификатор среза (время + признак synthetic) — ключ во всех путях: каталог, выбор
+    # в UI, serve и gateway. Два среза с одним ключом неразличимы, поэтому поставка с дублем
+    # отклоняется целиком с именами файлов, а не решается молчаливым выбором одного из них.
+    seen: dict[str, Path] = {}
+    for path, value in items:
+        key = snapshot_name(value)
+        if key in seen:
+            raise ValueError(f"Срезы {seen[key].name} и {path.name} имеют один идентификатор {key}: "
+                             f"поставка с неразличимыми срезами не поддерживается")
+        seen[key] = path
+    return sorted((value for _, value in items), key=lambda item: item["at"])
 
 
 

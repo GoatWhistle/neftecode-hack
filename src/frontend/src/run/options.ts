@@ -33,6 +33,8 @@ export interface RunOptions {
 export interface Conditions {
   scenario: string;
   snapshot: string;
+  /** Произвольный момент истории (P4); взаимоисключающе со snapshot, пусто — не задан. */
+  at?: string;
   fault: string;
   crude_sulfur_wt_pct: string;
   product_sulfur_mgkg: string;

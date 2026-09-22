@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { ParsedProtocol } from "../run/protocol";
 import { buildProtocol, parseProtocol, protocolFileName, ProtocolError, serializeProtocol } from "../run/protocol";
 import type { RunRecord } from "../run/record";
+import type { ResearchSummary } from "../features/evidence-passport/research";
 import "../styles/whatif.css";
 
 interface Props {
@@ -9,9 +10,11 @@ interface Props {
   pinned: RunRecord | null;
   running: boolean;
   onOpen: (parsed: ParsedProtocol) => void;
+  /** Сводка, с которой сейчас показан паспорт; уходит в пакет вместе с записью. */
+  research?: ResearchSummary | null;
 }
 
-export function ProtocolBar({ current, pinned, running, onOpen }: Props) {
+export function ProtocolBar({ current, pinned, running, onOpen, research = null }: Props) {
   const input = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -20,7 +23,7 @@ export function ProtocolBar({ current, pinned, running, onOpen }: Props) {
     const a = pinned ?? current;
     const b = pinned ? current : null;
     if (!a) return;
-    const text = serializeProtocol(buildProtocol(a, b && b.run_id !== a.run_id ? b : null));
+    const text = serializeProtocol(buildProtocol(a, b && b.run_id !== a.run_id ? b : null, new Date(), research));
     const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;

@@ -29,6 +29,40 @@ DETERMINISTIC_LABEL = ("Решение прошло через детермин�
                        "шаги в трассе заданы кодом и воспроизводятся побитово. Это не рассуждение модели.")
 
 
+DOMAIN_REFUSALS = ("no_feasible_plan", "final_recheck_failed", "weak_response_failed",
+                   "mandatory_robustness_failed", "data")
+
+
+def terminal_of(result: dict, info: dict) -> dict:
+    """Вид завершения агентного этапа. Таймаут/ошибка провайдера не выдаются за предметную
+    невозможность: её доказывает только отказ расчёта (DOMAIN_REFUSALS)."""
+    outcome, reason = info.get("outcome"), info.get("fallback_reason") or ""
+    if outcome == "skipped":
+        kind = "skipped_data_refusal"
+    elif "budget:timeout" in reason:
+        kind = "budget_timeout"
+    elif "budget:llm_calls" in reason:
+        kind = "call_budget_exhausted"
+    elif "llm_error" in reason:
+        kind = "provider_error"
+    elif outcome == "fallback" and reason and not reason.startswith(
+            ("orchestrator", "refuse_without", "selection_not", "unexpected", "resolution")):
+        kind = "not_configured"
+    elif reason:
+        kind = "agent_failure"
+    else:
+        kind = "refused" if outcome == "refused" else "completed"
+    refusal = (result.get("refusal") or {}).get("kind")
+    trace = info.get("trace") or []
+    usage_complete = not any(isinstance(t, dict) and str(t.get("decision", "")).startswith(("llm_error", "budget"))
+                             for t in trace)
+    return {"kind": kind, "outcome": outcome, "reason": reason or None, "status": result.get("status"),
+            "domain_impossibility_proven": result.get("status") == REFUSE and refusal in DOMAIN_REFUSALS,
+            "usage_complete": usage_complete,
+            "note": ("Остановка агентов по времени, лимиту или ошибке провайдера не означает, что допустимого "
+                     "решения нет; итог выдан по действующей политике.")}
+
+
 @dataclass
 class AgenticMakeDecision:
     scenario: Scenario
@@ -64,14 +98,32 @@ class AgenticMakeDecision:
                trust_cfg: dict | None = None,
                raw_scenario: dict | None = None, initial_tanks=None, current_operation: dict | None = None,
                data_rejection=None) -> dict:
-        request = dict(state=state, confirmed=confirmed, budget=budget, trust_cfg=trust_cfg, raw_scenario=raw_scenario,
-                       initial_tanks=initial_tanks, current_operation=current_operation, data_rejection=data_rejection)
+        """Ядро → (предварительный результат) → агентный этап → ровно один итог (P5).
+
+        Результат ядра публикуется событием `core` с фазой preliminary: это не окончательный ответ
+        системы. Итог несёт `agentic.terminal` (вид завершения) и `agentic.timing` (monotonic)."""
+        started = self.clock()
+        result = self._decide(started, state=state, confirmed=confirmed, budget=budget, trust_cfg=trust_cfg,
+                              raw_scenario=raw_scenario, initial_tanks=initial_tanks,
+                              current_operation=current_operation, data_rejection=data_rejection)
+        info = result.get("agentic")
+        if isinstance(info, dict):
+            timing = dict(info.get("timing") or {})
+            timing["total_s"] = round(self.clock() - started, 3)
+            if timing.get("core_s") is not None:
+                timing["agents_s"] = round(timing["total_s"] - timing["core_s"], 3)
+            info = {**info, "timing": timing, "terminal": terminal_of(result, info)}
+            result = {**result, "agentic": info}
+        return result
+
+    def _decide(self, started: float, **request) -> dict:
         legacy = self.maker.decide(**request)
+        core_s = round(self.clock() - started, 3)
         info = {"mode": "agentic", "outcome": None, "fallback_reason": None,
                 "legacy_decision_id": legacy["decision_id"], "legacy_status": legacy["status"],
                 "provider": getattr(self.llm, "provider", None) or (self.provider_description or {}).get("provider"),
                 "model": getattr(self.llm, "model", None) or (self.provider_description or {}).get("model"),
-                "note": NOTE}
+                "note": NOTE, "timing": {"core_s": core_s}}
         info["deterministic_policy"] = info["provider"] in DETERMINISTIC_PROVIDERS
         if info["deterministic_policy"]:
             info["provider_label"] = DETERMINISTIC_LABEL
@@ -79,6 +131,11 @@ class AgenticMakeDecision:
             return self._with(legacy, info, "skipped", "data_refusal")
         if self.llm is None:
             return self._with(legacy, info, "fallback", self.configuration_error or "llm_not_configured")
+        emit("core", phase="preliminary", decision_id=legacy.get("decision_id"), status=legacy.get("status"),
+             plan_id=(legacy.get("selected_plan") or {}).get("plan_id"), core_s=core_s,
+             deadline_s=self.settings.timeout_s, max_llm_calls=self.settings.max_llm_calls,
+             note=("Предварительный результат детерминированного ядра. Агентная проверка идёт; это не "
+                   "окончательный ответ системы и его нельзя закрепить или экспортировать."))
         emit("stage", stage="agents", state="running", provider=info["provider"], model=info["model"],
              deterministic_policy=info["deterministic_policy"], budget_limits=self.settings.to_dict())
         trace = AgentTrace(sink=emit_agent_event)

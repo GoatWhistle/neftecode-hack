@@ -335,3 +335,13 @@ def test_b1_unusable_sources_still_produce_a_data_refusal_without_forecast():
     result = demo.run(fault="both_broken", snapshot="норма")
     assert result["ok"] is True
     assert result["decision"]["status"] == "refuse"
+
+
+def test_two_synthetic_snapshots_of_one_moment_are_refused_by_name(out):
+    """Аудит P4 22.09: одинаковый идентификатор делал срезы неразличимыми во всех путях."""
+    write_snapshot(out, snapshot(synthetic=("ht.T6",)))
+    other = snapshot(label="другое затирание", synthetic=("ht.T6",))
+    folder = out / "snapshots"
+    (folder / "20260105-080000-synthetic-copy.json").write_text(json.dumps(other), encoding="utf-8")
+    with pytest.raises(ValueError, match="один идентификатор 20260105-080000-synthetic"):
+        load_snapshots(out)

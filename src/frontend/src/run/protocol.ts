@@ -1,4 +1,6 @@
 import type { ScreenPayload } from "../types";
+import type { ResearchSummary } from "../features/evidence-passport/research";
+import { researchSlot, ResearchSummaryError } from "../features/evidence-passport/research";
 import type { RecordedFrame, RunRecord } from "./record";
 import { RECORD_SCHEMA } from "./record";
 import { sha256Hex } from "./sha256";
@@ -15,7 +17,7 @@ export const MAX_PROTOCOL_BYTES = 8 * 1024 * 1024;
 const PAYLOAD_FIELDS = [
   "state", "title", "status_label", "decision", "explanation", "inventories", "sources", "rule_origin",
   "state_origin", "decision_time", "forecast", "forecast_used", "defaults", "applied", "injection", "snapshot",
-  "binding", "run_meta", "decision_timeout_s", "agentic_state"
+  "binding", "run_meta", "decision_timeout_s", "agentic_state", "history"
 ] as const;
 
 export { canonicalJson };
@@ -26,6 +28,8 @@ export interface ProtocolContent {
   a: RunRecord | null;
   b: RunRecord | null;
   differences: unknown;
+  /** Сводка исследования, с которой показан паспорт; в старых пакетах поля нет. */
+  research?: ResearchSummary | null;
 }
 
 export interface Protocol {
@@ -56,6 +60,7 @@ const FRAME_FIELDS: Record<string, readonly string[]> = {
   phase: ["kind", "atMs", "phase"],
   tick: ["kind", "atMs", "elapsedMs"],
   agent: ["kind", "atMs", "event"],
+  core: ["kind", "atMs", "core"],
   stage: ["kind", "atMs", "stage", "elapsedMs", "state", "facts"],
   screen: ["kind", "atMs", "elapsedMs"]
 };
@@ -75,11 +80,13 @@ export function exportableRecord(record: RunRecord): RunRecord {
   };
 }
 
-export function buildProtocol(a: RunRecord | null, b: RunRecord | null, now: Date = new Date()): Protocol {
+export function buildProtocol(a: RunRecord | null, b: RunRecord | null, now: Date = new Date(),
+  research: ResearchSummary | null = null): Protocol {
   const content: ProtocolContent = {
     a: a ? exportableRecord(a) : null,
     b: b ? exportableRecord(b) : null,
-    differences: a && b ? comparePair(a, b) : null
+    differences: a && b ? comparePair(a, b) : null,
+    research
   };
   const clean = JSON.parse(JSON.stringify(content)) as ProtocolContent;
   return {
@@ -119,7 +126,7 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-const FRAME_KINDS = ["phase", "tick", "agent", "stage", "screen"];
+const FRAME_KINDS = ["phase", "tick", "agent", "core", "stage", "screen"];
 const STAGE_STATES = ["pending", "running", "done", "skipped", "failed"];
 
 function validateFrame(raw: unknown, where: string): void {
@@ -139,6 +146,11 @@ function validateFrame(raw: unknown, where: string): void {
     }
   } else if (item.kind === "tick") {
     if (!isFiniteNumber(item.elapsedMs)) throw new ProtocolError(`${where}: у отсчёта нет времени`);
+  } else if (item.kind === "core") {
+    const core = object(item.core, `${where}.core`);
+    if (core.phase !== "preliminary" || typeof core.note !== "string" || !isFiniteNumber(core.core_s)) {
+      throw new ProtocolError(`${where}: предварительный результат ядра неполный`);
+    }
   } else if (item.kind === "agent") {
     const event = object(item.event, `${where}.event`);
     if (typeof event.agent !== "string" || typeof event.kind !== "string" ||
@@ -219,6 +231,7 @@ export interface ParsedProtocol {
   protocol: Protocol;
   a: RunRecord | null;
   b: RunRecord | null;
+  research: ResearchSummary | null;
 }
 
 /** Разбор и проверка пакета. Содержимое не исполняется и не дополняется вымышленными полями. */
@@ -247,8 +260,15 @@ export function parseProtocol(text: string): ParsedProtocol {
   const a = recordSlot(content.a, "запись A");
   const b = recordSlot(content.b, "запись B");
   if (!a && !b) throw new ProtocolError("В пакете нет ни одной записи прогона");
+  let research: ResearchSummary | null;
+  try {
+    research = researchSlot(content.research);
+  } catch (error) {
+    if (error instanceof ResearchSummaryError) throw new ProtocolError(`Сводка исследования: ${error.message}`);
+    throw error;
+  }
   rehearse(a, b);
-  return { protocol: root as unknown as Protocol, a, b };
+  return { protocol: root as unknown as Protocol, a, b, research };
 }
 
 export function protocolFileName(record: RunRecord | null, now: Date = new Date()): string {

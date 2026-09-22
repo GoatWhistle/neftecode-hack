@@ -1,3 +1,4 @@
+from neftecode.application.history.time import local_moment
 from .changes import ConditionsError
 from .faults import SOURCE_FAULTS
 
@@ -69,7 +70,16 @@ def canonical_conditions(conditions: dict, raw: dict, name: str, default_snapsho
     if fault not in SOURCE_FAULTS:
         raise ConditionsError(f"Неизвестный отказ источника «{fault}»")
     snapshot = conditions.get("snapshot")
-    out = {"scenario": name, "fault": fault, "snapshot": default_snapshot if snapshot is None else snapshot}
+    at = conditions.get("at")
+    if at not in (None, ""):
+        # Произвольный момент истории (P4): взаимоисключающе с готовым срезом; время не
+        # округляется и не подменяется ближайшим пресетом — формат проверяется здесь же.
+        if snapshot not in (None, ""):
+            raise ConditionsError("Укажите либо готовый срез (snapshot), либо момент (at), но не оба")
+        local_moment(at)
+        out = {"scenario": name, "fault": fault, "snapshot": None, "at": at}
+    else:
+        out = {"scenario": name, "fault": fault, "snapshot": default_snapshot if snapshot is None else snapshot}
     for key in PANEL_NUMBERS:
         value = conditions.get(key)
         out[key] = defaults.get(key) if value is None else value

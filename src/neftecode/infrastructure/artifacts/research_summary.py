@@ -43,6 +43,14 @@ def _finite(value, where: str) -> float:
     return value
 
 
+def _count(value, where: str) -> int:
+    """Счётчик обязан быть целым неотрицательным: дробь не усекается молча."""
+    number = _finite(value, where)
+    if number < 0 or number != int(number):
+        raise ResearchSummaryError(f"{where}: ожидалось целое неотрицательное число, получено {value!r}")
+    return int(number)
+
+
 def _method(block: dict, where: str) -> dict:
     if not isinstance(block, dict) or not isinstance(block.get("method"), str):
         raise ResearchSummaryError(f"{where}: нет метода")
@@ -91,15 +99,15 @@ def build_forecast_summary(root: str | Path) -> dict:
             "reference": f"{PROTOCOL} §1",
         },
         "period": str(final.get("period")),
-        "total_targets": int(_finite(final.get("total_targets"), "total_targets")),
-        "paired_targets": int(_finite(final.get("paired_available_targets"), "paired_available_targets")),
+        "total_targets": _count(final.get("total_targets"), "total_targets"),
+        "paired_targets": _count(final.get("paired_available_targets"), "paired_available_targets"),
         "baseline": _method(final.get("baseline"), "baseline"),
         "winner": winner,
         "paired_mae_difference": {
             "value_mgkg": _finite(diff.get("difference_mgkg"), "difference_mgkg"),
             "ci95_mgkg": [_finite(ci[0], "ci95[0]"), _finite(ci[1], "ci95[1]")],
-            "bootstrap_draws": int(_finite(diff.get("bootstrap_draws"), "bootstrap_draws")),
-            "seed": int(_finite(diff.get("seed"), "seed")),
+            "bootstrap_draws": _count(diff.get("bootstrap_draws"), "bootstrap_draws"),
+            "seed": _count(diff.get("seed"), "seed"),
         },
         "goal": {
             "metric": "exceed_upper",

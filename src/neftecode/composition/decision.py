@@ -1,4 +1,6 @@
 from functools import partial
+
+from neftecode.infrastructure.history.source import LocalHistorySource
 from neftecode.infrastructure.artifacts.provenance import loaded_provenance
 from pathlib import Path
 
@@ -69,4 +71,4 @@ def make_demo_service(root: Path, budget: int = DEFAULT_BUDGET, out: Path | None
                                                                      snapshots, response_model, factory),
                        FileScenarioRepository(root / "config/scenarios"), budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
                        decision_timeout_s=decision_wait_seconds(root),
-                       provenance=lambda: provenance)
+                       provenance=lambda: provenance, history=LocalHistorySource(root, out))

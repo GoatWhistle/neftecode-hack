@@ -86,3 +86,18 @@ describe("streamDecision — реальная запись /api/stream (F6)", ()
     expect(h.calls.failed!.length).toBe(1);
   });
 });
+
+describe("P5: предварительный результат ядра", () => {
+  it("кадр core уходит в onCore, запись с ним проходит протокол", async () => {
+    const { parseProtocol, buildProtocol, serializeProtocol } = await import("./protocol");
+    const { fixture } = await import("./testRecords");
+    const { buildRecord } = await import("./record");
+    const payload = fixture("normal");
+    const record = buildRecord({ payload, form: null, query: "?scenario=baseline", label: "x",
+      tape: { frames: [{ kind: "core", atMs: 1, core: { phase: "preliminary", decision_id: "d", status: "hold",
+        plan_id: "hold", core_s: 0.2, note: "предварительно", elapsedMs: 5 } },
+      { kind: "screen", atMs: 2, payload, elapsedMs: 9 }] }, durationMs: 9 });
+    const parsed = parseProtocol(serializeProtocol(buildProtocol(record, null)));
+    expect(parsed.a!.events.some((f) => f.kind === "core")).toBe(true);
+  });
+});

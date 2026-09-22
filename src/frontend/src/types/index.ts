@@ -65,6 +65,13 @@ export interface ScreenPayload {
   run_meta?: RunMeta | null;
   decision_timeout_s?: number;
   agentic_state?: { mode: string; outcome: string; reason: string; note: string };
+  /** P4: момент истории, для которого подготовлено состояние; у готовых срезов нет. */
+  history?: {
+    requested_at: string; effective_at: string; timezone: string; alignment: string;
+    trust_usable?: boolean | null; conditions: Record<string, unknown>;
+    provenance?: Record<string, unknown> | null; coverage?: Record<string, unknown> | null;
+    exclusions?: { total?: number; items?: unknown[] } | null; note: string;
+  } | null;
 }
 
 export interface ErrorPayload {

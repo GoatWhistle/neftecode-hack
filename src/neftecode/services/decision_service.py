@@ -19,6 +19,8 @@ from neftecode.presentation.web.progress import decision_stream
 from neftecode.infrastructure.live.snapshots import bind_snapshot, select_forecast_dict
 from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
+from neftecode.application.history.moment import assemble_snapshot, check_moment
+from neftecode.application.history.time import HistoryError
 from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, StreamResponse, serve, clean
 
 UNKNOWN_PROVENANCE = {"code": None, "model": None}
@@ -176,6 +178,57 @@ class DecisionService:
         payload["sources"] = list(result.trust.get("sources", {}).values())
         return clean(payload)
 
+    def history_coverage(self, request_id: str = "history") -> dict[str, Any]:
+        """Период, где произвольный момент допустим: телеметрия data-service ∩ доступность модели."""
+        headers = {"X-Request-ID": request_id}
+        data = self.client.request("GET", self.data_url + "/v1/history/coverage", headers=headers).data
+        if not isinstance(data, dict) or data.get("available") is not True:
+            return {"available": False, "reason": (data or {}).get("reason") or "Телеметрия не поставлена"}
+        try:
+            models = self.client.request("GET", self.model_url + "/v1/models", headers=headers).data
+        except ServiceError as exc:
+            return {"available": False, "reason": f"Модель прогноза недоступна: {exc}"}
+        if not isinstance(models, dict) or not isinstance(models.get("valid_from"), str):
+            return {"available": False, "reason": "Model-service не сообщил доступность модели"}
+        return {"available": True, "reason": None, "start": data["start"], "end": data["end"],
+                "model_valid_from": models["valid_from"], "model_fingerprint": models.get("fingerprint")}
+
+    def history_prepare(self, request: Request):
+        """Одно причинное состояние момента и две ветви прогноза на одном snapshot_id (P4).
+        Решение здесь не считается и LLM не вызывается: срез идёт в обычный /v1/decisions."""
+        body = self._body(request)
+        at = body.get("at")
+        headers = {"X-Request-ID": request.request_id or "history"}
+        coverage = self.history_coverage(request.request_id or "history")
+        if not coverage.get("available"):
+            raise ServiceError(coverage.get("reason") or "История недоступна", 503, "measurements_unavailable")
+        try:
+            check_moment(at, coverage)
+        except HistoryError as exc:
+            raise ServiceError(str(exc), 422, exc.code) from exc
+        data = self.client.request("POST", self.data_url + "/v1/snapshots", {"at": at}, headers=headers).data
+        if not isinstance(data, dict) or not isinstance(data.get("state"), dict) or not isinstance(data.get("trust"), dict):
+            raise ServiceError("Snapshot не содержит state/trust", 502, "invalid_snapshot")
+        usable = data["trust"].get("usable") is True
+        if usable:
+            forecast, fallback = (self.client.request("POST", self.model_url + "/v1/forecast",
+                                                      {"snapshot": data, "fallback": branch}, headers=headers).data
+                                  for branch in (False, True))
+        else:
+            forecast = fallback = {"model": None, "value": None, "lower": None, "upper": None, "available": False,
+                                   "reason": "Прогноз не запрашивался: источники на этот момент непригодны"}
+        snapshot = assemble_snapshot(data, forecast, fallback, coverage.get("model_fingerprint"))
+        exclusions = self.client.request("POST", self.data_url + "/v1/history/exclusions",
+                                         {"start": at, "end": at}, headers=headers).data
+        return clean({"snapshot": snapshot, "exclusions": exclusions, "trust_usable": usable,
+                      "coverage": {k: coverage[k] for k in ("start", "end", "model_valid_from")},
+                      "provenance": {"data_snapshot_id": data.get("snapshot_id"),
+                                     "feature_schema_hash": data.get("feature_schema_hash"),
+                                     "model_fingerprint": coverage.get("model_fingerprint"),
+                                     "timezone": "source-local",
+                                     "prepared_by": "decision-service: data-service state + model-service forecasts"},
+                      "preparation": "one state, two frozen forecast branches; no decision or LLM"})
+
     def capabilities(self, _request):
         return {"service": "decision-service", "decisions": True, "live_advice": True,
                 "dependencies": {"data": self.data_url, "model": self.model_url}}
@@ -191,6 +244,8 @@ class DecisionService:
     def routes(self):
         return {"/v1/decisions": self.decide, "/v1/decisions/stream": self.decide_stream,
                 "/v1/live/advice": self.live,
+                "/v1/history/coverage": lambda request: self.history_coverage(request.request_id or "history"),
+                "/v1/history/prepare": self.history_prepare,
                 "/v1/capabilities": self.capabilities}
 
 

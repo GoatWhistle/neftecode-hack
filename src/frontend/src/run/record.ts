@@ -5,7 +5,7 @@ import type { Conditions } from "./options";
 export const RECORD_SCHEMA = "neftecode.run-record/1";
 
 export interface RecordedFrame {
-  kind: "phase" | "tick" | "agent" | "stage" | "screen";
+  kind: "phase" | "tick" | "agent" | "core" | "stage" | "screen";
   atMs: number;
   [key: string]: unknown;
 }

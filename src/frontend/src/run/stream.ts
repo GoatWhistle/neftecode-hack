@@ -1,11 +1,12 @@
 import type { ScreenPayload } from "../types";
 import { isError, isScreen } from "../types";
-import type { AgentEvent, PhaseEvent, StageFacts } from "./types";
+import type { AgentEvent, CoreEvent, PhaseEvent, StageFacts } from "./types";
 
 export interface StreamHandlers {
   onPhase: (phase: PhaseEvent) => void;
   onTick: (elapsedMs: number) => void;
   onAgent: (event: AgentEvent) => void;
+  onCore?: (event: CoreEvent) => void;
   onStage: (stage: string, elapsedMs: number, state: string | undefined, facts: StageFacts) => void;
   onScreen: (payload: ScreenPayload, elapsedMs: number) => void;
   onFailed: (message: string) => void;
@@ -39,6 +40,10 @@ function dispatch(event: string, data: Record<string, unknown>, handlers: Stream
   if (event === "agent") {
     const raw = data["event"] as Record<string, unknown> | undefined;
     if (raw) handlers.onAgent({ ...raw, elapsedMs: Number(data["elapsed_ms"] ?? 0) } as unknown as AgentEvent);
+    return false;
+  }
+  if (event === "core") {
+    handlers.onCore?.({ ...data, elapsedMs: Number(data["elapsed_ms"] ?? 0) } as unknown as CoreEvent);
     return false;
   }
   if (event === "stage") {

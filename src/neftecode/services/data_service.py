@@ -15,6 +15,9 @@ from neftecode.application.ports import ScenarioRepository
 from neftecode.application.services.trust import DataTrustAgent
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.scenarios import FileScenarioRepository
+from neftecode.infrastructure.history.exclusions import ExclusionRegistry
+from neftecode.infrastructure.history.overview import bounded_response, observations
+from neftecode.application.history.time import HistoryError
 from .common import Request, ServiceError, ServiceSettings, serve, clean, content_hash
 
 
@@ -133,11 +136,55 @@ class DataService:
         result["snapshot_id"] = content_hash(result)
         return result
 
+    def history_coverage(self) -> dict[str, Any]:
+        """Период поставленной телеметрии (P4). Доступность модели на момент сообщает model-service."""
+        if not self.measurements_available():
+            return {"available": False, "reason": "Полный комплект task/ не поставлен"}
+        signals, _, _ = self._sources()
+        return {"available": True, "reason": None, "start": signals.index.min().isoformat(),
+                "end": signals.index.max().isoformat()}
+
+    def _registry(self) -> ExclusionRegistry:
+        return ExclusionRegistry(self.root / "research/data/excluded-periods.json")
+
+    def history_exclusions(self, body: dict) -> dict[str, Any]:
+        try:
+            return self._registry().between(body.get("start"), body.get("end"),
+                                            body.get("offset", 0), body.get("limit", 50))
+        except HistoryError as exc:
+            raise ServiceError(str(exc), 422, exc.code) from exc
+
+    def history_overview(self, body: dict) -> dict[str, Any]:
+        """Бюджетированный обзор наблюдений периода: без прогноза, пригодности и решения."""
+        signals, lab, online = self._sources()
+        try:
+            rows = observations(signals, lab, online, self._config(), body.get("start"), body.get("end"),
+                                body.get("points", 24))
+            return bounded_response({
+                "points": rows,
+                "exclusions": self._registry().between(body.get("start"), body.get("end"),
+                                                       body.get("exclusion_offset", 0),
+                                                       body.get("exclusion_limit", 50)),
+                "note": ("Редкая выборка наблюдений; между точками возможны пропуски. Прогноз, пригодность и "
+                         "решение не вычислялись.")})
+        except HistoryError as exc:
+            raise ServiceError(str(exc), 422, exc.code) from exc
+
     def routes(self):
+        body = lambda request: self._object(request.body)
         return {"/v1/scenarios": lambda request: {"scenarios": self.scenarios()},
                 "/v1/scenarios/get": self._get_scenario,
                 "/v1/capabilities": lambda request: self.capabilities(),
-                "/v1/snapshots": self._snapshot}
+                "/v1/snapshots": self._snapshot,
+                "/v1/history/coverage": lambda request: self.history_coverage(),
+                "/v1/history/exclusions": lambda request: self.history_exclusions(body(request)),
+                "/v1/history/overview": lambda request: self.history_overview(body(request))}
+
+    @staticmethod
+    def _object(value) -> dict:
+        if not isinstance(value, dict):
+            raise ServiceError("Тело запроса должно быть JSON-объектом", 400, "invalid_body")
+        return value
 
     def _get_scenario(self, request: Request):
         body = request.body

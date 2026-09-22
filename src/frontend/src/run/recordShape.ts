@@ -213,7 +213,10 @@ const agentic = obj({
   provider: nullStr, model: nullStr, note: str, deterministic_policy: opt(bool), opinions: opt(arr(opinion)),
   vetoed_candidates: opt(dict(strs)), constraints_applied: opt(arr(obj({ type: str }))),
   final: optNull(obj({ action: str, candidate_id: nullStr, reason_codes: strs, summary: str })),
-  budget: opt(anyObj), trace: opt(arr(any))
+  budget: opt(anyObj), trace: opt(arr(any)),
+  terminal: opt(obj({ kind: str, outcome: nullStr, reason: nullStr, status: nullStr,
+    domain_impossibility_proven: bool, usage_complete: bool, note: str })),
+  timing: opt(obj({ core_s: opt(num), agents_s: opt(num), total_s: opt(num) }))
 });
 
 const decision = obj({
@@ -279,11 +282,16 @@ export const payloadShape = obj({
   })),
   applied: opt(arr(appliedChange)), injection: optNull(str), snapshot: optNull(str), binding: optNull(anyObj),
   run_meta: optNull(runMetaShape), decision_timeout_s: opt(num),
-  agentic_state: opt(obj({ mode: str, outcome: str, reason: str, note: str }))
+  agentic_state: opt(obj({ mode: str, outcome: str, reason: str, note: str })),
+  history: optNull(obj({
+    requested_at: str, effective_at: str, timezone: str, alignment: str, trust_usable: optNull(bool),
+    conditions: anyObj, provenance: optNull(anyObj), coverage: optNull(anyObj), exclusions: optNull(anyObj),
+    note: str
+  }))
 });
 
 export const FORM_FIELDS = [
-  "scenario", "snapshot", "fault", "crude_sulfur_wt_pct", "product_sulfur_mgkg", "product_t95_c",
+  "scenario", "snapshot", "at", "fault", "crude_sulfur_wt_pct", "product_sulfur_mgkg", "product_t95_c",
   "product_cetane_number", "throughput_tph", "tank", "tank_inventory", "tank_available"
 ] as const;
 

@@ -70,7 +70,11 @@ def run_tool_loop(*, role: str, llm: LLMClient, system_prompt: str, context_text
             trace.add(role, step, "fallback", decision=f"budget:{exc.what}")
             return LoopResult(None, f"budget:{exc.what}", calls, tuple(evidence))
         calls += 1
-        timeout = max(1.0, min(settings.request_timeout_s, budget.remaining_seconds()))
+        # Один общий monotonic-дедлайн: вызов получает только остаток, не больше.
+        timeout = min(settings.request_timeout_s, budget.remaining_seconds())
+        if timeout <= 0.05:
+            trace.add(role, step, "fallback", decision="budget:timeout")
+            return LoopResult(None, "budget:timeout", calls, tuple(evidence))
         try:
             response = llm.chat(messages, tools, max_tokens=settings.max_tokens, timeout_s=timeout)
         except LLMError as exc:

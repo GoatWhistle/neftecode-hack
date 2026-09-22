@@ -21,7 +21,7 @@ def _number(values: dict, key: str):
 
 def parse_conditions(values: dict) -> dict:
     """Разбор query-строки панели условий (`parse_qs`) в простые значения; None — поле не задано."""
-    out = {key: _first(values, key) for key in ("fault", "snapshot", "tank")}
+    out = {key: _first(values, key) for key in ("fault", "snapshot", "tank", "at")}
     for key in (*PANEL_NUMBERS, "tank_inventory"):
         out[key] = _number(values, key)
     out["tank_available"] = _first(values, "tank_available")
