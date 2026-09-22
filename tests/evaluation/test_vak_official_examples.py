@@ -16,7 +16,7 @@ import pytest
 from neftecode.evaluation.vak import (UNBOUND_LAB_INPUTS, check_all, evaluate, parse_formula,
                                       telemetry_prefix)
 
-FIXTURE = Path(__file__).resolve().parents[2] / "context" / "task-review" / "vak-official-examples.json"
+FIXTURE = Path(__file__).resolve().parents[2] / "research" / "data" / "vak-official-examples.json"
 DOCUMENT = json.loads(FIXTURE.read_text())
 EXAMPLES = DOCUMENT["examples"]
 TOLERANCE = DOCUMENT["tolerance_abs"]
