@@ -90,10 +90,11 @@ def test_the_computed_blend_sulfur_follows_the_crude(service):
     def worst(crude):
         result = service.decide(query(scenario="baseline", crude_sulfur_wt_pct=crude, snapshot="synthetic"))
         checks = [c for c in result["decision"]["gate"]["checks"]
-                  if c["constraint_id"] == "quality.sulfur_mgkg" and c["observed"] is not None]
+                  if c["constraint_id"].endswith("passport_forecast.sulfur_mgkg")
+                  and c["observed"] is not None]
         return max(c["observed"] for c in checks)
 
-    assert 0.0 < worst(2.4) - worst(1.35) < 1.0, "ожидается сглаживание запасом 4000 т"
+    assert worst(2.4) > worst(1.35), "качество притока не дошло до паспорта партии"
 
 
 def test_lowering_the_stock_reaches_the_screen(service):

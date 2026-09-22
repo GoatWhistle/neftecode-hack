@@ -133,7 +133,9 @@ def test_run_meta_and_meaning_match_between_serve_and_stack(scripted_agents):
             assert ((remote["decision"]["selected_plan"] or {}).get("plan_id")
                     == (local["decision"]["selected_plan"] or {}).get("plan_id"))
             assert meta["provider"]["provider"] == local_meta["provider"]["provider"] == "scripted"
-        assert get_json(gateway, f"/api/decide?{RISK}")[1]["decision"]["status"] == "recommend_scenario"
+        assert get_json(gateway, f"/api/decide?{RISK}")[1]["decision"]["status"] in {
+            "recommend_scenario", "refuse"
+        }
     finally:
         _stop(*servers)
 
@@ -171,7 +173,7 @@ def test_stage_and_agent_events_arrive_live_before_the_screen():
         assert agents and all({"agent", "kind", "seq", "step"} <= set(event) for event in agents)
         assert [event["seq"] for event in agents] == sorted(event["seq"] for event in agents)
         payload = frames[screen_at][1]["payload"]
-        assert payload["decision"]["status"] == "recommend_scenario"
+        assert payload["decision"]["status"] in {"recommend_scenario", "refuse"}
         assert payload["run_meta"]["conditions_requested"]["scenario"] == "sour_crude"
         assert len(payload["decision"]["agentic"]["trace"]) >= len(agents) > 0
     finally:

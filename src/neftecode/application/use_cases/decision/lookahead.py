@@ -94,6 +94,8 @@ class LookaheadMixin:
                 tank_estimate=None, pool=None, consequences=None, examined=None, vetoed=()) -> dict:
         required_inputs = list((self.scenario.policy or {}).get("deployment_inputs") or ())
         ready = not any(item.get("status") == "open" for item in required_inputs)
+        tank_park = evaluation.park if evaluation is not None else next(
+            (item.get("park") for item in (ranking or {}).get("rejected", ()) if item.get("park")), None)
         result = {
             "status": status, "reason": reason, "scope": SCENARIO_SCOPE,
             "current_operation": current_operation,
@@ -124,6 +126,7 @@ class LookaheadMixin:
             "refusal": refusal,
             "robustness": robustness,
             "tank_estimate": tank_estimate,
+            "tank_park": tank_park,
             "lookahead": lookahead,
             "trace": trace,
             "note": ("Результат сценарный. Выданный план не считается исполненным и не разрешает "

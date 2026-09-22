@@ -6,9 +6,12 @@ import pandas as pd
 import pytest
 
 from neftecode.application.services.trust import DataTrustAgent
+from neftecode.application.services.explain import explain
+from neftecode.application.use_cases.make_decision import MakeDecision
 from neftecode.application.ports.live import ForecastBindingError
 from neftecode.bootstrap import run_demo_decision
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
+from neftecode.infrastructure.config.scenario import parse_scenario
 from neftecode.infrastructure.live.snapshots import bind_snapshot, load_snapshots, write_snapshot
 from neftecode.infrastructure.scenarios import FileScenarioRepository, FileSnapshotRepository
 from neftecode.application.conditions import apply_source_failure
@@ -170,9 +173,13 @@ def plan_origin_on_2026_01_05(without_f9: bool) -> tuple[dict, dict]:
     item = snapshot()
     if without_f9:
         item["state"]["measurements"]["ht.F9"] = None
-    demo = Demo(BASELINE, run_demo_decision, trust_cfg(), 300, snapshots=[item], response_model=O1_RESPONSE)
-    result = demo.run(snapshot="норма")
-    return result["decision"], result["screen"]["explanation"]["plan_origin"]
+    scenario, bound = bind_snapshot(BASELINE, item["state"], item, O1_RESPONSE, trust_cfg())
+    # O1 проверяет происхождение значений номинального плана отдельно от финального
+    # live-отказа по неизвестной фазе парка. Поэтому здесь намеренно не подключён
+    # ParkPhaseCheck; его отказ tank_phase_sensitive закреплён отдельными интеграционными тестами.
+    decision = MakeDecision(scenario, scenario_parser=parse_scenario).decide(
+        state=item["state"], budget=300, trust_cfg=trust_cfg(), raw_scenario=bound)
+    return decision, explain(decision, scenario, item["state"])["plan_origin"]
 
 
 @pytest.mark.parametrize("without_f9", [False, True])
@@ -280,12 +287,12 @@ def test_z5_bind_snapshot_ignores_a_pak_failure_injected_after_the_snapshot_was_
     )
 
 
-def test_z5_end_to_end_decision_on_2026_07_24_with_frozen_pak_must_hold():
+def test_z5_end_to_end_uses_no_pak_forecast_before_the_park_phase_refusal():
     """Регрессия #1 через полный decision-путь (Demo → run_demo_decision → bind_snapshot →
     решение), тот же путь, что использует demo и decision-service. Ожидание из
     task-pool.md «Доказательная база 21.09»: срез 2026-07-24T03:00 + `frozen_pak` →
-    catboost_no_pak 8.11 / 11.09 → hold. Красный сейчас: bind_snapshot возвращает решение по
-    устаревшему last_pak_bc 14.93 / 20.94 (план c0042 в этой фикстуре, не hold)."""
+    catboost_no_pak 8.11 / 11.09 → номинальный hold. После P6 live-ответ обязан отдельно
+    отказаться, если этот план зависит от неизвестной фазы парка."""
     demo = Demo(BASELINE, run_demo_decision, trust_cfg(), 300, snapshots=[real_2026_07_24_snapshot()])
     result = demo.run(fault="frozen_pak", snapshot="20260724-030000")
 
@@ -296,11 +303,11 @@ def test_z5_end_to_end_decision_on_2026_07_24_with_frozen_pak_must_hold():
     assert "catboost_no_pak" in note, (
         f"Ожидался прогноз catboost_no_pak после инъекции frozen_pak, использован: {note!r}"
     )
-    assert status == "hold", (
-        "Ожидалось решение hold (catboost_no_pak 8.11/11.09 укладывается в запас реакции 12 ч), "
-        f"получено status={status!r}, план={plan_id!r}. Регрессия #1: bind_snapshot использовал "
-        "устаревший прогноз last_pak_bc 14.93/20.94, сохранённый в срезе на момент его сборки, "
-        "и проигнорировал инъекцию frozen_pak."
+    assert status == "refuse" and plan_id is None
+    assert result["decision"]["refusal"]["kind"] == "tank_phase_sensitive"
+    assert result["decision"]["tank_estimate"]["baseline_status"] == "hold", (
+        "До фазовой проверки ожидался hold по catboost_no_pak; иначе могла вернуться регрессия "
+        "с устаревшим last_pak_bc из сохранённого среза."
     )
 
 

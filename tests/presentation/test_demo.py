@@ -37,7 +37,8 @@ def test_a_change_moves_the_computed_quality_not_only_the_text(demo):
 
     def sulfur(result):
         checks = [c for c in result["decision"]["gate"]["checks"]
-                  if c["constraint_id"] == "quality.sulfur_mgkg" and c["observed"] is not None]
+                  if c["constraint_id"].endswith("passport_forecast.sulfur_mgkg")
+                  and c["observed"] is not None]
         return max(c["observed"] for c in checks)
 
     assert sulfur(worse) > sulfur(normal), "изменение не дошло до расчёта"

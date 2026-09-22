@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 
 from neftecode.domain.shared.primitives import QUALITIES  # noqa: F401 - re-exported for callers
@@ -9,6 +10,7 @@ from neftecode.domain.production.scenario import (
     ProductSpec,
     Scenario,
     ScenarioError,
+    TankParkConfig,
     optional_quantity,
     quantity,
 )
@@ -19,6 +21,36 @@ __all__ = ["CONTROL_KINDS", "CRUDE_KINDS", "ECONOMICS_KINDS", "PRODUCT_KINDS",
            "QUALITIES", "QUALITY_KINDS", "ScenarioError", "describe", "load_scenario", "parse_scenario"]
 
 _REQUIRED_DEPLOYMENT_INPUTS = {"tank_farm", "deep_treatment_capacity"}
+
+
+def _parse_tank_park(raw: dict | None, tank_ids: set[str]) -> TankParkConfig | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict) or raw.get("schema") != "tank-park-scenario/1":
+        raise ScenarioError("tank_park.schema: ожидается tank-park-scenario/1")
+    component = raw.get("component_tank_id")
+    if component not in tank_ids:
+        raise ScenarioError("tank_park.component_tank_id: компонент отсутствует в tanks")
+    count = raw.get("tank_count")
+    phases = raw.get("phase_offsets_h")
+    if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+        raise ScenarioError("tank_park.tank_count: ожидается положительное целое число")
+    if not isinstance(phases, list) or len(phases) != count:
+        raise ScenarioError("tank_park.phase_offsets_h: нужна одна фаза на каждый резервуар")
+    names = ("capacity_m3", "density_kgm3", "passport_duration_h", "nominal_drain_h")
+    values = []
+    for name in names:
+        value = raw.get(name)
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value <= 0:
+            raise ScenarioError(f"tank_park.{name}: ожидается положительное конечное число")
+        values.append(float(value))
+    if any(not isinstance(value, (int, float)) or isinstance(value, bool) or
+           not math.isfinite(value) or value < 0 for value in phases):
+        raise ScenarioError("tank_park.phase_offsets_h: фазы должны быть конечными и неотрицательными")
+    source = raw.get("source", "scenario")
+    if source not in {"scenario", "given", "derived", "measured"}:
+        raise ScenarioError("tank_park.source: неизвестное происхождение")
+    return TankParkConfig(component, count, *values, tuple(float(value) for value in phases), source)
 
 
 def _validate_deployment_inputs(policy: dict) -> None:
@@ -149,9 +181,10 @@ def parse_scenario(raw: dict) -> Scenario:
     if not assumptions:
         raise ScenarioError("assumptions: сценарий обязан перечислить свои допущения явным текстом")
 
+    tank_park = _parse_tank_park(raw.get("tank_park"), set(ids))
     return Scenario(raw["id"], raw["title"], raw["description"], kind, horizon, crude, stages,
                     product, tanks, current_operation, additive, economics, policy,
-                    assumptions, raw.get("expected", {}))
+                    assumptions, raw.get("expected", {}), tank_park)
 
 
 def load_scenario(path: str | Path) -> Scenario:
@@ -182,8 +215,8 @@ def describe(scenario: Scenario) -> dict:
         "unknown_product_limits": scenario.product.unknown_limits(),
         "tanks_with_unknown_properties": missing,
         "deployment_inputs": list(scenario.policy.get("deployment_inputs", ())),
+        "tank_park": scenario.tank_park.to_dict() if scenario.tank_park else None,
         "assumptions": list(scenario.assumptions),
         "scope": "Все параметры смешения, резервуаров, цен и откликов заданы для эксперимента "
                  "и не получены из данных завода.",
     }
-

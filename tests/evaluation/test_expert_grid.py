@@ -22,15 +22,15 @@ def grid(name, budget=120):
     return ExpertGrid(demo.run, document, name)
 
 
-def test_stock_knob_targets_a_tank_that_actually_has_stock():
+def test_availability_knob_targets_a_component_outside_the_park():
     document = raw("baseline")
     targets = _targets(document)
-    stocked = {t["tank_id"] for t in document["tanks"] if not t.get("on_demand")}
-    assert targets["tank_inventory"] in stocked
-    assert targets["tank_available"] != targets["tank_inventory"]
+    assert "tank_inventory" not in AXES
+    assert "tank_park_phase_fraction" in AXES
+    assert targets["tank_available"] != document["tank_park"]["component_tank_id"]
 
 
-def test_grid_without_stocked_tanks_says_so():
+def test_grid_without_a_park_says_so():
     with pytest.raises(GridError):
         _targets({"tanks": [{"tank_id": "reserve", "on_demand": True}]})
 

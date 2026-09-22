@@ -1,25 +1,25 @@
 {
   "schema_version": "audit-benchmark-summary-v1",
-  "generated_at": "2026-09-19",
+  "generated_at": "2026-09-22",
   "command": ".venv/bin/neftecode benchmark",
   "budget": 1200,
   "raw_artifact": {
     "path": "artifacts/benchmark.json",
-    "sha256": "d83f48c9d0a9d9ba7afd38c17f37c2003782b4520ddcd604e0bd465498838eaf",
+    "sha256": "ac3f6780cba2988f1959a440084991d03b7b52cd558d63f89f2d7a4a10c8e36b",
     "tracked": false
   },
   "scenario_sha256": {
-    "ample_reserve": "273b88eba0c13a5421bda6d3c8c1ba7e478a365a9d182016de77f0aec1714556",
-    "baseline": "f9ccb45dfe492e9d051c2caeab3f628f4d5666c7110089fbad4563d4fd5566a9",
-    "light_component": "4a44120ac5a5bfdb84c42357157dce7f08b3596cfa4ca8e6fd45cc9da7e99b76",
-    "no_feasible": "ea13937cb355508abdd23e9ed95ab42edcc3abbf04e7adf8c990a2c3d1f2b0e4",
-    "sour_crude": "0a0c0a866cac87f17a4fb3b4353df66b83dc24e1a59e937a4f4621e1c86cf4ef",
-    "winter_grade": "5a29eff2a4790596ba5e5cf180775e155bc19c3309d310e707eac9b9a0f6df76"
+    "ample_reserve": "efa0bdab92faec01cdea6713f71482fbecfd9df49948d68c8b5b957aa73423c4",
+    "baseline": "90d5eef386e59a9b969be2be61916489a9d749bb3226d62818bba204a7c66c30",
+    "light_component": "458d495223270d4f661d40b0023ed6c861fe852b8a9c307cc311d4d02fd68748",
+    "no_feasible": "60e805c1a960c7e78415633c0a3bad146709d2c108319f4f0f64caa417ca9a31",
+    "sour_crude": "b85e749f5cde67847da3b54f79f25ac8bccec725f6a488ee819b463ec0365960",
+    "winter_grade": "80069e2e5d50503fef385e53660a48d610da01d3cb3d5b694516150ee8ddeac6"
   },
   "wins": 6,
   "losses": 6,
   "totals": {
-    "hold": {"feasible": 3, "refused": 0, "violations": 35, "production_t": 900.0},
+    "hold": {"feasible": 3, "refused": 0, "violations": 46, "production_t": 900.0},
     "threshold": {"feasible": 5, "refused": 1, "violations": 0, "production_t": 1500.0},
     "advisor": {"feasible": 5, "refused": 1, "violations": 0, "production_t": 1500.0}
   },
@@ -27,13 +27,14 @@
     "ample_reserve": {"hold": "infeasible:7", "threshold": "feasible", "advisor": "c0030"},
     "baseline": {"hold": "feasible", "threshold": "feasible", "advisor": "hold"},
     "light_component": {"hold": "feasible", "threshold": "feasible", "advisor": "hold"},
-    "no_feasible": {"hold": "infeasible:21", "threshold": "refuse", "advisor": "refuse"},
+    "no_feasible": {"hold": "infeasible:32", "threshold": "refuse", "advisor": "refuse"},
     "sour_crude": {"hold": "infeasible:7", "threshold": "feasible", "advisor": "c0030"},
     "winter_grade": {"hold": "feasible", "threshold": "feasible", "advisor": "hold"}
   },
   "limits": [
     "Результат получен внутри сценарной модели и не является измеренной экономией завода.",
     "Набор из шести сценариев выбран командой и не является новой независимой выборкой.",
-    "Переходное планирование и конечный резерв не увеличили выпуск на этом наборе."
+    "Переходное планирование и конечный резерв не увеличили выпуск на этом наборе.",
+    "С 22.09.2026 допустимость main-компонента проверяется моделью tank-park/1; статусы, выпуск и отказы не изменились, счётчик нарушений hold вырос из-за новых park/passport checks."
   ]
 }

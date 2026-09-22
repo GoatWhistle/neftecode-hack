@@ -219,6 +219,27 @@ const agentic = obj({
   timing: opt(obj({ core_s: opt(num), agents_s: opt(num), total_s: opt(num) }))
 });
 
+const tankParkTank = obj({
+  tank_id: str, capacity_t: num, mass_t: num, properties: dict(nullNum),
+  status: oneOf("available", "filling", "awaiting_passport", "ready", "draining"), batch_id: nullStr,
+  status_elapsed_h: num, batch_age_h: num, passport_duration_h: num, passport_ready_in_h: nullNum,
+  nominal_drain_h: num, nominal_drain_tph: num, provenance: str, initial_uncertainty: strs
+});
+
+const tankParkState = obj({
+  model_version: str, elapsed_h: num, initial_mass_t: num, mass_t: num, total_in_t: num,
+  total_out_t: num, balance_error_t: num, tanks: arr(tankParkTank)
+});
+
+const tankParkFrame = obj({
+  time_h: num, inflow_t: num, outflow_t: num, inflow_by_tank: dict(num), outflow_by_tank: dict(num),
+  reasons: strs, state: tankParkState
+});
+
+const tankPark = obj({
+  model_version: str, feasible: bool, reasons: strs, frames: arr(tankParkFrame), terminal: tankParkState
+});
+
 const decision = obj({
   status: oneOf("hold", "recommend_scenario", "refuse"), reason: str, scope: nullStr,
   current_operation: optNull(anyObj), commercial_release_allowed: bool, deployment_readiness: opt(deploymentReadiness),
@@ -227,6 +248,7 @@ const decision = obj({
   immediate_action: nullable(planStep), gate: nullable(gate), production_t: nullNum, cost_per_tonne: nullNum,
   severity_index: nullNum, alternatives: arr(candidate), rejected: arr(any),
   refusal: nullable(obj({ kind: str, examples: opt(strs), missing: opt(strs) })), robustness: nullable(robustness),
+  tank_park: optNull(tankPark),
   lookahead: nullable(lookahead), selection_policy: nullable(anyObj), trace: arr(obj({})), note: nullStr,
   decision_id: nullStr, agentic: optNull(agentic), severity: optNull(severity), tradeoff: optNull(tradeoff),
   consequences: optNull(consequences), choice: optNull(choice)

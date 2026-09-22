@@ -35,7 +35,7 @@ def test_the_transitional_phase_leans_on_the_reserve_and_then_steps_back():
     assert plan.steps[1].time_hours == pytest.approx(2.0)
 
 
-def test_the_correction_is_part_of_the_plan_from_the_first_step():
+def test_the_correction_enters_the_filling_batch_after_the_process_lag():
     p = planner(SOUR)
     base = p.base_controls()
     controls = dict(base)
@@ -43,7 +43,15 @@ def test_the_correction_is_part_of_the_plan_from_the_first_step():
     plan = PlanCandidate("response", (PlanStep(0.0, controls, {"main": .9, "reserve": .1}, 50.0),), 1)
     evaluation = p.evaluate(plan)
     sulfur = [c.observed for c in evaluation.gate.checks if c.constraint_id == "quality.sulfur_mgkg"]
-    assert sulfur[5] < sulfur[0], "после двухчасовой задержки улучшение потока доходит до смеси"
+    assert sulfur == pytest.approx([sulfur[0]] * len(sulfur)), \
+        "качество уже паспортизованной сливаемой партии не меняется от нового притока"
+    filling_sulfur = [
+        next(t for t in frame["state"]["tanks"] if t["status"] == "filling")["properties"]["sulfur_mgkg"]
+        for frame in evaluation.park["frames"]
+    ]
+    assert filling_sulfur[4] > filling_sulfur[0]
+    assert filling_sulfur[5] < filling_sulfur[4], \
+        "после двухчасовой задержки улучшение входит в новую наливаемую партию"
 
 
 def test_the_transitional_plan_wins_on_production_over_a_low_throughput_constant_plan():
@@ -64,10 +72,67 @@ def test_a_blend_that_would_outrun_the_reserve_production_rate_is_not_selected()
         assert rate <= reserve.max_outflow.value + 1e-6
 
 
+def test_a_bad_passported_batch_needs_the_reserve_or_is_refused():
+    corrected = result(SOUR)
+    assert corrected["selected"] is not None
+    assert any(step["recipe"]["reserve"] > 0 for step in corrected["selected_plan"]["steps"])
+    assert corrected["selected"]["feasible"] is True
+
+    raw = json.loads(SOUR.read_text(encoding="utf-8"))
+    next(tank for tank in raw["tanks"] if tank["tank_id"] == "reserve")["available"] = False
+    refused = PlanOperation(parse_scenario(raw)).plan(budget=BUDGET)
+    assert refused["selected"] is None
+    assert refused["rejected"], "некондиционная паспортизованная партия не должна пройти без резерва"
+
+
 def test_when_no_stock_can_carry_any_plan_the_answer_is_a_refusal():
     chosen = result(NO_FEASIBLE)
     assert chosen["selected"] is None
     assert "Ни один вариант" in chosen["reason"]
+
+
+def test_refusal_keeps_a_park_trajectory_that_explains_the_limit():
+    from neftecode.application.use_cases.make_decision import MakeDecision
+    decision = MakeDecision(load_scenario(NO_FEASIBLE)).decide(budget=BUDGET)
+    assert decision["status"] == "refuse"
+    assert decision["tank_park"]["model_version"] == "tank-park/1"
+    assert decision["tank_park"]["frames"]
+    assert decision["refusal"]["examples"]
+
+
+def test_synthetic_phase_is_labelled_as_scenario_without_tau_scan():
+    from neftecode.application.services.park_phase import ParkPhaseCheck
+    raw = json.loads(BASELINE.read_text(encoding="utf-8"))
+    scenario = parse_scenario(raw)
+    check = ParkPhaseCheck(scenario, raw, parse_scenario, lambda _: None)
+    result = check.evaluate("hold", "hold", budget=10)
+    assert result["sensitive"] is False
+    assert result["phase_source"] == "scenario"
+    assert result["perturbations_declared"] == 0
+
+
+def test_live_without_a_level_tag_refuses_when_the_plan_depends_on_tau():
+    from neftecode.application.use_cases.make_decision import MakeDecision
+    from neftecode.application.services.explain import explain
+    from neftecode.application.services.tank_estimate import default_tank_estimate_factory
+    raw = json.loads(BASELINE.read_text(encoding="utf-8"))
+    raw["measurement_binding"] = {"tags": {}, "warnings": ["уровень парка не измерен"]}
+    scenario = parse_scenario(raw)
+    decision = MakeDecision(
+        scenario, scenario_parser=parse_scenario,
+        tank_estimate_factory=default_tank_estimate_factory,
+    ).decide(budget=100, raw_scenario=raw)
+    assert decision["status"] == "refuse"
+    assert decision["refusal"]["kind"] == "tank_phase_sensitive"
+    assert decision["tank_estimate"]["mode"] == "park_phase"
+    assert decision["tank_estimate"]["failed_taus_h"]
+    assert decision["gate"]["feasible"] is True
+    assert decision["tank_park"]["model_version"] == "tank-park/1"
+    explanation = explain(decision, scenario, {})
+    assert explanation["kind"] == "tank_phase_sensitive"
+    assert explanation["next_steps"][0]["kind"] == "measurement"
+    assert "фактический уровень" in explanation["next_steps"][0]["need"]
+    assert not any("None" in item["text"] for item in explanation["risk"]["items"])
 
 
 def test_a_normal_scenario_needs_no_extra_action():
@@ -185,7 +250,7 @@ def test_only_feasible_plans_appear_among_the_alternatives():
     assert all(a["feasible"] for a in chosen["alternatives"])
 
 
-def test_chain_t95_changes_a_large_stock_gradually():
+def test_passported_draining_batch_keeps_t95_when_new_inflow_changes():
     p = planner()
     controls = p.base_controls()
     controls["avt_furnace_outlet_temp_c"] = 400.0
@@ -193,11 +258,11 @@ def test_chain_t95_changes_a_large_stock_gradually():
     evaluation = p.evaluate(plan)
     values = [c.observed for c in evaluation.gate.checks if c.constraint_id == "quality.t95_c"]
     assert values[0] == pytest.approx(352.0)
-    assert values[-1] > values[0]
-    assert values[-1] < 380.2, "4000 т запаса не может мгновенно стать свежим потоком"
+    assert values == pytest.approx([352.0] * len(values))
+    assert evaluation.park["model_version"] == "tank-park/1"
 
 
-def test_small_hot_stock_is_blocked_by_t95_after_inflow():
+def test_small_passported_batch_is_blocked_when_it_runs_out_not_mixed_with_inflow():
     import dataclasses
     p = planner()
     tanks = {k: dataclasses.replace(v, inventory_t=10.0, properties={**v.properties, "t95_c": 359.0})
@@ -207,7 +272,47 @@ def test_small_hot_stock_is_blocked_by_t95_after_inflow():
     plan = PlanCandidate("hot-small", (PlanStep(0.0, controls, {"main": 1.0}, 10.0),), 1)
     evaluation = p.evaluate(plan, initial_tanks=tanks)
     assert not evaluation.feasible
-    assert any(c.constraint_id == "quality.t95_c" and c.status == "fail" for c in evaluation.gate.checks)
+    assert any(c.constraint_id == "park.transition" and c.status == "fail"
+               for c in evaluation.gate.checks)
+    assert not any(c.constraint_id == "quality.t95_c" and c.status == "fail"
+                   for c in evaluation.gate.checks)
+
+
+def test_park_trajectory_is_the_source_for_gate_and_output():
+    p = planner()
+    plan = PlanCandidate("park-ok", (PlanStep(0.0, p.base_controls(), {"main": 1.0}, 100.0),), 0)
+    evaluation = p.evaluate(plan)
+    assert evaluation.feasible
+    assert evaluation.park["model_version"] == "tank-park/1"
+    assert abs(evaluation.park["terminal"]["balance_error_t"]) < 1e-9
+    assert any(check.constraint_id == "park.balance" for check in evaluation.gate.checks)
+
+
+def test_per_tank_nominal_drain_limit_changes_admissibility():
+    p = planner()
+    plan = PlanCandidate("park-too-fast", (PlanStep(0.0, p.base_controls(), {"main": 1.0}, 180.0),), 1)
+    evaluation = p.evaluate(plan)
+    assert not evaluation.feasible
+    assert any(check.constraint_id == "park.transition" and check.status == "fail"
+               and "не хватает" in check.reason for check in evaluation.gate.checks)
+
+
+def test_long_park_schedule_keeps_balance_and_does_not_lose_boundary_events():
+    import dataclasses
+    short = load_scenario(BASELINE)
+    extended = dataclasses.replace(short, horizon=dataclasses.replace(short.horizon, hours=75.0))
+    p = PlanOperation(extended)
+    plan = PlanCandidate("park-long", (PlanStep(0.0, p.base_controls(), {"main": 1.0}, 100.0),), 0)
+    evaluation = p.evaluate(plan)
+    frames = evaluation.park["frames"]
+    assert len(frames) == len(p.grid())
+    assert all(abs(frame["state"]["balance_error_t"]) < 1e-8 for frame in frames)
+    assert any(frame["inflow_by_tank"] for frame in frames[1:])
+    assert any(frame["outflow_by_tank"] for frame in frames[1:])
+    batches = {tank["batch_id"] for frame in frames for tank in frame["state"]["tanks"]
+               if tank["batch_id"] is not None}
+    assert len(batches) > extended.tank_park.tank_count, \
+        "за длинный горизонт должен завершиться хотя бы один полный оборот и начаться новая партия"
 
 
 def with_lead(path: Path, lead_hours: float):

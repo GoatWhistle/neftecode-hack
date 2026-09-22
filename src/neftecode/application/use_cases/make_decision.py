@@ -86,6 +86,7 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
                                 "Ни один вариант не проходит одновременно все обязательные проверки",
                                 trace, None, None,
                                 {"kind": "no_feasible_plan", "examples": reasons},
+                                ranking=outcome.last_result,
                                 current_operation=current_operation, examined=outcome.examined)
         return self.release(outcome.selected, outcome.selected_plan, outcome.feasible, outcome.by_id, trace,
                             confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
@@ -211,6 +212,15 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
                           "sensitive": tank_estimate.get("sensitive"),
                           "changed": tank_estimate.get("changed"),
                           "evaluated": tank_estimate.get("perturbations_evaluated")})
+        if (tank_estimate or {}).get("mode") == "park_phase" and tank_estimate.get("sensitive"):
+            verdict = tank_estimate["verdict"]
+            return self._finish(
+                REFUSE, verdict, trace, None, final,
+                {"kind": "tank_phase_sensitive", "examples": [verdict],
+                 "failed_taus_h": list(tank_estimate.get("failed_taus_h") or ())},
+                ranking=selected, current_operation=current_operation, lookahead=lookahead,
+                tank_estimate=tank_estimate, pool=feasible, examined=examined, vetoed=vetoed,
+            )
         reason = ("Текущий режим проходит все обязательные проверки; изменения не требуются"
                   if status == HOLD else selected["reason"])
         warning = (lookahead or {}).get("warning")

@@ -129,6 +129,8 @@ def inventory_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckRes
             checks.append(CheckResult(f"inventory.{tank_id}.available", FAIL, None, None,
                                       step.time_hours,
                                       reason=f"Резервуар {tank_id} недоступен на {step.time_hours:g} ч"))
+        if scenario.tank_park is not None and tank_id == scenario.tank_park.component_tank_id:
+            continue
         rate = step.throughput_tph * fraction
         limit = tank.max_outflow.value
         ok = rate <= limit + 1e-9
@@ -136,6 +138,123 @@ def inventory_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckRes
                                   step.time_hours,
                                   reason="" if ok else f"Отбор {rate:.2f} т/ч из {tank_id} выше "
                                                        f"предела {limit:.2f} т/ч на {step.time_hours:g} ч"))
+    return checks
+
+
+def _correctable_sulfur(sulfur: float, throughput_tph: float, scenario: Scenario) -> float | None:
+    """Best sulfur attainable when the forecast batch is eventually blended.
+
+    The filling batch is not the stream currently sent to product.  Still, Gate must
+    reject a batch forecast that cannot be corrected even with all declared lower-sulfur
+    components.  This keeps the warning pre-emptive without pretending that fresh inflow
+    instantly changes an already passported draining batch.
+    """
+    if not _finite(throughput_tph) or throughput_tph <= 0:
+        return None
+    remaining = 1.0
+    result = 0.0
+    alternatives = []
+    component = scenario.tank_park.component_tank_id if scenario.tank_park else None
+    for tank in scenario.tanks:
+        value = tank.property_value("sulfur_mgkg")
+        if tank.tank_id == component or not tank.available or value is None or value >= sulfur:
+            continue
+        alternatives.append((value, max(0.0, tank.max_outflow.value / throughput_tph)))
+    for value, capacity_fraction in sorted(alternatives):
+        fraction = min(remaining, capacity_fraction)
+        result += fraction * value
+        remaining -= fraction
+        if remaining <= 1e-12:
+            break
+    return result + remaining * sulfur
+
+
+def park_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
+    if step.park is None:
+        return []
+    park = step.park
+    if not isinstance(park, dict):
+        return [CheckResult("park.contract", UNKNOWN, None, None, step.time_hours,
+                            reason="Траектория парка имеет неизвестный формат")]
+    checks = []
+    model = park.get("model_version")
+    checks.append(CheckResult("park.model_version", PASS if isinstance(model, str) and model else UNKNOWN,
+                              None, None, step.time_hours,
+                              reason="" if isinstance(model, str) and model else "Версия модели парка не указана"))
+    balance = park.get("balance_error_t")
+    if not _finite(balance):
+        checks.append(CheckResult("park.balance", UNKNOWN, None, 0.0, step.time_hours,
+                                  reason="Массовый баланс парка не рассчитан"))
+    else:
+        ok = abs(balance) <= 1e-6
+        checks.append(CheckResult("park.balance", PASS if ok else FAIL, abs(balance), 0.0, step.time_hours,
+                                  reason="" if ok else f"Ошибка массового баланса парка {balance:.6f} т"))
+    tanks = park.get("tanks")
+    if not isinstance(tanks, list) or not tanks:
+        checks.append(CheckResult("park.tanks", UNKNOWN, None, None, step.time_hours,
+                                  reason="Состояния резервуаров не переданы"))
+        return checks
+    for raw in tanks:
+        if not isinstance(raw, dict) or not isinstance(raw.get("tank_id"), str):
+            checks.append(CheckResult("park.tank.contract", UNKNOWN, None, None, step.time_hours,
+                                      reason="Состояние резервуара имеет неизвестный формат"))
+            continue
+        tank_id = raw["tank_id"]
+        mass, capacity = raw.get("mass_t"), raw.get("capacity_t")
+        if not _finite(mass) or not _finite(capacity):
+            checks.append(CheckResult(f"park.{tank_id}.capacity", UNKNOWN, None, None, step.time_hours,
+                                      reason=f"Масса или вместимость {tank_id} неизвестна"))
+        else:
+            ok = -1e-9 <= mass <= capacity + 1e-9
+            checks.append(CheckResult(f"park.{tank_id}.capacity", PASS if ok else FAIL, mass, capacity,
+                                      step.time_hours, reason="" if ok else
+                                      f"Масса {tank_id} {mass:.3f} т вне диапазона [0, {capacity:.3f}]"))
+        status = raw.get("status")
+        if status not in {"available", "filling", "awaiting_passport", "ready", "draining"}:
+            checks.append(CheckResult(f"park.{tank_id}.status", UNKNOWN, None, None, step.time_hours,
+                                      reason=f"Стадия резервуара {tank_id} неизвестна"))
+        elif status in {"ready", "draining"}:
+            properties = raw.get("properties")
+            if not isinstance(properties, dict) or any(properties.get(name) is None
+                                                       for name in ("sulfur_mgkg", "t95_c",
+                                                                    "cetane_number", "density_kgm3")):
+                checks.append(CheckResult(f"park.{tank_id}.passport", UNKNOWN, None, None, step.time_hours,
+                                          reason=f"Паспорт партии {tank_id} содержит неизвестные свойства"))
+            else:
+                checks.append(CheckResult(f"park.{tank_id}.passport", PASS, None, None, step.time_hours))
+        if status in {"filling", "awaiting_passport"}:
+            properties = raw.get("properties")
+            sulfur = properties.get("sulfur_mgkg") if isinstance(properties, dict) else None
+            limit = scenario.product.limit_value("sulfur_mgkg")
+            corrected = (_correctable_sulfur(sulfur, step.throughput_tph, scenario)
+                         if _finite(sulfur) and limit is not None else None)
+            constraint = f"park.{tank_id}.passport_forecast.sulfur_mgkg"
+            if corrected is None:
+                checks.append(CheckResult(
+                    constraint, UNKNOWN, None, limit, step.time_hours,
+                    reason=f"Прогноз паспорта наливаемой партии {tank_id} не рассчитан"))
+            else:
+                ok = corrected <= limit + 1e-9
+                checks.append(CheckResult(
+                    constraint, PASS if ok else FAIL, corrected, limit, step.time_hours,
+                    reason="" if ok else
+                    f"Прогноз серы партии {tank_id} после максимально доступной коррекции "
+                    f"{corrected:.3f} мг/кг выше предела {limit:g} мг/кг"))
+            for name in ("t95_c", "cetane_number", "density_kgm3"):
+                value = properties.get(name) if isinstance(properties, dict) else None
+                known = _finite(value)
+                checks.append(CheckResult(
+                    f"park.{tank_id}.passport_forecast.{name}.known",
+                    PASS if known else UNKNOWN, value if known else None, None, step.time_hours,
+                    reason="" if known else
+                    f"Для прогноза паспорта наливаемой партии {tank_id} неизвестно свойство {name}"))
+        uncertainty = raw.get("initial_uncertainty")
+        if uncertainty:
+            checks.append(CheckResult(f"park.{tank_id}.initial_state", UNKNOWN, None, None, step.time_hours,
+                                      reason=f"Начальное состояние {tank_id} неизвестно: "
+                                             + ", ".join(map(str, uncertainty))))
+    for reason in park.get("reasons", ()):
+        checks.append(CheckResult("park.transition", FAIL, None, None, step.time_hours, reason=str(reason)))
     return checks
 
 
@@ -196,6 +315,7 @@ def check_plan(plan_id: str, steps, scenario: Scenario,
         checks.extend(recipe_checks(step, scenario))
         checks.append(throughput_check(step))
         checks.extend(inventory_checks(step, scenario))
+        checks.extend(park_checks(step, scenario))
         checks.append(applicability_check(step))
     checks.append(discretisation_check(steps, scenario.horizon.hours))
     terminal_rule = (scenario.policy or {}).get("terminal_inventory_rule", "none")

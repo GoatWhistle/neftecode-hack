@@ -21,6 +21,7 @@ import { EvidencePassport } from "./features/evidence-passport";
 import type { ResearchSummary } from "./features/evidence-passport";
 import { BUILD_RESEARCH } from "./features/evidence-passport/buildSummary";
 import { HistoryExplorer } from "./features/history-explorer/HistoryExplorer";
+import { TankPark } from "./features/tank-park/TankPark";
 import type { HistoryCatalog, HistoryOverview, HistorySelection } from "./features/history-explorer/types";
 import { Fold } from "./graph/Fold";
 import { outcomeOf } from "./run/verdict";
@@ -370,6 +371,7 @@ export function App() {
                     <h3 className="answer-part__title">Последствия во времени</h3>
                     <Consequences payload={payload} />
                   </section>
+                  {payload.decision.tank_park ? <TankPark park={payload.decision.tank_park} /> : null}
                   <ChoicePanel payload={payload} onChangeCondition={focusWhatIf} />
                 </>
               ) : null}

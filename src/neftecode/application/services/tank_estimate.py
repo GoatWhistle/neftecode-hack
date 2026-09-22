@@ -182,6 +182,9 @@ def plain_decision(scenario: Scenario) -> MakeDecision:
 
 
 def default_tank_estimate_factory(scenario: Scenario, raw: dict,
-                                  scenario_parser: Callable[[dict], Scenario]) -> "TankEstimateCheck":
+                                  scenario_parser: Callable[[dict], Scenario]):
+    if scenario.tank_park is not None:
+        from neftecode.application.services.park_phase import ParkPhaseCheck
+        return ParkPhaseCheck(scenario, dict(raw), scenario_parser, plain_decision)
     return TankEstimateCheck(scenario, dict(raw), scenario_parser=scenario_parser,
                              decision_factory=plain_decision)

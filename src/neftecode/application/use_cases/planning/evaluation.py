@@ -5,6 +5,16 @@ from neftecode.domain.advisory.entities import PlanStep
 from neftecode.domain.advisory.gate import TrajectoryPoint, check_plan
 from neftecode.domain.advisory.optimizer import Candidate, Evaluation
 from neftecode.domain.production.inventory import InventoryLedger
+from neftecode.domain.production.park import AVAILABLE, DRAINING, FILLING, READY
+from neftecode.domain.production.park_evaluator import (
+    ParkEvaluator,
+    ParkFrame,
+    ParkStep,
+    ParkTrajectory,
+    TankOperation,
+    initial_park,
+)
+from neftecode.domain.shared.primitives import QUALITIES, volume_additive_density
 
 from .candidate import PlanCandidate, PlannerError
 
@@ -59,10 +69,18 @@ class PlanEvaluationMixin:
         for t in grid:
             inflow_properties[t] = self.inflow_properties(t, pending)
         stock = ledger.run_plan(ledger_steps, inflow_properties)
+        park = self._evaluate_park(plan, grid, inflow_properties, initial_tanks)
         for index, time_hours in enumerate(grid):
             spec = self._active_step(plan, time_hours)
             stream = self.chain.run_at(time_hours, pending)
             properties = stock["timeline"][index]["properties"]
+            park_payload = None
+            if park is not None:
+                frame = park.frames[index]
+                park_payload = {**frame.state.to_dict(), "model_version": park.model_version,
+                                "reasons": list(frame.reasons)}
+                component = self.scenario.tank_park.component_tank_id
+                properties = {**properties, component: self._park_properties(park, index)}
             blend = self.blender.blend(spec.recipe, spec.throughput_tph,
                                        hours=self._duration(grid, index),
                                        additive_dose=spec.additive_dose,
@@ -75,7 +93,7 @@ class PlanEvaluationMixin:
                 production_tph=spec.throughput_tph, controls=self._effective_controls(time_hours, pending),
                 recipe=spec.recipe, throughput_tph=spec.throughput_tph,
                 additive_dose=spec.additive_dose, applicability=stream.applicability,
-                inventory_reasons=reasons))
+                inventory_reasons=reasons, park=park_payload))
             costs.append(self.economics.step_cost(
                 spec.recipe, spec.throughput_tph, self._duration(grid, index),
                 spec.additive_dose, trajectory[-1].controls.get("ht_reactor_inlet_temp_c")))
@@ -92,7 +110,129 @@ class PlanEvaluationMixin:
                       plan.steps[0].throughput_tph, plan.steps[0].additive_dose, plan.changes),
             gate, summary["production_t"], summary["cost_per_tonne"],
             max(known) if known else None,
-            _worst_severity(details, severities), _worst_full(details, severities), applicability)
+            _worst_severity(details, severities), _worst_full(details, severities), applicability,
+            park.to_dict() if park is not None else None)
+
+    def _evaluate_park(self, plan: PlanCandidate, grid: list[float], inflow_properties: dict,
+                       initial_tanks=None):
+        config = self.scenario.tank_park
+        if config is None:
+            return None
+        component = config.component_tank_id
+        tank = self.scenario.tank(component)
+        initial_properties = {name: tank.property_value(name) for name in QUALITIES}
+        state = initial_park(config, initial_properties, tank.inflow.value)
+        legacy = (initial_tanks or {}).get(component)
+        if legacy is not None:
+            source = next((item for item in state.tanks if item.status == DRAINING), None)
+            if source is not None:
+                mass = min(source.capacity_t, legacy.inventory_t)
+                replacement = replace(
+                    source, mass_t=mass, properties=dict(legacy.properties),
+                    status=(DRAINING if mass > 1e-9 else AVAILABLE),
+                    batch_id=(source.batch_id if mass > 1e-9 else None),
+                    provenance="legacy_single_tank_override")
+                state = type(state)(tuple(replacement if item.tank_id == source.tank_id else item
+                                          for item in state.tanks))
+        frames = [ParkFrame(grid[0], state, 0.0, 0.0)]
+        reasons = []
+        evaluator = ParkEvaluator()
+        for index, time_h in enumerate(grid[:-1]):
+            duration = grid[index + 1] - time_h
+            spec = self._active_step(plan, time_h)
+            left, interval_in, interval_out = duration, 0.0, 0.0
+            interval_in_by, interval_out_by, interval_reasons = {}, {}, []
+            substep = 0
+            while left > 1e-9:
+                substep += 1
+                if substep > 32:
+                    raise PlannerError(f"tank_park: слишком много событий внутри шага {time_h:g} ч")
+                operations: dict[str, TankOperation] = {}
+                step_reasons = []
+
+                filling = next((item for item in state.tanks if item.status == FILLING), None)
+                if filling is None:
+                    filling = next((item for item in state.tanks if item.status == AVAILABLE), None)
+                if filling is None:
+                    step_reasons.append(f"На {time_h + duration - left:g} ч нет резервуара, "
+                                        f"доступного для притока {component}")
+                else:
+                    operations[filling.tank_id] = TankOperation(
+                        inflow_tph=tank.inflow.value,
+                        inflow_properties=inflow_properties[time_h][component],
+                        batch_id=(f"{component}-batch-{index}-{substep}"
+                                  if filling.status == AVAILABLE else None))
+
+                demand = spec.throughput_tph * spec.recipe.get(component, 0.0)
+                remaining = demand
+                sources = [item for item in state.tanks if item.status == DRAINING]
+                sources += [item for item in state.tanks if item.status == READY]
+                rates = {}
+                for source in sources:
+                    if remaining <= 1e-9:
+                        break
+                    rate = min(remaining, source.nominal_drain_tph)
+                    rates[source.tank_id] = rate
+                    existing = operations.get(source.tank_id, TankOperation())
+                    operations[source.tank_id] = TankOperation(
+                        inflow_tph=existing.inflow_tph, inflow_properties=existing.inflow_properties,
+                        batch_id=existing.batch_id, finish_filling=existing.finish_filling,
+                        start_draining=source.status == READY, demand_tph=rate)
+                    remaining -= rate
+                if remaining > 1e-9:
+                    step_reasons.append(
+                        f"На {time_h + duration - left:g} ч готовые партии не покрывают спрос "
+                        f"{demand:.3f} т/ч: не хватает {remaining:.3f} т/ч")
+
+                event_times = [left]
+                if filling is not None and tank.inflow.value > 0:
+                    event_times.append(max(0.0, (filling.capacity_t - filling.mass_t) / tank.inflow.value))
+                event_times.extend(item.passport_ready_in_h for item in state.tanks
+                                   if item.status == "awaiting_passport" and item.passport_ready_in_h is not None)
+                event_times.extend(state.tank(tank_id).mass_t / rate for tank_id, rate in rates.items() if rate > 0)
+                positive = [value for value in event_times if value > 1e-9]
+                delta = min(positive) if positive else left
+                result = evaluator.evaluate(state, [ParkStep(delta, operations, tuple(step_reasons))])
+                frame = result.frames[-1]
+                interval_in += frame.inflow_t
+                interval_out += frame.outflow_t
+                for tank_id, mass in frame.inflow_by_tank.items():
+                    interval_in_by[tank_id] = interval_in_by.get(tank_id, 0.0) + mass
+                for tank_id, mass in frame.outflow_by_tank.items():
+                    interval_out_by[tank_id] = interval_out_by.get(tank_id, 0.0) + mass
+                interval_reasons.extend(result.reasons)
+                reasons.extend(result.reasons)
+                state = result.terminal
+                left -= delta
+            frames.append(ParkFrame(grid[index + 1], state, interval_in, interval_out,
+                                    interval_in_by, interval_out_by,
+                                    tuple(dict.fromkeys(interval_reasons))))
+        unique = tuple(dict.fromkeys(reasons))
+        return ParkTrajectory(tuple(frames), not unique, unique)
+
+    @staticmethod
+    def _park_properties(park: ParkTrajectory, index: int) -> dict[str, float | None]:
+        state = park.frames[index].state
+        weights = (park.frames[index + 1].outflow_by_tank
+                   if index + 1 < len(park.frames) else {})
+        if not weights:
+            weights = {tank.tank_id: 1.0 for tank in state.tanks if tank.status == DRAINING}
+        total = sum(weights.values())
+        if total <= 0:
+            return {name: None for name in QUALITIES}
+        result = {}
+        for name in QUALITIES:
+            values = [(state.tank(tank_id).properties.get(name), weight) for tank_id, weight in weights.items()]
+            if any(value is None for value, _ in values):
+                result[name] = None
+            elif name == "density_kgm3":
+                result[name] = volume_additive_density(
+                    {tank_id: weight for tank_id, weight in weights.items()},
+                    {tank_id: state.tank(tank_id).properties[name] for tank_id in weights},
+                )
+            else:
+                result[name] = sum(value * weight for value, weight in values) / total
+        return result
 
     def lookahead(self, plan: PlanCandidate, hours: float, confirmed=(), initial_tanks=None,
                   current_operation=None) -> dict:

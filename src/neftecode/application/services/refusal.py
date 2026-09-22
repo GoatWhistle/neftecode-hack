@@ -3,7 +3,7 @@ from neftecode.domain.production.scenario import Scenario
 
 from .chain_blocks import chain_view
 from .explain_types import (AGENT_REJECTED, BAD_DATA, LAB_DELAY_HOURS, MODEL_NOT_APPLICABLE, NO_FEASIBLE_PLAN,
-                            REFUSAL_KINDS, current_operation_view, plan_origin_view)
+                            PARK_PHASE_SENSITIVE, REFUSAL_KINDS, current_operation_view, plan_origin_view)
 
 
 def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = None) -> dict:
@@ -36,6 +36,10 @@ def explain_refusal(decision: dict, scenario: Scenario, state: dict | None = Non
                            "kind": "agent_review"})
         next_steps.append({"need": "детерминированный вариант без агентов доступен при выключенном агентном режиме",
                            "kind": "agent_review"})
+    elif kind == PARK_PHASE_SENSITIVE:
+        next_steps.append({"need": "фактический уровень или стадия каждого резервуара парка",
+                           "kind": "measurement",
+                           "caveat": "Без уровня разные допустимые τ дают разные решения."})
     else:
         if refusal.get("kind") == "weak_response_failed":
             next_steps.append({"need": (f"план {refusal.get('plan_id')} держит предел только при среднем отклике β; "

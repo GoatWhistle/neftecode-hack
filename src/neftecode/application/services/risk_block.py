@@ -74,8 +74,17 @@ def _tank_estimate_items(decision: dict) -> list[dict]:
         return []
     if not estimate.get("sensitive"):
         return []
+    if estimate.get("mode") == "park_phase":
+        taus = [r.get("tau_h") for r in (estimate.get("results") or [])
+                if r.get("outcome") in ("changed", "not_evaluable")]
+        labels = [f"τ={value:.3g} ч" for value in taus if _finite(value)]
+        return [{"kind": "tank_phase_sensitive", "level": "high",
+                 "text": ("Решение зависит от неизвестной стадии парка: разные допустимые τ дают разные "
+                          "результаты. Нужен фактический уровень резервуаров"
+                          + ("; неустойчивые фазы " + ", ".join(labels) if labels else "")),
+                 "taus_h": taus}]
     changed = [r.get("perturbation") for r in (estimate.get("results") or [])
-               if r.get("outcome") == "changed"]
+               if r.get("outcome") == "changed" and r.get("perturbation")]
     return [{"kind": "tank_estimate_sensitive", "level": "medium",
              "text": ("Решение зависит от оценки состава резервуара, которую мы не измеряли: "
                       "рекомендация меняется при отклонении " + "; ".join(str(c) for c in changed[:3])
@@ -125,6 +134,9 @@ def _refusal_items(decision: dict) -> list[dict]:
         return [{"kind": "refused_by_agents", "level": "high",
                  "text": ("Решение не выдано: допустимый план был, но агенты качества/надёжности его отклонили. "
                           "Режим остаётся прежним, и риск, из-за которого план отклонили, никуда не делся")}]
+    if refusal.get("kind") == "tank_phase_sensitive":
+        return [{"kind": "refused_on_tank_phase", "level": "high",
+                 "text": "Решение не выдано: допустимость зависит от неизвестной стадии парка резервуаров"}]
     return [{"kind": "refused_no_plan", "level": "high",
              "text": ("Решение не выдано: допустимого плана нет. Режим остаётся прежним, "
                       "и риск, из-за которого план не найден, никуда не делся")}]

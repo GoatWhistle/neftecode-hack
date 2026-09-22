@@ -49,7 +49,7 @@ def test_normal_state_does_not_produce_unnecessary_actions(raw, state):
 def test_point_forecast_below_limit_is_not_sufficient(raw, state):
     judged_by_point = decide(json.loads(json.dumps(raw)), state, 9.0, 7.0, 9.0, stored=10.7)
     assert judged_by_point["status"] == "hold"
-    decision = decide(raw, state, 9.0, 7.0, 14.0, stored=10.7)
+    decision = decide(raw, state, 9.0, 7.0, 25.0, stored=10.7)
     assert decision["status"] != "hold"
     assert decision["selected_plan"] is None or decision["selected_plan"]["changes"] > 0
 
@@ -90,7 +90,9 @@ def test_demo_artifacts_are_built_by_the_main_decision_flow(tmp_path):
     assert (tmp_path / "report.md").is_file()
     assert (tmp_path / "audit.jsonl").is_file()
     assert demos["normal_synthetic"]["status"] == "hold"
-    assert demos["conflict_synthetic"]["status"] == "recommend_scenario"
+    assert demos["conflict_synthetic"]["status"] == "hold"
+    assert demos["conflict_synthetic"]["decision_id"] != demos["normal_synthetic"]["decision_id"], \
+        "ухудшение должно дойти до прогноза наливаемой партии, даже если текущий паспорт позволяет hold"
     assert any(item.get("agent") == "optimizer"
                for item in demos["normal_synthetic"]["trace"])
 

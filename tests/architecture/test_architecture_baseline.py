@@ -18,10 +18,10 @@ from neftecode.application.services.tank_estimate import default_tank_estimate_f
 ROOT = Path(".")
 SCENARIOS = ROOT / "config/scenarios"
 EXPECTED = {
-    "ample_reserve": ("recommend_scenario", 300.0, "044dda345e8c0f68afb1ccbc6e388374aa77911bc53637004242856b117a8917"),
-    "baseline": ("hold", 300.0, "2ae6e42f4a6440c2a15e9e481209b3d1ef7b3efdd74d74260b17a9c33327930d"),
-    "no_feasible": ("refuse", None, "f6ed902acb25aaf5b9320ef83319947bf7abb3a8be45760b28f662454d0f5c21"),
-    "sour_crude": ("recommend_scenario", 300.0, "fa0899a06a2b4890767df72388694f23e0fc0a0aa3aea7384435aa512276cff3"),
+    "ample_reserve": ("recommend_scenario", 300.0, "4af12cb2d7a8b70bade671ef3324ba148a2e54703132640fcac3d0c84e922886"),
+    "baseline": ("hold", 300.0, "4327bc165b886b317015be7f01a903e2bd1005517c8507319146d0bda0159426"),
+    "no_feasible": ("refuse", None, "994338883122e83e5aeac4f1e656a335738c8e7dff81f47d6fec7bf4b735ae90"),
+    "sour_crude": ("recommend_scenario", 300.0, "c0c25bf13b1e746c4ad8eb64e2975bacf0fc5bf7cdff9a7165daad9c282aa66d"),
 }
 DECISION_KEYS = {
     "alternatives", "commercial_release_allowed", "cost_per_tonne", "current_operation", "lookahead",
@@ -29,6 +29,7 @@ DECISION_KEYS = {
     "refusal", "rejected", "robustness", "scenario_id", "scope", "selected_plan",
     "severity_index", "status", "tank_estimate", "trace", "deployment_readiness",
     "selection_policy", "severity", "tradeoff", "consequences", "choice",
+    "tank_park",
 }
 ADDITIVE_KEYS = {"severity", "tradeoff", "consequences", "choice"}
 
@@ -60,7 +61,9 @@ def test_four_scenario_outputs_are_frozen():
 def test_http_payload_keeps_the_decision_json_shape():
     payload = make_demo_service(ROOT, 400).decide({"scenario": ["baseline"]})
     assert set(payload["decision"]) == DECISION_KEYS
-    assert payload["decision"]["status"] == "hold"
+    assert payload["decision"]["status"] == "refuse"
+    assert payload["decision"]["refusal"]["kind"] == "tank_phase_sensitive"
+    assert payload["decision"]["tank_estimate"]["failed_taus_h"]
 
 
 def test_pause_resume_remains_bit_for_bit_reproducible():

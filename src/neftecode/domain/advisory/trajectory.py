@@ -18,6 +18,7 @@ class TrajectoryPoint:
     throughput_tph: float | None = None
     additive_dose: float = 0.0
     inventory_reasons: tuple[str, ...] = ()
+    park: dict | None = None
 
     def __post_init__(self):
         object.__setattr__(self, "qualities",
@@ -41,7 +42,8 @@ class TrajectoryPoint:
                 "cost_proxy": self.cost_proxy, "severity_proxy": self.severity_proxy,
                 "applicability": self.applicability, "controls": dict(self.controls),
                 "recipe": dict(self.recipe), "throughput_tph": self.throughput_tph,
-                "additive_dose": self.additive_dose, "inventory_reasons": list(self.inventory_reasons)}
+                "additive_dose": self.additive_dose, "inventory_reasons": list(self.inventory_reasons),
+                "park": self.park}
 
     @classmethod
     def from_dict(cls, raw: dict) -> "TrajectoryPoint":
@@ -50,7 +52,7 @@ class TrajectoryPoint:
                    raw.get("severity_proxy"), raw.get("applicability", "unknown"),
                    dict(raw.get("controls", {})), dict(raw.get("recipe", {})),
                    raw.get("throughput_tph"), raw.get("additive_dose", 0.0),
-                   tuple(raw.get("inventory_reasons", ())))
+                   tuple(raw.get("inventory_reasons", ())), raw.get("park"))
 @dataclass(frozen=True)
 class TrajectoryEstimate:
     plan_id: str

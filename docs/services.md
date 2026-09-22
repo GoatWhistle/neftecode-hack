@@ -11,7 +11,7 @@
 | decision-service | 8768 | `MakeDecision`, binding прогноза, live orchestration | data + model HTTP |
 | gateway-service | 8765 | HTML и legacy `/api/*` интерфейс | data + decision HTTP |
 
-Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; общий GetLiveAdvice в decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза с притоком основного резервуара, оценивает серу его содержимого по истории доверенных показаний за 42 часа и запускает доменное решение. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
+Поток live-запроса: gateway или клиент обращается к decision `/v1/live/advice`; общий GetLiveAdvice в decision получает сценарий и snapshot из data, передаёт полный snapshot в model, связывает верхнюю границу прогноза с притоком наливаемой партии и запускает доменное решение. Уже паспортизованная сливаемая партия от нового прогноза не меняется. Поскольку snapshot не содержит фактических уровней и стадий четырёх резервуаров, после номинального расчёта выполняется полный повторный поиск для трёх фаз τ; зависимый от фазы совет превращается в отказ `tank_phase_sensitive`. Ни один service process не импортирует другой; общим transport-слоем является только `services.common`.
 
 ## Контракты и endpoints
 
@@ -20,6 +20,10 @@ Data: `GET /v1/scenarios`, `POST /v1/scenarios/get` с `{scenario_id}`, `GET /v1
 Model: `GET /v1/models`, `POST /v1/forecast` с `{snapshot, fallback}`. Он проверяет структуру и хеши snapshot, совпадение `at` и `state.decision_time`, диапазон источника, `trust.usable` и полный набор признаков. Ответ содержит `model`, `value`, `lower`, `upper`, `available`, `reason` и `at`.
 
 Decision: `POST /v1/decisions`, `POST /v1/decisions/stream`, `POST /v1/live/advice`, `GET /v1/capabilities`. Gateway сохраняет `/`, `/index.html`, `/api/scenarios`, `/api/defaults`, `/api/decide`, `/api/options`; envelope новых endpoints имеет `contract_version=v1`.
+
+Decision payload дополнительно содержит `tank_park`: версию модели, причины, кадры по времени,
+состояния физических резервуаров и terminal balance. UI и replay используют этот payload без
+собственного пересчёта стадий.
 
 `/v1/decisions/stream` принимает то же тело, что `/v1/decisions`, и отвечает SSE того же вида,
 что `/api/stream`: `phase`/`stage`/`agent`/`tick` по мере расчёта, затем `screen` с результатом

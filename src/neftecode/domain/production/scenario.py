@@ -6,6 +6,7 @@ from .quantities import (Quantity, SCHEMA, ScenarioError, UNITS, _finite, option
 
 __all__ = ["ACTUATION_KINDS", "Additive", "ControlActuation", "CurrentOperation", "FEEDBACK_SETPOINT",
            "Horizon", "ProductSpec", "Quantity", "SCHEMA", "Scenario", "ScenarioError", "Stage", "Tank",
+           "TankParkConfig",
            "UNITS", "_finite", "optional_quantity", "quantity"]
 
 
@@ -150,6 +151,26 @@ class CurrentOperation:
 
 
 @dataclass(frozen=True)
+class TankParkConfig:
+    component_tank_id: str
+    tank_count: int
+    capacity_m3: float
+    density_kgm3: float
+    passport_duration_h: float
+    nominal_drain_h: float
+    phase_offsets_h: tuple[float, ...]
+    source: str = "scenario"
+    schema: str = "tank-park-scenario/1"
+
+    def to_dict(self) -> dict:
+        return {"schema": self.schema, "component_tank_id": self.component_tank_id,
+                "tank_count": self.tank_count, "capacity_m3": self.capacity_m3,
+                "density_kgm3": self.density_kgm3, "passport_duration_h": self.passport_duration_h,
+                "nominal_drain_h": self.nominal_drain_h, "phase_offsets_h": list(self.phase_offsets_h),
+                "source": self.source}
+
+
+@dataclass(frozen=True)
 class Scenario:
     scenario_id: str
     title: str
@@ -166,6 +187,7 @@ class Scenario:
     policy: dict
     assumptions: tuple[str, ...]
     expected: dict = field(default_factory=dict)
+    tank_park: TankParkConfig | None = None
 
     def tank(self, tank_id: str) -> Tank:
         for t in self.tanks:
@@ -194,4 +216,5 @@ class Scenario:
             "policy": self.policy,
             "assumptions": list(self.assumptions),
             "expected": self.expected,
+            "tank_park": self.tank_park.to_dict() if self.tank_park else None,
         }

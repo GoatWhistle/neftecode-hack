@@ -25,6 +25,7 @@ def measured(level, decision_time="2026-03-01T12:00:00"):
 
 def live_scenario(level, inflow):
     raw = json.loads(BASELINE.read_text(encoding="utf-8"))
+    raw.pop("tank_park", None)
     forecast = {"model": "test", "value": inflow - 1, "lower": inflow - 2, "upper": inflow,
                 "available": True, "reason": "test"}
     bound = bind_forecast(raw, forecast, state=measured(level))

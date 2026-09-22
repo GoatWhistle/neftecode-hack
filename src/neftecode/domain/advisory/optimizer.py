@@ -181,6 +181,7 @@ class Evaluation:
     severity_detail: dict | None = None
     severity_full: dict | None = None
     applicability: tuple[tuple[float, str], ...] = ()
+    park: dict | None = None
 
     @property
     def feasible(self) -> bool:
@@ -197,7 +198,7 @@ class Evaluation:
         return {**self.candidate.to_dict(), "feasible": self.feasible,
                 "production_t": self.production_t, "cost_per_tonne": self.cost_per_tonne,
                 "severity_index": self.severity_index,
-                "rejection_reasons": list(self.gate.rejection_reasons())}
+                "rejection_reasons": list(self.gate.rejection_reasons()), "park": self.park}
 
 
 def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0,

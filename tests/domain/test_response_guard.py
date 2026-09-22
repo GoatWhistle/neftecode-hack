@@ -38,6 +38,7 @@ SCENARIO_LAG = {"response_onset_hours": 2.0, "horizon_response_share": 1.0}
 
 def knife_edge(light: bool = False, tank_sulfur: float = 9.34, upper: float = 10.6, **response_overrides) -> dict:
     raw = json.loads(BASELINE.read_text(encoding="utf-8"))
+    raw.pop("tank_park", None)
     for tank in raw["tanks"]:
         if tank["tank_id"] == "main":
             tank["inventory"]["value"] = 600.0

@@ -86,6 +86,8 @@ gateway-service
 - `production/process.py` — сценарные модели АВТ и гидроочистки с задержкой.
 - `production/blending.py` — расчёт смеси по сере, T95, цетану и плотности.
 - `production/inventory.py` — движение запасов резервуаров по времени.
+- `production/park.py` — состояния партии и статусная машина физического резервуара.
+- `production/park_evaluator.py` — единый расчёт траектории парка и массового баланса.
 - `production/economics.py` — условные затраты и показатели нагрузки.
 - `production/state.py` — состояние резервуара и другие состояния производства.
 - `advisory/entities.py` — план, результат проверки и решение.
@@ -110,6 +112,7 @@ gateway-service
 - `services/explain.py` — перевод решения в понятный текст.
 - `services/robustness.py` — устойчивость выбранного плана к ошибкам коэффициентов (`RobustnessCheck`).
 - `services/tank_estimate.py` — оценка резервуара после выбранного плана (`TankEstimateCheck`).
+- `services/park_phase.py` — перебор трёх фаз τ, когда live-срез не содержит фактической стадии парка.
 - `use_cases/plan_operation.py` — расчёт одного или нескольких планов.
 - `use_cases/make_decision.py` — основной цикл агентов.
 - `use_cases/get_live_advice.py` — вход для решения на реальных временных данных.
@@ -175,7 +178,7 @@ gateway-service
 3. `domain/advisory/optimizer.py` — увидеть, какие варианты создаются.
 4. `application/use_cases/plan_operation.py` — проследить расчёт одного плана.
 5. `domain/production/process.py` — понять модель АВТ и ГО.
-6. `domain/production/blending.py` и `inventory.py` — смесь и расход запасов.
+6. `domain/production/blending.py`, `park.py` и `park_evaluator.py` — смесь, партии и расписание парка.
 7. `domain/advisory/gate.py` — увидеть все причины запрета.
 8. `application/use_cases/make_decision.py` — собрать весь цикл агентов.
 9. `services/decision_service.py` — понять HTTP-вход.

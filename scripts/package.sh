@@ -62,7 +62,7 @@ fi
 echo "Копирование результатов прогона"
 mkdir -p "$STAGE/artifacts"
 REQUIRED_ARTIFACTS="report.md metrics.json benchmark.json scenes.json manifest.json response_model.json model.pkl screen.json scenes agent-demo.json agent-demo.md source_rules.json"
-OPTIONAL_ARTIFACTS="risk_metrics.json vak_check.json episodes.json tank_level_check.json expert_grid.json agent-live-full-20260917.json agent-live-smoke.json agent-live-specialists-20260917.json agent-live-sour_crude-20260920.json audit.jsonl demo.json predictions.csv replay.csv risk_predictions.csv screen.html"
+OPTIONAL_ARTIFACTS="risk_metrics.json vak_check.json episodes.json tank_level_check.json expert_grid.json agent-live-full-20260917.json agent-live-smoke.json agent-live-smoke-p5-p6-20260922.json agent-live-specialists-20260917.json agent-live-sour_crude-20260920.json audit.jsonl demo.json predictions.csv replay.csv risk_predictions.csv screen.html"
 MISSING_REQUIRED=0
 for item in $REQUIRED_ARTIFACTS; do
   if [ -e "artifacts/$item" ]; then

@@ -24,7 +24,8 @@ def raw(path: Path) -> dict:
 
 def decide(path: Path) -> dict:
     document = raw(path)
-    scenario = load_scenario(path)
+    document.pop("tank_park", None)  # этот файл проверяет отдельный legacy-механизм одного смешиваемого бака
+    scenario = parse_scenario(document)
     return MakeDecision(scenario, robustness_evaluator=RobustnessCheck(
         scenario, document, scenario_parser=parse_scenario),
         scenario_parser=parse_scenario,
@@ -149,7 +150,8 @@ def test_tank_estimate_works_with_a_minimal_evaluator_that_only_implements_evalu
             return {"held": True, "fragile": False, "perturbations_evaluated": 0, "perturbations": []}
 
     document = raw(BASELINE)
-    scenario = load_scenario(BASELINE)
+    document.pop("tank_park", None)
+    scenario = parse_scenario(document)
     decision = MakeDecision(scenario, robustness_evaluator=BareEvaluator(),
                             scenario_parser=parse_scenario,
                             tank_estimate_factory=default_tank_estimate_factory).decide(

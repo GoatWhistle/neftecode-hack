@@ -25,12 +25,15 @@ const REFUSAL_REASON: Record<string, string> = {
   bad_data: "нет достоверного источника качества, поиск плана не проводился",
   model_not_applicable: "текущий режим вышел за объявленную область применимости модели",
   no_feasible_plan: "поиск планов прошёл, ни один не прошёл обязательные проверки",
+  tank_phase_sensitive: "планы прошли номинальную проверку, но результат меняется при допустимых начальных фазах парка",
   agent_rejected: "допустимый план был, агенты качества или надёжности его отклонили"
 };
 
 const SERIOUS_RISK_KINDS = new Set([
   "fragile_plan",
   "tank_estimate_sensitive",
+  "tank_phase_sensitive",
+  "refused_on_tank_phase",
   "refused_on_data",
   "source_degraded",
   "sulfur_operating_margin"

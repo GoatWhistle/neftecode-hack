@@ -80,6 +80,53 @@ def test_unknown_quality_blocks_the_plan():
     assert gate.first_violation is None, "неизвестность не нарушение, но и не допуск"
 
 
+def park_payload(**tank_changes):
+    tank = {
+        "tank_id": "main-1", "capacity_t": 4181.5, "mass_t": 3000.0,
+        "status": "draining", "batch_id": "batch-1", "initial_uncertainty": [],
+        "properties": {"sulfur_mgkg": 7.0, "t95_c": 340.0,
+                       "cetane_number": 52.0, "density_kgm3": 836.3},
+    }
+    tank.update(tank_changes)
+    return {"model_version": "tank-park/1", "balance_error_t": 0.0, "tanks": [tank], "reasons": []}
+
+
+def test_park_capacity_balance_and_passport_are_checked_by_the_same_gate():
+    gate = check_plan("p", grid(park=park_payload()), scenario(), terminal={"satisfied": True})
+    assert gate.feasible
+    assert statuses(gate, "park.balance") == [PASS] * 7
+    assert statuses(gate, "park.main-1.passport") == [PASS] * 7
+
+
+def test_unknown_park_stage_or_passport_blocks_release():
+    unknown_stage = check_plan(
+        "p", grid(park=park_payload(status="unknown")), scenario(), terminal={"satisfied": True})
+    assert UNKNOWN in statuses(unknown_stage, "park.main-1.status")
+    unknown_quality = check_plan(
+        "p", grid(park=park_payload(properties={})), scenario(), terminal={"satisfied": True})
+    assert UNKNOWN in statuses(unknown_quality, "park.main-1.passport")
+    assert not unknown_stage.feasible and not unknown_quality.feasible
+
+
+def test_unknown_filling_batch_property_blocks_the_passport_forecast():
+    park = park_payload(status="filling")
+    park["tanks"][0]["properties"]["t95_c"] = None
+    gate = check_plan("p", grid(park=park), scenario(), terminal={"satisfied": True})
+    constraint = "park.main-1.passport_forecast.t95_c.known"
+    assert UNKNOWN in statuses(gate, constraint)
+    assert not gate.feasible
+
+
+def test_park_transition_failure_and_balance_error_are_hard_failures():
+    bad = park_payload()
+    bad["balance_error_t"] = 2.0
+    bad["reasons"] = ["main-1: отбор до паспорта запрещён"]
+    gate = check_plan("p", grid(park=bad), scenario(), terminal={"satisfied": True})
+    assert FAIL in statuses(gate, "park.balance")
+    assert FAIL in statuses(gate, "park.transition")
+    assert not gate.feasible
+
+
 def test_unknown_limit_blocks_the_plan():
     raw = json.loads(BASELINE.read_text(encoding="utf-8"))
     raw["product"]["t95_c"] = None

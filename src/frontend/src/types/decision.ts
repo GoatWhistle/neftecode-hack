@@ -470,6 +470,54 @@ export interface Choice {
   };
 }
 
+export type TankParkStatus = "available" | "filling" | "awaiting_passport" | "ready" | "draining";
+
+export interface TankParkTank {
+  tank_id: string;
+  capacity_t: number;
+  mass_t: number;
+  properties: Record<string, number | null>;
+  status: TankParkStatus;
+  batch_id: string | null;
+  status_elapsed_h: number;
+  batch_age_h: number;
+  passport_duration_h: number;
+  passport_ready_in_h: number | null;
+  nominal_drain_h: number;
+  nominal_drain_tph: number;
+  provenance: string;
+  initial_uncertainty: string[];
+}
+
+export interface TankParkState {
+  model_version: string;
+  elapsed_h: number;
+  initial_mass_t: number;
+  mass_t: number;
+  total_in_t: number;
+  total_out_t: number;
+  balance_error_t: number;
+  tanks: TankParkTank[];
+}
+
+export interface TankParkFrame {
+  time_h: number;
+  inflow_t: number;
+  outflow_t: number;
+  inflow_by_tank: Record<string, number>;
+  outflow_by_tank: Record<string, number>;
+  reasons: string[];
+  state: TankParkState;
+}
+
+export interface TankParkTrajectory {
+  model_version: string;
+  feasible: boolean;
+  reasons: string[];
+  frames: TankParkFrame[];
+  terminal: TankParkState;
+}
+
 export interface Decision {
   status: string;
   reason: string;
@@ -488,6 +536,7 @@ export interface Decision {
   rejected: unknown[];
   refusal: Refusal | null;
   robustness: Robustness | null;
+  tank_park?: TankParkTrajectory | null;
   lookahead: Lookahead | null;
   selection_policy: SelectionPolicy | null;
   trace: TraceEvent[];

@@ -101,8 +101,8 @@ def test_a_scenario_cannot_claim_both_chain_and_measurement():
 
 
 
-def test_a_bound_forecast_changes_the_computed_blend():
-    def blend_sulfur(upper):
+def test_a_bound_forecast_changes_the_filling_batch_passport_forecast():
+    def passport_sulfur(upper):
         scenario = parse_scenario(bind_forecast(raw(), forecast(value=upper - 2, upper=upper)))
         planner = PlanOperation(scenario)
         operation = scenario.current_operation
@@ -110,12 +110,12 @@ def test_a_bound_forecast_changes_the_computed_blend():
         plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
                                                    operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
-                  if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
+                  if c.constraint_id.endswith("passport_forecast.sulfur_mgkg")
+                  and c.observed is not None]
         return max(c.observed for c in checks)
 
-    low, high = blend_sulfur(6.0), blend_sulfur(14.0)
-    assert high > low + 0.2, "прогноз не дошёл до расчёта смеси"
-    assert high - low < 1.0, "приток не может мгновенно заменить весь запас"
+    low, high = passport_sulfur(6.0), passport_sulfur(14.0)
+    assert high > low + 0.2, "прогноз не дошёл до паспорта наливаемой партии"
 
 
 def test_a_high_forecast_into_a_tank_near_the_limit_makes_the_regime_infeasible():
@@ -128,8 +128,8 @@ def test_a_high_forecast_into_a_tank_near_the_limit_makes_the_regime_infeasible(
     assert planner.evaluate(plan).feasible is False
 
 
-def test_crude_quality_still_reaches_the_decision_without_a_bound_forecast():
-    def blend_sulfur(crude_sulfur):
+def test_crude_quality_still_reaches_the_filling_batch_without_a_bound_forecast():
+    def passport_sulfur(crude_sulfur):
         document = raw()
         document["crude"]["sulfur_wt_pct"]["value"] = crude_sulfur
         scenario = parse_scenario(document)
@@ -139,14 +139,15 @@ def test_crude_quality_still_reaches_the_decision_without_a_bound_forecast():
         plan = PlanCandidate("hold", (PlanStep(0.0, planner.base_controls(), recipe,
                                                    operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
-                  if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
+                  if c.constraint_id.endswith("passport_forecast.sulfur_mgkg")
+                  and c.observed is not None]
         return max(c.observed for c in checks)
 
-    effect = blend_sulfur(2.2) - blend_sulfur(1.35)
-    assert 0.0 < effect < 1.0, "ожидается постепенное изменение качества запаса"
+    effect = passport_sulfur(2.2) - passport_sulfur(1.35)
+    assert effect > 0.0, "качество притока не дошло до паспорта наливаемой партии"
 
 
-def test_an_action_still_shifts_the_bound_level():
+def test_an_action_still_shifts_the_filling_batch_passport_forecast():
     scenario = parse_scenario(bind_forecast(raw(), forecast(upper=13.0)))
     planner = PlanOperation(scenario)
     operation = scenario.current_operation
@@ -156,7 +157,8 @@ def test_an_action_still_shifts_the_bound_level():
         plan = PlanCandidate("p", (PlanStep(0.0, {**planner.base_controls(), **controls},
                                                 recipe, operation.throughput.value),))
         checks = [c for c in planner.evaluate(plan).gate.checks
-                  if c.constraint_id == "quality.sulfur_mgkg" and c.observed is not None]
+                  if c.constraint_id.endswith("passport_forecast.sulfur_mgkg")
+                  and c.observed is not None]
         return max(checks, key=lambda c: c.time_hours).observed
 
     assert worst({"ht_reactor_inlet_temp_c": 358.0}) < worst({}), "коррекция не снижает серу"
@@ -234,7 +236,7 @@ def test_an_unavailable_chain_level_becomes_unknown_not_the_reference_constant()
     assert planner._main_sulfur() is None, "заглушка подменила неизвестный уровень"
 
 
-def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
+def test_a_plan_is_blocked_when_the_filling_batch_forecast_is_unavailable():
     from neftecode.application.use_cases.plan_operation import PlanOperation
     from neftecode.domain.production.process import StreamState
 
@@ -254,7 +256,7 @@ def test_a_plan_is_blocked_when_the_chain_level_is_unavailable():
                                                operation.throughput.value),))
     evaluation = planner.evaluate(plan)
     assert evaluation.feasible is False
-    assert any(c.constraint_id == "quality.sulfur_mgkg"
+    assert any(c.constraint_id.endswith("passport_forecast.sulfur_mgkg")
                for c in evaluation.gate.unknown_requirements())
 
 

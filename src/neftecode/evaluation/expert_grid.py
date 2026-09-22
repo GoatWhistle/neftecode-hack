@@ -10,7 +10,7 @@ AXES = {
     "product_t95_c": (330.0, 360.0, 380.0),
     "product_cetane_number": (45.0, 51.0, 55.0),
     "throughput_tph": (20.0, 100.0, 220.0, 300.0),
-    "tank_inventory": (0.0, 500.0, 4000.0, 20000.0),
+    "tank_park_phase_fraction": (0.0, 0.5, 0.975),
     "tank_available": (False, True),
 }
 
@@ -20,9 +20,9 @@ PAIRS = (
     (("crude_sulfur_wt_pct", 5.0), ("product_sulfur_mgkg", 3.0)),
     (("crude_sulfur_wt_pct", 5.0), ("throughput_tph", 300.0)),
     (("crude_sulfur_wt_pct", 1.95), ("tank_available", False)),
-    (("tank_inventory", 0.0), ("throughput_tph", 300.0)),
+    (("tank_park_phase_fraction", 0.0), ("throughput_tph", 300.0)),
     (("product_sulfur_mgkg", 3.0), ("tank_available", False)),
-    (("throughput_tph", 300.0), ("tank_inventory", 0.0)),
+    (("throughput_tph", 300.0), ("tank_park_phase_fraction", 0.0)),
 )
 
 
@@ -35,8 +35,9 @@ def _targets(raw: dict) -> dict[str, str]:
     if not stocked:
         raise GridError("В сценарии нет резервуаров с запасом: крутить нечего")
     reserve = [t["tank_id"] for t in raw.get("tanks", ()) if t["tank_id"] != stocked[0]]
-    return {"tank_inventory": stocked[0],
-            "tank_available": reserve[0] if reserve else stocked[0]}
+    if not isinstance(raw.get("tank_park"), dict):
+        raise GridError("В сценарии нет парка резервуаров: фазу крутить нечего")
+    return {"tank_available": reserve[0] if reserve else stocked[0]}
 
 
 def _changes(raw: dict) -> list[list[dict]]:
@@ -145,6 +146,7 @@ def totals(per_scenario: list[dict]) -> dict:
                       f"НАРУШЕНО: трейсбеков {len(tracebacks)}"),
         "limits": [
             "Сетка идёт на синтетическом состоянии сценария; реальные срезы здесь не проверяются.",
+            "Ось tank_park_phase_fraction меняет τ начала налива и выводит стадии остальных резервуаров из расписания.",
             "Отказ загрузчика на недопустимом условии — правильный исход, а не дефект.",
             "Время измерено на этой машине при бюджете поиска сетки; на другой оно будет другим.",
         ],

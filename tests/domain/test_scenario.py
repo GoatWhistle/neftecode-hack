@@ -38,6 +38,27 @@ def test_horizon_matches_case_and_step_divides_it():
     assert scenario.horizon.times_hours()[-1] == scenario.horizon.hours
 
 
+def test_baseline_declares_versioned_four_tank_park():
+    scenario = load_scenario(SCENARIOS / "baseline.json")
+    park = scenario.tank_park
+    assert park is not None
+    assert park.schema == "tank-park-scenario/1"
+    assert park.component_tank_id == "main" and park.tank_count == 4
+    assert park.capacity_m3 == 5000.0 and park.passport_duration_h == 12.0
+    assert park.nominal_drain_h == 24.0 and len(park.phase_offsets_h) == 4
+
+
+def test_tank_park_rejects_missing_phases_and_unknown_component():
+    data = raw()
+    data["tank_park"]["phase_offsets_h"] = [0.0]
+    with pytest.raises(ScenarioError, match="одна фаза"):
+        parse_scenario(data)
+    data = raw()
+    data["tank_park"]["component_tank_id"] = "absent"
+    with pytest.raises(ScenarioError, match="отсутствует"):
+        parse_scenario(data)
+
+
 @pytest.mark.parametrize("hours", [0, -1, 4, 24])
 def test_horizon_outside_case_range_is_rejected(hours):
     data = raw()
