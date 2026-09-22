@@ -96,7 +96,12 @@ export async function streamDecision(
       while (cut !== -1) {
         const frame = parseFrame(buffer.slice(0, cut));
         buffer = buffer.slice(cut + 2);
-        if (frame && dispatch(frame.event, frame.data as Record<string, unknown>, handlers)) settled = true;
+        if (!signal.aborted && frame && dispatch(frame.event, frame.data as Record<string, unknown>, handlers)) {
+          settled = true;
+          handlers.onEnd();
+          return;
+        }
+        if (signal.aborted) return;
         cut = buffer.indexOf("\n\n");
       }
     }
@@ -104,7 +109,7 @@ export async function streamDecision(
       handlers.onFailed("поток оборвался: решение от сервера не получено");
     }
   } catch (reason) {
-    if (signal.aborted) return;
+    if (signal.aborted || settled) return;
     throw reason;
   } finally {
     reader.cancel().catch(() => undefined);

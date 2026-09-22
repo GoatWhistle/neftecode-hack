@@ -17,7 +17,7 @@ def run(tmp_path):
 def strip_latency(value):
     if isinstance(value, dict):
         # latency_ms и timing (P5) — замеры реального времени, а не результат расчёта.
-        return {k: strip_latency(v) for k, v in value.items() if k not in ("latency_ms", "timing")}
+        return {k: strip_latency(v) for k, v in value.items() if k not in ("latency_ms", "timing", "run_id")}
     if isinstance(value, list):
         return [strip_latency(v) for v in value]
     return value

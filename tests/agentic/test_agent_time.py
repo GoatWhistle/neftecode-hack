@@ -34,6 +34,8 @@ def test_core_result_precedes_agent_events_and_is_marked_preliminary():
     core = next(e for e in events if e["kind"] == "core")
     assert kinds.index("core") < next(i for i, e in enumerate(events)
                                       if e["kind"] == "stage" and e.get("stage") == "agents")
+    assert core["run_id"] == decision["agentic"]["run_id"]
+    assert len(core["run_id"]) == 32 and core["schema_version"] == 1
     assert core["phase"] == "preliminary" and "не окончательный" in core["note"]
     assert core["decision_id"] == decision["agentic"]["legacy_decision_id"]
     assert decision["agentic"]["terminal"]["kind"] == "completed"

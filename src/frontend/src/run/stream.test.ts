@@ -101,3 +101,56 @@ describe("P5: предварительный результат ядра", () =>
     expect(parsed.a!.events.some((f) => f.kind === "core")).toBe(true);
   });
 });
+
+describe("terminal is final", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([false, true])("ignores late events, separate chunks=%s", async (separate) => {
+    const terminal = RECORDED_SSE.slice(RECORDED_SSE.indexOf("event: screen"));
+    const late = 'event: failed\ndata: {"message":"late"}\n\nevent: core\ndata: {}\n\n';
+    let sent = false;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (!sent) {
+          sent = true;
+          controller.enqueue(new TextEncoder().encode(terminal + (separate ? "" : late)));
+        } else {
+          controller.enqueue(new TextEncoder().encode(late));
+          controller.close();
+        }
+      }
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body)));
+    const h = handlers();
+    h.onCore = vi.fn();
+    await streamDecision("", h, new AbortController().signal);
+    expect(h.calls.screen).toHaveLength(1);
+    expect(h.calls.failed).toHaveLength(0);
+    expect(h.onCore).not.toHaveBeenCalled();
+    expect(h.calls.end).toHaveLength(1);
+  });
+
+  it("does not read transport errors after terminal", async () => {
+    const reader = { read: vi.fn()
+      .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode(RECORDED_SSE) })
+      .mockRejectedValueOnce(new Error("late disconnect")), cancel: vi.fn(async () => {}) };
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, body: { getReader: () => reader } })));
+    const h = handlers();
+    await streamDecision("", h, new AbortController().signal);
+    expect(reader.read).toHaveBeenCalledTimes(1);
+    expect(h.calls.screen).toHaveLength(1);
+    expect(h.calls.failed).toHaveLength(0);
+  });
+
+  it("replay ignores frames after screen", async () => {
+    const { playTape } = await import("./replay");
+    const { fixture } = await import("./testRecords");
+    const h = handlers();
+    await playTape({ frames: [
+      { kind: "screen", atMs: 0, elapsedMs: 1, payload: fixture("normal") },
+      { kind: "tick", atMs: 0, elapsedMs: 99 }
+    ] }, h, new AbortController().signal);
+    expect(h.calls.screen).toHaveLength(1);
+    expect(h.calls.tick).toHaveLength(0);
+  });
+});

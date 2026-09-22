@@ -148,6 +148,10 @@ function validateFrame(raw: unknown, where: string): void {
     if (!isFiniteNumber(item.elapsedMs)) throw new ProtocolError(`${where}: у отсчёта нет времени`);
   } else if (item.kind === "core") {
     const core = object(item.core, `${where}.core`);
+    if (core.schema_version !== undefined && (core.schema_version !== 1 ||
+        typeof core.run_id !== "string" || !core.run_id)) {
+      throw new ProtocolError(`${where}: неверная версия или идентификатор предварительного результата`);
+    }
     if (core.phase !== "preliminary" || typeof core.note !== "string" || !isFiniteNumber(core.core_s)) {
       throw new ProtocolError(`${where}: предварительный результат ядра неполный`);
     }
@@ -194,6 +198,14 @@ function validateRecord(raw: unknown, where: string): RunRecord {
   checkShape(payloadShape, payload, `${where}.payload`);
   if (!Array.isArray(record.events)) throw new ProtocolError(`${where}: список событий отсутствует`);
   for (const [index, frame] of record.events.entries()) validateFrame(frame, `${where}.events[${index}]`);
+  for (const frame of record.events) {
+    if (frame.kind === "core" && frame.core?.run_id !== undefined) {
+      const agentic = object(decision.agentic, `${where}.payload.decision.agentic`);
+      if (frame.core.run_id !== agentic.run_id || frame.core.run_id !== record.run_id) {
+        throw new ProtocolError(`${where}: предварительный и окончательный результаты разных запусков`);
+      }
+    }
+  }
   if (record.duration_ms !== null && !isFiniteNumber(record.duration_ms)) {
     throw new ProtocolError(`${where}: длительность записи не число`);
   }

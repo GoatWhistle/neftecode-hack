@@ -43,6 +43,7 @@ export interface AgenticBudget {
 }
 
 export interface Agentic {
+  run_id?: string;
   mode: string;
   outcome: string;
   fallback_reason: string | null;

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 import time
+from uuid import uuid4
 
 from neftecode.application.contracts import DecisionCommand
 from neftecode.application.cancellation import CancellationError, check_cancelled
@@ -103,7 +104,7 @@ class AgenticMakeDecision:
         Результат ядра публикуется событием `core` с фазой preliminary: это не окончательный ответ
         системы. Итог несёт `agentic.terminal` (вид завершения) и `agentic.timing` (monotonic)."""
         started = self.clock()
-        result = self._decide(started, state=state, confirmed=confirmed, budget=budget, trust_cfg=trust_cfg,
+        result = self._decide(started, run_id=uuid4().hex, state=state, confirmed=confirmed, budget=budget, trust_cfg=trust_cfg,
                               raw_scenario=raw_scenario, initial_tanks=initial_tanks,
                               current_operation=current_operation, data_rejection=data_rejection)
         info = result.get("agentic")
@@ -116,10 +117,10 @@ class AgenticMakeDecision:
             result = {**result, "agentic": info}
         return result
 
-    def _decide(self, started: float, **request) -> dict:
+    def _decide(self, started: float, run_id: str, **request) -> dict:
         legacy = self.maker.decide(**request)
         core_s = round(self.clock() - started, 3)
-        info = {"mode": "agentic", "outcome": None, "fallback_reason": None,
+        info = {"run_id": run_id, "mode": "agentic", "outcome": None, "fallback_reason": None,
                 "legacy_decision_id": legacy["decision_id"], "legacy_status": legacy["status"],
                 "provider": getattr(self.llm, "provider", None) or (self.provider_description or {}).get("provider"),
                 "model": getattr(self.llm, "model", None) or (self.provider_description or {}).get("model"),
@@ -131,7 +132,7 @@ class AgenticMakeDecision:
             return self._with(legacy, info, "skipped", "data_refusal")
         if self.llm is None:
             return self._with(legacy, info, "fallback", self.configuration_error or "llm_not_configured")
-        emit("core", phase="preliminary", decision_id=legacy.get("decision_id"), status=legacy.get("status"),
+        emit("core", run_id=run_id, schema_version=1, phase="preliminary", decision_id=legacy.get("decision_id"), status=legacy.get("status"),
              plan_id=(legacy.get("selected_plan") or {}).get("plan_id"), core_s=core_s,
              deadline_s=self.settings.timeout_s, max_llm_calls=self.settings.max_llm_calls,
              note=("Предварительный результат детерминированного ядра. Агентная проверка идёт; это не "

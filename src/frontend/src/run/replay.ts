@@ -93,7 +93,10 @@ export async function playTape(
     else if (frame.kind === "agent") handlers.onAgent(frame.event);
     else if (frame.kind === "core") handlers.onCore?.(frame.core);
     else if (frame.kind === "stage") handlers.onStage(frame.stage, frame.elapsedMs, frame.state, frame.facts);
-    else handlers.onScreen(frame.payload, frame.elapsedMs);
+    else {
+      handlers.onScreen(frame.payload, frame.elapsedMs);
+      return;
+    }
   }
 }
 

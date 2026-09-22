@@ -248,6 +248,8 @@ def test_core_preview_arrives_before_the_single_screen_through_the_stack(scripte
         assert names.index("core") < names.index("screen")
         core = next(data for event, data in frames if event == "core")
         screen = next(data for event, data in frames if event == "screen")["payload"]
+        assert core["run_id"] == screen["decision"]["agentic"]["run_id"]
+        assert core["schema_version"] == 1
         assert core["phase"] == "preliminary"
         assert core["decision_id"] == screen["decision"]["agentic"]["legacy_decision_id"]
         assert screen["decision"]["agentic"]["terminal"]["kind"] == "completed"

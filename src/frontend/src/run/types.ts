@@ -25,6 +25,8 @@ export type RunStatus = "idle" | "running" | "done" | "failed" | "stopped";
 
 /** P5: предварительный результат ядра до окончания агентного этапа — не окончательный ответ. */
 export interface CoreEvent {
+  run_id?: string;
+  schema_version?: 1;
   phase: "preliminary";
   decision_id: string | null;
   status: string | null;

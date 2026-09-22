@@ -77,7 +77,7 @@ export function buildRecord(input: BuildInput): RunRecord {
   });
   return deepFreeze({
     schema: RECORD_SCHEMA,
-    run_id: newRunId(),
+    run_id: copy.payload.decision.agentic?.run_id ?? newRunId(),
     recorded_at: (input.now ?? new Date()).toISOString(),
     label: input.label,
     origin: "live" as const,
