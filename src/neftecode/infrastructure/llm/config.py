@@ -13,7 +13,7 @@ DEFAULT_PROVIDER = "zai"
 ANTHROPIC_URL = "https://api.anthropic.com"
 
 KEY_VARIABLES = {
-    "zai": ("ZAI_API_KEY", "TOKEN", "token"),
+    "zai": ("API_KEY", "TOKEN", "token"),
     "openai": ("OPENAI_API_KEY",),
     "anthropic": ("ANTHROPIC_API_KEY",),
     "local": ("LOCAL_LLM_API_KEY",),

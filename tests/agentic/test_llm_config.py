@@ -28,8 +28,8 @@ def test_real_environment_wins_over_dotenv(tmp_path):
 
 def test_zai_key_aliases_in_priority_order():
     zai = {"LLM_PROVIDER": "zai"}
-    assert llm_settings_from_env({**zai, "ZAI_API_KEY": "k1", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k1"
-    assert llm_settings_from_env({**zai, "ZAI_API_KEY": " ", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k2"
+    assert llm_settings_from_env({**zai, "API_KEY": "k1", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k1"
+    assert llm_settings_from_env({**zai, "API_KEY": " ", "TOKEN": "k2", "token": "k3"}).api_key.reveal() == "k2"
     assert llm_settings_from_env({**zai, "token": "k3"}).api_key.reveal() == "k3"
     assert not llm_settings_from_env(zai).api_key
 
@@ -67,7 +67,7 @@ def test_secret_never_prints():
     secret = Secret(FAKE)
     assert repr(secret) == str(secret) == "Secret(***)"
     assert f"{secret}" == "Secret(***)" and secret.reveal() == FAKE and secret and not Secret("")
-    settings = llm_settings_from_env({"LLM_PROVIDER": "zai", "ZAI_API_KEY": FAKE,
+    settings = llm_settings_from_env({"LLM_PROVIDER": "zai", "API_KEY": FAKE,
                                       "ZAI_BASE_URL": "https://h/api/coding/v4?x=1"})
     assert FAKE not in repr(settings) and FAKE not in str(settings)
     described = settings.describe()
@@ -84,7 +84,7 @@ def test_secret_never_prints():
 ])
 def test_invalid_numbers_name_the_variable(name, value):
     with pytest.raises(ValueError, match=name) as caught:
-        llm_settings_from_env({name: value, "ZAI_API_KEY": FAKE})
+        llm_settings_from_env({name: value, "API_KEY": FAKE})
     assert FAKE not in str(caught.value)
 
 

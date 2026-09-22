@@ -305,7 +305,7 @@ def test_factory_guards(http):
     allowed = LLMSettings("zai", "glm-5.3-flash", "https://api.z.ai/api/paas/v4", Secret(FAKE),
                           allow_general_endpoint=True)
     assert make_llm_client(allowed, live_env()).provider == "zai"
-    with pytest.raises(LLMError, match="ZAI_API_KEY") as caught:
+    with pytest.raises(LLMError, match="API_KEY") as caught:
         make_llm_client(LLMSettings("zai", "glm-5.3-flash", ZAI_URL), live_env())
     assert caught.value.kind == "not_configured"
     with pytest.raises(LLMError, match="OPENAI_MODEL"):
