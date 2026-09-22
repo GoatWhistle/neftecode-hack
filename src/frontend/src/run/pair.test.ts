@@ -137,3 +137,87 @@ describe("скрытые изменения входов", () => {
   });
 });
 
+
+describe("объяснение различий входов", () => {
+  type Meta = NonNullable<ReturnType<typeof record>["meta"]>;
+  const withMeta = (base: ReturnType<typeof record>, patch: (meta: Meta) => Meta) =>
+    ({ ...base, meta: patch(structuredClone(base.meta!)) }) as typeof base;
+  const parts = (meta: Meta) => meta.input_parts as Record<string, unknown>;
+  const sameParts = { scenario_sha256: "s1", snapshot_sha256: "p1", model: { response_model_sha256: "m", training_fingerprint: "t" },
+    response_binding: { beta_mgkg_per_c: -0.42 }, severity_profile: "severity-profile/1:x" };
+
+  it("обычный what-if (только отказ источника) — без ложного «необъяснённого» предупреждения", () => {
+    const a = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fa", input_parts: { ...sameParts } }));
+    const b = withMeta(record("risk-frozen-pak", { fault: "both_broken" }), (m) => ({
+      ...m, input_fingerprint: "fb", conditions_requested: { ...m.conditions_requested!, fault: "both_broken" },
+      input_parts: { ...sameParts, response_binding: { beta_mgkg_per_c: null }, severity_profile: null } }));
+    const cmp = comparePair(a, b);
+    expect(cmp.inputDiff.map((item) => item.key)).toEqual(["fault"]);
+    expect(cmp.hiddenChanges).toEqual([]);
+    expect(cmp.unexplained).toBeNull();
+  });
+
+  it("смена сцены (сценарий и срез по запросу) не объявляется изменением «при том же ключе»", () => {
+    const a = withMeta(record("normal", { scenario: "baseline", snapshot: "20260105-080000" }),
+      (m) => ({ ...m, input_fingerprint: "fa", input_parts: { ...sameParts } }));
+    const b = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fb",
+      input_parts: { ...sameParts, scenario_sha256: "s2", snapshot_sha256: "p2", response_binding: { beta_mgkg_per_c: -0.3 } } }));
+    const cmp = comparePair(a, b);
+    expect(cmp.inputDiff.map((item) => item.key)).toEqual(expect.arrayContaining(["scenario", "snapshot"]));
+    expect(cmp.hiddenChanges).toEqual([]);
+    expect(cmp.unexplained).toBeNull();
+    expect(cmp.incomparable.map((item) => item.key)).toContain("snapshot");
+  });
+
+  it("тот же ключ среза с другим snapshot_sha256 виден и делает показатели несопоставимыми", () => {
+    const a = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fa", input_parts: { ...sameParts } }));
+    const b = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fb", input_parts: { ...sameParts, snapshot_sha256: "p2" } }));
+    const cmp = comparePair(a, b);
+    expect(cmp.inputDiff).toEqual([]);
+    expect(cmp.hiddenChanges.join(" ")).toContain("при том же ключе среза");
+    expect(cmp.identicalInputs).toBe(false);
+    expect(cmp.incomparable.map((item) => item.key)).toContain("snapshot");
+    expect(row(cmp, "cost").delta).toBeNull();
+  });
+
+  it("замена модели под теми же условиями видна, дельты не считаются", () => {
+    const a = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fa", input_parts: { ...sameParts } }));
+    const b = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fb",
+      model: { response_model_sha256: "other", training_fingerprint: m.model!.training_fingerprint },
+      input_parts: { ...sameParts, model: { response_model_sha256: "other", training_fingerprint: "t" } } }));
+    const cmp = comparePair(a, b);
+    expect(cmp.hiddenChanges.join(" ")).toContain("Модель отклика заменена");
+    expect(cmp.incomparable.map((item) => item.key)).toContain("model");
+    expect(row(cmp, "production").delta).toBeNull();
+  });
+
+  it("неизвестная версия модели (null в полях) не считается совпадающей", () => {
+    const a = record("risk");
+    const b = withMeta(record("risk"), (m) => ({ ...m, model: { response_model_sha256: null, training_fingerprint: null } }));
+    const cmp = comparePair(a, b);
+    expect(cmp.incomparable.map((item) => item.key)).toContain("model");
+    expect(row(cmp, "cost").delta).toBeNull();
+  });
+
+  it("части отпечатка сравниваются по содержимому, а не по порядку ключей", () => {
+    const a = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "f",
+      input_parts: { ...sameParts, model: { response_model_sha256: "m", training_fingerprint: "t" } } }));
+    const b = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "f",
+      input_parts: { ...sameParts, model: { training_fingerprint: "t", response_model_sha256: "m" } } }));
+    const cmp = comparePair(a, b);
+    expect(cmp.hiddenChanges).toEqual([]);
+    expect(cmp.identicalInputs).toBe(true);
+  });
+
+  it("производные части при тех же условиях — изменение под теми же ключами; остальное — необъяснённое", () => {
+    const a = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fa", input_parts: { ...sameParts } }));
+    const b = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fb",
+      input_parts: { ...sameParts, severity_profile: "severity-profile/1:y" } }));
+    expect(comparePair(a, b).hiddenChanges.join(" ")).toContain("Профиль тяжести");
+    const c = withMeta(record("risk"), (m) => ({ ...m, input_fingerprint: "fc", input_parts: { ...sameParts } }));
+    const cmp = comparePair(a, c);
+    expect(cmp.hiddenChanges).toEqual([]);
+    expect(cmp.unexplained).toContain("не объясняют");
+    expect(parts(c.meta!).snapshot_sha256).toBe("p1");
+  });
+});

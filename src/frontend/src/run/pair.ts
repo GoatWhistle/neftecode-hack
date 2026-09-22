@@ -4,6 +4,7 @@ import { changeLines, changeText } from "./changes";
 import type { RunRecord } from "./record";
 import { FAULT_LABELS } from "./options";
 import { SCENARIO_LABEL } from "./orchRead";
+import { canonicalJson } from "./canonical";
 
 export interface DiffItem {
   key: string;
@@ -34,6 +35,7 @@ export interface PairComparison {
   inputsKnown: boolean;
   identicalInputs: boolean | null;
   hiddenChanges: string[];
+  unexplained: string | null;
   notApplied: string[];
   incomparable: Incomparable[];
   rows: PairRow[];
@@ -120,32 +122,66 @@ export function notAppliedOf(record: RunRecord, against: RunRecord | null): stri
   return out;
 }
 
-const PART_LABELS: Record<string, string> = {
-  scenario_sha256: "Содержимое или конфигурация сценария изменились при тех же запрошенных условиях",
-  snapshot_sha256: "Содержимое среза данных изменилось при том же ключе среза",
-  model: "Версия модели отклика изменилась"
-};
+type Parts = Record<string, unknown>;
 
-/** Различия отпечатка входов, не видимые в запрошенных условиях. */
-export function hiddenChangesOf(a: RunRecord, b: RunRecord): string[] {
-  const pa = a.meta?.input_parts;
-  const pb = b.meta?.input_parts;
-  const out: string[] = [];
+const sameContent = (a: unknown, b: unknown): boolean => canonicalJson(a ?? null) === canonicalJson(b ?? null);
+
+/** Часть отпечатка известна у обеих записей (null/отсутствие — неизвестно, а не «одинаково»). */
+const bothKnown = (pa: Parts, pb: Parts, key: string): boolean =>
+  pa[key] !== undefined && pa[key] !== null && pb[key] !== undefined && pb[key] !== null;
+
+function requestedValue(record: RunRecord, key: string): unknown {
+  return requested(record)?.[key] ?? (key === "snapshot" ? record.meta?.conditions_applied?.snapshot : undefined);
+}
+
+export interface InputExplanation {
+  /** Изменения содержимого при неизменных ключах: тот же сценарий/срез по имени, но другие данные, или другая модель. */
+  contentChanges: string[];
+  /** Отпечатки различаются, но ни запрошенные условия, ни известные части этого не объясняют. */
+  unexplained: string | null;
+}
+
+/**
+ * Разбор отличий отпечатка входов на три группы: явно запрошенные изменения (inputDiff), изменения
+ * содержимого под теми же ключами и действительно необъяснённые. Объекты сравниваются по содержимому.
+ */
+export function explainInputs(a: RunRecord, b: RunRecord, diff: DiffItem[]): InputExplanation {
+  const pa = (a.meta?.input_parts ?? null) as Parts | null;
+  const pb = (b.meta?.input_parts ?? null) as Parts | null;
+  const requestedKeys = new Set(diff.map((item) => item.key));
+  const contentChanges: string[] = [];
+  let explainedDerived = requestedKeys.size > 0;
   if (pa && pb) {
-    for (const key of Object.keys(PART_LABELS)) {
-      if (canonicalKey(pa[key]) !== canonicalKey(pb[key])) out.push(PART_LABELS[key]!);
+    const sameScenario = sameContent(requestedValue(a, "scenario"), requestedValue(b, "scenario"));
+    const sameSnapshot = sameContent(requestedValue(a, "snapshot"), requestedValue(b, "snapshot"));
+    if (bothKnown(pa, pb, "scenario_sha256") && !sameContent(pa.scenario_sha256, pb.scenario_sha256) && sameScenario) {
+      contentChanges.push("Содержимое или конфигурация сценария изменились при том же имени сценария");
+    }
+    if (bothKnown(pa, pb, "snapshot_sha256") && !sameContent(pa.snapshot_sha256, pb.snapshot_sha256) && sameSnapshot) {
+      contentChanges.push("Содержимое среза данных изменилось при том же ключе среза");
+    }
+    if (bothKnown(pa, pb, "model") && !sameContent(pa.model, pb.model)) {
+      contentChanges.push("Модель отклика заменена");
+    }
+    explainedDerived = explainedDerived || contentChanges.length > 0;
+    // Привязка отклика и профиль тяжести выводятся из сценария, среза и модели: их расхождение
+    // объяснено, если изменилось что-то из исходного; иначе это изменение под теми же ключами.
+    if (!explainedDerived) {
+      if (bothKnown(pa, pb, "response_binding") && !sameContent(pa.response_binding, pb.response_binding)) {
+        contentChanges.push("Привязка модели отклика к срезу изменилась при тех же условиях");
+      }
+      if (bothKnown(pa, pb, "severity_profile") && !sameContent(pa.severity_profile, pb.severity_profile)) {
+        contentChanges.push("Профиль тяжести изменился при тех же условиях");
+      }
     }
   }
   const fa = a.meta?.input_fingerprint;
   const fb = b.meta?.input_fingerprint;
-  if (out.length === 0 && fa && fb && fa !== fb) {
-    out.push("Отпечаток эффективных входов различается по причине, не выделенной в частях отпечатка");
-  }
-  return out;
-}
-
-function canonicalKey(value: unknown): string {
-  return JSON.stringify(value ?? null) ?? "null";
+  const explained = requestedKeys.size > 0 || contentChanges.length > 0;
+  const unexplained = fa && fb && fa !== fb && !explained
+    ? "Отпечаток эффективных входов различается, но ни запрошенные условия, ни переданные части отпечатка этого не объясняют"
+    : null;
+  return { contentChanges, unexplained };
 }
 
 function providerKey(record: RunRecord): string {
@@ -172,14 +208,19 @@ function comparabilityFlags(a: RunRecord, b: RunRecord): Incomparable[] {
   const out: Incomparable[] = [];
   const sa = a.meta?.conditions_applied?.snapshot ?? a.payload.snapshot ?? null;
   const sb = b.meta?.conditions_applied?.snapshot ?? b.payload.snapshot ?? null;
+  const snapA = a.meta?.input_parts?.snapshot_sha256;
+  const snapB = b.meta?.input_parts?.snapshot_sha256;
   if ((sa ?? "?") !== (sb ?? "?")) {
     out.push({ key: "snapshot", text: "Срез данных различается: разницу нельзя приписывать одному изменённому условию." });
+  } else if (typeof snapA === "string" && typeof snapB === "string" && snapA !== snapB) {
+    out.push({ key: "snapshot", text: "Содержимое среза различается при том же ключе: показатели несопоставимы." });
   }
   const ma = a.meta?.model;
   const mb = b.meta?.model;
-  if (!ma || !mb) {
+  const modelKnown = (m: typeof ma): boolean => Boolean(m?.response_model_sha256 && m?.training_fingerprint);
+  if (!modelKnown(ma) || !modelKnown(mb)) {
     out.push({ key: "model", text: "Версия модели неизвестна у одной из записей: сопоставимость моделей не подтверждена." });
-  } else if (ma.response_model_sha256 !== mb.response_model_sha256 || ma.training_fingerprint !== mb.training_fingerprint) {
+  } else if (ma!.response_model_sha256 !== mb!.response_model_sha256 || ma!.training_fingerprint !== mb!.training_fingerprint) {
     out.push({ key: "model", text: "Модели различаются: показатели прогноза несопоставимы." });
   }
   if (providerKey(a) !== providerKey(b)) {
@@ -334,10 +375,12 @@ export function comparePair(a: RunRecord, b: RunRecord): PairComparison {
   const notes: string[] = [];
   const nondet = [a, b].some((record) => record.meta?.provider?.deterministic_policy === false);
   if (nondet) notes.push("Агенты работали на живой языковой модели: вариативность агента тоже может влиять на результат, не только изменённое условие.");
+  const explanation = explainInputs(a, b, diff ?? []);
   return {
     headline, answerChanged, inputDiff: diff ?? [], inputsKnown: diff !== null,
     identicalInputs: a.meta?.input_fingerprint && b.meta?.input_fingerprint
       ? a.meta.input_fingerprint === b.meta.input_fingerprint : null,
-    hiddenChanges: hiddenChangesOf(a, b), notApplied: [...notAppliedOf(b, a)], incomparable, rows, notes
+    hiddenChanges: explanation.contentChanges, unexplained: explanation.unexplained,
+    notApplied: [...notAppliedOf(b, a)], incomparable, rows, notes
   };
 }
