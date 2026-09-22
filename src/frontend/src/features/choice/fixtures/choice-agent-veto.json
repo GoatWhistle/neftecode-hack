@@ -1,0 +1,232 @@
+{
+ "decision_id": "378b2e64790ac279",
+ "status": "recommend_scenario",
+ "choice": {
+  "version": 1,
+  "decision_id": "378b2e64790ac279",
+  "status": "recommend_scenario",
+  "selected_id": "c0129",
+  "hold_id": "hold",
+  "hold_examined": true,
+  "cheaper_id": null,
+  "cheaper_count": 0,
+  "cheaper_note": "Среди вариантов, рассчитанных в этом запуске, дешевле выбранного нет.",
+  "determined_by": [
+   {
+    "stage": "agents",
+    "text": "План ядра hold исключён агентами; выбран лучший из оставшихся",
+    "candidate_ids": [
+     "hold"
+    ]
+   },
+   {
+    "stage": "ranking",
+    "text": "Лучший из допустимых по правилу: выпуск, затем стоимость, затем тяжесть режима",
+    "candidate_ids": []
+   }
+  ],
+  "pool": {
+   "examined": 200,
+   "admissible_final": 90,
+   "scope": "Сравнение только внутри пула, исследованного в этом запуске; глобальный минимум стоимости за его пределами не утверждается.",
+   "allowed_by_agents": 90
+  },
+  "candidates": [
+   {
+    "candidate_id": "c0129",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "selected",
+    "reasons": []
+   },
+   {
+    "candidate_id": "hold",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0859999999999999,
+    "severity_index": 0.0,
+    "changes": 0,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "agent_veto",
+      "stage": "agents",
+      "text": "Исключён вето роли: quality",
+      "rule": {
+       "id": "agent_veto",
+       "value": null,
+       "observed": null,
+       "source": "agentic.vetoed_candidates",
+       "roles": [
+        "quality"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0131",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Совпадает с выбранным планом по всем критериям сравнения; выбран план с меньшим идентификатором",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0133",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Совпадает с выбранным планом по всем критериям сравнения; выбран план с меньшим идентификатором",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0135",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0679999999999998,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «стоимость»: 1.068 у.е./т против 1.05 у.е./т у выбранного плана, разница 0.018 у.е./т",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0138",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0679999999999998,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «стоимость»: 1.068 у.е./т против 1.05 у.е./т у выбранного плана, разница 0.018 у.е./т",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0140",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0679999999999998,
+    "severity_index": 0.06818181818181818,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «стоимость»: 1.068 у.е./т против 1.05 у.е./т у выбранного плана, разница 0.018 у.е./т",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "rule": "Планы сравниваются по порядку: больший выпуск, затем меньшая стоимость тонны. Если сценарная политика разрешает небольшую разницу стоимости, внутри этого окна выбирается меньшая тяжесть режима; затем меньшее число изменений и меньший идентификатор. Жёсткие ограничения проверяются до сравнения.",
+  "refusal": null,
+  "agents": {
+   "vetoed": [
+    "hold"
+   ],
+   "constraints": [],
+   "allowed": 90,
+   "legacy_plan_id": "hold",
+   "legacy_excluded": true,
+   "selected_changed": true,
+   "note": "Влияние на выбор установлено, только если выбор ядра без агентов исключён агентами; иначе принятое ограничение не изменило итог."
+  }
+ },
+ "agentic": {
+  "outcome": "selected",
+  "fallback_reason": null,
+  "vetoed_candidates": {
+   "hold": [
+    "quality"
+   ]
+  }
+ }
+}

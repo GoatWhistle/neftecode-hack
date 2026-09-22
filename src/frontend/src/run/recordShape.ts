@@ -157,12 +157,50 @@ const consequenceSeries = obj({
   candidates: obj({ selected: consequenceCandidate, hold: opt(consequenceCandidate) })
 });
 
+const consequenceEvent = obj({
+  kind: oneOf("control", "blend"), origin: oneOf("plan", "confirmed"), t: num, response_t: num, lag_hours: num,
+  lag_source: str, stage: opt(str), controls: opt(nums), changed: opt(strs), recipe: opt(nums),
+  throughput_tph: opt(num), additive_dose: opt(num), partial_response: opt(obj({ share: num, until_hours: num }))
+});
+
 const consequences = obj({
   version: num, selected_id: str, horizon_hours: num, step_hours: num, series: arr(consequenceSeries),
   applicability: obj({
     selected: arr(obj({ t: num, value: str })), hold: opt(arr(obj({ t: num, value: str })))
   }),
-  hold: obj({ available: bool, candidate_id: nullStr, source: nullStr, reason: nullStr }), note: str
+  hold: obj({ available: bool, candidate_id: nullStr, source: nullStr, reason: nullStr }), note: str,
+  events: opt(obj({ selected: nullable(arr(consequenceEvent)), hold: optNull(arr(consequenceEvent)) })),
+  events_note: opt(str)
+});
+
+const choiceEvidence = obj({
+  decision_id: nullStr, candidate_id: str, constraint_id: nullStr, status: oneOf("pass", "fail", "unknown"),
+  time_hours: nullNum, observed: nullNum, limit: nullNum, unit: nullStr, limit_source: nullStr, reason: str,
+  points: num
+});
+
+const choiceReason = obj({
+  category: str, stage: str, text: str, evidence: opt(arr(choiceEvidence)), evidence_total: opt(num),
+  rule: opt(obj({ id: str, value: nullNum, observed: nullable(either(num, bool)), source: str })),
+  events: opt(strs)
+});
+
+const choiceCard = obj({
+  candidate_id: str, production_t: nullNum, cost_per_tonne: nullNum, severity_index: nullNum, changes: nullNum,
+  verdict: oneOf("selected", "admissible_not_selected", "excluded"), reasons: arr(choiceReason)
+});
+
+const choice = obj({
+  version: num, decision_id: nullStr, status: str, selected_id: nullStr, hold_id: nullStr, hold_examined: bool,
+  cheaper_id: nullStr, cheaper_count: num, cheaper_note: nullStr,
+  determined_by: arr(obj({ stage: str, text: nullStr, candidate_ids: arr(nullStr) })),
+  pool: obj({ examined: num, admissible_final: num, scope: str, allowed_by_agents: opt(num) }),
+  candidates: arr(choiceCard), rule: str,
+  refusal: nullable(obj({ kind: nullStr, stage: str, agents_skipped: bool, domain_impossibility_proven: bool })),
+  agents: opt(obj({
+    vetoed: strs, constraints: arr(anyObj), allowed: num, legacy_plan_id: nullStr, legacy_excluded: bool,
+    selected_changed: bool, note: str
+  }))
 });
 
 const opinion = obj({
@@ -188,7 +226,7 @@ const decision = obj({
   refusal: nullable(obj({ kind: str, examples: opt(strs), missing: opt(strs) })), robustness: nullable(robustness),
   lookahead: nullable(lookahead), selection_policy: nullable(anyObj), trace: arr(obj({})), note: nullStr,
   decision_id: nullStr, agentic: optNull(agentic), severity: optNull(severity), tradeoff: optNull(tradeoff),
-  consequences: optNull(consequences)
+  consequences: optNull(consequences), choice: optNull(choice)
 });
 
 const currentOperation = obj({

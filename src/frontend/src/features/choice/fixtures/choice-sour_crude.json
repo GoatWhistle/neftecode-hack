@@ -1,0 +1,237 @@
+{
+ "decision_id": "9787758f17971464",
+ "status": "recommend_scenario",
+ "choice": {
+  "version": 1,
+  "decision_id": "9787758f17971464",
+  "status": "recommend_scenario",
+  "selected_id": "c0036",
+  "hold_id": "hold",
+  "hold_examined": true,
+  "cheaper_id": "c0002",
+  "cheaper_count": 52,
+  "cheaper_note": null,
+  "determined_by": [
+   {
+    "stage": "policy",
+    "text": "Выпуск сохранён; среди вариантов в пределах допустимой разницы стоимости выбран режим с меньшей тяжестью или меньшим числом изменений",
+    "candidate_ids": [
+     "c0160"
+    ]
+   }
+  ],
+  "pool": {
+   "examined": 200,
+   "admissible_final": 41,
+   "scope": "Сравнение только внутри пула, исследованного в этом запуске; глобальный минимум стоимости за его пределами не утверждается."
+  },
+  "candidates": [
+   {
+    "candidate_id": "c0036",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.14,
+    "severity_index": 0.0,
+    "changes": 1,
+    "verdict": "selected",
+    "reasons": []
+   },
+   {
+    "candidate_id": "hold",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0859999999999999,
+    "severity_index": 0.0,
+    "changes": 0,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "gate_fail",
+      "stage": "search",
+      "text": "Нарушен обязательный Gate: 1 огранич.",
+      "evidence": [
+       {
+        "decision_id": "9787758f17971464",
+        "candidate_id": "hold",
+        "constraint_id": "quality.sulfur_mgkg",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": 10.55,
+        "limit": 10.0,
+        "unit": "мг/кг",
+        "limit_source": "given",
+        "reason": "sulfur_mgkg = 10.550 нарушает предел 10 на 0 ч",
+        "points": 7
+       }
+      ],
+      "evidence_total": 1
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0160",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.122,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Дешевле, но внутри допустимой разницы стоимости политика выбирает режим с меньшей тяжестью или меньшим числом изменений",
+      "rule": {
+       "id": "severity_cost_tolerance_fraction",
+       "value": 0.03,
+       "observed": 0.016042780748662916,
+       "source": "scenario.policy.severity_cost_tolerance_fraction"
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0162",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.122,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «число изменений»: 2 против 1 у выбранного плана, разница 1",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0165",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.122,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «число изменений»: 2 против 1 у выбранного плана, разница 1",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0167",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.14,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «число изменений»: 2 против 1 у выбранного плана, разница 1",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0169",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.14,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Проигрывает по критерию «число изменений»: 2 против 1 у выбранного плана, разница 1",
+      "rule": {
+       "id": "ranking",
+       "value": null,
+       "observed": null,
+       "source": "rank",
+       "order": [
+        "-production_t",
+        "cost_per_tonne",
+        "severity_index",
+        "changes",
+        "candidate_id"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0002",
+    "production_t": 180.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "gate_fail",
+      "stage": "search",
+      "text": "Нарушен обязательный Gate: 1 огранич.",
+      "evidence": [
+       {
+        "decision_id": "9787758f17971464",
+        "candidate_id": "c0002",
+        "constraint_id": "quality.sulfur_mgkg",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": 11.5,
+        "limit": 10.0,
+        "unit": "мг/кг",
+        "limit_source": "given",
+        "reason": "sulfur_mgkg = 11.500 нарушает предел 10 на 0 ч",
+        "points": 7
+       }
+      ],
+      "evidence_total": 1
+     }
+    ]
+   }
+  ],
+  "rule": "Планы сравниваются по порядку: больший выпуск, затем меньшая стоимость тонны. Если сценарная политика разрешает небольшую разницу стоимости, внутри этого окна выбирается меньшая тяжесть режима; затем меньшее число изменений и меньший идентификатор. Жёсткие ограничения проверяются до сравнения.",
+  "refusal": null
+ }
+}

@@ -91,7 +91,7 @@ class LookaheadMixin:
 
     def _finish(self, status, reason, trace, plan, evaluation, refusal, ranking=None,
                 robustness=None, current_operation=None, lookahead=None,
-                tank_estimate=None, pool=None, consequences=None) -> dict:
+                tank_estimate=None, pool=None, consequences=None, examined=None, vetoed=()) -> dict:
         required_inputs = list((self.scenario.policy or {}).get("deployment_inputs") or ())
         ready = not any(item.get("status") == "open" for item in required_inputs)
         result = {
@@ -134,6 +134,9 @@ class LookaheadMixin:
         result["severity"] = self._severity_block(evaluation, current_operation)
         result["tradeoff"] = self._tradeoff_block(result, ranking, pool, trace, plan, robustness)
         result["consequences"] = consequences
+        result["choice"] = self._choice(
+            status=status, decision_id=result["decision_id"], ranking=ranking, pool=pool, examined=examined,
+            plan=plan, evaluation=evaluation, lookahead=lookahead, vetoed=vetoed, refusal=refusal)
         return result
 
     def _tradeoff_block(self, result, ranking, pool, trace, plan, robustness) -> dict | None:

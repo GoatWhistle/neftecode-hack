@@ -20,8 +20,12 @@ def test_hold_decision_carries_selected_and_hold_points_from_same_gate():
     consequences = decision["consequences"]
     assert consequences["selected_id"] == "hold" == decision["gate"]["plan_id"]
     assert consequences["hold"]["source"] == "selected_is_hold"
-    assert consequences["horizon_hours"] == decision["gate"]["checks"][-1]["time_hours"] \
-        or consequences["horizon_hours"] > 0
+    scenario = load_scenario(str(BASELINE))
+    assert consequences["horizon_hours"] == scenario.horizon.hours
+    assert consequences["step_hours"] == scenario.horizon.step_minutes / 60
+    quality_times = sorted({c["time_hours"] for c in decision["gate"]["checks"]
+                            if c["constraint_id"].startswith("quality.")})
+    assert quality_times == scenario.horizon.times_hours()
     assert len(consequences["series"]) == len(PRODUCT_LIMITS)
     for series in consequences["series"]:
         selected_points = series["candidates"]["selected"]["points"]
@@ -83,3 +87,26 @@ def test_applicability_and_limit_source_are_reported():
     for series in consequences["series"]:
         assert series["unit"]
         assert series["limit"]["source"] in ("given", "derived", "measured", None)
+
+
+def test_events_come_from_plan_steps_and_declared_stage_lags():
+    scenario = load_scenario(str(SOUR))
+    decision = decide(SOUR)
+    events = decision["consequences"]["events"]["selected"]
+    assert events, "рекомендованный план меняет режим: моменты действий обязаны быть переданы"
+    for event in events:
+        assert event["origin"] in ("plan", "confirmed")
+        if event["kind"] == "control":
+            lag = scenario.stages[event["stage"]].response_lag_hours
+            assert event["lag_hours"] == lag.value
+            assert event["lag_source"] == lag.source
+            assert event["response_t"] == event["t"] + lag.value
+            assert set(event["controls"]) <= set(scenario.stages[event["stage"]].controls)
+        else:
+            assert event["kind"] == "blend" and event["response_t"] == event["t"]
+
+
+def test_hold_has_no_own_action_events():
+    decision = decide(BASELINE)
+    assert decision["consequences"]["events"]["selected"] == []
+    assert decision["consequences"]["events"]["hold"] == []

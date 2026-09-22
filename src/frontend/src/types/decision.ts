@@ -364,6 +364,22 @@ export interface ConsequenceApplicabilityPoint {
   value: string;
 }
 
+export interface ConsequenceEvent {
+  kind: "control" | "blend";
+  origin: "plan" | "confirmed";
+  t: number;
+  response_t: number;
+  lag_hours: number;
+  lag_source: string;
+  stage?: string;
+  controls?: Record<string, number>;
+  changed?: string[];
+  recipe?: Record<string, number>;
+  throughput_tph?: number;
+  additive_dose?: number;
+  partial_response?: { share: number; until_hours: number };
+}
+
 export interface Consequences {
   version: number;
   selected_id: string;
@@ -380,7 +396,78 @@ export interface Consequences {
     source: string | null;
     reason: string | null;
   };
+  /** Отсутствует в записях до добавления моментов действий: показываем «не переданы». */
+  events?: {
+    selected: ConsequenceEvent[] | null;
+    hold?: ConsequenceEvent[] | null;
+  };
+  events_note?: string;
   note: string;
+}
+
+export interface ChoiceEvidence {
+  decision_id: string | null;
+  candidate_id: string;
+  constraint_id: string | null;
+  status: "pass" | "fail" | "unknown";
+  time_hours: number | null;
+  observed: number | null;
+  limit: number | null;
+  unit: string | null;
+  limit_source: string | null;
+  reason: string;
+  points: number;
+}
+
+export interface ChoiceRule {
+  id: string;
+  value: number | null;
+  observed: number | boolean | null;
+  source: string;
+  [key: string]: unknown;
+}
+
+export interface ChoiceReason {
+  category: string;
+  stage: string;
+  text: string;
+  evidence?: ChoiceEvidence[];
+  evidence_total?: number;
+  rule?: ChoiceRule;
+  events?: string[];
+}
+
+export interface ChoiceCard {
+  candidate_id: string;
+  production_t: number | null;
+  cost_per_tonne: number | null;
+  severity_index: number | null;
+  changes: number | null;
+  verdict: "selected" | "admissible_not_selected" | "excluded";
+  reasons: ChoiceReason[];
+}
+
+export interface Choice {
+  version: number;
+  decision_id: string | null;
+  status: string;
+  selected_id: string | null;
+  hold_id: string | null;
+  hold_examined: boolean;
+  cheaper_id: string | null;
+  cheaper_count: number;
+  cheaper_note: string | null;
+  determined_by: { stage: string; text: string | null; candidate_ids: (string | null)[] }[];
+  pool: { examined: number; admissible_final: number; scope: string; allowed_by_agents?: number };
+  candidates: ChoiceCard[];
+  rule: string;
+  refusal: {
+    kind: string | null; stage: string; agents_skipped: boolean; domain_impossibility_proven: boolean;
+  } | null;
+  agents?: {
+    vetoed: string[]; constraints: Record<string, unknown>[]; allowed: number; legacy_plan_id: string | null;
+    legacy_excluded: boolean; selected_changed: boolean; note: string;
+  };
 }
 
 export interface Decision {
@@ -410,4 +497,6 @@ export interface Decision {
   severity?: SeverityBlock | null;
   tradeoff?: TradeoffMap | null;
   consequences?: Consequences | null;
+  /** P2: отсутствует в записях до появления связи «вариант → проверка → решение». */
+  choice?: Choice | null;
 }

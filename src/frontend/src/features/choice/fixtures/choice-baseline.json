@@ -1,0 +1,174 @@
+{
+ "decision_id": "900049c564f0cc27",
+ "status": "hold",
+ "choice": {
+  "version": 1,
+  "decision_id": "900049c564f0cc27",
+  "status": "hold",
+  "selected_id": "hold",
+  "hold_id": "hold",
+  "hold_examined": true,
+  "cheaper_id": "c0002",
+  "cheaper_count": 25,
+  "cheaper_note": null,
+  "determined_by": [
+   {
+    "stage": "policy",
+    "text": "Выигрыш изменения 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется",
+    "candidate_ids": [
+     "c0129"
+    ]
+   }
+  ],
+  "pool": {
+   "examined": 200,
+   "admissible_final": 91,
+   "scope": "Сравнение только внутри пула, исследованного в этом запуске; глобальный минимум стоимости за его пределами не утверждается."
+  },
+  "candidates": [
+   {
+    "candidate_id": "hold",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0859999999999999,
+    "severity_index": 0.0,
+    "changes": 0,
+    "verdict": "selected",
+    "reasons": []
+   },
+   {
+    "candidate_id": "c0129",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Лучший по правилу, но выигрыш 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется",
+      "rule": {
+       "id": "min_useful_gain",
+       "value": 0.05,
+       "observed": 0.033149171270718064,
+       "source": "scenario.policy.min_useful_gain",
+       "compared_with": "c0129"
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0131",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Лучший по правилу — c0129, но выигрыш 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется. Относительно него: совпадает с c0129 по всем критериям, порядок решил идентификатор",
+      "rule": {
+       "id": "min_useful_gain",
+       "value": 0.05,
+       "observed": 0.033149171270718064,
+       "source": "scenario.policy.min_useful_gain",
+       "compared_with": "c0129"
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0133",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Лучший по правилу — c0129, но выигрыш 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется. Относительно него: совпадает с c0129 по всем критериям, порядок решил идентификатор",
+      "rule": {
+       "id": "min_useful_gain",
+       "value": 0.05,
+       "observed": 0.033149171270718064,
+       "source": "scenario.policy.min_useful_gain",
+       "compared_with": "c0129"
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0135",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0679999999999998,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Лучший по правилу — c0129, но выигрыш 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется. Относительно него: Проигрывает по критерию «стоимость»: 1.068 у.е./т против 1.05 у.е./т у c0129, разница 0.018 у.е./т",
+      "rule": {
+       "id": "min_useful_gain",
+       "value": 0.05,
+       "observed": 0.033149171270718064,
+       "source": "scenario.policy.min_useful_gain",
+       "compared_with": "c0129"
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0138",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0679999999999998,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Лучший по правилу — c0129, но выигрыш 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется. Относительно него: Проигрывает по критерию «стоимость»: 1.068 у.е./т против 1.05 у.е./т у c0129, разница 0.018 у.е./т",
+      "rule": {
+       "id": "min_useful_gain",
+       "value": 0.05,
+       "observed": 0.033149171270718064,
+       "source": "scenario.policy.min_useful_gain",
+       "compared_with": "c0129"
+      }
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0002",
+    "production_t": 180.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "admissible_not_selected",
+    "reasons": [
+     {
+      "category": "policy_not_selected",
+      "stage": "policy",
+      "text": "Лучший по правилу — c0129, но выигрыш 3.31% меньше минимального полезного 5% при том же выпуске: режим сохраняется. Относительно него: Проигрывает по критерию «выпуск»: 180 т против 300 т у c0129, разница 120 т",
+      "rule": {
+       "id": "min_useful_gain",
+       "value": 0.05,
+       "observed": 0.033149171270718064,
+       "source": "scenario.policy.min_useful_gain",
+       "compared_with": "c0129"
+      }
+     }
+    ]
+   }
+  ],
+  "rule": "Планы сравниваются по порядку: больший выпуск, затем меньшая стоимость тонны. Если сценарная политика разрешает небольшую разницу стоимости, внутри этого окна выбирается меньшая тяжесть режима; затем меньшее число изменений и меньший идентификатор. Жёсткие ограничения проверяются до сравнения.",
+  "refusal": null
+ }
+}

@@ -14,6 +14,7 @@ from ..progress import emit
 from ..services.trust import DataTrustAgent
 from .decision.reviews import QualityReview, ReliabilityReview
 from .decision.constants import LOOKAHEAD_CANDIDATES, MAX_ROUNDS, VETO_FAMILIES, AgentError, SearchOutcome
+from .decision.choice import ChoiceMixin
 from .decision.consequences import ConsequencesMixin
 from .decision.lookahead import LookaheadMixin
 from .decision.search import SearchMixin
@@ -23,7 +24,7 @@ __all__ = ["AgentError", "LOOKAHEAD_CANDIDATES", "MAX_ROUNDS", "MakeDecision", "
 
 
 @dataclass
-class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
+class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
 
     scenario: Scenario
     planner: PlanOperation = field(init=False)
@@ -85,15 +86,17 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                                 "Ни один вариант не проходит одновременно все обязательные проверки",
                                 trace, None, None,
                                 {"kind": "no_feasible_plan", "examples": reasons},
-                                current_operation=current_operation)
+                                current_operation=current_operation, examined=outcome.examined)
         return self.release(outcome.selected, outcome.selected_plan, outcome.feasible, outcome.by_id, trace,
                             confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
-                            initial_tanks=initial_tanks, current_operation=current_operation)
+                            initial_tanks=initial_tanks, current_operation=current_operation,
+                            examined=outcome.examined)
 
     def release(self, selected: dict, selected_plan_obj, feasible, by_id, trace: list[dict], *, confirmed=(),
                 budget: int = DEFAULT_BUDGET, raw_scenario: dict | None = None, initial_tanks=None,
-                current_operation: dict | None = None) -> dict:
+                current_operation: dict | None = None, examined=None, vetoed=()) -> dict:
         check_cancelled()
+        examined = list(examined) if examined is not None else list(feasible)
         lookahead = None
         emit("stage", stage="forecast", state="running")
         try:
@@ -131,15 +134,21 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                                 trace, None, None,
                                 {"kind": "final_recheck_failed",
                                  "examples": list(final.gate.rejection_reasons())[:5]},
-                                current_operation=current_operation)
+                                current_operation=current_operation, examined=examined, vetoed=vetoed)
 
         guard = self._weak_response_guard(chosen, confirmed, raw_scenario, initial_tanks, current_operation, lookahead)
         if guard is not None:
             trace.append({"agent": "response_guard", "stage": "final", **guard})
             if guard["outcome"] == "violated":
-                vetoed = chosen.plan_id
-                remaining = [e for e in feasible if e.candidate.candidate_id != vetoed]
-                remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed}
+                vetoed_id = chosen.plan_id
+                vetoed = (*vetoed, {"candidate_id": vetoed_id, "reason": {
+                    "category": "final_veto", "stage": "response_guard",
+                    "text": "Не выдерживает слабый край отклика по данным (финальная проверка)",
+                    "rule": {"id": "weak_response", "value": guard.get("beta_weak"), "observed": guard.get("beta"),
+                             "source": "stages.hydrotreating.model.weak_strong"},
+                    "events": list(guard.get("violations", ()))[:5]}})
+                remaining = [e for e in feasible if e.candidate.candidate_id != vetoed_id]
+                remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed_id}
                 ranked = rank(remaining, hold_id="hold", min_useful_gain=self._min_useful_gain(),
                               severity_cost_tolerance_fraction=self._severity_cost_tolerance(),
                               max_severity_index=self._max_severity_index()) if remaining else None
@@ -147,14 +156,15 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                     next_id = ranked["selected"]["candidate_id"]
                     return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
                                         confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
-                                        initial_tanks=initial_tanks, current_operation=current_operation)
+                                        initial_tanks=initial_tanks, current_operation=current_operation,
+                                        examined=examined, vetoed=vetoed)
                 return self._finish(REFUSE,
                                     "Ход температуры не выдерживает слабый край отклика по данным, других "
                                     "допустимых планов нет: решение не выдаётся",
                                     trace, None, None,
-                                    {"kind": "weak_response_failed", "plan_id": vetoed,
+                                    {"kind": "weak_response_failed", "plan_id": vetoed_id,
                                      "examples": list(guard.get("violations", ()))[:5]},
-                                    current_operation=current_operation)
+                                    current_operation=current_operation, examined=examined, vetoed=vetoed)
 
         robustness = None
         if raw_scenario is not None and self.robustness_evaluator is not None:
@@ -166,9 +176,15 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                           "fragile": robustness["fragile"],
                           "mandatory_failed": robustness.get("mandatory_failed", 0)})
             if robustness.get("mandatory_failed", 0):
-                vetoed = chosen.plan_id
-                remaining = [e for e in feasible if e.candidate.candidate_id != vetoed]
-                remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed}
+                vetoed_id = chosen.plan_id
+                vetoed = (*vetoed, {"candidate_id": vetoed_id, "reason": {
+                    "category": "final_veto", "stage": "robustness",
+                    "text": "Не выдерживает обязательный диапазон устойчивости (финальная проверка)",
+                    "rule": {"id": "mandatory_robustness", "value": None,
+                             "observed": robustness.get("mandatory_failed"), "source": "robustness.mandatory"},
+                    "events": list(robustness.get("mandatory_failure_names", ()))[:5]}})
+                remaining = [e for e in feasible if e.candidate.candidate_id != vetoed_id]
+                remaining_by_id = {k: v for k, v in by_id.items() if k != vetoed_id}
                 ranked = rank(remaining, hold_id="hold", min_useful_gain=self._min_useful_gain(),
                               severity_cost_tolerance_fraction=self._severity_cost_tolerance(),
                               max_severity_index=self._max_severity_index()) if remaining else None
@@ -176,14 +192,15 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                     next_id = ranked["selected"]["candidate_id"]
                     return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
                                         confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
-                                        initial_tanks=initial_tanks, current_operation=current_operation)
+                                        initial_tanks=initial_tanks, current_operation=current_operation,
+                                        examined=examined, vetoed=vetoed)
                 return self._finish(
                     REFUSE,
                     "Ни один допустимый план не выдерживает обязательный диапазон устойчивости: решение не выдаётся",
                     trace, None, None,
-                    {"kind": "mandatory_robustness_failed", "plan_id": vetoed,
+                    {"kind": "mandatory_robustness_failed", "plan_id": vetoed_id,
                      "examples": list(robustness.get("mandatory_failure_names", ()))[:5]},
-                    current_operation=current_operation,
+                    current_operation=current_operation, examined=examined, vetoed=vetoed,
                 )
 
         status = HOLD if chosen.changes == 0 else RECOMMEND_SCENARIO
@@ -205,11 +222,11 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                        f"заданных отклонений и надёжным не считается")
         if tank_estimate is not None and tank_estimate.get("sensitive"):
             reason += f". {tank_estimate['verdict']}"
-        consequences = self._consequences(chosen, final, feasible)
+        consequences = self._consequences(chosen, final, feasible, by_id, confirmed, current_operation)
         return self._finish(
             status, reason, trace, chosen, final, None, selected, robustness,
             current_operation=current_operation, lookahead=lookahead, tank_estimate=tank_estimate,
-            pool=feasible, consequences=consequences,
+            pool=feasible, consequences=consequences, examined=examined, vetoed=vetoed,
         )
 
     def execute(self, command: DecisionCommand) -> DecisionResult:

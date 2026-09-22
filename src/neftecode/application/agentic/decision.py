@@ -18,6 +18,7 @@ from neftecode.application.progress import emit, emit_agent_event
 from .loop import AgentTrace
 from .orchestrator import OrchestratorAgent, opinion_summary
 from .session import DecisionSession
+from .choice import annotate_choice
 
 NOTE = ("LLM-агенты выбирают инструменты и предлагают ограничения; числа, допустимость, ранжирование, "
         "финальная перепроверка и устойчивость — детерминированный код. Сценарный результат.")
@@ -116,7 +117,8 @@ class AgenticMakeDecision:
             result, outcome_name, reason = self._recover_safely(
                 session, legacy, request, trace, error_reason)
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
-            return self._with(result, info, outcome_name, reason)
+            return self._with(result if result is legacy else annotate_choice(result, session), info,
+                              outcome_name, reason)
         info.update(opinions=[opinion_summary(o) for o in run.opinions],
                     constraints_applied=[c.to_dict() for c in session.constraints],
                     vetoed_candidates={cid: sorted(roles) for cid, roles in sorted(session.vetoes.items())},
@@ -125,7 +127,8 @@ class AgenticMakeDecision:
             result, outcome_name, reason = self._recover_safely(
                 session, legacy, request, trace, f"orchestrator_no_final:{run.stop_reason}")
             info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
-            return self._with(result, info, outcome_name, reason)
+            return self._with(result if result is legacy else annotate_choice(result, session), info,
+                              outcome_name, reason)
         info["final"] = run.final.to_dict()
         try:
             result, outcome_name, reason = self._resolve(
@@ -138,7 +141,8 @@ class AgenticMakeDecision:
             result, outcome_name, reason = self._recover_safely(
                 session, legacy, request, trace, f"resolution_error:{type(exc).__name__}")
         info.update(trace=trace.to_list(), budget=agent_budget.to_dict())
-        return self._with(result, info, outcome_name, reason)
+        return self._with(result if result is legacy else annotate_choice(result, session), info,
+                              outcome_name, reason)
 
     def _recover_safely(self, session: DecisionSession, legacy: dict, request: dict,
                         trace: AgentTrace, reason: str) -> tuple[dict, str, str]:
@@ -212,7 +216,8 @@ class AgenticMakeDecision:
         result = self.maker.release(ranked, by_id[chosen], feasible, by_id, trace_entries,
                                     confirmed=request["confirmed"], budget=request["budget"],
                                     raw_scenario=request["raw_scenario"], initial_tanks=request["initial_tanks"],
-                                    current_operation=request["current_operation"])
+                                    current_operation=request["current_operation"],
+                                    examined=list(session.evaluations.values()))
         result = self._guard(result, session, request, trace)
         name = "selected" if result["status"] != REFUSE else "refused"
         return result, name, None
@@ -244,7 +249,8 @@ class AgenticMakeDecision:
         result = self.maker.release(ranked, by_id[chosen], feasible, by_id, entries,
                                     confirmed=request["confirmed"], budget=request["budget"],
                                     raw_scenario=request["raw_scenario"], initial_tanks=request["initial_tanks"],
-                                    current_operation=request["current_operation"])
+                                    current_operation=request["current_operation"],
+                                    examined=list(session.evaluations.values()))
         result = self._guard(result, session, request, trace)
         return result, ("selected" if result["status"] != REFUSE else "refused"), reason
 

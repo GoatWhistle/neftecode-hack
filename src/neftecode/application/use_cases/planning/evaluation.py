@@ -42,21 +42,10 @@ class PlanEvaluationMixin:
         times = [s.time_hours for s in plan.steps]
         if times != sorted(times) or times[0] != 0.0:
             raise PlannerError(f"{plan.plan_id}: шаги плана должны начинаться в 0 ч и возрастать")
-        confirmed = self.confirmed_with_operation(confirmed, current_operation)
+        confirmed, deltas = self._plan_moves(plan, confirmed, current_operation)
         ledger = InventoryLedger(self.scenario)
         if initial_tanks is not None:
             ledger.tanks = dict(initial_tanks)
-        baseline = self.base_controls()
-        for _, controls in sorted(confirmed, key=lambda item: item[0]):
-            baseline.update(controls)
-        if current_operation is not None:
-            baseline.update(current_operation["controls"])
-        deltas = []
-        for step in plan.steps:
-            delta = {k: v for k, v in step.controls.items() if abs(v - baseline.get(k, v)) > 1e-9}
-            if delta:
-                deltas.append((step.time_hours, delta))
-            baseline.update(step.controls)
         pending = tuple(confirmed) + tuple(deltas)
 
         trajectory: list[TrajectoryPoint] = []
@@ -132,6 +121,72 @@ class PlanEvaluationMixin:
             "assumption": ("За горизонтом прогноз не продлевается: план держит последний шаг, приток — свойства "
                            "конца горизонта, расчёт останавливается при исчерпании запаса."),
         }
+
+    def _plan_moves(self, plan: PlanCandidate, confirmed=(), current_operation=None):
+        confirmed = self.confirmed_with_operation(confirmed, current_operation)
+        baseline = self.base_controls()
+        for _, controls in sorted(confirmed, key=lambda item: item[0]):
+            baseline.update(controls)
+        if current_operation is not None:
+            baseline.update(current_operation["controls"])
+        deltas = []
+        for step in plan.steps:
+            delta = {k: v for k, v in step.controls.items() if abs(v - baseline.get(k, v)) > 1e-9}
+            if delta:
+                deltas.append((step.time_hours, delta))
+            baseline.update(step.controls)
+        return confirmed, deltas
+
+    def action_events(self, plan: PlanCandidate, confirmed=(), current_operation=None) -> list[dict]:
+        """Моменты действий плана и объявленного отклика — из тех же сдвигов, что считает evaluate().
+
+        Управляющее воздействие действует на поток после своей стадии через объявленное
+        сценарием запаздывание; рецептура, выпуск и присадка в модели смешения действуют со
+        своего шага. Уже действующий текущий режим событием не считается.
+        """
+        _, deltas = self._plan_moves(plan, confirmed, current_operation)
+        moves = [("confirmed", at, controls) for at, controls in sorted(confirmed, key=lambda item: item[0])]
+        moves += [("plan", at, controls) for at, controls in deltas]
+        events = []
+        for origin, at, controls in moves:
+            for stage_id in ("avt", "hydrotreating"):
+                stage = self.scenario.stages[stage_id]
+                names = {k: v for k, v in controls.items() if k in stage.controls}
+                if not names:
+                    continue
+                lag = stage.response_lag_hours
+                event = {"kind": "control", "origin": origin, "stage": stage_id, "t": at,
+                         "controls": names, "response_t": at + lag.value,
+                         "lag_hours": lag.value, "lag_source": lag.source}
+                model = self.chain.hydrotreating
+                if stage_id == "hydrotreating" and model.horizon_response_share < 1:
+                    event["partial_response"] = {"share": model.horizon_response_share,
+                                                 "until_hours": model.horizon_response_until_hours}
+                events.append(event)
+        operation = self.scenario.current_operation
+        previous = {"recipe": dict(operation.recipe), "throughput_tph": operation.throughput.value,
+                    "additive_dose": 0.0}
+        if current_operation is not None:
+            previous = {"recipe": dict(current_operation["recipe"]),
+                        "throughput_tph": current_operation["throughput_tph"],
+                        "additive_dose": current_operation.get("additive_dose", 0.0)}
+        for step in plan.steps:
+            changed = []
+            if any(abs(step.recipe.get(k, 0.0) - previous["recipe"].get(k, 0.0)) > 1e-9
+                   for k in set(step.recipe) | set(previous["recipe"])):
+                changed.append("recipe")
+            if abs(step.throughput_tph - previous["throughput_tph"]) > 1e-9:
+                changed.append("throughput_tph")
+            if abs(step.additive_dose - previous["additive_dose"]) > 1e-9:
+                changed.append("additive_dose")
+            if changed:
+                events.append({"kind": "blend", "origin": "plan", "t": step.time_hours, "changed": changed,
+                               "recipe": dict(step.recipe), "throughput_tph": step.throughput_tph,
+                               "additive_dose": step.additive_dose, "response_t": step.time_hours,
+                               "lag_hours": 0.0, "lag_source": "model_blend_step"})
+            previous = {"recipe": dict(step.recipe), "throughput_tph": step.throughput_tph,
+                        "additive_dose": step.additive_dose}
+        return sorted(events, key=lambda e: (e["t"], e["kind"]))
 
     def _effective_controls(self, time_hours: float, pending) -> dict[str, float]:
         controls = dict(self.base_controls())

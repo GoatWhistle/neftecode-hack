@@ -53,4 +53,15 @@ describe("контракт записи прогона на реальных о�
     expect(() => payloadShape(payload, "payload")).toThrow(ShapeError);
     expect(() => payloadShape(payload, "payload")).toThrow(/consequences/);
   });
+
+  it("неконечное время отклика в событиях consequences отклоняется", () => {
+    const payload = JSON.parse(readFileSync(dir("pair", "risk.json"), "utf-8")) as { decision: Record<string, unknown> };
+    payload.decision.consequences = {
+      version: 1, selected_id: "c1", horizon_hours: 3, step_hours: 0.5, series: [],
+      applicability: { selected: [] },
+      hold: { available: false, candidate_id: null, source: null, reason: "нет" }, note: "test",
+      events: { selected: [{ kind: "control", origin: "plan", t: 0, response_t: null, lag_hours: 1, lag_source: "given" }] }
+    };
+    expect(() => payloadShape(payload, "payload")).toThrow(/consequences\.events\.selected\[0\]\.response_t/);
+  });
 });

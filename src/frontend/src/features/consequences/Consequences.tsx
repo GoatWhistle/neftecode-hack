@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import type { ConsequenceSeries, ScreenPayload } from "../../types";
+import type { ConsequenceEvent, ConsequenceSeries, ScreenPayload } from "../../types";
 import { Empty } from "../../ui/Primitives";
 import { num } from "../../format";
 import { axisOf, scale } from "../../compare/tradeoffView";
-import { defaultSeries, directionWord, outOfRegionMoments, segments, worstStatus } from "./model";
+import {
+  applicabilityMoments, defaultSeries, directionWord, eventLabel, originWord, segments, worstStatus
+} from "./model";
 import "../../styles/consequences.css";
 
 export interface ConsequencesProps {
@@ -15,12 +17,15 @@ const H = 260;
 const PAD = { left: 60, right: 20, top: 16, bottom: 36 };
 
 function statusWord(status: "pass" | "fail" | "unknown"): string {
+  // «нет оценки» относится и к пустому ряду: ничего не проверено — не значит «в пределе».
   if (status === "fail") return "нарушение";
   if (status === "unknown") return "нет оценки";
   return "в пределе";
 }
 
-function Chart({ series, horizonHours }: { series: ConsequenceSeries; horizonHours: number }) {
+function Chart({ series, horizonHours, events }: {
+  series: ConsequenceSeries; horizonHours: number; events: ConsequenceEvent[];
+}) {
   const selected = series.candidates.selected;
   const hold = series.candidates.hold;
   const allValues = [
@@ -64,6 +69,16 @@ function Chart({ series, horizonHours }: { series: ConsequenceSeries; horizonHou
           </text>
         </>
       ) : null}
+      {events.map((e, i) => {
+        const marks = [{ t: e.t, cls: "action", label: `Д${i + 1}` }];
+        if (e.response_t !== e.t) marks.push({ t: e.response_t, cls: "response", label: `О${i + 1}` });
+        return marks.filter((m) => m.t >= 0 && m.t <= xAxis.max + 1e-9).map((m) => (
+          <g key={`${m.cls}-${i}`} className={`cns__event cns__event--${m.cls}`}>
+            <line x1={px(m.t)} x2={px(m.t)} y1={PAD.top} y2={PAD.top + ih} />
+            <text x={px(m.t) + 3} y={PAD.top + 11}>{m.label}</text>
+          </g>
+        ));
+      })}
       {hold ? <path d={path(hold.points)} className="cns__line cns__line--hold" /> : null}
       <path d={path(selected.points)} className="cns__line cns__line--selected" />
       {selected.points.filter((p) => p.value !== null).map((p) => (
@@ -75,6 +90,50 @@ function Chart({ series, horizonHours }: { series: ConsequenceSeries; horizonHou
           className={`cns__pt cns__pt--hold cns__pt--${p.status}`} />
       )) : null}
     </svg>
+  );
+}
+
+function EventList({ events, missing, note }: {
+  events: ConsequenceEvent[]; missing: boolean; note?: string | undefined;
+}) {
+  if (missing) {
+    return <p className="cns__hint">Моменты действий и отклика в этой записи не сохранены — на графике не показаны.</p>;
+  }
+  if (events.length === 0) {
+    return <p className="cns__hint">Выбранный план не меняет режим на горизонте: отметок действий нет.</p>;
+  }
+  return (
+    <div className="cns__events">
+      <table className="cns__table">
+        <caption>Действия выбранного плана (Д) и объявленный отклик (О)</caption>
+        <thead>
+          <tr>
+            <th scope="col">№</th>
+            <th scope="col">Что</th>
+            <th scope="col">Действие</th>
+            <th scope="col">Отклик</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((e, i) => (
+            <tr key={i}>
+              <th scope="row">Д{i + 1}</th>
+              <td>{eventLabel(e)} <span className="cns__muted">({originWord(e.origin)})</span></td>
+              <td>{num(e.t, 1)} ч</td>
+              <td>
+                {e.kind === "control"
+                  ? <>О{i + 1}: {num(e.response_t, 1)} ч (запаздывание {num(e.lag_hours, 1)} ч, {e.lag_source})</>
+                  : <>со своего шага (модель смешения)</>}
+                {e.partial_response
+                  ? <> · до {num(e.partial_response.until_hours, 1)} ч действует доля хода {num(e.partial_response.share, 2)}</>
+                  : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {note ? <p className="cns__note">{note}</p> : null}
+    </div>
   );
 }
 
@@ -138,8 +197,11 @@ export function Consequences({ payload }: ConsequencesProps) {
   const current = consequences.series.find((s) => s.limit_id === active) ?? defaultSeries(consequences);
   if (!current) return <Empty>Проверяемых показателей качества в результате нет.</Empty>;
 
-  const applicability = consequences.applicability.selected;
-  const outOfRegion = outOfRegionMoments(applicability);
+  const selectedRegion = applicabilityMoments(consequences.applicability.selected);
+  const holdRegion = consequences.applicability.hold ? applicabilityMoments(consequences.applicability.hold) : null;
+  const eventsMissing = !consequences.events || consequences.events.selected == null;
+  const events = consequences.events?.selected ?? [];
+  const hours = (list: number[]) => list.map((t) => `${num(t, 1)} ч`).join(", ");
 
   return (
     <div className="cns">
@@ -156,36 +218,55 @@ export function Consequences({ payload }: ConsequencesProps) {
               className={`cns__tab cns__tab--${worst} ${s.limit_id === current.limit_id ? "is-active" : ""}`}
               onClick={() => setActive(s.limit_id)}>
               {s.quality}{s.unit ? ` (${s.unit})` : ""}
+              {worst !== "pass" ? <span className="cns__tab-state"> · {statusWord(worst)}</span> : null}
             </button>
           );
         })}
       </div>
 
       <div className="cns__figure">
-        <Chart series={current} horizonHours={consequences.horizon_hours} />
+        <Chart series={current} horizonHours={consequences.horizon_hours} events={events} />
         <figcaption className="cns__legend">
           <span><i className="cns__key cns__key--selected" /> выбранный план</span>
           {current.candidates.hold ? <span><i className="cns__key cns__key--hold" /> сохранить режим</span> : null}
           <span><i className="cns__key cns__key--limit" /> предел ({current.limit.source ?? "источник не передан"})</span>
+          {events.length > 0 ? <span><i className="cns__key cns__key--action" /> Д — действие, О — отклик</span> : null}
         </figcaption>
       </div>
 
       {!consequences.hold.available ? (
         <p className="cns__blocked">
-          Сравнение с hold недоступно: {consequences.hold.reason ?? "расчёт hold не выполнен"}.
+          Сравнение с сохранением режима недоступно: {consequences.hold.reason ?? "расчёт не выполнен"}.
         </p>
       ) : consequences.hold.source === "recomputed_same_evaluator" ? (
         <p className="cns__hint">
-          Hold не входил в исследованный пул — пересчитан тем же evaluator на тех же входах отдельно.
+          Сохранение режима не входило в исследованный пул — рассчитано тем же расчётом на тех же входах.
         </p>
       ) : null}
 
-      {outOfRegion.length > 0 ? (
+      {selectedRegion.outside.length > 0 ? (
         <p className="cns__warn">
-          Модель отклика вне откалиброванной области на {outOfRegion.map((t) => `${num(t, 1)} ч`).join(", ")}:
+          Выбранный план: модель отклика вне откалиброванной области на {hours(selectedRegion.outside)} —
           числа на этих моментах — экстраполяция.
         </p>
       ) : null}
+      {selectedRegion.unknown.length > 0 ? (
+        <p className="cns__warn">
+          Выбранный план: применимость модели не установлена на {hours(selectedRegion.unknown)}.
+        </p>
+      ) : null}
+      {holdRegion && holdRegion.outside.length > 0 ? (
+        <p className="cns__warn">
+          Сохранить режим: вне откалиброванной области на {hours(holdRegion.outside)} — экстраполяция.
+        </p>
+      ) : null}
+      {holdRegion && holdRegion.unknown.length > 0 ? (
+        <p className="cns__warn">
+          Сохранить режим: применимость модели не установлена на {hours(holdRegion.unknown)}.
+        </p>
+      ) : null}
+
+      <EventList events={events} missing={eventsMissing} note={consequences.events_note} />
 
       <ValueTable series={current} />
 

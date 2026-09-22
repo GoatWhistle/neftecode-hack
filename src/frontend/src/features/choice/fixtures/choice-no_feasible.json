@@ -1,0 +1,180 @@
+{
+ "decision_id": "dea76f55e9d70f51",
+ "status": "refuse",
+ "choice": {
+  "version": 1,
+  "decision_id": "dea76f55e9d70f51",
+  "status": "refuse",
+  "selected_id": null,
+  "hold_id": "hold",
+  "hold_examined": true,
+  "cheaper_id": null,
+  "cheaper_count": 0,
+  "cheaper_note": "Решение не выдано: сравнивать стоимость не с чем.",
+  "determined_by": [],
+  "pool": {
+   "examined": 32,
+   "admissible_final": 0,
+   "scope": "Сравнение только внутри пула, исследованного в этом запуске; глобальный минимум стоимости за его пределами не утверждается."
+  },
+  "candidates": [
+   {
+    "candidate_id": "hold",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0859999999999999,
+    "severity_index": 0.0,
+    "changes": 0,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "gate_fail",
+      "stage": "search",
+      "text": "Нарушен обязательный Gate: 3 огранич.",
+      "evidence": [
+       {
+        "decision_id": "dea76f55e9d70f51",
+        "candidate_id": "hold",
+        "constraint_id": "inventory.availability",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": null,
+        "limit": null,
+        "unit": null,
+        "limit_source": null,
+        "reason": "reserve: резервуар недоступен, отбор невозможен (на 0 ч)",
+        "points": 7
+       },
+       {
+        "decision_id": "dea76f55e9d70f51",
+        "candidate_id": "hold",
+        "constraint_id": "inventory.reserve.available",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": null,
+        "limit": null,
+        "unit": null,
+        "limit_source": null,
+        "reason": "Резервуар reserve недоступен на 0 ч",
+        "points": 7
+       },
+       {
+        "decision_id": "dea76f55e9d70f51",
+        "candidate_id": "hold",
+        "constraint_id": "quality.sulfur_mgkg",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": 23.6,
+        "limit": 10.0,
+        "unit": "мг/кг",
+        "limit_source": "given",
+        "reason": "sulfur_mgkg = 23.600 нарушает предел 10 на 0 ч",
+        "points": 7
+       }
+      ],
+      "evidence_total": 3
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0006",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 1,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "gate_fail",
+      "stage": "search",
+      "text": "Нарушен обязательный Gate: 1 огранич.",
+      "evidence": [
+       {
+        "decision_id": "dea76f55e9d70f51",
+        "candidate_id": "c0006",
+        "constraint_id": "quality.sulfur_mgkg",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": 26.0,
+        "limit": 10.0,
+        "unit": "мг/кг",
+        "limit_source": "given",
+        "reason": "sulfur_mgkg = 26.000 нарушает предел 10 на 0 ч",
+        "points": 7
+       }
+      ],
+      "evidence_total": 1
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0007",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "gate_fail",
+      "stage": "search",
+      "text": "Нарушен обязательный Gate: 1 огранич.",
+      "evidence": [
+       {
+        "decision_id": "dea76f55e9d70f51",
+        "candidate_id": "c0007",
+        "constraint_id": "quality.sulfur_mgkg",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": 26.0,
+        "limit": 10.0,
+        "unit": "мг/кг",
+        "limit_source": "given",
+        "reason": "sulfur_mgkg = 26.000 нарушает предел 10 на 0 ч",
+        "points": 7
+       }
+      ],
+      "evidence_total": 1
+     }
+    ]
+   },
+   {
+    "candidate_id": "c0008",
+    "production_t": 300.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.0,
+    "changes": 2,
+    "verdict": "excluded",
+    "reasons": [
+     {
+      "category": "gate_fail",
+      "stage": "search",
+      "text": "Нарушен обязательный Gate: 1 огранич.",
+      "evidence": [
+       {
+        "decision_id": "dea76f55e9d70f51",
+        "candidate_id": "c0008",
+        "constraint_id": "quality.sulfur_mgkg",
+        "status": "fail",
+        "time_hours": 0.0,
+        "observed": 26.0,
+        "limit": 10.0,
+        "unit": "мг/кг",
+        "limit_source": "given",
+        "reason": "sulfur_mgkg = 26.000 нарушает предел 10 на 0 ч",
+        "points": 7
+       }
+      ],
+      "evidence_total": 1
+     }
+    ]
+   }
+  ],
+  "rule": "Планы сравниваются по порядку: больший выпуск, затем меньшая стоимость тонны. Если сценарная политика разрешает небольшую разницу стоимости, внутри этого окна выбирается меньшая тяжесть режима; затем меньшее число изменений и меньший идентификатор. Жёсткие ограничения проверяются до сравнения.",
+  "refusal": {
+   "kind": "no_feasible_plan",
+   "stage": "search",
+   "agents_skipped": false,
+   "domain_impossibility_proven": true
+  }
+ }
+}

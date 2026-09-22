@@ -257,6 +257,7 @@ def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0,
                     "compared_with": cheapest_best.candidate.candidate_id,
                 }
     hold = next((e for e in feasible if e.candidate.candidate_id == hold_id), None)
+    hold_policy = None
     reason = ("Выпуск сохранён; среди вариантов в пределах допустимой разницы стоимости выбран "
               "режим с меньшей тяжестью или меньшим числом изменений" if severity_tradeoff else
               "Лучший из допустимых по правилу: выпуск, затем стоимость, затем тяжесть режима")
@@ -267,6 +268,8 @@ def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0,
         if _finite(hold_cost) and hold_cost > 0 and _finite(best.cost_per_tonne):
             gain = (hold_cost - best.cost_per_tonne) / hold_cost
         if same_production and gain < min_useful_gain:
+            hold_policy = {"gain": gain, "min_useful_gain": min_useful_gain,
+                           "overridden": best.candidate.candidate_id}
             best = hold
             severity_tradeoff = False
             reliability_tradeoff = None
@@ -279,6 +282,7 @@ def rank(evaluations, hold_id: str = "hold", min_useful_gain: float = 0.0,
         "ranking": list(RANKING),
         "severity_tradeoff": severity_tradeoff,
         "reliability_tradeoff": reliability_tradeoff,
+        "hold_policy": hold_policy,
         "severity_cost_tolerance_fraction": severity_cost_tolerance_fraction,
         "max_severity_index": max_severity_index,
         "reason": reason,

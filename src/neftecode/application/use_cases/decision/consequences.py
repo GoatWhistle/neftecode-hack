@@ -18,19 +18,24 @@ CONSEQUENCES_VERSION = 1
 
 class ConsequencesMixin:
 
-    def _consequences(self, chosen, final, feasible) -> dict:
+    def _consequences(self, chosen, final, feasible, by_id=None, confirmed=(), current_operation=None) -> dict:
         selected_id = chosen.plan_id
-        hold_evaluation, hold_source, hold_reason = None, None, None
+        hold_evaluation, hold_source, hold_reason, hold_plan = None, None, None, None
         if selected_id == "hold":
-            hold_evaluation, hold_source = final, "selected_is_hold"
+            hold_evaluation, hold_source, hold_plan = final, "selected_is_hold", chosen
         else:
             hold_evaluation = next((e for e in feasible if e.candidate.candidate_id == "hold"), None)
             if hold_evaluation is not None:
                 hold_source = "search_pool"
+                hold_plan = (by_id or {}).get("hold")
             else:
-                hold_reason = ("hold не входил в проверенный пул этого решения (отклонён обязательными "
-                                "проверками или не дошёл до финального сравнения); повторный расчёт здесь "
-                                "не делается — он завёл бы второй evaluator поверх уже посчитанного пула")
+                hold_reason = ("Сохранение текущего режима не входит в допустимый проверенный пул этого "
+                               "решения: его траектория здесь не рассчитана и не показывается")
+
+        def events_for(plan) -> list | None:
+            if plan is None:
+                return None
+            return self.planner.action_events(plan, confirmed, current_operation)
 
         def points_for(evaluation, limit_id: str) -> list:
             constraint = f"quality.{limit_id}"
@@ -54,8 +59,10 @@ class ConsequencesMixin:
             })
 
         applicability = {"selected": applicability_for(final)}
+        events = {"selected": events_for(chosen)}
         if hold_evaluation is not None:
             applicability["hold"] = applicability_for(hold_evaluation)
+            events["hold"] = events_for(hold_plan)
 
         return {
             "version": CONSEQUENCES_VERSION,
@@ -64,9 +71,13 @@ class ConsequencesMixin:
             "step_hours": self.scenario.horizon.step_minutes / 60,
             "series": series,
             "applicability": applicability,
+            "events": events,
             "hold": {"available": hold_evaluation is not None,
                      "candidate_id": "hold" if hold_evaluation is not None else None,
                      "source": hold_source, "reason": hold_reason},
             "note": ("Модельные последствия по расчёту Gate на горизонте решения, не доказанный "
                      "эффект на заводе. Длинный прогноз за горизонтом сюда не входит."),
+            "events_note": ("Моменты действий и объявленного запаздывания отклика взяты из плана и "
+                            "сценария; отклик относится к потоку после своей стадии, качество товарной "
+                            "смеси меняется по мере поступления в резервуар."),
         }
