@@ -130,3 +130,60 @@ describe("структурная проверка импорта при верн
   });
 });
 
+
+describe("используемый контракт записи проверяется целиком до открытия", () => {
+  const pair = () => JSON.parse(serializeProtocol(buildProtocol(record("risk"), record("risk-reserve-off")))) as {
+    content: Record<string, unknown> & { a: Record<string, unknown>; b: Record<string, unknown> };
+    checksum: { value: string };
+  };
+  const signed = (packet: ReturnType<typeof pair>) => {
+    packet.checksum.value = sha256Hex(canonicalJson(packet.content));
+    return JSON.stringify(packet);
+  };
+
+  it("B без условий прогона (form) с верной суммой отклоняется до сравнения", () => {
+    const packet = pair();
+    delete packet.content.b.form;
+    expect(() => parseProtocol(signed(packet))).toThrow(/запись B: нет условий прогона/);
+  });
+
+  it("null — честно пустой слот, а false/0/пустая строка — повреждённый пакет", () => {
+    const single = pair();
+    single.content.b = null as never;
+    expect(parseProtocol(signed(single)).b).toBeNull();
+    for (const bad of [false, 0, ""]) {
+      const packet = pair();
+      packet.content.b = bad as never;
+      expect(() => parseProtocol(signed(packet))).toThrow(ProtocolError);
+    }
+    const missing = pair();
+    delete (missing.content as Record<string, unknown>).b;
+    expect(() => parseProtocol(signed(missing))).toThrow(/запись B: поле отсутствует/);
+  });
+
+  it("неверные типы вложенных полей, статус вне списка и form со значением-числом отклоняются", () => {
+    const cases: Array<(p: ReturnType<typeof pair>) => void> = [
+      (p) => { (p.content.a.payload as { decision: { status: string } }).decision.status = "approve"; },
+      (p) => { (p.content.a.payload as { decision: { selected_plan: { steps: unknown } } }).decision.selected_plan.steps = null; },
+      (p) => { (p.content.a.payload as { explanation: { risk: { items: unknown } } }).explanation.risk.items = {}; },
+      (p) => { (p.content.a.payload as { state: string }).state = "error"; },
+      (p) => { (p.content.a.form as Record<string, unknown>).fault = 3; },
+      (p) => { (p.content.a.meta as { input_fingerprint: unknown }).input_fingerprint = 7; },
+      (p) => { delete (p.content.a as Record<string, unknown>).meta; }
+    ];
+    for (const mutate of cases) {
+      const packet = pair();
+      mutate(packet);
+      expect(() => parseProtocol(signed(packet))).toThrow(ProtocolError);
+    }
+  });
+
+  it("отсутствие необязательных сведений остаётся отсутствием, а не выдуманным значением", () => {
+    const packet = pair();
+    packet.content.a.meta = null as never;
+    delete (packet.content.a.payload as Record<string, unknown>).run_meta;
+    const parsed = parseProtocol(signed(packet));
+    expect(parsed.a!.meta).toBeNull();
+    expect(comparePair(parsed.a!, parsed.b!).inputsKnown).toBe(false);
+  });
+});

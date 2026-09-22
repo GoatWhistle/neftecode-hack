@@ -2,7 +2,11 @@ import type { ScreenPayload } from "../types";
 import type { RecordedFrame, RunRecord } from "./record";
 import { RECORD_SCHEMA } from "./record";
 import { sha256Hex } from "./sha256";
+import { canonicalJson } from "./canonical";
 import { comparePair } from "./pair";
+import { hydrateRun, recordInfoOf } from "./hydrate";
+import type { Check } from "./recordShape";
+import { FORM_FIELDS, formShape, nullable, payloadShape, runMetaShape, ShapeError } from "./recordShape";
 
 export const PROTOCOL_FORMAT = "neftecode.decision-protocol";
 export const PROTOCOL_VERSION = 1;
@@ -14,10 +18,7 @@ const PAYLOAD_FIELDS = [
   "binding", "run_meta", "decision_timeout_s", "agentic_state"
 ] as const;
 
-const FORM_FIELDS = [
-  "scenario", "snapshot", "fault", "crude_sulfur_wt_pct", "product_sulfur_mgkg", "product_t95_c",
-  "product_cetane_number", "throughput_tph", "tank", "tank_inventory", "tank_available"
-] as const;
+export { canonicalJson };
 
 export class ProtocolError extends Error {}
 
@@ -37,15 +38,6 @@ export interface Protocol {
 }
 
 const CHECKSUM_NOTE = "Контрольная сумма обнаруживает повреждение содержимого; это не подпись и не доказательство подлинности.";
-
-export function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, item]) => item !== undefined)
-    .sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0));
-  return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(",")}}`;
-}
 
 function pick<T extends object>(source: T, fields: readonly string[]): Partial<T> {
   const out: Record<string, unknown> = {};
@@ -167,30 +159,60 @@ function validateFrame(raw: unknown, where: string): void {
   }
 }
 
+function checkShape(check: Check, value: unknown, where: string): void {
+  try {
+    check(value, where);
+  } catch (error) {
+    if (error instanceof ShapeError) throw new ProtocolError(`${where}: структура не соответствует записи прогона (${error.message})`);
+    throw error;
+  }
+}
+
 function validateRecord(raw: unknown, where: string): RunRecord {
   const record = object(raw, where);
   if (record.schema !== RECORD_SCHEMA) throw new ProtocolError(`${where}: неподдерживаемая схема записи «${String(record.schema)}»`);
   for (const key of ["run_id", "recorded_at", "label"]) {
     if (typeof record[key] !== "string") throw new ProtocolError(`${where}: поле ${key} отсутствует`);
   }
+  if (record.form === undefined || record.form === null) throw new ProtocolError(`${where}: нет условий прогона (form)`);
+  checkShape(formShape, record.form, `${where}.form`);
   const payload = object(record.payload, `${where}.payload`);
   const decision = object(payload.decision, `${where}.payload.decision`);
   if (typeof decision.status !== "string") throw new ProtocolError(`${where}: у решения нет статуса`);
-  object(payload.explanation, `${where}.payload.explanation`);
+  checkShape(payloadShape, payload, `${where}.payload`);
   if (!Array.isArray(record.events)) throw new ProtocolError(`${where}: список событий отсутствует`);
   for (const [index, frame] of record.events.entries()) validateFrame(frame, `${where}.events[${index}]`);
-  if (record.duration_ms !== null && record.duration_ms !== undefined && !isFiniteNumber(record.duration_ms)) {
+  if (record.duration_ms !== null && !isFiniteNumber(record.duration_ms)) {
     throw new ProtocolError(`${where}: длительность записи не число`);
   }
-  if (record.query !== null && record.query !== undefined && typeof record.query !== "string") {
+  if (record.query !== null && typeof record.query !== "string") {
     throw new ProtocolError(`${where}: запрос записи не строка`);
   }
-  if (record.form !== undefined) object(record.form, `${where}.form`);
-  if (record.meta !== null && record.meta !== undefined) object(record.meta, `${where}.meta`);
-  if (!("state" in payload) || typeof payload.title !== "string") {
-    throw new ProtocolError(`${where}: в результате нет состояния или заголовка`);
-  }
+  if (record.meta === undefined) throw new ProtocolError(`${where}: нет поля meta (для неизвестных сведений ожидается null)`);
+  checkShape(nullable(runMetaShape), record.meta, `${where}.meta`);
   return { ...(record as unknown as RunRecord), origin: "record" };
+}
+
+/** A/B: null — честное отсутствие записи; false, 0, "" и прочее — повреждённый пакет. */
+function recordSlot(raw: unknown, where: string): RunRecord | null {
+  if (raw === null) return null;
+  if (raw === undefined) throw new ProtocolError(`${where}: поле отсутствует (для пустого слота ожидается null)`);
+  return validateRecord(raw, where);
+}
+
+/**
+ * Пробное восстановление и сравнение до изменения экрана: пакет открывается целиком или не
+ * открывается вовсе. Ошибка здесь означает дыру в структурной проверке — показываем её как
+ * ошибку файла, а не как падение интерфейса.
+ */
+function rehearse(a: RunRecord | null, b: RunRecord | null): void {
+  try {
+    for (const item of [a, b]) if (item) hydrateRun(item, recordInfoOf(item, null));
+    if (a && b) comparePair(a, b);
+  } catch (error) {
+    if (error instanceof ProtocolError) throw error;
+    throw new ProtocolError("Запись не удалось восстановить: структура файла не соответствует протоколу. Текущий экран сохранён.");
+  }
 }
 
 export interface ParsedProtocol {
@@ -222,9 +244,10 @@ export function parseProtocol(text: string): ParsedProtocol {
   if (sha256Hex(canonicalJson(content)) !== checksum.value) {
     throw new ProtocolError("Контрольная сумма не совпала: содержимое изменено или повреждено");
   }
-  const a = content.a ? validateRecord(content.a, "запись A") : null;
-  const b = content.b ? validateRecord(content.b, "запись B") : null;
+  const a = recordSlot(content.a, "запись A");
+  const b = recordSlot(content.b, "запись B");
   if (!a && !b) throw new ProtocolError("В пакете нет ни одной записи прогона");
+  rehearse(a, b);
   return { protocol: root as unknown as Protocol, a, b };
 }
 
