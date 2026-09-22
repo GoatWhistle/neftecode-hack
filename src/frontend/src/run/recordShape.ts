@@ -147,6 +147,24 @@ const tradeoff = obj({
   hold: obj({ id: str, admissible: bool }), points: arr(tradeoffPoint), scope: str, stress_scope: str
 });
 
+const consequencePoint = obj({ t: num, value: nullNum, status: oneOf("pass", "fail", "unknown") });
+
+const consequenceCandidate = obj({ candidate_id: str, points: arr(consequencePoint) });
+
+const consequenceSeries = obj({
+  limit_id: str, quality: str, unit: nullStr, direction: oneOf("max", "min", "unknown"),
+  limit: obj({ value: nullNum, source: nullStr }),
+  candidates: obj({ selected: consequenceCandidate, hold: opt(consequenceCandidate) })
+});
+
+const consequences = obj({
+  version: num, selected_id: str, horizon_hours: num, step_hours: num, series: arr(consequenceSeries),
+  applicability: obj({
+    selected: arr(obj({ t: num, value: str })), hold: opt(arr(obj({ t: num, value: str })))
+  }),
+  hold: obj({ available: bool, candidate_id: nullStr, source: nullStr, reason: nullStr }), note: str
+});
+
 const opinion = obj({
   role: str, verdict: str, risk_level: nullStr, confidence: nullNum, valid: bool,
   reasons: arr(obj({ code: str, text: str })), proposed_constraints: opt(arr(obj({ type: str })))
@@ -169,7 +187,8 @@ const decision = obj({
   severity_index: nullNum, alternatives: arr(candidate), rejected: arr(any),
   refusal: nullable(obj({ kind: str, examples: opt(strs), missing: opt(strs) })), robustness: nullable(robustness),
   lookahead: nullable(lookahead), selection_policy: nullable(anyObj), trace: arr(obj({})), note: nullStr,
-  decision_id: nullStr, agentic: optNull(agentic), severity: optNull(severity), tradeoff: optNull(tradeoff)
+  decision_id: nullStr, agentic: optNull(agentic), severity: optNull(severity), tradeoff: optNull(tradeoff),
+  consequences: optNull(consequences)
 });
 
 const currentOperation = obj({

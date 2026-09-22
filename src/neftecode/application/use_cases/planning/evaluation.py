@@ -97,12 +97,13 @@ class PlanEvaluationMixin:
         gate = check_plan(plan.plan_id, trajectory, self.scenario, stock["terminal"])
         summary = self.economics.summarise(costs)
         known = [s for s in severities if s is not None]
+        applicability = tuple((point.time_hours, point.applicability) for point in trajectory)
         return Evaluation(
             Candidate(plan.plan_id, dict(plan.steps[0].controls), dict(plan.steps[0].recipe),
                       plan.steps[0].throughput_tph, plan.steps[0].additive_dose, plan.changes),
             gate, summary["production_t"], summary["cost_per_tonne"],
             max(known) if known else None,
-            _worst_severity(details, severities), _worst_full(details, severities))
+            _worst_severity(details, severities), _worst_full(details, severities), applicability)
 
     def lookahead(self, plan: PlanCandidate, hours: float, confirmed=(), initial_tanks=None,
                   current_operation=None) -> dict:

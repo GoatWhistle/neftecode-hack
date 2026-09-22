@@ -30,4 +30,27 @@ describe("контракт записи прогона на реальных о�
     expect(() => payloadShape(payload, "payload")).toThrow(ShapeError);
     expect(() => payloadShape(payload, "payload")).toThrow(/payload\.decision\.selected_plan\.changes/);
   });
+
+  it("старая запись без consequences (поле отсутствует) проходит проверку", () => {
+    const payload = JSON.parse(readFileSync(dir("pair", "risk.json"), "utf-8")) as Record<string, unknown>;
+    expect((payload.decision as Record<string, unknown>).consequences).toBeUndefined();
+    expect(() => payloadShape(payload, "payload")).not.toThrow();
+  });
+
+  it("некорректное новое поле consequences отклоняется до смены экрана", () => {
+    const payload = JSON.parse(readFileSync(dir("pair", "risk.json"), "utf-8")) as { decision: Record<string, unknown> };
+    payload.decision.consequences = {
+      version: 1, selected_id: "hold", horizon_hours: 3, step_hours: 0.5,
+      series: [{
+        limit_id: "sulfur_mgkg", quality: "sulfur_mgkg", unit: "мг/кг", direction: "max",
+        limit: { value: "10" /* строка вместо числа */, source: "given" },
+        candidates: { selected: { candidate_id: "hold", points: [] } }
+      }],
+      applicability: { selected: [] },
+      hold: { available: true, candidate_id: "hold", source: "selected_is_hold", reason: null },
+      note: "test"
+    };
+    expect(() => payloadShape(payload, "payload")).toThrow(ShapeError);
+    expect(() => payloadShape(payload, "payload")).toThrow(/consequences/);
+  });
 });

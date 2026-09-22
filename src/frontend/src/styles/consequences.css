@@ -1,0 +1,35 @@
+.cns { display: grid; gap: var(--space-3); font-size: 15px; }
+.cns__lead { margin: 0; color: var(--muted); }
+.cns__tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.cns__tab { font: inherit; padding: 4px 10px; border: 1px solid var(--line-soft); border-radius: var(--radius-card); background: var(--paper); cursor: pointer; }
+.cns__tab.is-active { border-color: var(--carbon); font-weight: 600; }
+.cns__tab--fail { border-inline-start: 3px solid var(--fail); }
+.cns__tab--unknown { border-inline-start: 3px solid var(--unknown); }
+.cns__tab--pass { border-inline-start: 3px solid var(--pass); }
+.cns__figure { margin: 0; }
+.cns__svg { width: 100%; height: auto; display: block; }
+.cns__plot { fill: var(--paper); stroke: var(--line-soft); stroke-width: 1; }
+.cns__tick { font-size: 10px; fill: var(--muted); font-family: var(--font-mono); }
+.cns__limit { stroke: var(--accent-ink); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.cns__limit-label { font-size: 10px; fill: var(--accent-ink); }
+.cns__line { fill: none; stroke-width: 2; }
+.cns__line--selected { stroke: var(--carbon); }
+.cns__line--hold { stroke: var(--muted); stroke-dasharray: 4 4; }
+.cns__pt circle, .cns__pt rect { stroke-width: 1.5; stroke: var(--carbon); }
+.cns__pt--pass { fill: var(--pass); }
+.cns__pt--fail { fill: var(--fail); }
+.cns__pt--unknown { fill: var(--unknown); }
+.cns__pt--hold circle, .cns__pt--hold rect { stroke: var(--muted); }
+.cns__legend { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); font-size: 13px; color: var(--muted); }
+.cns__key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; border: 1.5px solid var(--muted); }
+.cns__key--selected { background: var(--carbon); border-color: var(--carbon); border-radius: 50%; }
+.cns__key--hold { border-radius: 2px; }
+.cns__key--limit { border-radius: 0; border-top: 2px dashed var(--accent-ink); background: none; height: 0; width: 14px; }
+.cns__blocked, .cns__hint { margin: 0; font-size: 13px; color: var(--muted); }
+.cns__warn { margin: 0; padding: var(--space-2) var(--space-3); border-inline-start: 3px solid var(--unknown); background: var(--vellum); font-size: 13px; }
+.cns__table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.cns__table caption { text-align: left; color: var(--muted); padding-bottom: 4px; }
+.cns__table th, .cns__table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--field); }
+.cns__cell--fail { color: var(--fail); font-weight: 600; }
+.cns__cell--unknown { color: var(--unknown); }
+.cns__note { margin: 0; font-size: 12px; color: var(--muted); }

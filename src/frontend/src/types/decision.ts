@@ -336,6 +336,53 @@ export interface TradeoffMap {
   stress_scope: string;
 }
 
+export interface ConsequencePoint {
+  t: number;
+  value: number | null;
+  status: CheckStatus;
+}
+
+export interface ConsequenceCandidateSeries {
+  candidate_id: string;
+  points: ConsequencePoint[];
+}
+
+export interface ConsequenceSeries {
+  limit_id: string;
+  quality: string;
+  unit: string | null;
+  direction: "max" | "min" | "unknown";
+  limit: { value: number | null; source: string | null };
+  candidates: {
+    selected: ConsequenceCandidateSeries;
+    hold?: ConsequenceCandidateSeries;
+  };
+}
+
+export interface ConsequenceApplicabilityPoint {
+  t: number;
+  value: string;
+}
+
+export interface Consequences {
+  version: number;
+  selected_id: string;
+  horizon_hours: number;
+  step_hours: number;
+  series: ConsequenceSeries[];
+  applicability: {
+    selected: ConsequenceApplicabilityPoint[];
+    hold?: ConsequenceApplicabilityPoint[];
+  };
+  hold: {
+    available: boolean;
+    candidate_id: string | null;
+    source: string | null;
+    reason: string | null;
+  };
+  note: string;
+}
+
 export interface Decision {
   status: string;
   reason: string;
@@ -362,4 +409,5 @@ export interface Decision {
   agentic: Agentic | null;
   severity?: SeverityBlock | null;
   tradeoff?: TradeoffMap | null;
+  consequences?: Consequences | null;
 }

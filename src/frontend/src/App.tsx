@@ -13,6 +13,7 @@ import { StatusBar } from "./map/StatusBar";
 import { OperatorAnswer } from "./ui/OperatorAnswer";
 import { Evidence } from "./evidence/Evidence";
 import { PlanCompare } from "./compare/PlanCompare";
+import { Consequences } from "./features/consequences/Consequences";
 import { Fold } from "./graph/Fold";
 import { outcomeOf } from "./run/verdict";
 import { Logo } from "./ui/Logo";
@@ -328,6 +329,9 @@ export function App() {
                   </Fold>
                   <Fold title="Сравнение планов" hint="чем выбранный план лучше отклонённых">
                     <PlanCompare payload={payload} />
+                  </Fold>
+                  <Fold title="Последствия во времени" hint="что станет с качеством: выбранный план и hold">
+                    <Consequences payload={payload} />
                   </Fold>
                   <Fold title="Доказательства" hint="чем подтверждён каждый вывод">
                     <Evidence payload={payload} />

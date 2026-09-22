@@ -14,6 +14,7 @@ from ..progress import emit
 from ..services.trust import DataTrustAgent
 from .decision.reviews import QualityReview, ReliabilityReview
 from .decision.constants import LOOKAHEAD_CANDIDATES, MAX_ROUNDS, VETO_FAMILIES, AgentError, SearchOutcome
+from .decision.consequences import ConsequencesMixin
 from .decision.lookahead import LookaheadMixin
 from .decision.search import SearchMixin
 
@@ -22,7 +23,7 @@ __all__ = ["AgentError", "LOOKAHEAD_CANDIDATES", "MAX_ROUNDS", "MakeDecision", "
 
 
 @dataclass
-class MakeDecision(SearchMixin, LookaheadMixin):
+class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
 
     scenario: Scenario
     planner: PlanOperation = field(init=False)
@@ -204,10 +205,12 @@ class MakeDecision(SearchMixin, LookaheadMixin):
                        f"заданных отклонений и надёжным не считается")
         if tank_estimate is not None and tank_estimate.get("sensitive"):
             reason += f". {tank_estimate['verdict']}"
+        consequences = self._consequences(chosen, final, feasible, plans, confirmed, initial_tanks,
+                                          current_operation)
         return self._finish(
             status, reason, trace, chosen, final, None, selected, robustness,
             current_operation=current_operation, lookahead=lookahead, tank_estimate=tank_estimate,
-            pool=feasible,
+            pool=feasible, consequences=consequences,
         )
 
     def execute(self, command: DecisionCommand) -> DecisionResult:

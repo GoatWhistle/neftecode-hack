@@ -180,6 +180,7 @@ class Evaluation:
     severity_index: float | None = None
     severity_detail: dict | None = None
     severity_full: dict | None = None
+    applicability: tuple[tuple[float, str], ...] = ()
 
     @property
     def feasible(self) -> bool:
