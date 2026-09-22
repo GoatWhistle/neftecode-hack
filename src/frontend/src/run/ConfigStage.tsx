@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { ReactNode } from "react";
 import type { ScreenPayload } from "../types";
 import type { Conditions, RunOptions } from "./options";
 import { FAULT_LABELS } from "./options";
@@ -21,6 +22,8 @@ export interface ConfigStageProps {
   onRetry?: () => Promise<boolean>;
   pending?: boolean;
   payload?: ScreenPayload | null;
+  /** Та же строка выбранного момента, что у запуска; «Изменить» открывает общий выбор. */
+  moment?: ReactNode;
 }
 
 export function ConfigStage({
@@ -35,7 +38,8 @@ export function ConfigStage({
   onReopen,
   onRetry,
   pending,
-  payload
+  payload,
+  moment
 }: ConfigStageProps) {
   const [retrying, setRetrying] = useState(false);
   const [retryFailed, setRetryFailed] = useState(false);
@@ -92,10 +96,6 @@ export function ConfigStage({
                   label: SCENARIO_LABEL[name] ?? name
                 }))} />
 
-              <Select label="Момент решения" value={conditions.snapshot} disabled={running}
-                onChange={(value) => onChange({ snapshot: value })}
-                options={options.snapshots.map((item) => ({ value: item.key, label: item.title }))} />
-
               <Select label="Отказ источника" value={conditions.fault} disabled={running}
                 onChange={(value) => onChange({ fault: value })}
                 options={options.faults.map((name) => ({
@@ -107,6 +107,7 @@ export function ConfigStage({
                 value={conditions.throughput_tph} disabled={running}
                 onChange={(value) => onChange({ throughput_tph: value })} />
             </div>
+            {moment}
           </fieldset>
 
           <fieldset className="config__group" disabled={running}>

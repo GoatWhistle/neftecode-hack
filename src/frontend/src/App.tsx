@@ -21,6 +21,8 @@ import { EvidencePassport } from "./features/evidence-passport";
 import type { ResearchSummary } from "./features/evidence-passport";
 import { BUILD_RESEARCH } from "./features/evidence-passport/buildSummary";
 import { HistoryExplorer } from "./features/history-explorer/HistoryExplorer";
+import { MomentSummary } from "./features/history-explorer/MomentSummary";
+import { longMoment, momentKey, momentOf } from "./features/history-explorer/moment";
 import { TankPark } from "./features/tank-park/TankPark";
 import type { HistoryCatalog, HistoryOverview, HistorySelection } from "./features/history-explorer/types";
 import { Fold } from "./graph/Fold";
@@ -39,6 +41,8 @@ import { comparePair } from "./run/pair";
 import { buildRecord } from "./run/record";
 import type { RunRecord } from "./run/record";
 import { ProtocolError, type ParsedProtocol } from "./run/protocol";
+
+const PICKER_ID = "moment-picker";
 
 const BLANK: Conditions = {
   scenario: "", snapshot: "", fault: "healthy", crude_sulfur_wt_pct: "", product_sulfur_mgkg: "",
@@ -77,6 +81,7 @@ export function App() {
   const [overview, setOverview] = useState<HistoryOverview | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyPick, setHistoryPick] = useState<HistorySelection | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const payload = run.payload;
   const outcome = outcomeOf(run.status, payload, run.error, run.status === "stopped");
   const phase = run.status === "idle" ? "idle" : outcome ? "answer" : "run";
@@ -131,6 +136,7 @@ export function App() {
   // Выбор момента меняет только условия следующего запуска: A, текущий экран и fault не трогаются.
   const pickHistory = useCallback((selection: HistorySelection) => {
     setHistoryPick(selection);
+    setPickerOpen(false);
     setConditions((prev) => selection.kind === "snapshot"
       ? { ...prev, snapshot: selection.snapshot, at: "" }
       : { ...prev, snapshot: "", at: selection.requested_at });
@@ -273,10 +279,26 @@ export function App() {
     title?.closest("section")?.querySelector<HTMLElement>("button, select, input")?.focus();
   }, []);
 
+  // Строка у запуска и строка в расширенных условиях открывают один и тот же выбор.
+  const openPicker = useCallback(() => {
+    setOpen(null);
+    setPickerOpen(true);
+    requestAnimationFrame(() => document.getElementById(PICKER_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  }, []);
+
   const decisionState = reachedState(run.stages, "decision");
   const settled = payload !== null && phase === "answer";
   const shown = launched ?? conditions;
   const sources = sourcesSummary(payload);
+  const snapshotTitles = options?.snapshots ?? [];
+  const nextMoment = momentOf(conditions, catalog, snapshotTitles);
+  // Показанный ответ сохраняет свою дату; смена момента меняет только условия следующего запуска.
+  const answerMoment = launched && run.status !== "idle" && run.status !== "running"
+    && momentKey(launched) !== momentKey(conditions) ? momentOf(launched, catalog, snapshotTitles) : null;
+  const momentRow = (inDrawer: boolean) => <MomentSummary moment={nextMoment} open={!inDrawer && pickerOpen}
+    controls={PICKER_ID} disabled={run.status === "running" || options === null}
+    onToggle={inDrawer ? openPicker : () => setPickerOpen((value) => !value)} />;
 
   const inputCaption = (() => {
     if (!shown.scenario) return "условия не загружены";
@@ -338,26 +360,32 @@ export function App() {
             onPreset={(key) => void pickPreset(key)}
             onStart={launch}
             onAdvanced={() => setOpen(INPUT_SCENARIO)}
+            moment={<>
+              {momentRow(false)}
+              {pickerOpen ? <HistoryExplorer
+                id={PICKER_ID}
+                catalog={catalog}
+                selection={historyPick}
+                current={conditions.at ? null : conditions.snapshot}
+                onSelect={pickHistory}
+                onMore={loadCatalog}
+                overview={overview}
+                onOverview={(start, end) => { lastOverview.current = { start, end }; loadOverview(start, end); }}
+                onExclusionsMore={(offset) => {
+                  if (lastOverview.current) loadOverview(lastOverview.current.start, lastOverview.current.end, offset);
+                }}
+                disabled={run.status === "running"}
+                error={historyError}
+              /> : null}
+            </>}
+            notice={answerMoment ? <p className="moment-stale" role="status">
+              <strong>Выбран другой момент — запустите расчёт.</strong> Показанный ответ относится
+              к {longMoment(answerMoment.at)}.
+            </p> : null}
           >
             <ProtocolBar current={current} pinned={pinned} running={run.status === "running"} onOpen={openProtocol}
               research={research} />
           </SceneBar>
-          <Fold title="Исторический момент" hint="готовые срезы и произвольный момент поставленного периода">
-            <HistoryExplorer
-              catalog={catalog}
-              selection={historyPick}
-              onSelect={pickHistory}
-              onMore={loadCatalog}
-              overview={overview}
-              onOverview={(start, end) => { lastOverview.current = { start, end }; loadOverview(start, end); }}
-              onExclusionsMore={(offset) => {
-                if (lastOverview.current) loadOverview(lastOverview.current.start, lastOverview.current.end, offset);
-              }}
-              disabled={run.status === "running"}
-              error={historyError}
-              recordTime={current?.origin === "record" ? current.payload.decision_time : null}
-            />
-          </Fold>
           {run.record ? <RecordBanner info={run.record} /> : null}
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
           <CorePreview run={run} />
@@ -409,6 +437,7 @@ export function App() {
                 onRetry={loadOptions}
                 pending={pending}
                 payload={payload}
+                moment={momentRow(true)}
               />
             }
           />

@@ -62,6 +62,18 @@ describe("импорт протокола в смонтированное при
     expect(screen.getByRole("heading", { name: /Ответ изменился/ })).toBeInTheDocument();
   }
 
+  it("смена момента не переписывает дату показанного ответа и просит перезапуск", async () => {
+    await openGood();
+    expect(screen.queryByText(/Выбран другой момент/)).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: /Изменить/ })[0]!);
+    fireEvent.click(await screen.findByRole("button", { name: /Срез из поставки/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Использовать этот момент" }));
+    const notice = await screen.findByText(/Выбран другой момент — запустите расчёт/);
+    expect(notice.closest("p")?.textContent).toMatch(/относится\s+к 24 июля 2026 · 03:00/);
+    expect(screen.queryByRole("tab", { name: "Готовые эпизоды" })).toBeNull();
+    expect(calls(fetchSpy).some((url) => url.startsWith("/api/decide") || url.startsWith("/api/stream"))).toBe(false);
+  });
+
   function screenState(): string {
     return [
       screen.getByLabelText("Открыта сохранённая запись").textContent,

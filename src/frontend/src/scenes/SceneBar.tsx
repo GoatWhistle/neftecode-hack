@@ -12,10 +12,14 @@ interface Props {
   onPreset: (key: PresetKey) => void;
   onStart: () => void;
   onAdvanced: () => void;
+  /** Строка «Данные для расчёта» и раскрываемый под ней выбор момента. */
+  moment?: React.ReactNode;
+  /** Предупреждение, что показанный ответ относится к другому моменту. */
+  notice?: React.ReactNode;
   children?: React.ReactNode;
 }
 
-export function SceneBar({ active, loading, running, ready, done, error, onPreset, onStart, onAdvanced, children }: Props) {
+export function SceneBar({ active, loading, running, ready, done, error, onPreset, onStart, onAdvanced, moment, notice, children }: Props) {
   return (
     <section className="scenes" aria-labelledby="scenes-title">
       <div className="scenes__head">
@@ -35,6 +39,8 @@ export function SceneBar({ active, loading, running, ready, done, error, onPrese
           );
         })}
       </div>
+      {moment}
+      {notice}
       <div className="scenes__actions">
         <button type="button" className="scenes__start" disabled={running || loading || !ready} onClick={onStart}>
           {loading ? "Загружаю условия…" : done ? "Запустить ещё раз" : "Запустить расчёт"}

@@ -12,13 +12,14 @@ const SCOPES: Record<string, string> = { column: "Колонка", telemetry: "�
 export function HistoryOverviewPanel({ overview, onMore, disabled }: Props) {
   const exclusions = overview.exclusions;
   const display = (value: number | null) => value === null ? "нет измерения" : value.toLocaleString("ru-RU", { maximumFractionDigits: 3 });
-  return <details className="history__overview"><summary>Наблюдения периода: {overview.points.length} точек</summary>
-    <p>{overview.note}</p>
+  return <div className="history__overview">
+    <p className="history__hint">Наблюдения периода: {overview.points.length} точек. {overview.note}</p>
+    <p className="history__hint">Наблюдения, без оценки пригодности источников.</p>
     <div className="history__table" tabIndex={0} role="region" aria-label="Наблюдения периода">
-      <table><caption>Наблюдения, без оценки пригодности источников</caption><thead><tr>
+      <table><thead><tr>
         <th>Момент</th><th>ЛИМС, мг/кг</th><th>ЛИМС доступен с</th><th>ПАК, ppm</th>
       </tr></thead><tbody>{overview.points.map((point, i) => <tr key={`${point.at}-${i}`}>
-        <td>{point.at.replace("T", " ")}</td><td title={String(point.lab_value)}>{display(point.lab_value)}</td>
+        <td title={point.at}>{point.at.slice(0, 19).replace("T", " ")}</td><td title={String(point.lab_value)}>{display(point.lab_value)}</td>
         <td>{point.lab_available_time?.replace("T", " ") ?? "нет даты"}</td>
         <td title={String(point.pak_value)}>{display(point.pak_value)}</td>
       </tr>)}</tbody></table>
@@ -32,5 +33,5 @@ export function HistoryOverviewPanel({ overview, onMore, disabled }: Props) {
       {exclusions.next_offset !== null && onMore && <button type="button" disabled={disabled}
         onClick={() => onMore(exclusions.next_offset!)}>Следующие исключения</button>}
     </details>
-  </details>;
+  </div>;
 }

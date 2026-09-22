@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { EpisodeList } from "./EpisodeList";
 import { HistoryMoment } from "./HistoryMoment";
-import { HistoryOverviewPanel } from "./HistoryOverviewPanel";
+import { HistoryPeriod } from "./HistoryPeriod";
 import type { HistoryCatalog, HistorySelection, HistoryOverview } from "./types";
 import "./history.css";
 
+export { localTime } from "./moment";
+
 interface Props {
+  id?: string;
   catalog: HistoryCatalog | null;
   selection: HistorySelection | null;
+  /** Срез в условиях следующего запуска: с него открывается предпросмотр. */
+  current?: string | null;
   onSelect: (selection: HistorySelection) => void;
   onMore?: (offset: number) => void;
   overview?: HistoryOverview | null;
@@ -14,62 +20,51 @@ interface Props {
   onExclusionsMore?: (offset: number) => void;
   disabled?: boolean;
   error?: string | null;
-  recordTime?: string | null;
 }
 
-export function localTime(value: string): string {
-  return value.replace("T", " ");
-}
+type Mode = "episodes" | "exact" | "period";
 
-const TAG_UNITS: Record<string, string> = { "ht.T6": "°C", "ht.F9": "т/ч", "ht.F26": "м³/ч" };
+const MODES: { key: Mode; label: string }[] = [
+  { key: "episodes", label: "Готовые эпизоды" },
+  { key: "exact", label: "Точная дата" },
+  { key: "period", label: "Обзор периода" }
+];
 
-function reading(value: number | null, unit: string): string {
-  return value === null ? "нет измерения" : `${value.toLocaleString("ru-RU", { maximumFractionDigits: 3 })} ${unit}`;
-}
+/** Общий выбор данных для расчёта: сначала режим, затем инструменты этого режима. */
+export function HistoryExplorer({ id, catalog, selection, current, onSelect, onMore, disabled, error, overview, onOverview, onExclusionsMore }: Props) {
+  const [mode, setMode] = useState<Mode>("episodes");
+  const base = useId();
+  const locked = disabled ?? false;
+  const unavailable = catalog && !catalog.arbitrary.available
+    ? <p className="history__hint">Доступны только готовые эпизоды. {catalog.arbitrary.reason}</p> : null;
+  const coverage = catalog?.arbitrary.available ? catalog.coverage ?? null : null;
 
-export function HistoryExplorer({ catalog, selection, onSelect, onMore, disabled, error, recordTime, overview, onOverview, onExclusionsMore }: Props) {
-  const [filter, setFilter] = useState("");
-  const items = catalog?.items.filter((item) => `${item.at} ${item.label}`.toLocaleLowerCase()
-    .includes(filter.toLocaleLowerCase())) ?? [];
-  return <section className="history" aria-label="Исторические моменты">
-    <h2>Выбрать момент истории</h2>
-    <p>Местное время исходных данных; часовой пояс не указан в поставке.</p>
-    {recordTime && <p>Дата показанной записи: <strong>{localTime(recordTime)}</strong></p>}
-    {error && <p role="alert">{error}</p>}
-    {!catalog ? <p role="status">Каталог ещё не получен.</p> : <>
-      <p>{catalog.note}</p>
-      {catalog.snapshot_coverage && <p>Готовые срезы: {localTime(catalog.snapshot_coverage.start)} — {localTime(catalog.snapshot_coverage.end)}.
-        Между срезами данные могут отсутствовать.</p>}
-      {!catalog.arbitrary.available && <p>Доступны только готовые срезы. {catalog.arbitrary.reason}</p>}
-      {catalog.arbitrary.available && catalog.coverage && <HistoryMoment coverage={catalog.coverage}
-        disabled={disabled ?? false} onSelect={onSelect} onOverview={onOverview} />}
-      {overview && <HistoryOverviewPanel overview={overview} onMore={onExclusionsMore} disabled={disabled ?? false} />}
-      <label>Найти дату или название
-        <input type="search" value={filter} onChange={(event) => setFilter(event.target.value)} />
-      </label>
-      <p>Показано {items.length} из {catalog.total}. Выбор меняет условия следующего запуска; расчёт запускается отдельно.</p>
-      <ul className="history__list">
-        {items.map((item) => <li key={item.snapshot}>
-          <button type="button" disabled={disabled}
-            aria-pressed={selection?.kind === "snapshot" && selection.snapshot === item.snapshot}
-            onClick={() => onSelect({ kind: "snapshot", snapshot: item.snapshot, requested_at: item.at })}>
-            <strong>{item.label}</strong><span>{localTime(item.at)}</span>
-          </button>
-          <p title={`ЛИМС: ${item.facts.lab_value}; ПАК: ${item.facts.pak_value}`}>ЛИМС: {reading(item.facts.lab_value, "мг/кг")} · ПАК: {reading(item.facts.pak_value, "ppm")}</p>
-          {item.facts.lab_available_time && <p>ЛИМС доступен с {localTime(item.facts.lab_available_time)}</p>}
-          <details><summary>Фактические признаки среза</summary>
-            <p>Доля пропусков телеметрии: {item.facts.telemetry_missing_fraction === null
-              ? "не передана" : `${(100 * item.facts.telemetry_missing_fraction).toFixed(1)} %`}</p>
-            {Object.entries(item.measurements).map(([tag, value]) => <p key={tag}>
-              {tag}: {value ? `${value.value.toLocaleString("ru-RU", { maximumFractionDigits: 3 })} ${TAG_UNITS[tag] ?? "(единица не передана)"} · ${localTime(value.time)} · возраст ${value.age_min} мин` : "нет измерения"}
-            </p>)}
-          </details>
-          {item.synthetic_edits.length > 0 && <p>Искусственные изменения: {item.synthetic_edits.join("; ")}</p>}
-        </li>)}
-      </ul>
-      {items.length === 0 && <p>Подходящих срезов нет.</p>}
-      {catalog.next_offset !== null && onMore && <button type="button" disabled={disabled}
-        onClick={() => onMore(catalog.next_offset!)}>Следующая страница</button>}
-    </>}
+  return <section id={id} className="history" aria-label="Выбор данных для расчёта">
+    <div className="history__tabs" role="tablist" aria-label="Способ выбора">
+      {MODES.map((item) => <button key={item.key} type="button" role="tab" id={`${base}-${item.key}`}
+        aria-selected={mode === item.key} aria-controls={`${base}-panel`} tabIndex={mode === item.key ? 0 : -1}
+        className="history__tab" onClick={() => setMode(item.key)}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+          const at = MODES.findIndex((entry) => entry.key === mode);
+          const next = MODES[(at + (event.key === "ArrowRight" ? 1 : MODES.length - 1)) % MODES.length]!;
+          setMode(next.key);
+          document.getElementById(`${base}-${next.key}`)?.focus();
+        }}>{item.label}</button>)}
+    </div>
+    <div className="history__panel" role="tabpanel" id={`${base}-panel`} aria-labelledby={`${base}-${mode}`}>
+      {error && <p className="history__error" role="alert">{error}</p>}
+      {!catalog ? <p role="status">Каталог ещё не получен.</p>
+        : mode === "episodes" ? <EpisodeList catalog={catalog} selection={selection} current={current ?? null}
+            onUse={onSelect} onMore={onMore} disabled={locked} />
+        : !coverage ? unavailable
+        : mode === "exact" ? <HistoryMoment coverage={coverage} gridMinutes={catalog.grid_minutes}
+            onSelect={onSelect} disabled={locked} />
+        : onOverview ? <HistoryPeriod coverage={coverage} overview={overview ?? null} onOverview={onOverview}
+            onExclusionsMore={onExclusionsMore} disabled={locked} />
+        : <p className="history__hint">Обзор периода недоступен.</p>}
+      {mode === "episodes" && catalog && <p className="history__hint">Выбор меняет условия следующего запуска; расчёт
+        запускается основной кнопкой. Название эпизода — описание исторического периода, а не обещание результата.</p>}
+    </div>
   </section>;
 }
