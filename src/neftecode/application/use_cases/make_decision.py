@@ -205,8 +205,7 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin):
                        f"заданных отклонений и надёжным не считается")
         if tank_estimate is not None and tank_estimate.get("sensitive"):
             reason += f". {tank_estimate['verdict']}"
-        consequences = self._consequences(chosen, final, feasible, plans, confirmed, initial_tanks,
-                                          current_operation)
+        consequences = self._consequences(chosen, final, feasible)
         return self._finish(
             status, reason, trace, chosen, final, None, selected, robustness,
             current_operation=current_operation, lookahead=lookahead, tank_estimate=tank_estimate,

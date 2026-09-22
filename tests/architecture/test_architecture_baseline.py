@@ -28,9 +28,9 @@ DECISION_KEYS = {
     "decision_id", "gate", "immediate_action", "note", "production_t", "reason",
     "refusal", "rejected", "robustness", "scenario_id", "scope", "selected_plan",
     "severity_index", "status", "tank_estimate", "trace", "deployment_readiness",
-    "selection_policy", "severity", "tradeoff",
+    "selection_policy", "severity", "tradeoff", "consequences",
 }
-ADDITIVE_KEYS = {"severity", "tradeoff"}
+ADDITIVE_KEYS = {"severity", "tradeoff", "consequences"}
 
 
 def decision(path: Path) -> dict:

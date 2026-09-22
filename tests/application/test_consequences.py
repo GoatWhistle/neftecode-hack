@@ -33,16 +33,41 @@ def test_hold_decision_carries_selected_and_hold_points_from_same_gate():
         assert selected_points == gate_points
 
 
-def test_recommend_scenario_recomputes_hold_with_same_evaluator():
+def test_recommend_scenario_reports_hold_from_the_same_pool_or_explicit_unavailability():
     decision = decide(SOUR)
     assert decision["status"] == "recommend_scenario"
     consequences = decision["consequences"]
     assert consequences["selected_id"] != "hold"
-    assert consequences["hold"]["available"] is True
-    assert consequences["hold"]["source"] in ("search_pool", "recomputed_same_evaluator")
+    assert consequences["hold"]["source"] in ("search_pool", None)
+    if consequences["hold"]["available"]:
+        for series in consequences["series"]:
+            assert "hold" in series["candidates"]
+    else:
+        assert consequences["hold"]["reason"]
+        for series in consequences["series"]:
+            assert "hold" not in series["candidates"]
     for series in consequences["series"]:
-        assert "hold" in series["candidates"]
         assert series["candidates"]["selected"]["candidate_id"] == consequences["selected_id"]
+
+
+def test_consequences_do_not_add_extra_evaluator_calls():
+    """_consequences не заводит второй evaluator: последний вызов planner.evaluate в decide()
+    остаётся финальной перепроверкой выбранного плана, а не пересчётом hold после неё —
+    от этого зависит поведение других проверок decide() (например, отказ при провале
+    именно финальной перепроверки)."""
+    scenario = load_scenario(str(SOUR))
+    maker = MakeDecision(scenario)
+    calls: list[str] = []
+    original = maker.planner.evaluate
+
+    def counting(plan, *args, **kwargs):
+        calls.append(plan.plan_id)
+        return original(plan, *args, **kwargs)
+
+    maker.planner.evaluate = counting
+    decision = maker.decide(budget=60)
+    assert decision["consequences"] is not None
+    assert calls[-1] == decision["gate"]["plan_id"]
 
 
 def test_refusal_carries_no_consequences_block():

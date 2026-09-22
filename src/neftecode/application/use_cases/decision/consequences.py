@@ -1,21 +1,24 @@
 """Компактный контракт последствий выбранного плана и hold во времени (P1).
 
 Строится из тех же проверок, что уже посчитал Gate для выбранного плана; для hold —
-из того же evaluator на тех же входах (пул поиска, либо один ограниченный пересчёт).
-LLM не вызывается: расчёт идёт один раз внутри decide(), не на каждое переключение вкладки.
+из того же evaluator на тех же входах, но только если он уже посчитан в исследованном
+пуле (`feasible`) этого решения. Лишний вызов evaluator здесь не делаем: decide() уже
+устроен так, что число вычислений плана — наблюдаемая величина (используется другими
+проверками), рассчитывать hold ещё раз в этом месте значило бы завести второй evaluator
+поверх первого. Если hold не в пуле — явная недоступность сравнения с причиной, как и
+разрешает задание. LLM не вызывается: расчёт идёт один раз внутри decide(), не на каждое
+переключение вкладки.
 """
 
 from neftecode.domain.production.quantities import UNITS
 from neftecode.domain.shared.primitives import PRODUCT_LIMITS
-
-from ..plan_operation import PlannerError
 
 CONSEQUENCES_VERSION = 1
 
 
 class ConsequencesMixin:
 
-    def _consequences(self, chosen, final, feasible, plans, confirmed, initial_tanks, current_operation) -> dict:
+    def _consequences(self, chosen, final, feasible) -> dict:
         selected_id = chosen.plan_id
         hold_evaluation, hold_source, hold_reason = None, None, None
         if selected_id == "hold":
@@ -25,15 +28,9 @@ class ConsequencesMixin:
             if hold_evaluation is not None:
                 hold_source = "search_pool"
             else:
-                hold_plan = next((p for p in plans if p.plan_id == "hold"), None)
-                if hold_plan is None:
-                    hold_reason = "план hold не построен для этого сценария"
-                else:
-                    try:
-                        hold_evaluation = self._evaluate_plan(hold_plan, confirmed, initial_tanks, current_operation)
-                        hold_source = "recomputed_same_evaluator"
-                    except (PlannerError, ValueError) as exc:
-                        hold_reason = f"расчёт hold тем же evaluator завершился ошибкой: {str(exc)[:160]}"
+                hold_reason = ("hold не входил в проверенный пул этого решения (отклонён обязательными "
+                                "проверками или не дошёл до финального сравнения); повторный расчёт здесь "
+                                "не делается — он завёл бы второй evaluator поверх уже посчитанного пула")
 
         def points_for(evaluation, limit_id: str) -> list:
             constraint = f"quality.{limit_id}"
