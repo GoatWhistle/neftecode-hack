@@ -1,0 +1,80 @@
+{
+  "schema": "neftecode.research-summary/1",
+  "study_id": "forecast-final-2026",
+  "kind": "research_result",
+  "sources": [
+    {
+      "path": "research/forecast/final-2026.json",
+      "sha256": "fdf3609634484a467afe0ce7a3344f92e444598a0800218bbd8033e0c740a011",
+      "schema_version": "v1"
+    },
+    {
+      "path": "research/forecast/selection.json",
+      "sha256": "5f7cc55c8a862a4b73b46ed13d06508612635d4c4e124f159e2e3c26a19a7f33",
+      "schema_version": "v1"
+    }
+  ],
+  "protocol": "research/forecast/protocol.md",
+  "document": "docs/forecast-evidence.md",
+  "subject": {
+    "quantity": "sulfur_mgkg",
+    "object": "stream_after_hydrotreating",
+    "target": "next_lims_sample",
+    "unit": "мг/кг",
+    "reference": "research/forecast/protocol.md §1"
+  },
+  "period": "2026",
+  "total_targets": 249,
+  "paired_targets": 233,
+  "baseline": {
+    "method": "last_pak",
+    "mae_mgkg": 1.8015779551965996,
+    "rmse_mgkg": 2.5684934150934158,
+    "exceed_upper": 0.06866952789699571,
+    "two_sided_coverage": 0.8669527896995708,
+    "mean_upper_margin_mgkg": 4.282728876044635,
+    "mean_interval_width_mgkg": 7.193101868463006,
+    "point_exceedance_recall": 0.23529411764705882
+  },
+  "winner": {
+    "method": "last_pak_bc",
+    "mae_mgkg": 1.6160461118228957,
+    "rmse_mgkg": 2.422156243419759,
+    "exceed_upper": 0.060085836909871244,
+    "two_sided_coverage": 0.871244635193133,
+    "mean_upper_margin_mgkg": 3.631783203475783,
+    "mean_interval_width_mgkg": 6.268979429206065,
+    "point_exceedance_recall": 0.3235294117647059
+  },
+  "paired_mae_difference": {
+    "value_mgkg": -0.18553184337370388,
+    "ci95_mgkg": [
+      -0.3023472867682253,
+      -0.07061266890155392
+    ],
+    "bootstrap_draws": 2000,
+    "seed": 42
+  },
+  "goal": {
+    "metric": "exceed_upper",
+    "max": 0.05,
+    "kind": "research_target",
+    "reference": "research/forecast/protocol.md §5",
+    "met_by_winner": false,
+    "met_by_baseline": false
+  },
+  "selection": {
+    "frozen_before_period": true,
+    "changed_by_result": false,
+    "evidence_sha256": "ef83c7a0d8f8513886c9934c98ce08e2606df34c6715bd7908c545f3b2c1f627",
+    "development_end": "2026-01-01"
+  },
+  "model_link": {
+    "evaluation_fingerprint": "7b89a7436115b25f8bff08d23917aca034dd2d89aba9ce09f204c4c7ca0c946d",
+    "declared_fingerprints": [
+      "ba9329aa771f9b8d9a60a82561710c1424e9f9356126f5d249b123a9df884091"
+    ],
+    "note": "Сравнивается с training_fingerprint записи. Совпадение с declared — отпечаток после усиления метаданных без повторного прогона 2026; другое значение — метрики к модели записи не относятся."
+  },
+  "interpretation": "The frozen winner improved point error and narrowed the interval on 2026, but both upper bounds exceeded the 5% target. The 2026 result is descriptive and did not change the selected method, N=20, min_pairs=5, or interval algorithm."
+}

@@ -1,0 +1,76 @@
+{
+ "_source": "artifacts/agent-live-full-20260917.json -> decision.agentic, без изменений (живой прогон zai/glm-5.3-flash 17.09)",
+ "agentic": {
+  "mode": "agentic",
+  "outcome": "confirmed_legacy",
+  "fallback_reason": null,
+  "legacy_decision_id": "13f0ee993722154b",
+  "legacy_status": "hold",
+  "provider": "zai",
+  "model": "glm-5.3-flash",
+  "note": "LLM-агенты выбирают инструменты и предлагают ограничения; числа, допустимость, ранжирование, финальная перепроверка и устойчивость — детерминированный код. Сценарный результат.",
+  "opinions": [],
+  "constraints_applied": [],
+  "vetoed_candidates": {},
+  "llm_choice_overridden": false,
+  "final": {
+   "action": "keep_legacy",
+   "candidate_id": null,
+   "reason_codes": [
+    "legacy_gate_feasible",
+    "margins_healthy",
+    "zero_changes",
+    "not_fragile",
+    "candidates_not_better"
+   ],
+   "summary": "Текущий режим (hold) проходит все обязательные проверки: запасы по сере 5.13 мг/кг, T95 8.4 °C, цетану 0.65, плотности ~9.3/15.7 кг/м³; изменений не требуется, режим не хрупкий, данные ЛИМС/ПАК пригодны. Кандидаты дают лишь ~4% экономии по стоимости, но требуют 1–2 изменений и имеют худшие запасы (сера 4.79–4.83, T95 7.59–7.79, цетан 0.5). Выгода не оправдывает снижение устойчивости — оставляем те",
+   "evidence_refs": [
+    "context:legacy",
+    "context:candidates",
+    "context:limits",
+    "context:data_trust",
+    "context:measurements"
+   ]
+  },
+  "trace": [
+   {
+    "seq": 1,
+    "agent": "orchestrator",
+    "step": 1,
+    "kind": "llm_call",
+    "decision": "tool_calls",
+    "latency_ms": 29560,
+    "provider": "zai",
+    "model": "glm-5.3-flash",
+    "usage": {
+     "prompt_tokens": 3001,
+     "completion_tokens": 1173,
+     "total_tokens": 4174
+    }
+   },
+   {
+    "seq": 2,
+    "agent": "orchestrator",
+    "step": 1,
+    "kind": "final",
+    "tool_name": "finalize",
+    "decision": "accepted"
+   }
+  ],
+  "budget": {
+   "llm_calls": 1,
+   "llm_calls_by_role": {
+    "orchestrator": 1
+   },
+   "max_llm_calls": 12,
+   "replans": 0,
+   "consults": {},
+   "robustness_runs": 0,
+   "usage": {
+    "prompt_tokens": 3001,
+    "completion_tokens": 1173,
+    "total_tokens": 4174
+   }
+  }
+ }
+}
