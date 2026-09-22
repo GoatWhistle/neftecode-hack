@@ -11,6 +11,8 @@ useradd --system --home /srv/neftecode --shell /usr/sbin/nologin neftecode
 mkdir -p /srv/neftecode/artifacts
 chown neftecode:neftecode /srv/neftecode/artifacts
 cd /srv/neftecode
+export UV_PYTHON_INSTALL_DIR=/opt/uv/python
+uv python install 3.12
 uv sync --frozen --no-dev --python 3.12
 install -m 0644 deploy/neftecode.service /etc/systemd/system/neftecode.service
 install -m 0644 deploy/Caddyfile /etc/caddy/Caddyfile
