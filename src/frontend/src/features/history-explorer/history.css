@@ -1,0 +1,12 @@
+.history { min-width: 0; padding: var(--space-5, 20px); border: 1px solid var(--muted); border-radius: 12px; }
+.history h2 { margin-top: 0; }
+.history p { overflow-wrap: anywhere; }
+.history label { display: grid; gap: 8px; }
+.history input, .history button { font: inherit; color: inherit; background: var(--paper); border: 1px solid var(--muted); border-radius: 8px; padding: 10px; min-width: 0; }
+.history input { width: 100%; box-sizing: border-box; }
+.history__list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.history__list li { min-width: 0; padding: 12px; border: 1px solid var(--muted); border-radius: 12px; }
+.history__list button { display: grid; gap: 6px; text-align: left; width: 100%; cursor: pointer; }
+.history button[aria-pressed="true"] { outline: 2px solid var(--pass); }
+.history button:disabled { opacity: .6; cursor: default; }
+.history button:focus-visible, .history input:focus-visible { outline: 3px solid var(--carbon); outline-offset: 3px; }
