@@ -39,13 +39,14 @@ export function localTime(value: string): string {
 export interface MomentView {
   key: string;
   at: string;
-  kind: "snapshot" | "synthetic" | "moment";
+  kind: "snapshot" | "synthetic" | "moment" | "scenario";
   label: string | null;
 }
 
 export const KIND_LABEL: Record<MomentView["kind"], string> = {
   snapshot: "Исторический срез",
   synthetic: "С искусственными изменениями",
+  scenario: "Не измерения завода",
   moment: "Точный момент"
 };
 
@@ -60,6 +61,7 @@ export function momentOf(
 ): MomentView | null {
   if (form.at) return { key: `at:${form.at}`, at: form.at, kind: "moment", label: null };
   if (!form.snapshot) return null;
+  if (form.snapshot === "synthetic") return { key: "synthetic", at: "", kind: "scenario", label: null };
   const item = catalog?.items.find((entry) => entry.snapshot === form.snapshot);
   if (item) return { key: form.snapshot, at: item.at, kind: kindOf(item), label: item.label };
   const title = titles.find((entry) => entry.key === form.snapshot)?.title ?? null;

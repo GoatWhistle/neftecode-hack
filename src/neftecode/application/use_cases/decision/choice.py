@@ -145,7 +145,7 @@ class ChoiceMixin:
                 "verdict": verdict, "reasons": reasons}
 
     def _choice(self, *, status, decision_id, ranking, pool, examined, plan, evaluation, lookahead,
-                vetoed, refusal) -> dict:
+                vetoed, refusal, tank_estimate=None) -> dict:
         examined = list(examined or ())
         by_id = {e.candidate.candidate_id: e for e in examined}
         for e in pool or ():
@@ -155,6 +155,7 @@ class ChoiceMixin:
         vetoed_ids = {v["candidate_id"]: v for v in vetoed}
         selected_id = plan.plan_id if plan is not None else None
         selected_eval = evaluation if evaluation is not None else by_id.get(selected_id)
+        phase_excluded = set((tank_estimate or {}).get("excluded_plan_ids", ()))
         # Gate-допустимые, но снятые сценарным пределом тяжести внутри rank.
         policy_rejected = {item["candidate_id"]: item for item in (ranking or {}).get("rejected", [])
                            if item.get("candidate_id") in by_id and by_id[item["candidate_id"]].feasible}
@@ -166,6 +167,11 @@ class ChoiceMixin:
             reasons = self._gate_reasons(e, decision_id)
             if cid in vetoed_ids:
                 reasons.append(vetoed_ids[cid]["reason"])
+            if cid in phase_excluded:
+                reasons.append({"category": "final_veto", "stage": "park_phase",
+                                "text": "Один и тот же план не подтверждён на всём интервале фаз парка",
+                                "rule": {"id": "common_park_plan", "value": None, "observed": None,
+                                         "source": "tank_estimate.excluded_candidates"}})
             if not reasons and cid in policy_rejected:
                 reasons.append({"category": "policy_limit", "stage": "policy",
                                 "text": "; ".join(policy_rejected[cid].get("rejection_reasons") or ()),
@@ -251,6 +257,9 @@ class ChoiceMixin:
 
         determined_by = []
         if selected_id is not None:
+            if (tank_estimate or {}).get("selection_changed"):
+                determined_by.append({"stage": "park_phase", "text": tank_estimate["verdict"],
+                                      "candidate_ids": [tank_estimate["baseline_plan"]]})
             if vetoed:
                 determined_by.append({"stage": "final_veto",
                                       "text": "Предыдущий выбранный план отклонён финальной проверкой; выбран "

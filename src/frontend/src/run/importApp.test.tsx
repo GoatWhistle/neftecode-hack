@@ -62,6 +62,28 @@ describe("импорт протокола в смонтированное при
     expect(screen.getByRole("heading", { name: /Ответ изменился/ })).toBeInTheDocument();
   }
 
+  it("после запуска показывает и фокусирует итог, подробная схема не заслоняет ответ", async () => {
+    const payload = record("risk").payload;
+    const prior = fetchSpy.getMockImplementation() as (url: string) => Promise<Response>;
+    fetchSpy.mockImplementation(async (url: string) => String(url).startsWith("/api/stream")
+      ? new Response(`event: screen\ndata: ${JSON.stringify({ payload, elapsed_ms: 120 })}\n\n`,
+        { headers: { "Content-Type": "text/event-stream" } })
+      : prior(url));
+    render(<App />);
+    const start = await screen.findByRole("button", { name: "Запустить расчёт" });
+    await waitFor(() => expect(start).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Расширенные условия" }));
+    expect(document.querySelector("#map-drawer-input")).toBeInTheDocument();
+    fireEvent.click(start);
+    expect(await screen.findByText(/Расчёт завершён/)).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Результат запуска")).toHaveFocus());
+    expect(screen.getByLabelText("Результат запуска").compareDocumentPosition(
+      document.querySelector(".calculation-map")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByText("Предложен сценарный план")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Расширенные условия" }));
+    expect(document.querySelector("#map-drawer-input")).toBeInTheDocument();
+  });
+
   it("смена момента не переписывает дату показанного ответа и просит перезапуск", async () => {
     await openGood();
     expect(screen.queryByText(/Выбран другой момент/)).toBeNull();

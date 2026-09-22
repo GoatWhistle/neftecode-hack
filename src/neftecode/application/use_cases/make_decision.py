@@ -18,13 +18,14 @@ from .decision.choice import ChoiceMixin
 from .decision.consequences import ConsequencesMixin
 from .decision.lookahead import LookaheadMixin
 from .decision.search import SearchMixin
+from .decision.phase_selection import PhaseSelectionMixin
 
 __all__ = ["AgentError", "LOOKAHEAD_CANDIDATES", "MAX_ROUNDS", "MakeDecision", "QualityReview",
            "ReliabilityReview", "SearchOutcome", "VETO_FAMILIES"]
 
 
 @dataclass
-class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
+class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin, PhaseSelectionMixin):
 
     scenario: Scenario
     planner: PlanOperation = field(init=False)
@@ -95,9 +96,27 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
 
     def release(self, selected: dict, selected_plan_obj, feasible, by_id, trace: list[dict], *, confirmed=(),
                 budget: int = DEFAULT_BUDGET, raw_scenario: dict | None = None, initial_tanks=None,
-                current_operation: dict | None = None, examined=None, vetoed=()) -> dict:
+                current_operation: dict | None = None, examined=None, vetoed=(), phase_selection=None) -> dict:
         check_cancelled()
         examined = list(examined) if examined is not None else list(feasible)
+        phase = phase_selection
+        if phase is None:
+            selected, feasible, by_id, phase = self._phase_pool(
+                selected, feasible, by_id, raw_scenario, confirmed, initial_tanks, current_operation)
+        else:
+            phase = {**phase, "allowed_ids": [e.candidate.candidate_id for e in feasible]}
+        if phase is not None:
+            if selected.get("selected") is None:
+                report = self._phase_report(phase, None, REFUSE)
+                trace.append({"agent": "tank_estimate", "available": report["available"],
+                              "sensitive": True, "common_candidates": 0})
+                return self._finish(
+                    REFUSE, report["verdict"], trace, None, None,
+                    {"kind": "tank_phase_sensitive", "examples": [report["verdict"]],
+                     "failed_taus_h": report["failed_taus_h"]}, ranking=selected,
+                    current_operation=current_operation, tank_estimate=report,
+                    pool=feasible, examined=examined, vetoed=vetoed)
+            selected_plan_obj = by_id[selected["selected"]["candidate_id"]]
         lookahead = None
         emit("stage", stage="forecast", state="running")
         try:
@@ -158,7 +177,7 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
                     return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
                                         confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
                                         initial_tanks=initial_tanks, current_operation=current_operation,
-                                        examined=examined, vetoed=vetoed)
+                                        examined=examined, vetoed=vetoed, phase_selection=phase)
                 return self._finish(REFUSE,
                                     "Ход температуры не выдерживает слабый край отклика по данным, других "
                                     "допустимых планов нет: решение не выдаётся",
@@ -194,7 +213,7 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
                     return self.release(ranked, remaining_by_id.get(next_id), remaining, remaining_by_id, trace,
                                         confirmed=confirmed, budget=budget, raw_scenario=raw_scenario,
                                         initial_tanks=initial_tanks, current_operation=current_operation,
-                                        examined=examined, vetoed=vetoed)
+                                        examined=examined, vetoed=vetoed, phase_selection=phase)
                 return self._finish(
                     REFUSE,
                     "Ни один допустимый план не выдерживает обязательный диапазон устойчивости: решение не выдаётся",
@@ -205,8 +224,9 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
                 )
 
         status = HOLD if chosen.changes == 0 else RECOMMEND_SCENARIO
-        tank_estimate = self._tank_estimate(raw_scenario, status, chosen.plan_id, budget, confirmed,
-                                            current_operation, initial_tanks)
+        tank_estimate = (self._phase_report(phase, final.to_dict(), status) if phase is not None else
+                         self._tank_estimate(raw_scenario, status, chosen.plan_id, budget, confirmed,
+                                             current_operation, initial_tanks))
         if tank_estimate is not None:
             trace.append({"agent": "tank_estimate", "available": tank_estimate["available"],
                           "sensitive": tank_estimate.get("sensitive"),
@@ -230,7 +250,7 @@ class MakeDecision(SearchMixin, LookaheadMixin, ConsequencesMixin, ChoiceMixin):
             reason += (f". Предупреждение: план теряет допустимость при "
                        f"{robustness['violated']} из {robustness['perturbations_evaluated']} "
                        f"заданных отклонений и надёжным не считается")
-        if tank_estimate is not None and tank_estimate.get("sensitive"):
+        if tank_estimate is not None and (tank_estimate.get("sensitive") or tank_estimate.get("selection_changed")):
             reason += f". {tank_estimate['verdict']}"
         consequences = self._consequences(chosen, final, feasible, by_id, confirmed, current_operation)
         return self._finish(

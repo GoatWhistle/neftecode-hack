@@ -8,7 +8,7 @@ import { SCENARIO_LABEL } from "./run/orchRead";
 import { PipelineMap } from "./map/PipelineMap";
 import { INPUT_SCENARIO } from "./map/graph";
 import { Summary } from "./map/Summary";
-import { AFTER_ID, scrollToConditions, scrollToMap } from "./map/mapRuntime";
+import { AFTER_ID, RESULT_ID, scrollToConditions, scrollToSummary } from "./map/mapRuntime";
 import { StatusBar } from "./map/StatusBar";
 import { OperatorAnswer } from "./ui/OperatorAnswer";
 import { Evidence } from "./evidence/Evidence";
@@ -86,6 +86,20 @@ export function App() {
   const outcome = outcomeOf(run.status, payload, run.error, run.status === "stopped");
   const phase = run.status === "idle" ? "idle" : outcome ? "answer" : "run";
   useDocumentTitle(run);
+
+  useEffect(() => {
+    if (phase !== "answer") return;
+    const frame = requestAnimationFrame(() => {
+      scrollToSummary();
+      document.getElementById(RESULT_ID)?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [phase]);
+
+  const showConditions = useCallback(() => {
+    setOpen(INPUT_SCENARIO);
+    scrollToConditions();
+  }, []);
 
   const optionsAbort = useRef<AbortController | null>(null);
 
@@ -183,11 +197,12 @@ export function App() {
 
   const startWith = useCallback((frozen: Conditions, label: string | null) => {
     setOpen(null);
+    setPickerOpen(false);
     setCurrent(null);
     nextLabel.current = label;
     setLaunched(frozen);
     start(queryOf(frozen));
-    scrollToMap();
+    requestAnimationFrame(scrollToSummary);
   }, [start]);
 
   const launch = useCallback(() => startWith({ ...conditions }, null), [conditions, startWith]);
@@ -257,7 +272,7 @@ export function App() {
     built.current = shown.payload;
     setOpen(null);
     setLaunched({ ...BLANK, ...(shown.form as Partial<Conditions>) });
-    scrollToMap();
+    requestAnimationFrame(scrollToSummary);
   }, [openRecord]);
 
   const comparison = useMemo(
@@ -270,8 +285,8 @@ export function App() {
     setLaunched(null);
     setCurrent(null);
     setOpen(null);
-    scrollToConditions();
-  }, [reset]);
+    showConditions();
+  }, [reset, showConditions]);
 
   const focusWhatIf = useCallback(() => {
     const title = document.getElementById("whatif-title");
@@ -359,7 +374,7 @@ export function App() {
             error={run.status === "idle" ? optionsError : null}
             onPreset={(key) => void pickPreset(key)}
             onStart={launch}
-            onAdvanced={() => setOpen(INPUT_SCENARIO)}
+            onAdvanced={showConditions}
             moment={<>
               {momentRow(false)}
               {pickerOpen ? <HistoryExplorer
@@ -368,6 +383,11 @@ export function App() {
                 selection={historyPick}
                 current={conditions.at ? null : conditions.snapshot}
                 onSelect={pickHistory}
+                onScenarioData={options?.snapshots.some((item) => item.key === "synthetic") ? () => {
+                  setHistoryPick(null);
+                  setPickerOpen(false);
+                  setConditions((prev) => ({ ...prev, snapshot: "synthetic", at: "" }));
+                } : undefined}
                 onMore={loadCatalog}
                 overview={overview}
                 onOverview={(start, end) => { lastOverview.current = { start, end }; loadOverview(start, end); }}
@@ -380,29 +400,29 @@ export function App() {
             </>}
             notice={answerMoment ? <p className="moment-stale" role="status">
               <strong>Выбран другой момент — запустите расчёт.</strong> Показанный ответ относится
-              к {longMoment(answerMoment.at)}.
+              к {answerMoment.kind === "scenario" ? "сценарным данным" : longMoment(answerMoment.at)}.
             </p> : null}
           >
             <ProtocolBar current={current} pinned={pinned} running={run.status === "running"} onOpen={openProtocol}
               research={research} />
           </SceneBar>
+          <div id={RESULT_ID} className="result-home" tabIndex={-1} aria-label="Результат запуска">
           {run.record ? <RecordBanner info={run.record} /> : null}
           <StatusBar run={run} onStop={stop} onReplay={replay} canReplay={canReplay} />
+          {run.status === "running" ? <div className="result-pending" role="status">
+            <strong>Расчёт выполняется</strong>
+            <p>Итог появится здесь. Ход проверки показан ниже в разделе «Схема и условия».</p>
+            <button className="protocol__btn" type="button" onClick={stop}>Остановить отображение</button>
+          </div> : null}
           <CorePreview run={run} />
           {phase !== "idle" && (payload || outcome) ? (
             <div className="answer-slot">
+              <p className="result-caption">{run.status === "done" ? (run.record ? "Результат из записи" : "Расчёт завершён") : "Состояние запуска"}
+                {shown.snapshot === "synthetic" && !shown.at ? " · сценарные данные, не измерения завода"
+                  : payload?.decision_time ? ` · ${longMoment(payload.decision_time)}` : ""}</p>
+              <p className="result-caption">{SCENARIO_LABEL[shown.scenario] ?? shown.scenario} · {FAULT_LABELS[shown.fault] ?? shown.fault}</p>
               {outcome ? <OperatorAnswer outcome={outcome} /> : null}
               {settled && payload ? <AgentOutcome payload={payload} /> : null}
-              {settled && payload ? (
-                <>
-                  <section className="answer-part" aria-label="Последствия во времени">
-                    <h3 className="answer-part__title">Последствия во времени</h3>
-                    <Consequences payload={payload} />
-                  </section>
-                  {payload.decision.tank_park ? <TankPark park={payload.decision.tank_park} /> : null}
-                  <ChoicePanel payload={payload} onChangeCondition={focusWhatIf} />
-                </>
-              ) : null}
               <WhatIf
                 pinned={pinned}
                 hasResult={current !== null}
@@ -417,6 +437,12 @@ export function App() {
               ) : null}
             </div>
           ) : null}
+          </div>
+          <section className="calculation-map" aria-labelledby="calculation-map-title">
+            <header className="calculation-map__head">
+              <h2 id="calculation-map-title">Схема и условия</h2>
+              <p>Исходные параметры, этапы расчёта и консультации агентов</p>
+            </header>
           <PipelineMap
             run={run}
             inputCaption={inputCaption}
@@ -441,23 +467,37 @@ export function App() {
               />
             }
           />
+          </section>
           {phase !== "idle" && (settled || (!payload && outcome)) ? (
             <div className="after" id={AFTER_ID} data-phase={phase}>
-              {payload ? <Summary payload={payload} state={decisionState} /> : null}
               {payload ? (
                 <div className="after__support">
+                  <Fold title="Почему такой ответ" hint="проверки, ограничения и рассмотренные варианты">
+                    <ChoicePanel payload={payload} onChangeCondition={focusWhatIf} />
+                  </Fold>
+                  {payload.decision.selected_plan ? <Fold title="Последствия и резервуарный парк" hint="качество, выпуск и движение партий во времени">
+                    <Consequences payload={payload} />
+                    {payload.decision.tank_park ? <TankPark park={payload.decision.tank_park} /> : null}
+                  </Fold> : payload.decision.tank_park ? <Fold title="Расчёт резервуарного парка" hint="рассмотренная траектория; план не выбран">
+                    <TankPark park={payload.decision.tank_park} />
+                  </Fold> : null}
+                  {payload.decision.selected_plan ? <>
                   <Fold title="Карта компромиссов" hint="выпуск, стоимость и тяжесть допустимых вариантов">
                     <TradeoffMapView payload={payload} />
                   </Fold>
                   <Fold title="Сравнение планов" hint="чем выбранный план лучше отклонённых">
                     <PlanCompare payload={payload} />
                   </Fold>
+                  </> : null}
                   <Fold title="Доказательства" hint="чем подтверждён каждый вывод">
                     <Evidence payload={payload} />
                   </Fold>
                   <Fold title="Паспорт доказательств" hint="данные, проверенное качество, вклад агентов; печать">
                     <EvidencePassport run={run} research={research}
                       influenceRefs={influenceRefsOf(payload.decision.choice)} />
+                  </Fold>
+                  <Fold title="Полный протокол решения" hint="уставки, происхождение значений и исходный ответ">
+                    <Summary payload={payload} state={decisionState} />
                   </Fold>
                 </div>
               ) : null}

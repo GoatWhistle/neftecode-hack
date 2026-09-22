@@ -61,9 +61,10 @@ def test_four_scenario_outputs_are_frozen():
 def test_http_payload_keeps_the_decision_json_shape():
     payload = make_demo_service(ROOT, 400).decide({"scenario": ["baseline"]})
     assert set(payload["decision"]) == DECISION_KEYS
-    assert payload["decision"]["status"] == "refuse"
-    assert payload["decision"]["refusal"]["kind"] == "tank_phase_sensitive"
-    assert payload["decision"]["tank_estimate"]["failed_taus_h"]
+    assert payload["decision"]["status"] == "hold"
+    assert payload["decision"]["selected_plan"]["plan_id"] == "hold"
+    assert payload["decision"]["tank_estimate"]["failed_taus_h"] == []
+    assert payload["decision"]["tank_estimate"]["same"] == 3
 
 
 def test_pause_resume_remains_bit_for_bit_reproducible():

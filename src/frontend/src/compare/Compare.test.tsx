@@ -68,7 +68,8 @@ describe("ответ оператору", () => {
   it("отказ не предписывает сохранять непроверенный режим", () => {
     render(<OperatorAnswer payload={fixture("bad-data")} />);
     expect(screen.queryByText(/Уставки не менять/)).toBeNull();
-    expect(screen.getByText(/не выдал рекомендацию/)).toBeInTheDocument();
+    expect(screen.getByText("Решение не выдано")).toBeVisible();
+    expect(screen.getByText(/Для повторного расчёта нужно: свежий лабораторный/)).toBeVisible();
   });
 
   it("рецепт в массовых процентах", () => {

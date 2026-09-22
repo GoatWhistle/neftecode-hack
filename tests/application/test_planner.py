@@ -111,9 +111,8 @@ def test_synthetic_phase_is_labelled_as_scenario_without_tau_scan():
     assert result["perturbations_declared"] == 0
 
 
-def test_live_without_a_level_tag_refuses_when_the_plan_depends_on_tau():
+def test_normal_plan_without_a_level_tag_covers_the_continuous_phase_interval():
     from neftecode.application.use_cases.make_decision import MakeDecision
-    from neftecode.application.services.explain import explain
     from neftecode.application.services.tank_estimate import default_tank_estimate_factory
     raw = json.loads(BASELINE.read_text(encoding="utf-8"))
     raw["measurement_binding"] = {"tags": {}, "warnings": ["уровень парка не измерен"]}
@@ -122,17 +121,14 @@ def test_live_without_a_level_tag_refuses_when_the_plan_depends_on_tau():
         scenario, scenario_parser=parse_scenario,
         tank_estimate_factory=default_tank_estimate_factory,
     ).decide(budget=100, raw_scenario=raw)
-    assert decision["status"] == "refuse"
-    assert decision["refusal"]["kind"] == "tank_phase_sensitive"
+    assert decision["status"] == "hold"
+    assert decision["selected_plan"]["plan_id"] == "hold"
     assert decision["tank_estimate"]["mode"] == "park_phase"
-    assert decision["tank_estimate"]["failed_taus_h"]
+    assert decision["tank_estimate"]["failed_taus_h"] == []
+    assert decision["tank_estimate"]["same"] == 3
+    assert decision["tank_estimate"]["coverage"]["complete"] is True
     assert decision["gate"]["feasible"] is True
     assert decision["tank_park"]["model_version"] == "tank-park/1"
-    explanation = explain(decision, scenario, {})
-    assert explanation["kind"] == "tank_phase_sensitive"
-    assert explanation["next_steps"][0]["kind"] == "measurement"
-    assert "фактический уровень" in explanation["next_steps"][0]["need"]
-    assert not any("None" in item["text"] for item in explanation["risk"]["items"])
 
 
 def test_a_normal_scenario_needs_no_extra_action():

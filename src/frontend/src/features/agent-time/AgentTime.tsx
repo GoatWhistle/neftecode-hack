@@ -48,8 +48,11 @@ export function AgentOutcome({ payload }: { payload: ScreenPayload }) {
   const stopped = !["completed", "refused", "skipped_data_refusal"].includes(terminal.kind);
   return (
     <section className={`agt ${stopped ? "agt--stopped" : ""}`} aria-label="Итог агентного этапа">
-      <p className="agt__head"><b>Агентный этап:</b> {TERMINAL[terminal.kind] ?? terminal.kind}
-        {terminal.reason ? <> (<code>{terminal.reason}</code>)</> : null}</p>
+      <p className="agt__head"><b>Агенты:</b> {TERMINAL[terminal.kind] ?? terminal.kind}</p>
+      {agentic.provider === "scripted" || agentic.deterministic_policy ? <p className="agt__note">
+        Сценарная политика инструментов; настоящая LLM в этом запуске не используется.
+      </p> : null}
+      <details><summary>Время и обращения</summary>
       <p className="agt__note">
         Время: ядро {timing?.core_s !== undefined ? `${num(timing.core_s, 1)} с` : "неизвестно"}
         {" · "}агенты {timing?.agents_s !== undefined ? `${num(timing.agents_s, 1)} с` : "неизвестно"}
@@ -57,6 +60,8 @@ export function AgentOutcome({ payload }: { payload: ScreenPayload }) {
         {budget?.llm_calls !== undefined ? ` · вызовов ${budget.llm_calls} из ${budget.max_llm_calls ?? "?"}` : ""}
         {terminal.usage_complete ? "" : " · расход неполный: часть вызовов не вернула usage (не ноль)"}
       </p>
+      {terminal.reason ? <p className="agt__note">Причина в протоколе: <code>{terminal.reason}</code></p> : null}
+      </details>
       {stopped ? (
         <p className="agt__note">
           {terminal.note}{terminal.domain_impossibility_proven ? " Отказ подтверждён расчётом проверок." : ""}

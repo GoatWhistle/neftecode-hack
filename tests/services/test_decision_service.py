@@ -107,8 +107,9 @@ def test_real_data_model_decision_live_contract():
         assert result["bound_sulfur_mgkg"] == 4.5624
         assert result["binding"]["controls"]["ht_reactor_inlet_temp_c"]["current"]["source"] == "measured"
         assert result["binding"]["response_model"]["provenance"] == "derived"
-        assert result["decision"]["status"] == "refuse"
-        assert result["decision"]["refusal"]["kind"] == "tank_phase_sensitive"
+        assert result["decision"]["status"] == "hold"
+        assert result["decision"]["refusal"] is None
+        assert result["decision"]["tank_estimate"]["same"] == 3
         assert result["decision"]["tank_estimate"]["baseline_status"] == "hold"
         assert result["decision"]["tank_park"]["model_version"] == "tank-park/1"
         assert set(result["inventories"]) == {"main", "reserve", "light"}

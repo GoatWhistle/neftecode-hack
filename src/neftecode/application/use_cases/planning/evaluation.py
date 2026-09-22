@@ -80,6 +80,9 @@ class PlanEvaluationMixin:
                 park_payload = {**frame.state.to_dict(), "model_version": park.model_version,
                                 "reasons": list(frame.reasons)}
                 component = self.scenario.tank_park.component_tank_id
+                for tank_payload in park_payload["tanks"]:
+                    if tank_payload["status"] == FILLING and tank_payload["mass_t"] == 0.0:
+                        tank_payload["forecast_properties"] = dict(inflow_properties[time_hours][component])
                 properties = {**properties, component: self._park_properties(park, index)}
             blend = self.blender.blend(spec.recipe, spec.throughput_tph,
                                        hours=self._duration(grid, index),
@@ -190,7 +193,7 @@ class PlanEvaluationMixin:
                 event_times.extend(item.passport_ready_in_h for item in state.tanks
                                    if item.status == "awaiting_passport" and item.passport_ready_in_h is not None)
                 event_times.extend(state.tank(tank_id).mass_t / rate for tank_id, rate in rates.items() if rate > 0)
-                positive = [value for value in event_times if value > 1e-9]
+                positive = [value for value in event_times if value > 0.0]
                 delta = min(positive) if positive else left
                 result = evaluator.evaluate(state, [ParkStep(delta, operations, tuple(step_reasons))])
                 frame = result.frames[-1]

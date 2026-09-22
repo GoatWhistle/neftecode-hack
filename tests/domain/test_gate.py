@@ -117,6 +117,30 @@ def test_unknown_filling_batch_property_blocks_the_passport_forecast():
     assert not gate.feasible
 
 
+def test_empty_filling_checks_inflow_forecast_without_inventing_batch_properties():
+    park = park_payload(status="filling", mass_t=0.0)
+    tank = park["tanks"][0]
+    tank["forecast_properties"] = dict(tank["properties"])
+    tank["properties"] = {key: None for key in tank["properties"]}
+    gate = check_plan("p", grid(park=park), scenario(), terminal={"satisfied": True})
+    assert gate.feasible
+    tank["forecast_properties"]["sulfur_mgkg"] = 1000.0
+    gate = check_plan("p", grid(park=park), scenario(), terminal={"satisfied": True})
+    assert not gate.feasible
+    tank["forecast_properties"]["sulfur_mgkg"] = None
+    gate = check_plan("p", grid(park=park), scenario(), terminal={"satisfied": True})
+    assert UNKNOWN in statuses(gate, "park.main-1.passport_forecast.sulfur_mgkg")
+
+
+def test_inflow_forecast_does_not_replace_unknown_nonempty_batch_quality():
+    park = park_payload(status="filling")
+    tank = park["tanks"][0]
+    tank["forecast_properties"] = dict(tank["properties"])
+    tank["properties"]["t95_c"] = None
+    gate = check_plan("p", grid(park=park), scenario(), terminal={"satisfied": True})
+    assert not gate.feasible
+
+
 def test_park_transition_failure_and_balance_error_are_hard_failures():
     bad = park_payload()
     bad["balance_error_t"] = 2.0

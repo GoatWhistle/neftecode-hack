@@ -224,6 +224,10 @@ def park_checks(step: TrajectoryPoint, scenario: Scenario) -> list[CheckResult]:
                 checks.append(CheckResult(f"park.{tank_id}.passport", PASS, None, None, step.time_hours))
         if status in {"filling", "awaiting_passport"}:
             properties = raw.get("properties")
+            # At the start of filling no batch exists yet. Check the predicted
+            # incoming stream without inventing properties of an empty tank.
+            if status == "filling" and mass == 0.0:
+                properties = raw.get("forecast_properties")
             sulfur = properties.get("sulfur_mgkg") if isinstance(properties, dict) else None
             limit = scenario.product.limit_value("sulfur_mgkg")
             corrected = (_correctable_sulfur(sulfur, step.throughput_tph, scenario)

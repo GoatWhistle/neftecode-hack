@@ -79,8 +79,8 @@ def _tank_estimate_items(decision: dict) -> list[dict]:
                 if r.get("outcome") in ("changed", "not_evaluable")]
         labels = [f"τ={value:.3g} ч" for value in taus if _finite(value)]
         return [{"kind": "tank_phase_sensitive", "level": "high",
-                 "text": ("Решение зависит от неизвестной стадии парка: разные допустимые τ дают разные "
-                          "результаты. Нужен фактический уровень резервуаров"
+                 "text": ("Общий план для всех возможных фаз парка не подтверждён. "
+                          "Нужен фактический уровень резервуаров"
                           + ("; неустойчивые фазы " + ", ".join(labels) if labels else "")),
                  "taus_h": taus}]
     changed = [r.get("perturbation") for r in (estimate.get("results") or [])

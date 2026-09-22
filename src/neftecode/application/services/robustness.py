@@ -119,12 +119,14 @@ class RobustnessCheck:
     scenario_parser: Callable[[dict], Scenario] | None = None
     tank_estimate_factory: Callable[..., TankEstimateCheck | None] = default_tank_estimate_factory
 
-    def run(self, plan, confirmed=(), initial_tanks=None, current_operation=None) -> dict:
+    def run(self, plan, confirmed=(), initial_tanks=None, current_operation=None, *, mandatory_only=False) -> dict:
         if self.scenario_parser is None:
             raise RobustnessError("Для проверки устойчивости не передан парсер сценария")
         results = []
         specs = tuple(self.perturbations) + response_perturbations(self.raw)
         mandatory_paths = set((self.raw.get("policy") or {}).get("mandatory_robustness_paths") or ())
+        if mandatory_only:
+            specs = tuple(spec for spec in specs if spec.get("mandatory") or spec.get("path") in mandatory_paths)
         base_planner = PlanOperation(self.scenario)
         base_controls = base_planner.base_controls()
         pending = base_planner.confirmed_with_operation(confirmed, current_operation)
@@ -221,6 +223,31 @@ class RobustnessCheck:
         return type(self)(scenario, raw_scenario, self.perturbations, self.scenario_parser,
                           self.tank_estimate_factory).run(
             plan, confirmed, initial_tanks=initial_tanks, current_operation=current_operation)
+
+    def evaluate_mandatory(self, scenario, raw_scenario, plan, confirmed=(), initial_tanks=None,
+                           current_operation=None) -> dict:
+        return type(self)(scenario, raw_scenario, self.perturbations, self.scenario_parser,
+                          self.tank_estimate_factory).run(
+            plan, confirmed, initial_tanks=initial_tanks, current_operation=current_operation,
+            mandatory_only=True)
+
+    def phase_interval_scenarios(self, scenario, raw, plan, confirmed=(), current_operation=None):
+        """Use the very same mandatory stresses for the continuous phase proof.
+
+        A parsing error here is unknown, never 'not applicable'. Callers must
+        fail closed if any applicable mandatory scenario cannot be certified.
+        """
+        planner = PlanOperation(scenario)
+        pending = planner.confirmed_with_operation(confirmed, current_operation)
+        mandatory_paths = set((raw.get("policy") or {}).get("mandatory_robustness_paths") or ())
+        for spec in tuple(self.perturbations) + response_perturbations(raw):
+            if not (spec.get("mandatory") or spec.get("path") in mandatory_paths):
+                continue
+            if inapplicable_reason(spec, plan, planner.base_controls(), pending) is not None:
+                continue
+            if self.scenario_parser is None:
+                raise RobustnessError("Для непрерывной проверки стресса нужен парсер сценария")
+            yield spec["name"], self.scenario_parser(perturb(raw, spec))
 
 
 def choose_robust(evaluations, checks: dict[str, dict]) -> dict:

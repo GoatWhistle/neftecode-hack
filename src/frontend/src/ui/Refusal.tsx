@@ -9,7 +9,7 @@ const KIND_TEXT: Record<string, string> = {
   bad_data: "Данные непригодны: достоверного источника качества на момент решения нет",
   data: "Данные непригодны: достоверного источника качества на момент решения нет",
   agent_rejected: "Допустимый план был, но агенты качества/надёжности его отклонили: решение не выдаётся",
-  tank_phase_sensitive: "Допустимость зависит от неизвестной стадии парка: нужен фактический уровень резервуаров"
+  tank_phase_sensitive: "Общий план для всех фаз парка не подтверждён: нужен фактический уровень резервуаров"
 };
 
 const STEP_KIND_TEXT: Record<string, string> = {
@@ -65,7 +65,7 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
             <Readout
               label="Планов проверено"
               value={num(optimizer?.evaluated, 0)}
-              hint={zeroFeasible ? "ни один не прошёл" : (phaseSensitive ? "номинальная фаза прошла; τ неустойчив" : "часть прошла проверки, но не устроила агентов")}
+              hint={zeroFeasible ? "ни один не прошёл" : (phaseSensitive ? "общий план для всех фаз не подтверждён" : "часть прошла проверки, но не устроила агентов")}
               tone={zeroFeasible || phaseSensitive ? "fail" : "unknown"}
             />
             <Readout label="Раундов поиска" value={String(rounds.length)} hint="с ужесточением запретов" />
@@ -73,7 +73,7 @@ export function RefusalPanel({ payload }: RefusalPanelProps) {
               label="Допустимых"
               value={String(feasibleCount)}
               tone={zeroFeasible || phaseSensitive ? "fail" : "unknown"}
-              hint={zeroFeasible ? "планов, прошедших все проверки" : (phaseSensitive ? "не подтверждены для всех допустимых τ" : "прошли обязательные проверки; лучший отклонён агентами")}
+              hint={zeroFeasible ? "планов, прошедших все проверки" : (phaseSensitive ? "прошли номинальную проверку, но не подтверждены на всём интервале фаз" : "прошли обязательные проверки; лучший отклонён агентами")}
             />
           </div>
 

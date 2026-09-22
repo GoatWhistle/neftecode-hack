@@ -107,6 +107,8 @@ export function StatusBar({ run, onStop, onReplay, canReplay }: StatusBarProps) 
   const toMap = (): void => {
     const anchor = anchorOf();
     if (!anchor) return;
+    const disclosure = anchor.closest("details");
+    if (disclosure) disclosure.open = true;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     anchor.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   };

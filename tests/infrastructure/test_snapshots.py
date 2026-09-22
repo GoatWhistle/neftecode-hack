@@ -287,7 +287,7 @@ def test_z5_bind_snapshot_ignores_a_pak_failure_injected_after_the_snapshot_was_
     )
 
 
-def test_z5_end_to_end_uses_no_pak_forecast_before_the_park_phase_refusal():
+def test_z5_end_to_end_uses_no_pak_forecast_and_hold_survives_park_phases():
     """Регрессия #1 через полный decision-путь (Demo → run_demo_decision → bind_snapshot →
     решение), тот же путь, что использует demo и decision-service. Ожидание из
     task-pool.md «Доказательная база 21.09»: срез 2026-07-24T03:00 + `frozen_pak` →
@@ -303,8 +303,9 @@ def test_z5_end_to_end_uses_no_pak_forecast_before_the_park_phase_refusal():
     assert "catboost_no_pak" in note, (
         f"Ожидался прогноз catboost_no_pak после инъекции frozen_pak, использован: {note!r}"
     )
-    assert status == "refuse" and plan_id is None
-    assert result["decision"]["refusal"]["kind"] == "tank_phase_sensitive"
+    assert status == "hold" and plan_id == "hold"
+    assert result["decision"]["tank_estimate"]["failed_taus_h"] == []
+    assert result["decision"]["tank_estimate"]["same"] == 3
     assert result["decision"]["tank_estimate"]["baseline_status"] == "hold", (
         "До фазовой проверки ожидался hold по catboost_no_pak; иначе могла вернуться регрессия "
         "с устаревшим last_pak_bc из сохранённого среза."

@@ -26,6 +26,7 @@ export function focusNode(board: HTMLElement, id: string): void {
 }
 
 export const AFTER_ID = "after";
+export const RESULT_ID = "run-result";
 
 function scrollTo(node: HTMLElement | null): void {
   if (!node) return;
@@ -34,12 +35,15 @@ function scrollTo(node: HTMLElement | null): void {
 }
 
 export function scrollToSummary(): void {
-  scrollTo(document.getElementById(AFTER_ID) ?? document.getElementById(SUMMARY_ID));
+  scrollTo(document.getElementById(RESULT_ID) ?? document.getElementById(AFTER_ID) ?? document.getElementById(SUMMARY_ID));
 }
 
 export function scrollToMap(): void {
   window.requestAnimationFrame(() => {
-    scrollTo(document.querySelector<HTMLElement>(".map__board"));
+    const board = document.querySelector<HTMLElement>(".map__board");
+    const disclosure = board?.closest("details");
+    if (disclosure) disclosure.open = true;
+    scrollTo(board);
   });
 }
 

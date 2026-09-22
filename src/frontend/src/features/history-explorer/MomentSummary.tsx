@@ -15,7 +15,7 @@ export function MomentSummary({ moment, open, disabled, onToggle, controls }: Pr
   return <div className="moment-row">
     <span className="moment-row__kicker">Данные для расчёта</span>
     <div className="moment-row__main">
-      <strong className="moment-row__date">{moment ? longMoment(moment.at) : "момент не выбран"}</strong>
+      <strong className="moment-row__date">{moment?.kind === "scenario" ? "Сценарные данные" : moment ? longMoment(moment.at) : "момент не выбран"}</strong>
       {moment ? <span className={`moment-row__kind moment-row__kind--${moment.kind}`}>{KIND_LABEL[moment.kind]}</span> : null}
       {moment?.label ? <span className="moment-row__label">эпизод «{moment.label}»</span> : null}
     </div>

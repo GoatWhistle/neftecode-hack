@@ -14,6 +14,7 @@ interface Props {
   /** Срез в условиях следующего запуска: с него открывается предпросмотр. */
   current?: string | null;
   onSelect: (selection: HistorySelection) => void;
+  onScenarioData?: (() => void) | undefined;
   onMore?: (offset: number) => void;
   overview?: HistoryOverview | null;
   onOverview?: (start: string, end: string) => void;
@@ -31,7 +32,7 @@ const MODES: { key: Mode; label: string }[] = [
 ];
 
 /** Общий выбор данных для расчёта: сначала режим, затем инструменты этого режима. */
-export function HistoryExplorer({ id, catalog, selection, current, onSelect, onMore, disabled, error, overview, onOverview, onExclusionsMore }: Props) {
+export function HistoryExplorer({ id, catalog, selection, current, onSelect, onScenarioData, onMore, disabled, error, overview, onOverview, onExclusionsMore }: Props) {
   const [mode, setMode] = useState<Mode>("episodes");
   const base = useId();
   const locked = disabled ?? false;
@@ -65,6 +66,12 @@ export function HistoryExplorer({ id, catalog, selection, current, onSelect, onM
         : <p className="history__hint">Обзор периода недоступен.</p>}
       {mode === "episodes" && catalog && <p className="history__hint">Выбор меняет условия следующего запуска; расчёт
         запускается основной кнопкой. Название эпизода — описание исторического периода, а не обещание результата.</p>}
+      {mode === "episodes" && onScenarioData && <details className="history__method">
+        <summary>Расчёт на сценарных данных</summary>
+        <p className="history__hint">Состояние установки и стадии резервуаров задаются сценарием.
+          Это демонстрация модели, а не измерения завода. Внесённые отказы сохраняются.</p>
+        <button type="button" disabled={locked} onClick={onScenarioData}>Использовать сценарные данные</button>
+      </details>}
     </div>
   </section>;
 }

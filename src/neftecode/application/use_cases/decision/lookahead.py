@@ -139,7 +139,8 @@ class LookaheadMixin:
         result["consequences"] = consequences
         result["choice"] = self._choice(
             status=status, decision_id=result["decision_id"], ranking=ranking, pool=pool, examined=examined,
-            plan=plan, evaluation=evaluation, lookahead=lookahead, vetoed=vetoed, refusal=refusal)
+            plan=plan, evaluation=evaluation, lookahead=lookahead, vetoed=vetoed, refusal=refusal,
+            tank_estimate=tank_estimate)
         return result
 
     def _tradeoff_block(self, result, ranking, pool, trace, plan, robustness) -> dict | None:

@@ -4,6 +4,7 @@ import { humanizeReason } from "../run/orchRead";
 import { checkFamilies } from "../run/checks";
 import type { RunOutcome } from "../run/verdict";
 import { seriousRiskItems, verdictOf } from "../run/verdict";
+import { num } from "../format";
 
 /**
  * Компактный ответ оператору над подробной схемой (finalization-plan.md, пункт 2):
@@ -44,21 +45,33 @@ export function OperatorAnswer({ payload, outcome }: OperatorAnswerProps) {
         {verdict.title}
       </p>
       {verdict.qualifier ? <p className="answer__qualifier">{verdict.qualifier}</p> : null}
-      {result ? <p className="answer__action">{actionLine(result)}</p> : null}
+      {result && result.decision.status !== "refuse" ? <p className="answer__action">{actionLine(result)}</p> : null}
       {result ? <p className="answer__reason">{humanizeReason(result.decision.reason)}</p> : null}
-      {verdict.lines.map((line) => (
+      {verdict.lines.filter((line) => !(result?.decision.reason && line.kind === "cause")).map((line) => (
         <p key={`${line.kind}:${line.text}`} className={`answer__line answer__line--${line.kind}`}>
           {line.text}
         </p>
       ))}
-      {result ? <RiskList payload={result} /> : null}
-      {result ? <CheckStrip payload={result} /> : null}
+      {result?.decision.selected_plan ? <dl className="answer__metrics">
+        <div><dt>Выпуск за горизонт</dt><dd>{num(result.decision.production_t, 1)} т</dd></div>
+        <div><dt>Условная стоимость</dt><dd>{num(result.decision.cost_per_tonne, 3)} у.е./т</dd></div>
+        <div><dt>Тяжесть режима</dt><dd>{num(result.decision.severity_index, 3)}</dd></div>
+      </dl> : null}
+      {result && result.decision.status !== "refuse" ? <RiskList payload={result} /> : null}
+      {result ? <p className="answer__scope">{result.decision.commercial_release_allowed
+        ? "Допуск товарного выпуска указан в полном протоколе."
+        : "Результат расчёта не разрешает товарный выпуск."}</p> : null}
+      {result ? <details className="answer__details">
+        <summary>Проверки и границы применимости</summary>
+        {result.decision.status === "refuse" ? <RiskList payload={result} /> : null}
+        <CheckStrip payload={result} />
       {verdict.backendStatus ? (
         <p className="answer__audit">
           Статус backend для аудита: <code>{verdict.backendStatus}</code>
           {verdict.backendLabel ? ` · «${verdict.backendLabel}»` : ""}
         </p>
       ) : null}
+      </details> : null}
     </section>
   );
 }
