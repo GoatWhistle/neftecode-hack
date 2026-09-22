@@ -6,6 +6,8 @@ from pathlib import Path
 
 SCHEMA = "run-meta/1"
 UNKNOWN = None
+# Что определяет модель в отпечатке входов: содержимое файла и обучающий набор, не время загрузки.
+MODEL_IDENTITY = ("response_model_sha256", "training_fingerprint")
 
 
 def _digest(value) -> str:
@@ -13,7 +15,7 @@ def _digest(value) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def build_run_meta(provenance, canonical: dict, payload: dict, snapshots: list, raw_scenario: dict,
+def build_run_meta(provenance: dict, canonical: dict, payload: dict, snapshots: list, raw_scenario: dict,
                    key_of=lambda item: None) -> dict:
     decision = payload.get("decision") or {}
     agentic = decision.get("agentic") or {}
@@ -21,11 +23,12 @@ def build_run_meta(provenance, canonical: dict, payload: dict, snapshots: list, 
     snapshot = next((item for item in snapshots if key_of(item) == snapshot_key), None)
     binding = payload.get("binding") or {}
     response = binding.get("response_model") or {}
-    model = provenance["model"]
+    model = provenance.get("model")
+    identity = ({key: model.get(key) for key in MODEL_IDENTITY} if isinstance(model, dict) else UNKNOWN)
     inputs = {
         "conditions": canonical, "scenario_sha256": _digest(raw_scenario),
         "snapshot": snapshot_key, "snapshot_sha256": _digest(snapshot) if snapshot is not None else UNKNOWN,
-        "model": model, "response_binding": {k: response.get(k) for k in
+        "model": identity, "response_binding": {k: response.get(k) for k in
                                              ("provenance", "beta_mgkg_per_c", "reference_temp_c",
                                               "reference_space_velocity_m3h")},
         "severity_profile": ((decision.get("severity") or {}).get("selected") or
@@ -39,8 +42,8 @@ def build_run_meta(provenance, canonical: dict, payload: dict, snapshots: list, 
                                "fault": canonical.get("fault"), "injection": payload.get("injection"),
                                "decision_time": payload.get("decision_time")},
         "input_fingerprint": _digest(inputs),
-        "input_parts": {k: v for k, v in inputs.items() if k in ("scenario_sha256", "snapshot_sha256", "model")},
-        "code": provenance["code"],
+        "input_parts": inputs,
+        "code": provenance.get("code"),
         "model": model,
         "provider": {"provider": agentic.get("provider"), "model": agentic.get("model"),
                      "deterministic_policy": agentic.get("deterministic_policy"),

@@ -18,6 +18,9 @@ from neftecode.presentation.web.server import FIRST_SNAPSHOT
 from neftecode.presentation.web.static import StaticError, StaticFiles, resolve_static_dir
 from neftecode.presentation.web.ui import error_payload, Screen
 from neftecode.presentation.web.progress import decision_stream
+from neftecode.presentation.web.run_meta import build_run_meta
+from neftecode.application.progress import emit, emit_agent_event
+from neftecode.application.cancellation import check_cancelled
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
 from neftecode.infrastructure.llm.config import decision_wait_seconds
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
@@ -103,23 +106,24 @@ class GatewayService:
         canonical = canonical_conditions(parse_conditions(values), raw, name, self.default_snapshot())
 
         def compute():
-            payload = self._decide(canonical, raw, request_id)
+            payload = self._decide(canonical, raw, request_id, live=True)
             self.cache.put(cache_key(canonical), payload)
             return payload
 
         return StreamResponse((frame.encode() for frame in decision_stream(compute)))
 
-    def _decide(self, canonical, raw, request_id):
+    def _decide(self, canonical, raw, request_id, live=False):
         chosen = self.snapshot(canonical["snapshot"])
         state = state_under(chosen, canonical["fault"])
         changes = changes_from(canonical, raw)
-        env = self.client.request("POST", self.decision_url + "/v1/decisions",
-                                  {"scenario": apply_changes(raw, changes), "state": state,
-                                   "budget": DEFAULT_BUDGET,
-                                   "trust_config": self.trust_cfg, "trust_origin": self.trust_origin,
-                                   "snapshot": chosen},
-                                  timeout_s=self.decision_timeout_s, headers={"X-Request-ID": request_id})
-        result = env.data
+        body = {"scenario": apply_changes(raw, changes), "state": state, "budget": DEFAULT_BUDGET,
+                "trust_config": self.trust_cfg, "trust_origin": self.trust_origin, "snapshot": chosen}
+        headers = {"X-Request-ID": request_id}
+        if live:
+            result = self._relay_decision(body, headers)
+        else:
+            result = self.client.request("POST", self.decision_url + "/v1/decisions", body,
+                                         timeout_s=self.decision_timeout_s, headers=headers).data
         active_forecast = (select_forecast_dict(chosen, DataTrustAgent(self.trust_cfg).assess(state))
                            if chosen is not None else None)
         screen = Screen(result["decision"], result["explanation"], result["inventories"], result.get("sources", []),
@@ -132,7 +136,32 @@ class GatewayService:
         screen["defaults"], screen["applied"], screen["injection"] = defaults_for(raw), changes, state.get("injection")
         screen["snapshot"], screen["binding"] = (snapshot_key(chosen) if chosen is not None else None), result.get("binding")
         screen["decision_timeout_s"] = self.decision_timeout_s
+        # Модель и код сообщает decision-service, который считал; gateway их не выводит из своего диска.
+        provenance = result.get("provenance") or {"code": None, "model": None}
+        screen["run_meta"] = build_run_meta(provenance, canonical, screen, self.snapshots, raw, snapshot_key)
         return screen
+
+    def _relay_decision(self, body, headers):
+        """Потоковый расчёт decision-service: его этапы и события агентов передаются в текущий поток SSE
+        по мере прихода, итог — из кадра screen. Свои accepted/ready и tick gateway шлёт сам."""
+        for event, data in self.client.stream("POST", self.decision_url + "/v1/decisions/stream", body,
+                                              timeout_s=self.decision_timeout_s, headers=headers):
+            # Клиент gateway ушёл: прекращаем чтение, соединение с decision-service закрывается.
+            check_cancelled()
+            if event == "phase" and data.get("key") not in ("accepted", "ready"):
+                emit("phase", key=data.get("key", ""), state=data.get("state", "done"))
+            elif event == "stage":
+                emit("stage", **{key: value for key, value in data.items() if key != "elapsed_ms"})
+            elif event == "agent":
+                emit_agent_event(data.get("event") or {})
+            elif event == "failed":
+                raise ServiceError(str(data.get("message") or "decision-service прервал расчёт"), 502, "upstream_failed")
+            elif event == "screen":
+                result = data.get("payload")
+                if not isinstance(result, dict) or not isinstance(result.get("decision"), dict):
+                    raise ServiceError("Decision service вернул неполный результат", 502, "invalid_upstream")
+                return result
+        raise ServiceError("Поток decision-service оборвался без результата", 502, "upstream_incomplete")
 
     def options_payload(self, name=None, request_id="gateway"):
         try:

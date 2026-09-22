@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import json
 
 from .constants import (CASE_MAX_LAG_HOURS, DEFAULT_HORIZON_SHARE, DEFAULT_ONSET_HOURS, RESPONSE_FILE,
@@ -6,14 +7,24 @@ from .constants import (CASE_MAX_LAG_HOURS, DEFAULT_HORIZON_SHARE, DEFAULT_ONSET
 
 
 def load_response_model(root: Path, out: Path | None = None) -> dict | None:
+    return load_response_model_with_digest(root, out)[0]
+
+
+def load_response_model_with_digest(root: Path, out: Path | None = None) -> tuple[dict | None, str | None]:
+    """Модель отклика и SHA-256 именно тех байтов, из которых она разобрана.
+
+    Хеш и модель получаются из одного чтения файла: подмена файла после загрузки не может
+    приписать уже загруженной модели чужой хеш.
+    """
     path = (Path(out) if out is not None else Path(root) / "artifacts") / "response_model.json"
     if not path.exists():
-        return None
+        return None, None
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        body = path.read_bytes()
+        value = json.loads(body.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"Модель отклика {path} не читается: {exc}") from exc
-    return validate_response_model(value, str(path))
+    return validate_response_model(value, str(path)), hashlib.sha256(body).hexdigest()
 
 
 def validate_response_model(value, where: str = RESPONSE_FILE) -> dict:

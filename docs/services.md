@@ -19,13 +19,33 @@ Data: `GET /v1/scenarios`, `POST /v1/scenarios/get` с `{scenario_id}`, `GET /v1
 
 Model: `GET /v1/models`, `POST /v1/forecast` с `{snapshot, fallback}`. Он проверяет структуру и хеши snapshot, совпадение `at` и `state.decision_time`, диапазон источника, `trust.usable` и полный набор признаков. Ответ содержит `model`, `value`, `lower`, `upper`, `available`, `reason` и `at`.
 
-Decision: `POST /v1/decisions`, `POST /v1/live/advice`, `GET /v1/capabilities`. Gateway сохраняет `/`, `/index.html`, `/api/scenarios`, `/api/defaults`, `/api/decide`, `/api/options`; envelope новых endpoints имеет `contract_version=v1`.
+Decision: `POST /v1/decisions`, `POST /v1/decisions/stream`, `POST /v1/live/advice`, `GET /v1/capabilities`. Gateway сохраняет `/`, `/index.html`, `/api/scenarios`, `/api/defaults`, `/api/decide`, `/api/options`; envelope новых endpoints имеет `contract_version=v1`.
 
-Gateway имеет SSE endpoint `GET /api/stream`. Наличие endpoint не доказывает
-сквозную передачу внутренних событий и отмену worker через HTTP-границу decision-service:
-live-приёмка полного стека остаётся открытой. Браузерная приёмка выполнена для
-монолитного `neftecode serve`. Разбор условий из query-строки (`presentation/web/query.py`)
-и их применение (`application/conditions`) у обоих способов запуска общие.
+`/v1/decisions/stream` принимает то же тело, что `/v1/decisions`, и отвечает SSE того же вида,
+что `/api/stream`: `phase`/`stage`/`agent`/`tick` по мере расчёта, затем `screen` с результатом
+или `failed`. Ошибки входа проверяются до открытия потока и остаются JSON-ошибками envelope.
+Gateway `GET /api/stream` читает этот поток и передаёт этапы и события агентов браузеру по мере
+прихода, с тем же `X-Request-ID`; свои `accepted`/`ready` и `tick` gateway шлёт сам. При отказе по
+данным агентный этап не начинается: событий `agent` нет, провайдер не вызывается.
+`/api/decide` и `screen` потока содержат `run_meta` (запрошенные условия, отпечаток входов и его
+части, версии кода и модели, провайдер агентов); `run_meta` собирает общий
+`presentation/web/run_meta.py` и у `serve`, и у gateway.
+
+Версии модели отклика и кода сообщает процесс, который считает: `neftecode serve` или
+decision-service. Они фиксируются при создании сервиса вместе с загруженной моделью: хеш —
+от тех байтов `response_model.json`, из которых модель разобрана; версия кода — состояние
+дерева при запуске процесса (`code.captured=process_start`). Замена файла модели или новый
+коммит при работающем сервисе на расчёт не влияют и в `run_meta` не попадают; новая модель
+и её хеш вступают в силу вместе после перезапуска. Кешированные результаты сохраняют
+provenance своего расчёта.
+
+Ограничение отмены: HTTP-протокола отмены у decision-service нет. Кнопка в интерфейсе
+прекращает показ; сервер мог продолжить расчёт. При закрытии браузером потока gateway
+перестаёт читать поток decision-service и закрывает соединение, а decision-service по
+разрыву соединения выставляет токен отмены; сквозная отмена удалённого расчёта отдельной
+приёмкой не подтверждена и не заявляется. Разбор условий из query-строки
+(`presentation/web/query.py`) и их применение (`application/conditions`) у обоих способов
+запуска общие.
 
 Сценарии и срезы оба получают через порты `application/ports/scenarios.py`. `serve` читает
 сценарии из `config/scenarios` (`FileScenarioRepository`). Gateway берёт сценарии у data-service
@@ -46,9 +66,11 @@ Supervisor принимает `--host`, `--data-port`, `--model-port`, `--decisi
 
 `neftecode serve` — локальный offline-сценарийный или live-агентный демонстрационный
 контур, в зависимости от конфигурации провайдера; наличие экрана не доказывает вызов
-LLM. `neftecode-stack` — разнесённые HTTP-процессы для проверяемых `/v1/*` контрактов,
-без SSE-демонстрации. Replay существует в браузере только как временная запись последнего
-успешного live-потока и не загружает архивную трассу. Отказ ядра (`refuse`) и сбой
+LLM. `neftecode-stack` — разнесённые HTTP-процессы для проверяемых `/v1/*` контрактов;
+gateway стека отдаёт тот же интерфейс и SSE, что `serve`. Повтор в браузере относится к одной
+конкретной записи: последнему успешно завершённому live-прогону или открытому файлу протокола.
+Новый запуск снимает повтор до своего успешного завершения; ошибка или остановка нового
+запуска не открывают под его запросом ленту прежнего. Отказ ядра (`refuse`) и сбой
 транспорта/LLM (`failed`/fallback) — разные исходы и должны так подписываться.
 
 Evaluation (`benchmark`, `vak`, `episodes`) остаётся batch CLI и в supervisor не входит. Полный stack не является промышленным контуром управления и не разрешает выпуск продукции.

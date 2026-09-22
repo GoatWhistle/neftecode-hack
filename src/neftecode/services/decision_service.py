@@ -7,16 +7,21 @@ from typing import Any, Mapping
 
 from neftecode.application.contracts import LiveAdviceCommand, LiveForecast, LiveSnapshot
 from neftecode.application.services.robustness import RobustnessCheck
-from neftecode.application.use_cases.advise_under_conditions import AdviseUnderConditions
+from neftecode.application.use_cases.advise_under_conditions import AdviseUnderConditions, report_advice
 from neftecode.application.use_cases.get_live_advice import GetLiveAdvice
 from neftecode.infrastructure.agentic import build_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.application.ports.live import ForecastBindingError
-from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder, load_response_model
+from neftecode.infrastructure.artifacts.provenance import loaded_provenance
+from neftecode.infrastructure.live.advisor import LocalForecastScenarioBinder
+from neftecode.infrastructure.live.response_model import load_response_model_with_digest
+from neftecode.presentation.web.progress import decision_stream
 from neftecode.infrastructure.live.snapshots import bind_snapshot, select_forecast_dict
 from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
-from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, serve, clean
+from .common import Request, ServiceError, ServiceHTTPClient, ServiceSettings, StreamResponse, serve, clean
+
+UNKNOWN_PROVENANCE = {"code": None, "model": None}
 
 
 class HTTPScenarioProvider:
@@ -79,11 +84,14 @@ class HTTPForecastProvider:
 
 class DecisionService:
     def __init__(self, data_url: str = "http://127.0.0.1:8766", model_url: str = "http://127.0.0.1:8767",
-                 timeout_s: float = 10.0, decision_factory=None, response_model: dict | None = None):
+                 timeout_s: float = 10.0, decision_factory=None, response_model: dict | None = None,
+                 provenance: dict | None = None):
         self.data_url, self.model_url = data_url.rstrip("/"), model_url.rstrip("/")
         self.client = ServiceHTTPClient(timeout_s)
         self.decision_factory = decision_factory
         self.response_model = response_model
+        # Происхождение закреплено вместе с загруженной моделью: сообщается процессом, который считает.
+        self.provenance = provenance or UNKNOWN_PROVENANCE
 
     @staticmethod
     def _body(request: Request) -> dict[str, Any]:
@@ -103,13 +111,15 @@ class DecisionService:
             ).execute(raw, state or {}, budget, trust_cfg, snapshot, self.response_model)
         except (ScenarioError, ForecastBindingError, ValueError, TypeError) as exc:
             raise ServiceError(str(exc), 422, "scenario_rejected") from exc
+        report_advice(advice)
         return {"decision": clean(advice["decision"]), "explanation": clean(advice["explanation"]),
                 "inventories": clean(advice["inventories"]),
                 "sources": [clean(source.to_dict()) for source in advice["trust"].sources.values()],
                 "trust_origin": trust_origin,
-                "binding": clean(advice["binding"])}
+                "binding": clean(advice["binding"]),
+                "provenance": clean(self.provenance)}
 
-    def decide(self, request: Request):
+    def _decision_request(self, request: Request) -> tuple:
         body = self._body(request)
         raw, state = body.get("scenario"), body.get("state")
         if not isinstance(raw, dict):
@@ -124,7 +134,20 @@ class DecisionService:
         snapshot = body.get("snapshot")
         if snapshot is not None and (not isinstance(snapshot, dict) or not isinstance(snapshot.get("forecast"), dict)):
             raise ServiceError("snapshot должен быть JSON-объектом среза с полем forecast", 400, "invalid_snapshot")
-        return self._decision(raw, state, body.get("budget", DEFAULT_BUDGET), trust_cfg, trust_origin, snapshot)
+        return raw, state, body.get("budget", DEFAULT_BUDGET), trust_cfg, trust_origin, snapshot
+
+    def decide(self, request: Request):
+        return self._decision(*self._decision_request(request))
+
+    def decide_stream(self, request: Request):
+        """Тот же расчёт, что /v1/decisions, но этапы и события агентов уходят клиенту по мере появления.
+
+        Формат — SSE того же вида, что у /api/stream: phase/stage/agent/tick, затем screen c результатом
+        или failed. Запрос проверяется до открытия потока, поэтому ошибки входа остаются JSON-ошибками.
+        Разрыв соединения клиентом отменяет расчёт через токен отмены.
+        """
+        arguments = self._decision_request(request)
+        return StreamResponse(frame.encode() for frame in decision_stream(lambda: self._decision(*arguments)))
 
     def live(self, request: Request):
         body = self._body(request)
@@ -166,7 +189,8 @@ class DecisionService:
         return True
 
     def routes(self):
-        return {"/v1/decisions": self.decide, "/v1/live/advice": self.live,
+        return {"/v1/decisions": self.decide, "/v1/decisions/stream": self.decide_stream,
+                "/v1/live/advice": self.live,
                 "/v1/capabilities": self.capabilities}
 
 
@@ -184,10 +208,12 @@ def main(argv=None):
                                 request_timeout_s=env.request_timeout_s, shutdown_timeout_s=env.shutdown_timeout_s,
                                 max_workers=env.max_workers, max_body_bytes=env.max_body_bytes,
                                 max_response_bytes=env.max_response_bytes)
+    response_model, response_sha256 = load_response_model_with_digest(root, artifacts)
     service = DecisionService(args.data_url or os.getenv("NEFTECODE_DATA_URL", "http://127.0.0.1:8766"),
                               args.model_url or os.getenv("NEFTECODE_MODEL_URL", "http://127.0.0.1:8767"),
                               settings.request_timeout_s, decision_factory=build_decision_factory(dotenv_path=root / ".env"),
-                              response_model=load_response_model(root, artifacts))
+                              response_model=response_model,
+                              provenance=loaded_provenance(root, artifacts, response_sha256))
     return serve(service.routes(), settings, service.ready, "decision-service")
 
 

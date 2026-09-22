@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable
 
+from neftecode.application.progress import emit
 from neftecode.application.services.explain import explain
 from neftecode.application.services.robustness import RobustnessCheck
 from neftecode.application.services.trust import DataTrustAgent
@@ -50,3 +51,14 @@ class AdviseUnderConditions:
             "inventories": {key: value.inventory_t for key, value in initial_state(scenario).items()},
             "binding": binding_summary(raw) if snapshot is not None else None,
         }
+
+
+def report_advice(advice: dict) -> None:
+    """Итоговые этапы расчёта для потока прогресса; одинаковы для serve и decision-service."""
+    trust = advice["trust"]
+    emit("phase", key="scenario", state="done")
+    emit("stage", stage="state", inventories=advice["inventories"])
+    emit("stage", stage="trust", sources=[source.to_dict() for source in trust.sources.values()],
+         usable=trust.usable)
+    emit("phase", key="solving", state="running")
+    emit("phase", key="solving", state="done")

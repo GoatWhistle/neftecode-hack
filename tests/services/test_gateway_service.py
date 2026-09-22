@@ -170,7 +170,7 @@ def test_gateway_stream_is_real_sse_until_screen_and_end(fault, status):
         def raw(self, name, request_id="gateway"):
             return json.loads((ROOT / "config/scenarios/baseline.json").read_text(encoding="utf-8"))
 
-        def _decide(self, canonical, raw, request_id):
+        def _decide(self, canonical, raw, request_id, live=False):
             return {"state": "ready", "decision": {"status": status}, "fault": canonical["fault"]}
 
     gateway, thread = start(StubGateway(), "gateway-service", make_gateway_handler)
@@ -192,7 +192,7 @@ def test_gateway_stream_reports_infrastructure_failure_as_sse():
         def raw(self, name, request_id="gateway"):
             return json.loads((ROOT / "config/scenarios/baseline.json").read_text(encoding="utf-8"))
 
-        def _decide(self, canonical, raw, request_id):
+        def _decide(self, canonical, raw, request_id, live=False):
             raise RuntimeError("decision service unavailable")
 
     gateway, thread = start(BrokenGateway(), "gateway-service", make_gateway_handler)

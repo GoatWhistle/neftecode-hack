@@ -6,9 +6,10 @@ import signal
 import socket
 import sys
 import threading
+import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Iterator, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request as URLRequest, urlopen
@@ -24,12 +25,76 @@ class ServiceHTTPClient:
         self.timeout_s = timeout_s
         self.max_response_bytes = max_response_bytes
 
-    def request(self, method: str, url: str, payload: Any = None,
-                timeout_s: float | None = None, headers: Mapping[str, str] | None = None) -> ServiceEnvelope:
+    @staticmethod
+    def _prepare(method: str, url: str, payload: Any, accept: str, headers: Mapping[str, str] | None) -> URLRequest:
         body = encode_json(payload) if payload is not None else None
-        request = URLRequest(url, data=body, method=method.upper(), headers={"Accept": "application/json", **(headers or {})})
+        request = URLRequest(url, data=body, method=method.upper(), headers={"Accept": accept, **(headers or {})})
         if body is not None:
             request.add_header("Content-Type", "application/json")
+        return request
+
+    def _http_error(self, exc: HTTPError) -> ServiceError:
+        try:
+            envelope = self._decode(exc.read(self.max_response_bytes + 1), exc.code)
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+            return ServiceError("Удалённый сервис вернул ошибку", 502, "upstream_error", retryable=exc.code >= 500)
+        if envelope.ok:
+            return ServiceError("Удалённый сервис вернул ошибочный статус", 502, "upstream_error")
+        return ServiceError(envelope.error.get("message", "Ошибка удалённого сервиса"), exc.code,
+                            envelope.error.get("code", "upstream_error"), retryable=exc.code >= 500)
+
+    def stream(self, method: str, url: str, payload: Any = None, timeout_s: float | None = None,
+               headers: Mapping[str, str] | None = None) -> Iterator[tuple[str, Any]]:
+        """События SSE удалённого сервиса по мере прихода: (event, data).
+
+        timeout_s — общий срок всего потока, а не одного чтения: удалённый сервис шлёт tick раз в секунду,
+        поэтому зависший расчёт обнаруживается по сроку, а не ждёт бесконечно. Кадр больше
+        max_response_bytes — ошибка, а не молча обрезанный результат.
+        """
+        limit = timeout_s if timeout_s is not None else self.timeout_s
+        deadline = time.monotonic() + limit
+        request = self._prepare(method, url, payload, "text/event-stream", headers)
+        try:
+            response = urlopen(request, timeout=limit)
+        except HTTPError as exc:
+            raise self._http_error(exc) from exc
+        except (TimeoutError, socket.timeout) as exc:
+            raise ServiceError("Таймаут удалённого сервиса", 504, "upstream_timeout", retryable=True) from exc
+        except URLError as exc:
+            reason = getattr(exc, "reason", None)
+            if isinstance(reason, (TimeoutError, socket.timeout)):
+                raise ServiceError("Таймаут удалённого сервиса", 504, "upstream_timeout", retryable=True) from exc
+            raise ServiceError("Удалённый сервис недоступен", 503, "upstream_unavailable", retryable=True) from exc
+        with response:
+            event, data, size = "message", [], 0
+            while True:
+                if time.monotonic() > deadline:
+                    raise ServiceError("Таймаут удалённого сервиса", 504, "upstream_timeout", retryable=True)
+                try:
+                    raw = response.readline(self.max_response_bytes + 1)
+                except (TimeoutError, socket.timeout) as exc:
+                    raise ServiceError("Таймаут удалённого сервиса", 504, "upstream_timeout", retryable=True) from exc
+                if not raw:
+                    return
+                size += len(raw)
+                if size > self.max_response_bytes:
+                    raise ServiceError("Кадр удалённого сервиса слишком большой", 502, "upstream_response_too_large")
+                line = raw.decode("utf-8").rstrip("\r\n")
+                if line.startswith("event:"):
+                    event = line[6:].strip()
+                elif line.startswith("data:"):
+                    data.append(line[5:].strip())
+                elif not line and data:
+                    try:
+                        value = json.loads("\n".join(data))
+                    except json.JSONDecodeError as exc:
+                        raise ServiceError("Некорректный кадр удалённого сервиса", 502, "invalid_upstream") from exc
+                    yield event, value
+                    event, data, size = "message", [], 0
+
+    def request(self, method: str, url: str, payload: Any = None,
+                timeout_s: float | None = None, headers: Mapping[str, str] | None = None) -> ServiceEnvelope:
+        request = self._prepare(method, url, payload, "application/json", headers)
         try:
             with urlopen(request, timeout=timeout_s if timeout_s is not None else self.timeout_s) as response:
                 declared = response.headers.get("Content-Length")
@@ -45,14 +110,7 @@ class ServiceHTTPClient:
                         raise ServiceError("Ответ удалённого сервиса слишком большой", 502, "upstream_response_too_large")
                 return self._decode(b"".join(chunks), response.status)
         except HTTPError as exc:
-            try:
-                envelope = self._decode(exc.read(self.max_response_bytes + 1), exc.code)
-            except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
-                raise ServiceError("Удалённый сервис вернул ошибку", 502, "upstream_error", retryable=exc.code >= 500) from exc
-            if envelope.ok:
-                raise ServiceError("Удалённый сервис вернул ошибочный статус", 502, "upstream_error")
-            raise ServiceError(envelope.error.get("message", "Ошибка удалённого сервиса"), exc.code,
-                               envelope.error.get("code", "upstream_error"), retryable=exc.code >= 500) from exc
+            raise self._http_error(exc) from exc
         except (TimeoutError, socket.timeout) as exc:
             raise ServiceError("Таймаут удалённого сервиса", 504, "upstream_timeout", retryable=True) from exc
         except URLError as exc:

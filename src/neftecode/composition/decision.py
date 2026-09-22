@@ -1,16 +1,15 @@
 from functools import partial
-from neftecode.infrastructure.artifacts.provenance import code_version, model_version
+from neftecode.infrastructure.artifacts.provenance import loaded_provenance
 from pathlib import Path
 
 from neftecode.application.ports.live import ForecastBindingError
-from neftecode.application.progress import emit
-from neftecode.application.use_cases.advise_under_conditions import AdviseUnderConditions
+from neftecode.application.use_cases.advise_under_conditions import AdviseUnderConditions, report_advice
 from neftecode.application.services.tank_estimate import default_tank_estimate_factory
 from neftecode.domain.advisory.optimizer import DEFAULT_BUDGET
 from neftecode.infrastructure.agentic import default_decision_factory
 from neftecode.infrastructure.config.scenario import ScenarioError, parse_scenario
 from neftecode.infrastructure.config.trust_rules import load_trust_rules
-from neftecode.infrastructure.live.advisor import load_response_model
+from neftecode.infrastructure.live.response_model import load_response_model_with_digest
 from neftecode.infrastructure.llm.config import decision_wait_seconds
 from neftecode.infrastructure.live.snapshots import bind_snapshot, select_forecast_dict
 from neftecode.infrastructure.scenarios import FileScenarioRepository, FileSnapshotRepository
@@ -31,14 +30,9 @@ def run_demo_decision(raw: dict, state: dict, budget: int, trust_cfg: dict,
     except (ScenarioError, ForecastBindingError) as exc:
         return {"ok": False, "rejected": True, "reason": str(exc),
                 "screen": error_payload(str(exc))}
-    emit("phase", key="scenario", state="done")
+    report_advice(advice)
     scenario, trust, active_forecast = advice["scenario"], advice["trust"], advice["forecast"]
-    emit("stage", stage="state", inventories=advice["inventories"])
-    emit("stage", stage="trust", sources=[source.to_dict() for source in trust.sources.values()],
-         usable=trust.usable)
-    emit("phase", key="solving", state="running")
     decision = advice["decision"]
-    emit("phase", key="solving", state="done")
     screen = Screen(
         decision,
         advice["explanation"], inventories=advice["inventories"],
@@ -68,10 +62,11 @@ def make_demo_service(root: Path, budget: int = DEFAULT_BUDGET, out: Path | None
     out = Path(out) if out is not None else root / "artifacts"
     trust_cfg, trust_origin = load_trust_rules(root, out)
     snapshots = FileSnapshotRepository(out).all()
-    response_model = load_response_model(root, out)
+    response_model, response_sha256 = load_response_model_with_digest(root, out)
+    provenance = loaded_provenance(root, out, response_sha256)
     factory = default_decision_factory(root)
     return DemoService(root, lambda raw, budget: make_interactive_demo(raw, budget, trust_cfg, trust_origin,
                                                                      snapshots, response_model, factory),
                        FileScenarioRepository(root / "config/scenarios"), budget, snapshots=snapshots, default_snapshot_key=default_snapshot,
                        decision_timeout_s=decision_wait_seconds(root),
-                       provenance=lambda: {"code": code_version(str(root)), "model": model_version(str(root), str(out))})
+                       provenance=lambda: provenance)

@@ -36,8 +36,8 @@ def test_decision_service_main_uses_the_normalized_default_root(monkeypatch):
     monkeypatch.delenv("NEFTECODE_ROOT", raising=False)
     monkeypatch.setattr(module, "build_decision_factory",
                         lambda dotenv_path: seen.setdefault("dotenv_path", dotenv_path))
-    monkeypatch.setattr(module, "load_response_model",
-                        lambda root, out: seen.update(model_root=root, model_artifacts=out))
+    monkeypatch.setattr(module, "load_response_model_with_digest",
+                        lambda root, out: seen.update(model_root=root, model_artifacts=out) or (None, None))
     monkeypatch.setattr(module, "serve", lambda *args: 0)
 
     assert module.main([]) == 0
@@ -51,8 +51,8 @@ def test_decision_service_main_honours_a_separate_artifacts_directory(monkeypatc
     root, artifacts = tmp_path / "project", tmp_path / "models"
     seen = {}
     monkeypatch.setattr(module, "build_decision_factory", lambda **kwargs: None)
-    monkeypatch.setattr(module, "load_response_model",
-                        lambda model_root, out: seen.update(root=model_root, artifacts=out))
+    monkeypatch.setattr(module, "load_response_model_with_digest",
+                        lambda model_root, out: seen.update(root=model_root, artifacts=out) or (None, None))
     monkeypatch.setattr(module, "serve", lambda *args: 0)
 
     assert module.main(["--root", str(root), "--artifacts", str(artifacts)]) == 0
