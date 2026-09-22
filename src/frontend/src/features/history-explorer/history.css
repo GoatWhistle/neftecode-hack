@@ -10,3 +10,9 @@
 .history button[aria-pressed="true"] { outline: 2px solid var(--pass); }
 .history button:disabled { opacity: .6; cursor: default; }
 .history button:focus-visible, .history input:focus-visible { outline: 3px solid var(--carbon); outline-offset: 3px; }
+.history__moment { display: grid; gap: 12px; }
+.history__moment details { padding-block: 12px; }
+.history__table { max-width: 100%; overflow-x: auto; }
+.history__table table { border-collapse: collapse; width: 100%; }
+.history__table th, .history__table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--muted); white-space: nowrap; }
+.history details summary { cursor: pointer; padding-block: 10px; }

@@ -34,3 +34,21 @@ def test_no_coverage_for_empty_delivery():
 def test_duplicate_keys_are_not_silently_overwritten():
     with pytest.raises(ValueError, match="повторяющийся"):
         snapshot_catalog([item("2026-01-03T11:00:00")] * 2)
+
+
+def test_timezone_aware_saved_snapshot_is_rejected():
+    with pytest.raises(ValueError, match="часовой пояс"):
+        snapshot_catalog([item("2026-01-03T11:00:00+03:00")])
+
+
+def test_catalog_sorts_by_time_even_if_source_formats_differ():
+    result = snapshot_catalog([item("2026-01-03T09:00:00"), item("2026-01-03 11:00:00")])
+    assert result["items"][0]["at"] == "2026-01-03T09:00:00"
+    assert result["items"][1]["snapshot"] == "20260103-110000"
+
+
+def test_microseconds_do_not_collapse_distinct_snapshots():
+    result = snapshot_catalog([item("2026-01-03T09:00:00.000001"),
+                               item("2026-01-03T09:00:00.000002")])
+    assert result["items"][0]["snapshot"] == "20260103-090000.000001"
+    assert result["items"][1]["snapshot"] == "20260103-090000.000002"

@@ -1,5 +1,6 @@
-from datetime import datetime
 import math
+
+from .time import local_moment
 
 MAX_SNAPSHOTS = 100
 FACT_KEYS = ("lab_value", "lab_sample_time", "lab_available_time", "pak_value", "pak_sample_time",
@@ -7,7 +8,10 @@ FACT_KEYS = ("lab_value", "lab_sample_time", "lab_available_time", "pak_value", 
 
 
 def snapshot_id(snapshot: dict) -> str:
-    stamp = datetime.fromisoformat(snapshot["at"]).strftime("%Y%m%d-%H%M%S")
+    when = local_moment(snapshot["at"])
+    stamp = when.strftime("%Y%m%d-%H%M%S")
+    if when.microsecond:
+        stamp += f".{when.microsecond:06d}"
     return stamp + ("-synthetic" if snapshot.get("synthetic_edits") else "")
 
 
@@ -33,7 +37,7 @@ def snapshot_item(snapshot: dict) -> dict:
 def snapshot_catalog(snapshots: list[dict], offset: int = 0, limit: int = 50) -> dict:
     if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= MAX_SNAPSHOTS:
         raise ValueError("Каталог: offset ≥ 0, limit от 1 до 100, только целые числа")
-    ordered = sorted(snapshots, key=lambda item: item["at"])
+    ordered = sorted(snapshots, key=lambda item: local_moment(item["at"]))
     keys = [snapshot_id(item) for item in ordered]
     if len(keys) != len(set(keys)):
         raise ValueError("Каталог содержит повторяющийся идентификатор среза")
