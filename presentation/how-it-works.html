@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Как работает CUTPOINT — GoatWhistle</title>
+  <style>
+    :root {
+      --paper: #f6f4ef; --white: #fffefa; --ink: #172a31; --muted: #52636a;
+      --line: #cdd6d3; --teal: #126a69; --teal-soft: #dcefeb;
+      --blue: #2f5e91; --blue-soft: #e7eef8; --amber: #a45a20;
+      --amber-soft: #fff0df; --red: #a63e3a; --red-soft: #fae9e6;
+      --green: #247052; --green-soft: #e2f1e7;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font: 16px/1.55 var(--sans); }
+    a { color: var(--teal); text-underline-offset: .18em; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+    button { font: inherit; }
+    .wrap { max-width: 1180px; margin: auto; padding: 0 26px; }
+    .top { border-bottom: 1px solid var(--line); background: var(--white); }
+    .top .wrap { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { font-size: 17px; font-weight: 800; letter-spacing: -.035em; text-decoration: none; color: var(--ink); }
+    .brand span { color: var(--teal); }
+    .top nav { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: 13px; font-weight: 700; }
+    .top nav a { text-decoration: none; color: var(--muted); }
+    .top nav a:hover { color: var(--teal); }
+    .hero { padding: 72px 0 55px; border-bottom: 1px solid var(--line); }
+    .eyebrow, .kicker { margin: 0; font: 700 12px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--teal); }
+    h1 { max-width: 900px; margin: 17px 0 18px; font-size: clamp(39px, 6vw, 73px); line-height: 1.04; letter-spacing: -.055em; }
+    .hero .lead { max-width: 760px; font-size: clamp(18px, 2vw, 22px); line-height: 1.45; margin: 0; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+    .chip { border: 1px solid var(--line); border-radius: 30px; background: var(--white); padding: 6px 12px; color: var(--muted); font: 12px/1.4 var(--mono); }
+    .section { padding: 62px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 20px; }
+    .section-head { display: flex; align-items: baseline; gap: 22px; margin-bottom: 26px; }
+    .section-head .index { color: var(--teal); font: 700 13px var(--mono); }
+    h2 { margin: 0; font-size: clamp(29px, 4vw, 42px); line-height: 1.15; letter-spacing: -.04em; }
+    h3 { margin: 0 0 8px; font-size: 20px; letter-spacing: -.02em; line-height: 1.25; }
+    p { margin: 0 0 15px; }
+    .section-intro { max-width: 780px; color: var(--muted); font-size: 18px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 0 0 25px; color: var(--muted); font-size: 13px; }
+    .legend span::before { content: ""; width: 10px; height: 10px; display: inline-block; margin-right: 7px; border-radius: 50%; background: var(--c); }
+    .flow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin: 26px 0 28px; }
+    .flow a { min-width: 0; text-decoration: none; color: var(--ink); background: var(--white); border: 1px solid var(--line); border-top: 4px solid var(--c); padding: 14px 11px 13px; border-radius: 8px; transition: transform .15s ease, box-shadow .15s ease; }
+    .flow a:hover { transform: translateY(-3px); box-shadow: 0 8px 20px #172a3114; }
+    .flow .num { display: block; color: var(--muted); font: 700 11px var(--mono); margin-bottom: 12px; }
+    .flow strong { display: block; font-size: 15px; line-height: 1.25; }
+    .flow small { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 6px; }
+    .step-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .step { background: var(--white); border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: 9px; padding: 23px 24px; scroll-margin-top: 25px; }
+    .step .step-no { color: var(--c); font: 700 11px var(--mono); letter-spacing: .1em; margin-bottom: 8px; }
+    .step p { color: var(--muted); margin: 0; }
+    .step strong { color: var(--ink); }
+    .step-wide { grid-column: 1 / -1; }
+    .callout { border-left: 4px solid var(--teal); background: var(--teal-soft); padding: 17px 20px; border-radius: 0 8px 8px 0; margin-top: 18px; }
+    .callout p:last-child { margin-bottom: 0; }
+    .tab-list { display: flex; gap: 8px; flex-wrap: wrap; margin: 25px 0 13px; }
+    .tab { border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); padding: 11px 17px; cursor: pointer; font-weight: 700; }
+    .tab:hover { border-color: var(--teal); }
+    .tab[aria-selected="true"] { color: var(--white); background: var(--teal); border-color: var(--teal); }
+    .scene { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; border: 1px solid var(--line); border-radius: 11px; background: var(--white); padding: 28px; }
+    .scene[hidden] { display: none; }
+    .scene .label { font: 700 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+    .scene .big { font-size: clamp(28px, 4vw, 46px); line-height: 1.12; letter-spacing: -.04em; font-weight: 800; margin: 1px 0 16px; }
+    .scene .big em { font-style: normal; color: var(--teal); }
+    .scene ul { padding-left: 20px; margin: 0; }
+    .scene li { margin: 7px 0; }
+    .scene .result { border-left: 1px solid var(--line); padding-left: 28px; }
+    .scene .status { display: inline-block; font: 700 12px var(--mono); background: var(--green-soft); color: var(--green); border-radius: 30px; padding: 6px 10px; margin-bottom: 15px; }
+    .scene.refusal .status { background: var(--red-soft); color: var(--red); }
+    .scene .fine { color: var(--muted); font-size: 13px; margin-top: 18px; }
+    .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+    .comparison article { border-radius: 9px; border: 1px solid var(--line); padding: 20px; background: var(--white); }
+    .comparison .rejected { border-top: 5px solid var(--red); }
+    .comparison .allowed { border-top: 5px solid var(--green); }
+    .comparison .metric { margin: 5px 0 10px; font: 800 clamp(28px, 4vw, 40px)/1 var(--sans); letter-spacing: -.045em; }
+    .comparison p { color: var(--muted); margin-bottom: 0; }
+    .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
+    .fact { background: var(--white); border: 1px solid var(--line); border-radius: 9px; padding: 20px; }
+    .fact .number { font: 800 31px/1 var(--sans); letter-spacing: -.04em; margin: 5px 0 11px; }
+    .fact p { color: var(--muted); font-size: 14px; margin: 0; }
+    .boundary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
+    .boundary > div { border-radius: 9px; padding: 23px; border: 1px solid var(--line); background: var(--white); }
+    .boundary .known { border-top: 5px solid var(--blue); }
+    .boundary .modeled { border-top: 5px solid var(--amber); }
+    .boundary h3 { margin-bottom: 15px; }
+    .boundary ul { margin: 0; padding-left: 20px; }
+    .boundary li { margin: 8px 0; }
+    details { border: 1px solid var(--line); border-radius: 9px; background: var(--white); margin-top: 10px; }
+    summary { padding: 15px 19px; cursor: pointer; font-weight: 700; }
+    details > div { border-top: 1px solid var(--line); padding: 17px 19px 19px; color: var(--muted); }
+    details p:last-child { margin-bottom: 0; }
+    code { font: .9em var(--mono); background: #e9ece8; border-radius: 4px; padding: 1px 4px; overflow-wrap: anywhere; }
+    .footer { padding: 35px 0 48px; font-size: 13px; color: var(--muted); }
+    .footer p { max-width: 860px; }
+    @media (max-width: 950px) { .flow { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (max-width: 700px) {
+      .top .wrap { align-items: flex-start; flex-direction: column; padding-top: 14px; padding-bottom: 14px; gap: 7px; }
+      .hero { padding: 48px 0; } .section { padding: 48px 0; }
+      .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .step-grid, .scene, .comparison, .facts, .boundary { grid-template-columns: 1fr; }
+      .scene .result { border-left: 0; border-top: 1px solid var(--line); padding: 22px 0 0; }
+      .section-head { gap: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .flow a { transition: none; } }
+    @media print {
+      body { background: white; } .top nav, .tab-list { display: none; }
+      .section { break-inside: avoid; padding: 28px 0; }
+      .scene[hidden] { display: grid; }
+      .step, .fact, .scene, .boundary > div, details { break-inside: avoid; }
+      details > div { display: block; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#top">CUT<span>POINT</span> / как работает система</a>
+      <nav aria-label="Разделы страницы">
+        <a href="#route">Путь решения</a><a href="#scenes">Три исхода</a><a href="#boundaries">Границы</a><a href="#technical">Технически</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap">
+        <p class="eyebrow">GoatWhistle · объяснение прототипа · 26.09.2026</p>
+        <h1>От измерения к действию. И к отказу, когда данных недостаточно.</h1>
+        <p class="lead">CUTPOINT помогает оператору связанной цепочки АВТ → гидроочистка → смешение дизеля сравнить короткие планы, проверить ограничения и понять причину рекомендации. Система советует; оборудование она не переключает.</p>
+        <div class="hero-meta">
+          <span class="chip">Горизонт решения: 3 часа</span>
+          <span class="chip">Исходы: сохранить / рекомендовать / отказать</span>
+          <span class="chip">Промышленный выпуск: не разрешён</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="route">
+      <div class="wrap">
+        <div class="section-head"><span class="index">01</span><h2>Один запрос проходит семь шагов</h2></div>
+        <p class="section-intro">Важны два разных вычисления: прогноз будущей серы потока и сценарная оценка последствий конкретного действия. Прогноз сам по себе не является готовым планом.</p>
+        <div class="legend" aria-label="Происхождение частей расчёта">
+          <span style="--c:var(--blue)">Исторические измерения и статистическая модель</span>
+          <span style="--c:var(--amber)">Сценарные допущения</span>
+          <span style="--c:var(--teal)">Программные проверки и выбор</span>
+        </div>
+        <nav class="flow" aria-label="Семь шагов расчёта">
+          <a href="#step-1" style="--c:var(--blue)"><span class="num">01 / вход</span><strong>Срез данных</strong><small>Что было доступно в момент t</small></a>
+          <a href="#step-2" style="--c:var(--teal)"><span class="num">02 / допуск</span><strong>Доверие</strong><small>Свежесть и пригодность</small></a>
+          <a href="#step-3" style="--c:var(--blue)"><span class="num">03 / прогноз</span><strong>Сера потока</strong><small>2 часа вперёд</small></a>
+          <a href="#step-4" style="--c:var(--amber)"><span class="num">04 / варианты</span><strong>Планы</strong><small>Рецепт, расход, уставки</small></a>
+          <a href="#step-5" style="--c:var(--teal)"><span class="num">05 / запреты</span><strong>Gate и парк</strong><small>Качество и ограничения</small></a>
+          <a href="#step-6" style="--c:var(--teal)"><span class="num">06 / выбор</span><strong>Ранжирование</strong><small>Только допустимые</small></a>
+          <a href="#step-7" style="--c:var(--teal)"><span class="num">07 / ответ</span><strong>Решение</strong><small>Действие, причина, трасса</small></a>
+        </nav>
+
+        <div class="step-grid">
+          <article class="step" id="step-1" style="--c:var(--blue)"><div class="step-no">ШАГ 01 · ИСТОРИЧЕСКИЙ ВХОД</div><h3>Собрать срез на момент решения</h3><p>Телеметрия, лаборатория (ЛИМС) и поточный анализатор (ПАК) берутся с учётом времени появления результата. Для лаборатории в проверке принята <strong>задержка 4 часа</strong>: фактического времени выдачи в данных нет.</p></article>
+          <article class="step" id="step-2" style="--c:var(--teal)"><div class="step-no">ШАГ 02 · ОБЯЗАТЕЛЬНЫЙ ВХОДНОЙ КОНТРОЛЬ</div><h3>Решить, можно ли доверять входу</h3><p>Проверяются возраст результата, пропуски телеметрии, зависание ПАК и конфликт источников. Если нет пригодного источника качества, система <strong>отказывает до поиска плана</strong> и сообщает, каких измерений не хватает.</p></article>
+          <article class="step" id="step-3" style="--c:var(--blue)"><div class="step-no">ШАГ 03 · СТАТИСТИЧЕСКИЙ ПРОГНОЗ</div><h3>Оценить серу нового потока</h3><p>Модель прогнозирует серу <strong>после гидроочистки на 2 часа</strong> и диапазон неопределённости. Верхняя оценка связывается с притоком в наливаемую партию. Она не заменяет свойства уже паспортизованной партии, из которой сейчас идёт отбор.</p></article>
+          <article class="step" id="step-4" style="--c:var(--amber)"><div class="step-no">ШАГ 04 · СЦЕНАРНАЯ МОДЕЛЬ</div><h3>Построить возможные действия</h3><p>В набор входит <strong>сохранение режима</strong>, а также ограниченные изменения рецепта, выпуска, присадки и допустимых уставок. Модель считает задержку отклика, свойства смеси, движение запасов, условную стоимость и тяжесть режима. Часть этих входов задана сценарием.</p></article>
+          <article class="step" id="step-5" style="--c:var(--teal)"><div class="step-no">ШАГ 05 · ЖЁСТКИЕ ПРОВЕРКИ</div><h3>Отсечь недопустимые планы</h3><p>Gate проверяет на временной сетке серу, T95, цетановое число, плотность, доли смеси, уставки, запас и доступность партий. Неизвестное обязательное условие не считается пройденным. Для парка дополнительно проверяется <strong>любой общий сдвиг заданного расписания</strong> при условиях модели.</p></article>
+          <article class="step" id="step-6" style="--c:var(--teal)"><div class="step-no">ШАГ 06 · ПОЛИТИКА ВЫБОРА</div><h3>Сравнить прошедшие варианты</h3><p>Сначала сравнивается расчётный выпуск, затем условная стоимость, тяжесть режима и число изменений; политика может сохранить текущий режим при малом выигрыше. Поиск ограничен сеткой и бюджетом: это <strong>лучший из рассмотренных</strong> вариантов, а не доказанный глобальный оптимум.</p></article>
+          <article class="step step-wide" id="step-7" style="--c:var(--teal)"><div class="step-no">ШАГ 07 · ФИНАЛЬНАЯ ПРОВЕРКА И ОБЪЯСНЕНИЕ</div><h3>Вернуть действие, сохранение режима или мотивированный отказ</h3><p>Выбранный план повторно проверяется кодом. Ответ содержит причину, альтернативы, запреты и трассу ролей. Слой агентов может сузить допустимый пул, но не изменить числа и не отменить жёсткое ограничение. В проверенных сценах использована фиксированная политика <code>scripted</code>; её вклад в качество выбора сверх ядра не заявляется.</p></article>
+        </div>
+        <div class="callout"><p><strong>Ключевое различие:</strong> 14,93 мг/кг в прогнозе нового потока и ограничение 10 мг/кг для товарной смеси относятся к разным объектам и моментам. На коротком горизонте продукт может идти из уже готовой партии; новый поток заполняет следующую.</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="scenes">
+      <div class="wrap">
+        <div class="section-head"><span class="index">02</span><h2>Три проверенных исхода</h2></div>
+        <p class="section-intro">Это результаты локальных HTTP-прогонов 26 сентября на коде <code>b52027f</code>. Кнопки переключают описание сохранённых случаев; страница сама расчёт не запускает.</p>
+        <div class="tab-list" role="tablist" aria-label="Проверенные сценарии">
+          <button class="tab" id="tab-risk" role="tab" aria-controls="panel-risk" aria-selected="true" tabindex="0" type="button">01 · Риск</button>
+          <button class="tab" id="tab-normal" role="tab" aria-controls="panel-normal" aria-selected="false" tabindex="-1" type="button">02 · Норма</button>
+          <button class="tab" id="tab-data" role="tab" aria-controls="panel-data" aria-selected="false" tabindex="-1" type="button">03 · Плохие данные</button>
+        </div>
+        <div class="scene" id="panel-risk" role="tabpanel" aria-labelledby="tab-risk">
+          <div><p class="label">sour_crude · 24.07.2026 03:00 · healthy</p><div class="big">100 → <em>50 т/ч</em></div><ul><li>При исходной фазе парка план 100 т/ч выглядит допустимым.</li><li>Общая фаза расписания неизвестна, поэтому проверяются все её сдвиги на горизонте 3 часа.</li><li>План 100 т/ч исключён; выбранный <code>c0001</code> проходит модельную проверку.</li></ul></div>
+          <div class="result"><span class="status">recommend_scenario</span><h3>Предложить 50 т/ч</h3><p>Расчётный выпуск: <strong>150 т за 3 часа</strong> вместо 300 т у плана для исходной фазы. Рецепт выбранного плана — 100% основного компонента, поскольку сейчас сливается готовая партия.</p><p class="fine">Разница 150 т — цена осторожности внутри сценария. Это не измеренная потеря выпуска на заводе.</p></div>
+        </div>
+        <div class="scene" id="panel-normal" role="tabpanel" aria-labelledby="tab-normal" hidden>
+          <div><p class="label">baseline · 05.01.2026 08:00 · healthy</p><div class="big"><em>Сохранить</em> режим</div><ul><li>Входные источники пригодны.</li><li>Текущий план проходит проверки.</li><li>Менять режим без достаточной пользы не требуется.</li></ul></div>
+          <div class="result"><span class="status">hold</span><h3>Оставить текущие уставки</h3><p>Расчётный выпуск — <strong>300 т за 3 часа</strong>. Фазовая проверка парка завершена.</p><p class="fine">Это модельный результат нормального исторического среза, не отчёт о фактическом производстве.</p></div>
+        </div>
+        <div class="scene refusal" id="panel-data" role="tabpanel" aria-labelledby="tab-data" hidden>
+          <div><p class="label">baseline · 16.04.2026 10:10 · both_broken</p><div class="big">Нет <em>совета</em></div><ul><li>В исторический срез внесён демонстрационный отказ источников качества.</li><li>Пригодного показания ЛИМС или ПАК для решения нет.</li><li>Расчёт вариантов не начинается.</li></ul></div>
+          <div class="result"><span class="status">refuse / data</span><h3>Запросить измерения</h3><p>Система объясняет отказ и предлагает получить свежий лабораторный результат или восстановить исправный поточный анализатор.</p><p class="fine">Это проверка поведения при искусственно испорченном входе, не зарегистрированная авария на установке.</p></div>
+        </div>
+        <div class="comparison" aria-label="Пояснение к риск-сценарию">
+          <article class="rejected"><p class="kicker" style="color:var(--red)">Исключённый вариант</p><div class="metric">300 т / 3 ч</div><p>Расчёт для исходной фазы. Не подтверждён для каждого общего сдвига расписания.</p></article>
+          <article class="allowed"><p class="kicker" style="color:var(--green)">Выбранный вариант</p><div class="metric">150 т / 3 ч</div><p>Подтверждён на непрерывном интервале общей фазы при заявленных условиях сценарной модели.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="boundaries">
+      <div class="wrap">
+        <div class="section-head"><span class="index">03</span><h2>Что мы знаем, а что задали</h2></div>
+        <p class="section-intro">Это граница доказательства. Она важнее эффектного числа в карточке результата.</p>
+        <div class="boundary">
+          <div class="known"><h3>Из данных и выданных условий</h3><ul><li>Исторические ряды телеметрии, ЛИМС и ПАК.</li><li>Прогноз серы потока после гидроочистки, проверенный по более поздним лабораторным пробам.</li><li>От организаторов: 5000 м³ на резервуар, паспорт 12 ч, номинальный полный слив 24 ч.</li><li>Лимит серы товарного дизеля 10 мг/кг и другие заданные пределы качества.</li></ul></div>
+          <div class="modeled"><h3>Допущения и расчётный сценарий</h3><ul><li>Четыре резервуара, начальное расписание их фаз, часть свойств партий и уровней.</li><li>Отклик на изменение режима, модель смешения, цены и индекс тяжести.</li><li>Задержка доступности лабораторного результата 4 ч.</li><li>Выпуск и стоимость после предложенного действия — оценки модели.</li></ul></div>
+        </div>
+        <div class="facts">
+          <div class="fact"><p class="kicker">Прогноз серы / 233 пробы</p><div class="number">1,802 → 1,616</div><p>MAE, мг/кг: последнее показание ПАК → выбранный метод. Улучшение ошибки ≈10,3%, не экономия производства.</p></div>
+          <div class="fact"><p class="kicker">Верхняя граница прогноза</p><div class="number">6,01%</div><p>Столько фактов вышло выше неё при собственной цели ≤5%. Интервал нельзя называть гарантией.</p></div>
+          <div class="fact"><p class="kicker">Проверенные ответы</p><div class="number">0 разрешений</div><p>Во всех трёх сценах <code>commercial_release_allowed=false</code>. Для промышленного применения нужны реальные уровни и паспорта партий.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="technical">
+      <div class="wrap">
+        <div class="section-head"><span class="index">04</span><h2>Если хочется понять устройство глубже</h2></div>
+        <details><summary>Где здесь агенты и что им разрешено?</summary><div><p>Сначала детерминированный <code>MakeDecision</code> рассчитывает и проверяет планы. Слой ролей «оркестратор / качество / надёжность» обращается к разрешённым программным инструментам, получает структурированные ответы и оставляет трассу. Его ограничения или вето могут сузить допустимое множество; жёсткие проверки и финальный выбор остаются в коде. В показанных прогонах <code>scripted</code>-агенты подтвердили решение ядра и не добавили ограничений. Живая LLM в них не проверялась.</p></div></details>
+        <details><summary>Как устроены четыре сервисных процесса?</summary><div><p><code>data-service</code> собирает сценарий и временной срез; <code>model-service</code> выдаёт прогноз; <code>decision-service</code> связывает прогноз со сценарием и запускает решение; <code>gateway-service</code> отдаёт экран и HTTP-вход. Есть также локальный <code>neftecode serve</code> для интерактивной демонстрации. Оба способа используют одно расчётное ядро, но поток событий интерфейса доступен только в <code>serve</code>.</p></div></details>
+        <details><summary>Почему проверка фазы не означает гарантию для любого состояния парка?</summary><div><p>Проверяется непрерывный интервал общего сдвига <em>заданного периодического расписания</em>: фазы четырёх резервуаров остаются связаны между собой. Для покрытия применяются достаточные аналитические границы, а три прямых прогона служат диагностикой. Произвольные независимые фазы, неизвестные фактические уровни и паспорта партий в эту гарантию не входят. Если достаточное условие не доказано, план может быть исключён, даже если физически он оказался бы возможным.</p></div></details>
+        <details><summary>Что потребуется перед наблюдательным пилотом?</summary><div><p>Подключить фактические уровни и стадии резервуаров, паспорта партий, подтверждённую карту уставок и ограничения установки. Затем проверить отклик модели на новых данных и сравнить советы с текущими действиями технолога и простым правилом. Фактические эффекты по выпуску, энергии и надёжности сейчас не измерены.</p></div></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="wrap"><p>Срез описания: 26.09.2026, код <code>b52027f</code>. Эта страница объясняет проверенный прототип, не заменяет систему управления производством и не является разрешением на выпуск. Подробные числа и ограничения — в <a href="evidence.md">сводке фактов</a>; текст выступления — в <a href="speech.md">речи</a>. Основной путь кода: <a href="../src/neftecode/application/use_cases/get_live_advice.py">GetLiveAdvice</a> → <a href="../src/neftecode/application/use_cases/make_decision.py">MakeDecision</a> → <a href="../src/neftecode/domain/advisory/gate.py">Gate</a>.</p></div></footer>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    function selectTab(tab, focus = false) {
+      tabs.forEach(item => {
+        const selected = item === tab;
+        item.setAttribute('aria-selected', String(selected));
+        item.tabIndex = selected ? 0 : -1;
+        document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+      });
+      if (focus) tab.focus();
+    }
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => selectTab(tab));
+      tab.addEventListener('keydown', event => {
+        if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+          : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        selectTab(tabs[next], true);
+      });
+    });
+  </script>
+</body>
+</html>
