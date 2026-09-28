@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CUTPOINT</title>
+<style>
+:root {
+  --panel: #f0efe9;
+  --paper: #ffffff;
+  --field: #e7e5dd;
+  --text: #322d2a;
+  --body: #3a3531;
+  --muted: #5a564e;
+  --soft: #8f8974;
+  --hair: #d3cfc4;
+  --pass: #1b7a3d;
+  --pass-wash: #dcebe0;
+  --fail: #c1292e;
+  --unknown: #a35a00;
+  --unknown-wash: #f3e6d4;
+  --copper: #c8761a;
+  --copper-ink: #8a4d0f;
+  --sans: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, Arial, sans-serif;
+  --display: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, Arial, sans-serif;
+  --data: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--sans);
+  font-variant-numeric: lining-nums tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, p, ul, ol, table { margin: 0; padding: 0; }
+
+ul, ol { list-style: none; }
+
+.stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 50% 50%;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.slide.on { display: block; }
+
+.split {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 540px 1fr;
+  column-gap: 150px;
+  align-items: stretch;
+  padding: 150px 116px 110px;
+}
+
+.lead { display: flex; flex-direction: column; gap: 28px; height: 100%; }
+
+.lead h2 {
+  font: 600 54px/1.1 var(--display);
+  letter-spacing: -0.014em;
+  text-wrap: balance;
+}
+
+.lead p {
+  font-size: 27px;
+  line-height: 1.48;
+  color: var(--body);
+  text-wrap: pretty;
+}
+
+.lead b { font-weight: 600; color: var(--text); }
+
+.lead .note {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--hair);
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.icon-arrow { width: 1em; height: 1em; display: inline-block; vertical-align: -0.12em; flex: none; }
+
+.kpi__value .icon-arrow { stroke-width: 1.3; width: 0.8em; height: 0.8em; vertical-align: 0; }
+
+.kpis {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 28px;
+  border-top: 1.5px solid var(--text);
+}
+
+.lead .kpi__value { font: 300 70px/1 var(--display); letter-spacing: -0.02em; color: var(--text); white-space: nowrap; }
+
+.lead .kpi__value small { font-size: 32px; color: var(--muted); letter-spacing: 0; margin-left: 10px; }
+
+.lead .kpi__label { margin-top: 10px; font-size: 21px; line-height: 1.4; color: var(--muted); }
+
+.lead .kpi--warn .kpi__value { color: var(--unknown); }
+
+.viz { width: 100%; align-self: center; }
+
+.viz > svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.num {
+  position: absolute;
+  right: 116px;
+  bottom: 52px;
+  font: 600 24px/1 var(--sans);
+  color: var(--text);
+}
+
+.nw { white-space: nowrap; }
+
+.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex: none; }
+
+.cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandline {
+  position: relative;
+  width: 1920px;
+  display: flex;
+  justify-content: center;
+}
+
+.brandline svg { display: block; }
+
+.cover__sub { margin-top: 64px; font: 400 48px/1.2 var(--display); letter-spacing: -0.012em; text-align: center; color: var(--text); }
+
+.ledger { width: 100%; border-collapse: collapse; }
+
+.ledger td { padding: 15px 0; border-bottom: 1px solid var(--hair); font-size: 25px; line-height: 1.3; color: var(--text); }
+
+.ledger td.v { text-align: right; font-weight: 600; white-space: nowrap; }
+
+.ledger td.ok { width: 60px; text-align: right; color: var(--pass); }
+
+.ledger td.ok .icon { width: 28px; height: 28px; vertical-align: -0.2em; }
+
+.s0-cover { justify-content: flex-start; padding-top: 276px; }
+
+.s3-viz { align-self: start; margin-top: 4px; }
+
+.s4-exit { grid-column: 2; display: flex; align-items: center; gap: 12px; }
+
+.s5-viz { align-self: start; margin-top: -10px; }
+
+.s5-plan { padding: 26px 0; border-bottom: 1px solid var(--hair); }
+
+.s8-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14px; border-bottom: 2px solid var(--text); }
+
+.s8-title { font: 600 28px/1.25 var(--display); color: var(--text); }
+
+.s9-finale { justify-content: flex-start; padding-top: 276px; }
+
+.split::before { content: ""; position: absolute; top: 0; bottom: 0; left: 711px; right: 0; background: #ffffff; }
+
+.split > * { position: relative; }
+
+.s0-rail { display: block; flex: none; margin-top: 128px; overflow: visible; }
+
+
+.s1-focal { display: flex; flex-direction: column; gap: 28px; }
+
+.s1-kicker { font: 600 24px/1.3 var(--sans); color: var(--text); }
+
+.s1-shift { display: flex; align-items: baseline; gap: 20px; white-space: nowrap; }
+
+.s1-old { font: 300 96px/1 var(--display); color: var(--soft); text-decoration: line-through; text-decoration-thickness: 5px; text-decoration-color: var(--fail); }
+
+.s1-arrow { display: flex; align-self: center; color: var(--copper); }
+
+.s1-arrow .icon-arrow { width: 56px; height: 56px; }
+
+.s1-new { font: 300 96px/1 var(--display); letter-spacing: -0.02em; color: var(--copper-ink); }
+
+.s1-unit { font: 400 36px/1 var(--display); color: var(--copper-ink); }
+
+.lead .s1-why { margin-top: 48px; padding-top: 40px; border-top: 1px solid var(--hair); }
+
+.s2-checks__h { padding-bottom: 14px; border-bottom: 1.5px solid var(--text); font: 600 24px/1.3 var(--sans); color: var(--text); }
+
+.s2-checks li { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--hair); font-size: 26px; line-height: 1.3; }
+
+.s2-checks li:last-child { border-bottom: 0; }
+
+.s2-checks .icon { width: 26px; height: 26px; color: var(--text); }
+
+.lead .s3-focal { display: flex; flex-direction: column; gap: 12px; padding-top: 28px; border-top: 1.5px solid var(--text); }
+
+.lead .s3-focal__value { font: 300 96px/0.95 var(--display); letter-spacing: -0.025em; color: var(--text); white-space: nowrap; }
+
+.lead .s3-focal__label { font-size: 24px; line-height: 1.4; color: var(--body); }
+
+.lead .s3-focal__label b { font-weight: 600; color: var(--text); }
+
+.lead .s3-focal__label .icon-arrow { width: 0.9em; height: 0.9em; vertical-align: -0.1em; color: var(--copper); }
+
+.s3-warn { display: flex; flex-direction: column; gap: 14px; }
+
+.lead .s3-warn__head { display: flex; align-items: center; gap: 12px; font: 600 26px/1.25 var(--display); color: var(--unknown); }
+
+.s3-warn__head .icon { width: 28px; height: 28px; }
+
+.s3-warn > svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.s4-viz { align-self: start; display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 0; }
+
+.s4-in { grid-column: 1; display: flex; align-items: center; gap: 28px; padding: 0 0 4px 4px; }
+
+.s4-in__num { font: 300 88px/0.9 var(--display); letter-spacing: -0.025em; color: var(--text); }
+
+.s4-in__text { font: 400 22px/1.4 var(--sans); color: var(--muted); }
+
+.s4-in__text b { font: 600 26px/1.3 var(--display); color: var(--text); }
+
+.s4-down { grid-column: 1; display: flex; align-items: center; gap: 14px; height: 64px; padding-left: 36px; font: 400 22px/1 var(--sans); color: var(--muted); }
+
+.s4-down .icon-arrow { width: 40px; height: 40px; transform: rotate(90deg); color: var(--text); margin-left: 18px; }
+
+.s4-gate, .s4-cmp { grid-column: 1; display: flex; flex-direction: column; border-radius: 14px; }
+
+.s4-gate { padding: 26px 32px 26px; background: var(--text); color: #ffffff; }
+
+.s4-cmp { padding: 26px 32px 0; background: #ffffff; border: 3px solid var(--copper); overflow: hidden; }
+
+.s4-step { font: 600 22px/1.2 var(--sans); color: #d9d4c8; }
+
+.s4-step--then { color: var(--copper-ink); }
+
+.s4-gate__title { margin-top: 8px; font: 600 34px/1.15 var(--display); letter-spacing: -0.01em; }
+
+.s4-checks { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+
+.s4-checks li { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.2); font: 400 26px/1.2 var(--sans); white-space: nowrap; }
+
+.s4-checks li::before { content: ""; flex: none; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #ffffff; }
+
+.s4-gate__meta { margin-top: 10px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.2); font: 600 22px/1.3 var(--sans); color: #ffffff; }
+
+.s4-metrics { margin-top: 18px; display: grid; grid-template-columns: 0.8fr 1.1fr 1.1fr; column-gap: 24px; }
+
+.s4-metrics li { padding-top: 12px; border-top: 1.5px solid var(--copper); font: 400 26px/1.25 var(--sans); color: var(--text); }
+
+.s4-rec { display: flex; align-items: center; gap: 14px; margin: 24px -32px 0; padding: 18px 32px; background: var(--copper); color: #ffffff; font: 600 28px/1.2 var(--display); }
+
+.s4-rec .icon-arrow { width: 32px; height: 32px; }
+
+.s4-exit--gate { grid-row: 3; }
+
+.s4-exit--cmp { grid-row: 5; }
+
+.s4-exit__arrow { flex: none; width: 44px; height: 22px; margin-left: 2px; color: var(--muted); }
+
+.s4-exit__title { display: flex; align-items: center; gap: 10px; font: 600 24px/1.25 var(--sans); color: var(--text); }
+
+.s4-exit__title--fail { color: var(--fail); }
+
+.s4-exit__title .icon { width: 26px; height: 26px; }
+
+.s4-exit__text { margin-top: 6px; padding-left: 36px; font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+.lead .s4-rule { padding-top: 24px; border-top: 1.5px solid var(--text); font: 500 38px/1.25 var(--display); letter-spacing: -0.012em; color: var(--copper-ink); }
+
+.s5-verdicts { display: flex; flex-direction: column; border-top: 1.5px solid var(--text); }
+
+.s5-plan:last-child { border-bottom: 0; }
+
+.lead .s5-plan__rate { display: flex; align-items: baseline; gap: 20px; font: 300 76px/1 var(--display); letter-spacing: -0.02em; color: var(--text); white-space: nowrap; }
+
+.lead .s5-plan__rate span { display: flex; align-items: center; gap: 8px; font: 600 26px/1 var(--sans); letter-spacing: 0; }
+
+.s5-plan__rate .icon { width: 28px; height: 28px; }
+
+.s5-plan--no .s5-plan__rate { color: var(--muted); }
+
+.s5-plan--no .s5-plan__rate span { color: var(--fail); }
+
+.lead .s5-plan--pick .s5-plan__rate { font-weight: 400; color: var(--copper-ink); }
+
+.s5-plan--pick .s5-plan__rate span { color: var(--pass); }
+
+.lead .s5-plan__why { margin-top: 12px; font-size: 24px; line-height: 1.4; color: var(--body); }
+
+.s6-rule { display: grid; grid-template-columns: 40px 1fr; column-gap: 16px; row-gap: 10px; padding: 26px 28px 28px; background: var(--text); border-radius: 12px; color: #ffffff; }
+
+.s6-rule__icon { width: 36px; height: 36px; color: var(--copper); grid-row: 1; align-self: center; }
+
+.lead .s6-rule__head { grid-column: 2; font: 600 32px/1.2 var(--display); color: #ffffff; }
+
+.lead .s6-rule__text { grid-column: 1 / 3; font-size: 25px; line-height: 1.42; color: #e7e5dd; }
+
+.s7-answers { display: flex; flex-direction: column; gap: 24px; }
+
+.s7-answer { font-size: 24px; display: grid; grid-template-columns: 44px 1fr; column-gap: 18px; row-gap: 4px; }
+
+.s7-answer__icon { grid-row: 1 / 4; width: 44px; height: 44px; padding: 8px; border-radius: 50%; color: #ffffff; margin-top: 2px; }
+
+.s7-answer--ok .s7-answer__icon { background: var(--pass); }
+
+.s7-answer--no .s7-answer__icon { background: var(--fail); }
+
+.lead .s7-answer__scene { font: 600 22px/1.3 var(--sans); }
+
+.lead .s7-answer--ok .s7-answer__scene { color: var(--pass); }
+
+.lead .s7-answer--no .s7-answer__scene { color: var(--fail); }
+
+.lead .s7-answer__what { font: 600 34px/1.15 var(--display); color: var(--text); }
+
+.lead .s7-answer__why { font-size: 24px; line-height: 1.4; color: var(--body); }
+
+.s8-focal { display: flex; flex-direction: column; gap: 12px; padding-top: 24px; border-top: 1.5px solid var(--text); }
+
+.lead .s8-focal__num { display: flex; align-items: center; gap: 18px; font: 300 96px/1 var(--display); letter-spacing: -0.02em; color: var(--text); white-space: nowrap; }
+
+.s8-focal__icon { width: 64px; height: 64px; color: var(--pass); }
+
+.lead .s8-focal__label { font-size: 25px; line-height: 1.42; color: var(--body); }
+
+.s8-next { display: flex; flex-direction: column; gap: 8px; padding-top: 24px; border-top: 1px solid var(--hair); }
+
+.lead .s8-next__head { font: 600 27px/1.3 var(--display); color: var(--text); }
+
+.s8-viz { display: flex; flex-direction: column; gap: 56px; }
+
+.s8-col { font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+.ledger tr.s8-pick td.v { color: var(--copper-ink); }
+
+.s8-head--open { border-bottom-color: var(--unknown); }
+
+.s8-head--open .s8-title { color: var(--unknown); }
+
+.s8-open__list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; }
+
+.s8-open__list li { display: flex; align-items: center; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--hair); font-size: 25px; line-height: 1.3; color: var(--text); }
+
+.s8-open__icon { width: 28px; height: 28px; flex: none; color: var(--unknown); }
+
+.s9-lead { margin-top: 70px; font: 400 40px/1.3 var(--display); color: var(--muted); text-align: center; }
+
+.s9-proof { position: absolute; left: 0; right: 0; top: 612px; bottom: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 64px; padding: 0 116px; background: #ffffff; }
+
+.s9-col { display: flex; flex-direction: column; padding-top: 64px; }
+
+.s9-col + .s9-col { margin-left: -32px; padding-left: 32px; border-left: 1px solid var(--hair); }
+
+.s9-claim { min-height: 106px; font: 500 44px/1.2 var(--display); letter-spacing: -0.012em; color: var(--text); text-wrap: balance; }
+
+.s9-col > svg { display: block; width: 100%; height: auto; margin-top: auto; overflow: visible; }
+
+.s9-ref { margin-top: 28px; padding-bottom: 52px; font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+.s9-ref b { font-weight: 600; color: var(--copper-ink); }
+
+@media print {
+  @page { size: 1920px 1080px; margin: 0; }
+  html, body { height: auto; overflow: visible; }
+  .stage { position: static; transform: none !important; }
+  .slide { position: relative; display: block; width: 1920px; height: 1080px; break-after: page; }
+}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+
+<section class="slide">
+  <div class="cover s0-cover">
+    <div class="brandline" data-logo="1100"></div>
+    <p class="cover__sub">Советчик оператору дизельного производства</p>
+    <svg class="s0-rail" id="rail" viewBox="0 0 1920 160" width="1920" height="160" role="img" aria-label="Цепочка: АВТ, гидроочистка, смешение, резервуарный парк, оператор"></svg>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>CUTPOINT предлагает действие оператору</h2>
+      <div class="s1-focal">
+        <p class="s1-kicker">Риск-сценарий</p>
+        <div class="s1-shift" aria-label="Рекомендация по выпуску: со 100 до 50 тонн в час">
+          <span class="s1-old">100</span><span class="s1-arrow"><svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg></span><span class="s1-new">50</span><span class="s1-unit">т/ч</span>
+        </div>
+      </div>
+      <p class="s1-why"><b>Причина:</b> план <span class="nw">100&nbsp;т/ч</span> не&nbsp;проходит проверку неизвестной фазы резервуарного парка.</p>
+      <p class="note">Выпуск модельный: это не результат работы завода.</p>
+    </div>
+    <div class="viz">
+      <svg id="output" viewBox="0 0 1032 740" role="img" aria-label="Модельный выпуск за 3 часа: 300 т по отклонённому плану 100 т/ч и 150 т по рекомендованному плану 50 т/ч"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Решение использует доступные на этот момент данные</h2>
+      <p>Каждое измерение учитывается с&nbsp;момента, когда оно стало доступно, а&nbsp;не&nbsp;когда отобрано.</p>
+      <div class="s2-checks">
+        <p class="s2-checks__h">До расчёта плана проверяются</p>
+        <ul>
+          <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>возраст показаний</li>
+          <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>пропуски</li>
+          <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>зависание анализатора</li>
+          <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>расхождение ПАК и лаборатории</li>
+        </ul>
+      </div>
+      <p class="note">Задержка лаборатории 4&nbsp;ч — допущение: времени выдачи в&nbsp;данных нет.</p>
+    </div>
+    <div class="viz">
+      <svg id="timeline" viewBox="0 0 1032 740" role="img" aria-label="Схема: лабораторная проба, взятая 6 часов назад, уже в расчёте; проба, взятая 2 часа назад, ещё не пришла и не используется"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Прогноз серы потока проверен по&nbsp;времени</h2>
+      <p>Сера после гидроочистки на&nbsp;2&nbsp;ч вперёд. Метод выбран на&nbsp;данных до&nbsp;2026 года и&nbsp;проверен на&nbsp;2026-м.</p>
+      <div class="s3-focal">
+        <p class="s3-focal__value">−10,3&nbsp;%</p>
+        <p class="s3-focal__label">средняя ошибка на 233 пробах 2026 года: <b class="nw">1,802 <svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg> 1,616&nbsp;мг/кг</b></p>
+      </div>
+      <div class="s3-warn">
+        <p class="s3-warn__head"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v6.5M12 17v.01"/></svg>Цель ≤&nbsp;5&nbsp;% пока не&nbsp;достигнута</p>
+        <svg id="coverage" viewBox="0 0 540 118" role="img" aria-label="Доля фактов 2026 года выше верхней границы прогноза: 6,87 процента у последнего ПАК, 6,01 процента с поправкой, цель не более 5 процентов"></svg>
+      </div>
+      <p class="note">Это точность прогноза, а&nbsp;не&nbsp;экономия и&nbsp;не&nbsp;паспорт готовой партии.</p>
+    </div>
+    <div class="viz s3-viz">
+      <svg id="dumbbell" viewBox="0 0 1032 830" role="img" aria-label="Средняя абсолютная ошибка прогноза серы по периодам: последнее показание ПАК и ПАК с поправкой. Лучше в 4 из 5 полугодий выбора метода и на проверке 2026 года"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Ограничения проверяются до&nbsp;выбора выгоды</h2>
+      <p>Сначала код отсеивает всё, что нарушает ограничения. Выгоду сравнивают только среди допустимых вариантов.</p>
+            <p class="s4-rule">Качество и ограничения не&nbsp;обмениваются на&nbsp;больший выпуск.</p>
+      <p class="note">Индекс тяжести не является вероятностью аварии. Числа 577 и&nbsp;218&nbsp;— из&nbsp;прогона «норма».</p>
+    </div>
+    <div class="viz s4-viz">
+      <div class="s4-in">
+        <p class="s4-in__num">577</p>
+        <p class="s4-in__text"><b>вариантов режима и&nbsp;рецепта</b></p>
+      </div>
+      <div class="s4-down"><svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg><span>каждый вариант</span></div>
+      <div class="s4-gate">
+        <p class="s4-step">Шаг 1 · допустимость</p>
+        <p class="s4-gate__title">Обязательные проверки</p>
+        <ul class="s4-checks">
+          <li>Сера ≤&nbsp;10&nbsp;мг/кг</li>
+          <li>T95 ≤&nbsp;360&nbsp;°C</li>
+          <li>Цетановое число</li>
+          <li>Плотность</li>
+          <li>Уставки и доли рецепта</li>
+          <li>Запасы партий</li>
+        </ul>
+        <p class="s4-gate__meta">На каждом шаге плана 3&nbsp;ч · 218&nbsp;проверок</p>
+      </div>
+      <div class="s4-exit s4-exit--gate">
+        <svg class="s4-exit__arrow" viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h33" stroke-dasharray="5 6"/><path d="M33 5l7 7-7 7"/></svg>
+        <div>
+          <p class="s4-exit__title s4-exit__title--fail"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Не прошёл хотя&nbsp;бы&nbsp;одну</p>
+          <p class="s4-exit__text">исключён из&nbsp;выбора</p>
+        </div>
+      </div>
+      <div class="s4-down"><svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg><span>только допустимые</span></div>
+      <div class="s4-cmp">
+        <p class="s4-step s4-step--then">Шаг 2 · выгода</p>
+        <p class="s4-gate__title">Сравнение допустимых</p>
+        <ul class="s4-metrics">
+          <li>Выпуск</li>
+          <li>Условная стоимость</li>
+          <li>Индекс тяжести режима</li>
+        </ul>
+        <p class="s4-rec"><svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg>Рекомендация оператору</p>
+      </div>
+      <div class="s4-exit s4-exit--cmp">
+        <svg class="s4-exit__arrow" viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h33" stroke-dasharray="5 6"/><path d="M33 5l7 7-7 7"/></svg>
+        <div>
+          <p class="s4-exit__title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M6 18L18 6"/></svg>Нет допустимых</p>
+          <p class="s4-exit__text">отказ с&nbsp;причиной</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Неизвестная фаза парка меняет выбор</h2>
+      <p>Фаза парка неизвестна, поэтому план проверяется при любом общем сдвиге расписания.</p>
+      <div class="s5-verdicts">
+        <div class="s5-plan s5-plan--no">
+          <p class="s5-plan__rate">100&nbsp;т/ч <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>отклонён</span></p>
+          <p class="s5-plan__why">проходит не&nbsp;при&nbsp;каждом сдвиге</p>
+        </div>
+        <div class="s5-plan s5-plan--pick">
+          <p class="s5-plan__rate">50&nbsp;т/ч <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>рекомендован</span></p>
+          <p class="s5-plan__why">проходит при любом сдвиге за&nbsp;3&nbsp;ч</p>
+        </div>
+      </div>
+      <p class="note">Резервуары и&nbsp;их фазы заданы сценарием. Реальные уровни и&nbsp;паспорта партий неизвестны.</p>
+    </div>
+    <div class="viz s5-viz">
+      <svg id="gantt" viewBox="0 0 1032 850" role="img" aria-label="Цикл резервуара 78,8 часа: налив около 19,7 часа, паспорт 12 часов, слив 24 часа, затем пусто. Четыре резервуара в исходной фазе сценария; расписание может быть сдвинуто целиком"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Агенты оставляют проверяемую трассу</h2>
+      <p>Агенты считают качество и надёжность плана, каждый шаг записан в&nbsp;трассу.</p>
+      <div class="s6-rule">
+        <svg class="s6-rule__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+        <p class="s6-rule__head">Последнее слово за&nbsp;кодом</p>
+        <p class="s6-rule__text">Агент не может снять жёсткий запрет.</p>
+      </div>
+      <p>В проверенных сценах агенты (политика scripted) подтвердили план и&nbsp;не&nbsp;добавили ограничений.</p>
+      <p class="note">Живая LLM в этих сценах не проверялась.</p>
+    </div>
+    <div class="viz">
+      <svg id="agents" viewBox="0 0 1032 700" role="img" aria-label="Трасса: запрос оркестратора, расчёт инструментов агентов качества и надёжности, вердикт, обязательная проверка кода, решение"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Норма и плохие данные дают разные ответы</h2>
+      <ul class="s7-answers">
+        <li class="s7-answer s7-answer--ok">
+          <svg class="s7-answer__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>
+          <p class="s7-answer__scene">Норма</p>
+          <p class="s7-answer__what">Сохранить режим</p>
+          <p class="s7-answer__why">модельный выпуск 300&nbsp;т за&nbsp;3&nbsp;ч</p>
+        </li>
+        <li class="s7-answer s7-answer--no">
+          <svg class="s7-answer__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          <p class="s7-answer__scene">Плохие данные</p>
+          <p class="s7-answer__what">Отказ до поиска плана</p>
+          <p class="s7-answer__why">нужен свежий лабораторный анализ или&nbsp;исправный ПАК</p>
+        </li>
+      </ul>
+            <p class="note">Отказ проверен с искусственно испорченными источниками качества.</p>
+    </div>
+    <div class="viz">
+      <svg id="metro" viewBox="0 0 1032 720" role="img" aria-label="Путь трёх сцен через этапы расчёта: норма и риск проходят все этапы, плохие данные останавливаются на проверке качества данных"></svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="split">
+    <div class="lead">
+      <h2>Расчёт повторяем, заводской эффект ещё не измерен</h2>
+      <div class="s8-focal">
+        <p class="s8-focal__num"><svg class="s8-focal__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>7 из 7</p>
+        <p class="s8-focal__label">показателей совпали при повторном расчёте в&nbsp;отдельном процессе</p>
+      </div>
+      <div class="s8-next">
+        <p class="s8-next__head">Следующий шаг</p>
+        <p>Реальные уровни и паспорта партий, подтверждение отклика и сравнение с действиями технолога.</p>
+      </div>
+      <p class="note">Совет не разрешает товарный выпуск.</p>
+    </div>
+    <div class="viz s8-viz">
+      <div class="s8-block">
+        <div class="s8-head"><p class="s8-title">Повтор риск-сценария</p></div>
+        <table class="ledger">
+          <tbody>
+            <tr><td class="k">Статус решения</td><td class="v s8-same">совпал</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+            <tr class="s8-pick"><td class="k">Выбранный план</td><td class="v">c0001, 50&nbsp;т/ч</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+            <tr class="s8-pick"><td class="k">Модельный выпуск за 3&nbsp;ч</td><td class="v">150&nbsp;т</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+            <tr><td class="k">Условная стоимость</td><td class="v">1,05&nbsp;у.е./т</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+            <tr><td class="k">Сценарный индекс тяжести</td><td class="v">0,53455</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+            <tr><td class="k">Отпечаток входных данных</td><td class="v s8-same">совпал</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+            <tr><td class="k">Проверка фаз парка</td><td class="v s8-same">совпала</td><td class="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="s8-block s8-open">
+        <div class="s8-head s8-head--open"><p class="s8-title">Ещё не измерено</p></div>
+        <ul class="s8-open__list">
+          <li><svg class="s8-open__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-dasharray="3.2 3.2"/></svg>живая LLM</li>
+          <li><svg class="s8-open__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-dasharray="3.2 3.2"/></svg>реальные уровни и паспорта партий</li>
+          <li><svg class="s8-open__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-dasharray="3.2 3.2"/></svg>отклик процесса на совет</li>
+          <li><svg class="s8-open__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-dasharray="3.2 3.2"/></svg>сравнение с действиями технолога</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="cover s9-finale">
+    <div class="brandline" data-logo="1100"></div>
+    <p class="s9-lead">Мы показываем,</p>
+  </div>
+  <div class="s9-proof">
+    <div class="s9-col">
+      <p class="s9-claim">откуда совет взялся,</p>
+      <svg id="s9-origin" viewBox="0 0 520 150" role="img" aria-label="Путь совета: данные, прогноз, ограничения, совет"></svg>
+      <p class="s9-ref">путь от данных до совета · <b>слайды 2–4, 6</b></p>
+    </div>
+    <div class="s9-col">
+      <p class="s9-claim">сколько стоит его осторожность в модели</p>
+      <svg id="s9-cost" viewBox="0 0 520 150" role="img" aria-label="Модельный выпуск за 3 часа: 300 т у отклонённого плана и 150 т у рекомендованного"></svg>
+      <p class="s9-ref">модельный выпуск за 3&nbsp;ч · <b>слайды 1, 5</b></p>
+    </div>
+    <div class="s9-col">
+      <p class="s9-claim">и при каких данных совет вообще разрешён.</p>
+      <svg id="s9-gate" viewBox="0 0 520 150" role="img" aria-label="Исправные данные дают совет, плохие данные дают отказ до поиска плана"></svg>
+      <p class="s9-ref">проверка до поиска плана · <b>слайды 2, 7</b></p>
+    </div>
+  </div>
+</section>
+
+</main>
+<template id="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 143.6" role="img" aria-label="CUTPOINT">
+  <g transform="scale(0.088339)">
+    <g transform="translate(0 1546.0) scale(1 -1)">
+    <line x1="1050.7" y1="733.0" x2="1820.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/><line x1="2117.8" y1="733.0" x2="2693.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="2990.4" y1="733.0" x2="3730.9" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4028.0" y1="733.0" x2="4745.0" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="5787.4" y1="733.0" x2="6150.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="6452.4" y1="733.0" x2="7263.7" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7570.2" y1="733.0" x2="7886.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8183.4" y1="733.0" x2="8565.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8843.8" y1="733.0" x2="8980.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9301.3" y1="733.0" x2="9452.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9730.5" y1="733.0" x2="10466.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="10763.4" y1="733.0" x2="11211.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/>
+    <g fill="#322d2a"><g transform="translate(813.0 733.0) scale(3.39352 -3.39352) translate(-256.0 -256.0)"><path d="M256 40a216 216 0 1 0 150 371l-59-62a132 132 0 1 1 0-186l59-62A215 215 0 0 0 256 40z"/></g><path transform="translate(1676.0 0)" d="M147.0 1466.0H443.0V672.0Q443.0 483.0 454.0 427.0Q473.0 337.0 544.5 282.5Q616.0 228.0 740.0 228.0Q866.0 228.0 930.0 279.5Q994.0 331.0 1007.0 406.0Q1020.0 481.0 1020.0 655.0V1466.0H1316.0V696.0Q1316.0 432.0 1292.0 323.0Q1268.0 214.0 1203.5 139.0Q1139.0 64.0 1031.0 19.5Q923.0 -25.0 749.0 -25.0Q539.0 -25.0 430.5 23.5Q322.0 72.0 259.0 149.5Q196.0 227.0 176.0 312.0Q147.0 438.0 147.0 684.0Z"/><path transform="translate(3251.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/><path transform="translate(4598.0 0)" d="M149.0 0.0V1466.0H624.0Q894.0 1466.0 976.0 1444.0Q1102.0 1411.0 1187.0 1300.5Q1272.0 1190.0 1272.0 1015.0Q1272.0 880.0 1223.0 788.0Q1174.0 696.0 1098.5 643.5Q1023.0 591.0 945.0 574.0Q839.0 553.0 638.0 553.0H445.0V0.0ZM445.0 1218.0V802.0H607.0Q782.0 802.0 841.0 825.0Q900.0 848.0 933.5 897.0Q967.0 946.0 967.0 1011.0Q967.0 1091.0 920.0 1143.0Q873.0 1195.0 801.0 1208.0Q748.0 1218.0 588.0 1218.0Z"/><path transform="translate(6060.0 0)" d="M89.0 724.0Q89.0 948.0 156.0 1100.0Q206.0 1212.0 292.5 1301.0Q379.0 1390.0 482.0 1433.0Q619.0 1491.0 798.0 1491.0Q1122.0 1491.0 1316.5 1290.0Q1511.0 1089.0 1511.0 731.0Q1511.0 376.0 1318.0 175.5Q1125.0 -25.0 802.0 -25.0Q475.0 -25.0 282.0 174.5Q89.0 374.0 89.0 724.0ZM394.0 734.0Q394.0 485.0 509.0 356.5Q624.0 228.0 801.0 228.0Q978.0 228.0 1091.5 355.5Q1205.0 483.0 1205.0 738.0Q1205.0 990.0 1094.5 1114.0Q984.0 1238.0 801.0 1238.0Q618.0 1238.0 506.0 1112.5Q394.0 987.0 394.0 734.0Z"/><path transform="translate(7749.0 0)" d="M140.0 0.0V1466.0H436.0V0.0Z"/><path transform="translate(8414.0 0)" d="M152.0 0.0V1466.0H440.0L1040.0 487.0V1466.0H1315.0V0.0H1018.0L427.0 956.0V0.0Z"/><path transform="translate(9989.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/></g>
+    <line x1="2663.2" y1="733.0" x2="3020.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4715.0" y1="733.0" x2="5817.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7233.7" y1="733.0" x2="7600.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8535.5" y1="733.0" x2="8873.8" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9422.2" y1="733.0" x2="9760.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/>
+  </g>
+  </g>
+</svg></template>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const C = { text: "#322d2a", muted: "#5a564e", soft: "#8f8974", pass: "#1b7a3d", passWash: "#dcebe0", fail: "#c1292e", unknown: "#a35a00", copper: "#c8761a", ink: "#8a4d0f", panel: "#f0efe9", field: "#e7e5dd" };
+  const el = (parent, tag, attrs, text) => {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (text !== undefined) node.textContent = text;
+    parent.append(node);
+    return node;
+  };
+  const label = (parent, x, y, text, size, fill, extra = {}) => el(parent, "text", Object.assign({ x, y, "font-size": size, fill }, extra), text);
+  const fmt = (v, digits) => v.toFixed(digits).replace(".", ",");
+  const probes = (n) => {
+    const d = n % 10, h = n % 100;
+    if (d === 1 && h !== 11) return `${n} проба`;
+    if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return `${n} пробы`;
+    return `${n} проб`;
+  };
+  const arrowGlyph = (parent, x, y, size, color, width = 2.4) => {
+    const k = size / 24;
+    el(parent, "path", { d: `M${x + 4 * k} ${y} h${15.5 * k} M${x + 13.5 * k} ${y - 6.5 * k} L${x + 20 * k} ${y} L${x + 13.5 * k} ${y + 6.5 * k}`, fill: "none", stroke: color, "stroke-width": width, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  };
+  const checkMark = (parent, cx, cy, r, color) => {
+    el(parent, "circle", { cx, cy, r, fill: color });
+    el(parent, "path", { d: `M${cx - r * 0.45} ${cy + r * 0.02} l${r * 0.3} ${r * 0.3} l${r * 0.58} -${r * 0.62}`, fill: "none", stroke: "#ffffff", "stroke-width": r * 0.24, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  };
+
+  const logoSource = document.getElementById("logo").content.querySelector("svg");
+  document.querySelectorAll(".brandline").forEach((line) => {
+    const width = Number(line.dataset.logo);
+    const height = width * 0.1436;
+    const side = (1920 - width) / 2;
+    const cy = height * (71.8196 / 143.6);
+    const stroke = width * 0.0156095;
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 1920 ${height}`);
+    svg.setAttribute("width", 1920);
+    svg.setAttribute("height", height);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "CUTPOINT");
+    el(svg, "line", { x1: 0, y1: cy, x2: side + width * 0.012, y2: cy, stroke: C.copper, "stroke-width": stroke });
+    el(svg, "line", { x1: side + width * 0.9904, y1: cy, x2: 1920, y2: cy, stroke: C.copper, "stroke-width": stroke });
+    const mark = logoSource.cloneNode(true);
+    mark.setAttribute("x", side);
+    mark.setAttribute("y", 0);
+    mark.setAttribute("width", width);
+    mark.setAttribute("height", height);
+    mark.removeAttribute("role");
+    mark.setAttribute("aria-hidden", "true");
+    svg.append(mark);
+    line.append(svg);
+  });
+
+  const rail = () => {
+    const svg = document.getElementById("rail");
+    const Y = 30;
+    const stops = [["АВТ", "перегонка"], ["Гидроочистка", "сера потока"], ["Смешение", "рецепт, качество"], ["Резервуарный парк", "4 × 5000 м³"], ["Оператор", "действие или отказ"]];
+    const xs = stops.map((_, i) => 116 + 168.8 + i * 337.6);
+    const end = xs[xs.length - 1];
+    el(svg, "line", { x1: xs[0], y1: Y, x2: xs[3], y2: Y, stroke: C.text, "stroke-width": 3 });
+    el(svg, "line", { x1: xs[3], y1: Y, x2: end, y2: Y, stroke: C.copper, "stroke-width": 8, "stroke-linecap": "round" });
+    for (let i = 1; i < xs.length; i++) {
+      const mx = (xs[i - 1] + xs[i]) / 2;
+      const last = i === xs.length - 1;
+      el(svg, "path", { d: `M${mx - 7} ${Y - 11} L${mx + 5} ${Y} L${mx - 7} ${Y + 11}`, fill: "none", stroke: last ? C.copper : C.text, "stroke-width": last ? 4 : 3, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    }
+    stops.forEach(([name, sub], i) => {
+      const x = xs[i];
+      const op = i === stops.length - 1;
+      if (op) {
+        el(svg, "circle", { cx: x, cy: Y, r: 24, fill: C.copper });
+        el(svg, "circle", { cx: x, cy: Y, r: 8, fill: "#ffffff" });
+      } else {
+        el(svg, "circle", { cx: x, cy: Y, r: 13, fill: C.panel, stroke: C.text, "stroke-width": 4 });
+      }
+      label(svg, x, Y + 84, name, 30, op ? C.ink : C.text, { "text-anchor": "middle", "font-weight": 600 });
+      label(svg, x, Y + 122, sub, 24, op ? C.ink : C.muted, { "text-anchor": "middle", "font-weight": op ? 600 : 400 });
+    });
+  };
+
+  const output = () => {
+    const svg = document.getElementById("output");
+    const B = 612, k = 1.7;
+    const y = (t) => B - t * k;
+    const W = 280, X1 = 24, X2 = 384;
+    const defs = el(svg, "defs", {});
+    const pat = el(defs, "pattern", { id: "s1-hatch", width: 14, height: 14, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" });
+    el(pat, "line", { x1: 0, y1: 0, x2: 0, y2: 14, stroke: "#d3cfc4", "stroke-width": 3 });
+    label(svg, 0, 30, "Модельный выпуск за 3 часа, т", 24, C.text, { "font-weight": 600 });
+    el(svg, "line", { x1: X1 + W, y1: y(300), x2: 712, y2: y(300), stroke: C.soft, "stroke-width": 1.5, "stroke-dasharray": "4 6" });
+    el(svg, "line", { x1: X2 + W, y1: y(150), x2: 712, y2: y(150), stroke: C.soft, "stroke-width": 1.5, "stroke-dasharray": "4 6" });
+    el(svg, "rect", { x: X1, y: y(300), width: W, height: 300 * k, fill: "#c4beaf" });
+    el(svg, "rect", { x: X2 + 1, y: y(300) + 1, width: W - 2, height: 150 * k - 1, fill: "url(#s1-hatch)", stroke: C.soft, "stroke-width": 2, "stroke-dasharray": "8 6" });
+    el(svg, "rect", { x: X2, y: y(150), width: W, height: 150 * k, fill: C.copper });
+    label(svg, X1 + W / 2, y(300) + 64, "300 т", 48, C.text, { "text-anchor": "middle", "font-weight": 600 });
+    label(svg, X2 + W / 2, y(150) + 64, "150 т", 48, "#ffffff", { "text-anchor": "middle", "font-weight": 600 });
+    el(svg, "line", { x1: 0, y1: B, x2: X2 + W + 24, y2: B, stroke: C.text, "stroke-width": 2.5 });
+    el(svg, "path", { d: `M716 ${y(300)} H730 V${y(150)} H716`, fill: "none", stroke: C.text, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    const my = (y(300) + y(150)) / 2;
+    label(svg, 756, my - 12, "−150 т", 48, C.text, { "font-weight": 600 });
+    label(svg, 756, my + 28, "цена осторожности", 24, C.text);
+    label(svg, 756, my + 60, "в модели", 24, C.text);
+    label(svg, X1, B + 50, "План 100 т/ч", 28, C.text, { "font-weight": 600 });
+    el(svg, "circle", { cx: X1 + 14, cy: B + 92, r: 14, fill: C.fail });
+    el(svg, "path", { d: `M${X1 + 9} ${B + 87} l10 10 M${X1 + 19} ${B + 87} l-10 10`, stroke: "#ffffff", "stroke-width": 2.8, "stroke-linecap": "round" });
+    label(svg, X1 + 40, B + 100, "отклонён", 24, C.fail, { "font-weight": 600 });
+    label(svg, X2, B + 50, "План 50 т/ч", 28, C.ink, { "font-weight": 600 });
+    checkMark(svg, X2 + 14, B + 92, 14, C.pass);
+    label(svg, X2 + 40, B + 100, "рекомендован", 24, C.pass, { "font-weight": 600 });
+  };
+
+  const timeline = () => {
+    const svg = document.getElementById("timeline");
+    const x = (h) => 262 + (h + 7) * 62;
+    const T0 = x(0), AX = 632;
+    const tracks = [196, 322, 448, 574];
+    const defs = el(svg, "defs", {});
+    const pat = el(defs, "pattern", { id: "s2-hatch", width: 16, height: 16, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" });
+    el(pat, "line", { x1: 0, y1: 0, x2: 0, y2: 16, stroke: "#e4e0d6", "stroke-width": 3 });
+    el(svg, "rect", { x: T0, y: 76, width: 1032 - T0, height: AX - 76, fill: "url(#s2-hatch)" });
+    label(svg, T0, 30, "момент решения", 24, C.text, { "text-anchor": "middle", "font-weight": 600 });
+    label(svg, T0 - 20, 112, "уже известно", 22, C.text, { "text-anchor": "end", "font-weight": 600 });
+    label(svg, T0 + 20, 112, "ещё неизвестно", 22, C.muted, { "font-weight": 600 });
+    const rows = [["Лаборатория", "проба 6 ч назад"], ["Лаборатория", "проба 2 ч назад"], ["ПАК", "непрерывно"], ["Прогноз серы", "на 2 ч вперёд"]];
+    rows.forEach(([t, c], i) => {
+      label(svg, 0, tracks[i] - 6, t, 24, C.text, { "font-weight": 600 });
+      label(svg, 0, tracks[i] + 24, c, 20, C.muted);
+    });
+    const dash = (x1, x2, yy) => el(svg, "line", { x1, y1: yy, x2, y2: yy, stroke: C.text, "stroke-width": 2.4, "stroke-dasharray": "8 7" });
+    const ya = tracks[0];
+    dash(x(-6) + 10, x(-2) - 18, ya);
+    label(svg, x(-4), ya + 36, "4 ч, допущение", 20, C.muted, { "text-anchor": "middle" });
+    el(svg, "circle", { cx: x(-6), cy: ya, r: 10, fill: C.text });
+    checkMark(svg, x(-2), ya, 18, C.pass);
+    label(svg, x(-2), ya - 32, "в расчёте", 22, C.pass, { "text-anchor": "middle", "font-weight": 600 });
+    const yb = tracks[1];
+    dash(x(-2) + 10, x(2) - 18, yb);
+    label(svg, T0 - 14, yb + 36, "4 ч", 20, C.muted, { "text-anchor": "end" });
+    el(svg, "circle", { cx: x(-2), cy: yb, r: 10, fill: C.text });
+    el(svg, "circle", { cx: x(2), cy: yb, r: 17, fill: "#ffffff", stroke: C.unknown, "stroke-width": 3 });
+    el(svg, "path", { d: `M${x(2)} ${yb - 9} V${yb} l6 5`, fill: "none", stroke: C.unknown, "stroke-width": 2.8, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    label(svg, x(2), yb - 32, "не в расчёте", 22, C.unknown, { "text-anchor": "middle", "font-weight": 600 });
+    const yp = tracks[2];
+    el(svg, "line", { x1: x(-7), y1: yp, x2: T0 - 18, y2: yp, stroke: C.text, "stroke-width": 5, "stroke-linecap": "round" });
+    checkMark(svg, T0, yp, 18, C.pass);
+    label(svg, T0 - 32, yp - 22, "в расчёте", 22, C.pass, { "text-anchor": "end", "font-weight": 600 });
+    const yf = tracks[3];
+    el(svg, "line", { x1: T0, y1: yf, x2: x(2) - 16, y2: yf, stroke: C.copper, "stroke-width": 5, "stroke-dasharray": "12 8" });
+    el(svg, "rect", { x: x(2) - 13, y: yf - 13, width: 26, height: 26, fill: C.copper, transform: `rotate(45 ${x(2)} ${yf})` });
+    label(svg, x(2), yf - 34, "сера через 2 ч", 22, C.ink, { "text-anchor": "middle", "font-weight": 600 });
+    el(svg, "line", { x1: T0, y1: 48, x2: T0, y2: AX, stroke: C.text, "stroke-width": 4 });
+    el(svg, "line", { x1: x(-7), y1: AX, x2: 1032, y2: AX, stroke: C.text, "stroke-width": 2 });
+    for (const h of [-6, -4, -2, 0, 2]) {
+      el(svg, "line", { x1: x(h), y1: AX, x2: x(h), y2: AX + 10, stroke: C.text, "stroke-width": 2 });
+      const t = h === 0 ? "0 ч" : `${h > 0 ? "+" : "−"}${Math.abs(h)} ч`;
+      label(svg, x(h), AX + 42, t, 22, h === 0 ? C.text : C.muted, { "text-anchor": "middle", "font-weight": h === 0 ? 600 : 400 });
+    }
+  };
+
+  const coverage = () => {
+    const svg = document.getElementById("coverage");
+    const x = (v) => 8 + v * 62;
+    const ty = 62;
+    el(svg, "line", { x1: x(0), y1: ty, x2: x(8), y2: ty, stroke: "#bdb7a8", "stroke-width": 3, "stroke-linecap": "round" });
+    el(svg, "line", { x1: x(0), y1: ty, x2: x(5), y2: ty, stroke: C.pass, "stroke-width": 7, "stroke-linecap": "round" });
+    el(svg, "line", { x1: x(5), y1: ty - 22, x2: x(5), y2: ty + 22, stroke: C.pass, "stroke-width": 3 });
+    label(svg, x(5) - 12, ty - 24, "цель ≤ 5 %", 22, C.pass, { "text-anchor": "end", "font-weight": 600 });
+    label(svg, x(0), ty + 46, "0 %", 20, C.muted);
+    el(svg, "circle", { cx: x(6.87), cy: ty, r: 11, fill: C.panel, stroke: C.muted, "stroke-width": 3 });
+    label(svg, x(6.87) - 14, ty - 24, "ПАК 6,87 %", 22, C.muted);
+    el(svg, "circle", { cx: x(6.01), cy: ty, r: 13, fill: C.copper });
+    label(svg, x(6.01) + 20, ty + 46, "CUTPOINT 6,01 %", 22, C.ink, { "text-anchor": "middle", "font-weight": 600 });
+  };
+
+  const dumbbell = () => {
+    const svg = document.getElementById("dumbbell");
+    const X0 = 300, K = 760, x = (m) => X0 + (m - 1.2) * K;
+    const DX = 1032;
+    const icon = (cx, cy, ok, color) => {
+      const d = ok ? `M${cx - 9} ${cy + 1} l6 6 l12 -13` : `M${cx - 8} ${cy - 8} l16 16 M${cx + 8} ${cy - 8} l-16 16`;
+      el(svg, "path", { d, fill: "none", stroke: color, "stroke-width": 3.2, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    };
+    label(svg, 0, 30, "Средняя абсолютная ошибка прогноза, мг/кг", 26, C.text, { "font-weight": 600 });
+    const ly = 76;
+    el(svg, "circle", { cx: 12, cy: ly - 7, r: 10, fill: "#ffffff", stroke: C.muted, "stroke-width": 3 });
+    label(svg, 34, ly, "последнее показание ПАК", 22, C.text);
+    el(svg, "circle", { cx: 340, cy: ly - 7, r: 11, fill: C.copper });
+    label(svg, 362, ly, "CUTPOINT: ПАК + поправка", 22, C.text);
+    label(svg, DX, ly, "изменение", 20, C.muted, { "text-anchor": "end" });
+
+    const gridBottom = 752;
+    for (const t of [1.2, 1.4, 1.6, 1.8]) {
+      el(svg, "line", { x1: x(t), y1: 178, x2: x(t), y2: 512, stroke: "#e6e2d8", "stroke-width": 1.5 });
+      el(svg, "line", { x1: x(t), y1: 592, x2: x(t), y2: gridBottom, stroke: "#e6e2d8", "stroke-width": 1.5 });
+      label(svg, x(t), gridBottom + 32, fmt(t, 1), 20, C.muted, { "text-anchor": "middle" });
+    }
+    el(svg, "line", { x1: X0, y1: gridBottom, x2: x(1.9), y2: gridBottom, stroke: C.text, "stroke-width": 1.5 });
+    el(svg, "path", { d: `M${X0 + 40} ${gridBottom + 62} h120 M${X0 + 40} ${gridBottom + 62} l9 -7 M${X0 + 40} ${gridBottom + 62} l9 7`, fill: "none", stroke: C.pass, "stroke-width": 2.6, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    label(svg, X0 + 176, gridBottom + 69, "левее — точнее", 20, C.pass, { "font-weight": 600 });
+
+    label(svg, 0, 158, "Выбор метода: лучше в 4 из 5 полугодий", 22, C.text, { "font-weight": 600 });
+    const periods = [
+      ["II полугодие 2023", 190, 1.410, 1.333],
+      ["I полугодие 2024", 138, 1.678, 1.607],
+      ["II полугодие 2024", 197, 1.638, 1.350],
+      ["I полугодие 2025", 181, 1.361, 1.375],
+      ["II полугодие 2025", 219, 1.823, 1.410]
+    ];
+    periods.forEach(([name, n, pak, ours], i) => {
+      const y = 214 + i * 64;
+      const better = ours < pak;
+      label(svg, 0, y + 11, name, 22, C.text);
+      el(svg, "line", { x1: x(pak), y1: y + 4, x2: x(ours), y2: y + 4, stroke: better ? "#b9b2a2" : C.fail, "stroke-width": 4 });
+      el(svg, "circle", { cx: x(pak), cy: y + 4, r: 10, fill: "#ffffff", stroke: C.muted, "stroke-width": 3 });
+      el(svg, "circle", { cx: x(ours), cy: y + 4, r: 11, fill: C.copper });
+      const d = ours - pak;
+      const color = better ? C.text : C.fail;
+      label(svg, DX, y + 11, (d > 0 ? "+" : "−") + fmt(Math.abs(d), 3), 24, color, { "text-anchor": "end", "font-weight": 600 });
+      icon(DX - 104, y + 4, better, better ? C.pass : C.fail);
+      if (!better) label(svg, x(ours) + 24, y + 11, "хуже", 22, C.fail, { "font-weight": 600 });
+    });
+
+    el(svg, "line", { x1: 0, y1: 530, x2: DX, y2: 530, stroke: C.text, "stroke-width": 1.5 });
+    label(svg, 0, 572, "Проверка на 2026 году", 22, C.text, { "font-weight": 600 });
+    const y = 648;
+    label(svg, 0, y - 4, "2026 год", 30, C.text, { "font-weight": 600 });
+    label(svg, 0, y + 26, "233 пробы", 20, C.muted);
+    const lo = 1.802 - 0.302, hi = 1.802 - 0.071;
+    el(svg, "line", { x1: x(1.802), y1: y, x2: x(1.616), y2: y, stroke: "#b9b2a2", "stroke-width": 6 });
+    el(svg, "path", { d: `M${x(lo)} ${y + 34} v10 H${x(hi)} v-10`, fill: "none", stroke: C.copper, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    el(svg, "circle", { cx: x(1.802), cy: y, r: 15, fill: "#ffffff", stroke: C.muted, "stroke-width": 3.5 });
+    el(svg, "circle", { cx: x(1.616), cy: y, r: 17, fill: C.copper });
+    label(svg, x(1.802), y - 30, "1,802", 26, C.muted, { "text-anchor": "middle", "font-weight": 600 });
+    label(svg, x(1.616), y - 30, "1,616", 26, C.ink, { "text-anchor": "middle", "font-weight": 600 });
+    label(svg, (x(lo) + x(hi)) / 2, y + 74, "95 % интервал не доходит до ПАК", 20, C.ink, { "text-anchor": "middle" });
+    label(svg, DX, y + 11, "−0,186", 30, C.text, { "text-anchor": "end", "font-weight": 600 });
+    icon(DX - 122, y + 2, true, C.pass);
+    label(svg, DX, y + 44, "ДИ −0,302…−0,071", 20, C.muted, { "text-anchor": "end" });
+  };
+
+  const gantt = () => {
+    const svg = document.getElementById("gantt");
+    const CYCLE = 78.8, cx = 500, cy = 446, R0 = 184, W = 150;
+    const ang = (h) => (-90 + (h / CYCLE) * 360) * Math.PI / 180;
+    const pt = (r, h) => [cx + r * Math.cos(ang(h)), cy + r * Math.sin(ang(h))];
+    const level = (h) => h < 19.7 ? h / 19.7 : h < 31.7 ? 1 : h < 55.7 ? 1 - (h - 31.7) / 24 : 0;
+    const f = (v) => v.toFixed(1);
+    const band = (a, b, color) => {
+      const pts = [];
+      for (let h = a; h <= b + 1e-9; h += (b - a) / 60) pts.push(pt(R0 + Math.max(level(Math.min(h, b - 0.001)), 0) * W, h));
+      const [ix, iy] = pt(R0, b), [sx, sy] = pt(R0, a);
+      const large = (b - a) / CYCLE > 0.5 ? 1 : 0;
+      const d = `M${f(sx)} ${f(sy)} ` + pts.map(([px, py]) => `L${f(px)} ${f(py)}`).join(" ") + ` L${f(ix)} ${f(iy)} A${R0} ${R0} 0 ${large} 0 ${f(sx)} ${f(sy)} Z`;
+      el(svg, "path", { d, fill: color, stroke: "#ffffff", "stroke-width": 3, "stroke-linejoin": "round" });
+    };
+    el(svg, "circle", { cx, cy, r: R0 + W, fill: "none", stroke: "#e6e2d8", "stroke-width": 1.5, "stroke-dasharray": "6 8" });
+    band(0, 19.7, "#a8a08d");
+    band(19.7, 31.7, C.text);
+    band(31.7, 55.7, "#a8a08d");
+    const [ex1, ey1] = pt(R0, 55.7), [ex2, ey2] = pt(R0, 78.8);
+    el(svg, "path", { d: `M${f(ex1)} ${f(ey1)} A${R0} ${R0} 0 0 1 ${f(ex2)} ${f(ey2)}`, fill: "none", stroke: C.soft, "stroke-width": 3, "stroke-dasharray": "2 9", "stroke-linecap": "round" });
+
+    const phaseLabel = (h, r, lines, anchor) => {
+      const [lx, ly] = pt(r, h);
+      lines.forEach(([t, size, color, weight], i) => label(svg, lx, ly + i * 30, t, size, color, { "text-anchor": anchor, "font-weight": weight }));
+    };
+    phaseLabel(9.85, R0 + W + 36, [["Налив", 24, C.text, 600], ["≈ 19,7 ч", 22, C.muted, 400]], "start");
+    phaseLabel(25.7, R0 + W + 40, [["Паспорт", 24, C.text, 600], ["12 ч", 22, C.muted, 400]], "start");
+    phaseLabel(43.7, R0 + W - 10, [["Слив", 24, C.text, 600], ["24 ч", 22, C.muted, 400]], "end");
+    phaseLabel(67.2, R0 + 70, [["Пусто", 24, C.text, 600]], "end");
+
+    [10.0, 29.7, 49.4, 69.1].forEach((h) => {
+      const pts = [];
+      for (let t = h; t <= h + 3.001; t += 0.1) pts.push(pt(R0 + level(t % CYCLE) * W, t));
+      el(svg, "path", { d: "M" + pts.map(([px, py]) => `${f(px)} ${f(py)}`).join(" L"), fill: "none", stroke: C.copper, "stroke-width": 13, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    });
+    [10.0, 29.7, 49.4, 69.1].forEach((h, i) => {
+      const [mx, my] = pt(R0 + level(h) * W, h);
+      el(svg, "circle", { cx: mx, cy: my, r: 26, fill: "#ffffff", stroke: C.text, "stroke-width": 3.5 });
+      label(svg, mx, my + 8, `Р${i + 1}`, 22, C.text, { "text-anchor": "middle", "font-weight": 700 });
+    });
+
+    const r2 = R0 - 34;
+    const a1 = -118, a2 = -62;
+    const P = (deg, r) => [cx + r * Math.cos(deg * Math.PI / 180), cy + r * Math.sin(deg * Math.PI / 180)];
+    const [s1x, s1y] = P(a1, r2), [s2x, s2y] = P(a2, r2);
+    el(svg, "path", { d: `M${f(s1x)} ${f(s1y)} A${r2} ${r2} 0 0 1 ${f(s2x)} ${f(s2y)}`, fill: "none", stroke: C.copper, "stroke-width": 4, "stroke-linecap": "round" });
+    const head = (deg, dir) => {
+      const [hx, hy] = P(deg, r2);
+      const t = deg * Math.PI / 180;
+      const tx = -Math.sin(t) * dir, ty = Math.cos(t) * dir, nx = Math.cos(t), ny = Math.sin(t);
+      el(svg, "path", { d: `M${f(hx - tx * 13 + nx * 9)} ${f(hy - ty * 13 + ny * 9)} L${f(hx)} ${f(hy)} L${f(hx - tx * 13 - nx * 9)} ${f(hy - ty * 13 - ny * 9)}`, fill: "none", stroke: C.copper, "stroke-width": 4, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    };
+    head(a2, 1);
+    head(a1, -1);
+    label(svg, cx, cy - 22, "Фаза", 30, C.text, { "text-anchor": "middle", "font-weight": 600 });
+    label(svg, cx, cy + 18, "неизвестна", 30, C.text, { "text-anchor": "middle", "font-weight": 600 });
+    label(svg, cx, cy + 60, "всё расписание", 22, C.ink, { "text-anchor": "middle" });
+    label(svg, cx, cy + 88, "сдвигается целиком", 22, C.ink, { "text-anchor": "middle" });
+
+    label(svg, 0, 30, "Цикл резервуара — 78,8 ч", 26, C.text, { "font-weight": 600 });
+    label(svg, 0, 64, "толщина кольца — уровень по расписанию", 20, C.muted);
+    el(svg, "circle", { cx: 22, cy: 826, r: 20, fill: "#ffffff", stroke: C.text, "stroke-width": 3 });
+    label(svg, 22, 833, "Р", 20, C.text, { "text-anchor": "middle", "font-weight": 700 });
+    label(svg, 56, 833, "резервуар в исходной фазе", 22, C.text);
+    el(svg, "line", { x1: 560, y1: 826, x2: 604, y2: 826, stroke: C.copper, "stroke-width": 13, "stroke-linecap": "round" });
+    label(svg, 624, 833, "ближайшие 3 ч плана", 22, C.text);
+  };
+
+  const agents = () => {
+    const svg = document.getElementById("agents");
+    const arrow = (x1, y1, x2, y2, color, width) => {
+      el(svg, "line", { x1, y1, x2, y2, stroke: color, "stroke-width": width, "stroke-linecap": "round" });
+      const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len, h = 12;
+      el(svg, "path", { d: `M${x2 - ux * h - uy * h * 0.62} ${y2 - uy * h + ux * h * 0.62} L${x2} ${y2} L${x2 - ux * h + uy * h * 0.62} ${y2 - uy * h - ux * h * 0.62}`, fill: "none", stroke: color, "stroke-width": width, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    };
+    const OX = 0, OW = 160, AX = 188, AW = 160, TX = 380, TW = 272, VX = 684, GX = 836, GW = 196;
+    const heads = [[AX, "запрос оценки"], [TX, "расчёты инструментов"], [VX, "вердикт"], [GX + 22, "решает код"]];
+    for (const [x, t] of heads) label(svg, x, 30, t, 22, C.text, { "font-weight": 600 });
+    el(svg, "line", { x1: 0, y1: 56, x2: 1032, y2: 56, stroke: C.text, "stroke-width": 2 });
+    const STEP = 52, PH = 40;
+    const lanes = [
+      { name: "качества", top: 112, tools: ["запас качества", "качество по времени", "часы до нарушения", "устойчивость плана", "прогноз и разброс"] },
+      { name: "надёжности", top: 450, tools: ["обязательные проверки", "устойчивость плана", "часы до нарушения"] }
+    ];
+    const top = lanes[0].top - PH / 2 - 8;
+    const bottom = lanes[1].top + (lanes[1].tools.length - 1) * STEP + PH / 2 + 8;
+    const midY = (lanes[0].top + (lanes[0].tools.length - 1) * STEP + lanes[1].top) / 2;
+    el(svg, "rect", { x: OX + 1, y: top, width: OW - 2, height: bottom - top, rx: 12, fill: "#ffffff", stroke: C.text, "stroke-width": 2 });
+    label(svg, OX + OW / 2, midY - 36, "Оркестратор", 22, C.text, { "text-anchor": "middle", "font-weight": 600 });
+    lanes.forEach((lane) => {
+      const n = lane.tools.length;
+      const cy = lane.top + ((n - 1) * STEP) / 2;
+      arrow(OX + OW, cy, AX - 3, cy, C.text, 2);
+      el(svg, "rect", { x: AX, y: cy - 50, width: AW, height: 100, rx: 12, fill: "#ffffff", stroke: C.text, "stroke-width": 2 });
+      label(svg, AX + AW / 2, cy - 6, "Агент", 22, C.text, { "text-anchor": "middle" });
+      label(svg, AX + AW / 2, cy + 24, lane.name, 22, C.text, { "text-anchor": "middle", "font-weight": 600 });
+      const y0 = lane.top, y1 = lane.top + (n - 1) * STEP;
+      const bl = TX - 14, br = TX + TW + 14;
+      el(svg, "path", { d: `M${AX + AW} ${cy} H${bl}`, fill: "none", stroke: C.soft, "stroke-width": 2 });
+      el(svg, "path", { d: `M${bl} ${y0} V${y1}`, fill: "none", stroke: C.soft, "stroke-width": 2 });
+      el(svg, "path", { d: `M${br} ${y0} V${y1} M${br} ${cy - 16} H${VX + 20}`, fill: "none", stroke: C.soft, "stroke-width": 2 });
+      lane.tools.forEach((t, i) => {
+        const ty = lane.top + i * STEP;
+        el(svg, "line", { x1: bl, y1: ty, x2: TX, y2: ty, stroke: C.soft, "stroke-width": 2 });
+        el(svg, "line", { x1: TX + TW, y1: ty, x2: br, y2: ty, stroke: C.soft, "stroke-width": 2 });
+        el(svg, "rect", { x: TX, y: ty - PH / 2, width: TW, height: PH, rx: PH / 2, fill: "#ffffff", stroke: "#bdb7a8", "stroke-width": 1.5 });
+        label(svg, TX + 14, ty + 7.5, t, 22, C.text);
+      });
+      checkMark(svg, VX + 44, cy - 16, 18, C.pass);
+      label(svg, VX + 44, cy + 30, "принять", 22, C.pass, { "text-anchor": "middle", "font-weight": 600 });
+      arrow(VX + 72, cy - 16, GX - 4, cy - 16, C.text, 2);
+    });
+    arrow(OX + OW, midY, GX - 4, midY, C.copper, 5);
+    label(svg, AX, midY - 18, "план ядра", 22, C.ink, { "font-weight": 600 });
+    el(svg, "rect", { x: GX, y: top, width: GW, height: bottom - top, rx: 14, fill: C.text });
+    const lx = GX + 22;
+    const ly = midY - 60;
+    label(svg, lx, ly, "Обязательная", 22, "#ffffff", { "font-weight": 600 });
+    label(svg, lx, ly + 30, "проверка кода", 22, "#ffffff", { "font-weight": 600 });
+    el(svg, "line", { x1: lx, y1: ly + 58, x2: GX + GW - 22, y2: ly + 58, stroke: "rgba(255,255,255,0.3)", "stroke-width": 1.5 });
+    label(svg, lx, ly + 96, "финальная", 22, "#e7e5dd");
+    label(svg, lx, ly + 126, "допустимость", 22, "#e7e5dd");
+    arrow(GX + GW / 2, bottom, GX + GW / 2, bottom + 58, C.copper, 5);
+    label(svg, GX + GW / 2, bottom + 96, "решение", 24, C.ink, { "text-anchor": "middle", "font-weight": 600 });
+    const ty = bottom + 44;
+    svg.setAttribute("viewBox", `0 0 1032 ${ty}`);
+  };
+
+  const metro = () => {
+    const svg = document.getElementById("metro");
+    const stations = ["данные", "качество данных", "кандидаты", "прогноз", "выбор", "агенты", "проверка кода"];
+    const TOP = 136, STEP = 64;
+    const sy = (i) => TOP + i * STEP;
+    const ANS = sy(stations.length - 1) + 96;
+    const scenes = [
+      { name: "норма", color: C.text, x: 296, last: 6, head: "сохранить режим", sub: "300 т" },
+      { name: "риск", note: "пример слайда 1", color: C.copper, x: 536, last: 6, head: "снизить до 50 т/ч", sub: "150 т" },
+      { name: "плохие данные", color: C.fail, x: 776, last: 1, head: "отказ без плана", sub: "нужны измерения" }
+    ];
+    for (const s of scenes) {
+      label(svg, s.x, 30, s.name, 24, s.name === "риск" ? C.ink : C.text, { "text-anchor": "middle", "font-weight": 600 });
+      if (s.note) label(svg, s.x, 60, s.note, 22, C.ink, { "text-anchor": "middle" });
+    }
+    el(svg, "line", { x1: 0, y1: 84, x2: 1032, y2: 84, stroke: C.text, "stroke-width": 2 });
+    label(svg, 0, 60, "этап расчёта", 22, C.muted);
+    stations.forEach((name, i) => {
+      el(svg, "line", { x1: 0, y1: sy(i) + STEP / 2, x2: 1032, y2: sy(i) + STEP / 2, stroke: "#ebe8e1", "stroke-width": 1.5 });
+      label(svg, 0, sy(i) + 8, name, 22, C.text);
+    });
+    el(svg, "line", { x1: 0, y1: ANS - 46, x2: 1032, y2: ANS - 46, stroke: C.text, "stroke-width": 2 });
+    label(svg, 0, ANS + 8, "ответ", 24, C.text, { "font-weight": 600 });
+    for (const s of scenes) {
+      const full = s.last === stations.length - 1;
+      if (!full) {
+        el(svg, "line", { x1: s.x, y1: sy(s.last) + 30, x2: s.x, y2: ANS - 30, stroke: "#c9c4b8", "stroke-width": 3, "stroke-dasharray": "2 9", "stroke-linecap": "round" });
+        for (let i = s.last + 1; i < stations.length; i++) el(svg, "circle", { cx: s.x, cy: sy(i), r: 7, fill: "#ffffff", stroke: "#c9c4b8", "stroke-width": 2.5 });
+      }
+      el(svg, "line", { x1: s.x, y1: sy(0), x2: s.x, y2: full ? ANS : sy(s.last), stroke: s.color, "stroke-width": 12, "stroke-linecap": "round" });
+      if (!full) el(svg, "line", { x1: s.x - 26, y1: sy(s.last) + 26, x2: s.x + 26, y2: sy(s.last) + 26, stroke: s.color, "stroke-width": 8, "stroke-linecap": "round" });
+      for (let i = 0; i <= s.last; i++) el(svg, "circle", { cx: s.x, cy: sy(i), r: 10, fill: "#ffffff", stroke: s.color, "stroke-width": 4.5 });
+      if (full) checkMark(svg, s.x, ANS, 24, C.pass);
+      else {
+        el(svg, "circle", { cx: s.x, cy: ANS, r: 24, fill: C.fail });
+        el(svg, "path", { d: `M${s.x - 8} ${ANS - 8} l16 16 M${s.x + 8} ${ANS - 8} l-16 16`, stroke: "#ffffff", "stroke-width": 4.5, "stroke-linecap": "round" });
+      }
+      label(svg, s.x, ANS + 66, s.head, 24, full ? C.text : C.fail, { "text-anchor": "middle", "font-weight": 600 });
+      label(svg, s.x, ANS + 98, s.sub, 22, C.text, { "text-anchor": "middle" });
+    }
+    const bad = scenes[2];
+    const ax = bad.x + 40;
+    label(svg, ax, sy(1) + 8, "стоп:", 22, C.fail, { "font-weight": 600 });
+    label(svg, ax, sy(1) + 36, "нет пригодного", 22, C.fail, { "font-weight": 600 });
+    label(svg, ax, sy(1) + 64, "источника качества", 22, C.fail, { "font-weight": 600 });
+    label(svg, ax, sy(4) + 8, "поиск плана", 22, C.muted);
+    label(svg, ax, sy(4) + 36, "не запускался", 22, C.muted);
+    svg.setAttribute("viewBox", `0 0 1032 ${ANS + 116}`);
+  };
+
+  rail();
+  const s9 = () => {
+    const origin = document.getElementById("s9-origin");
+    const stops = [["данные", 10], ["прогноз", 176], ["ограничения", 342], ["совет", 508]];
+    const oy = 62;
+    el(origin, "line", { x1: 10, y1: oy, x2: 342, y2: oy, stroke: C.text, "stroke-width": 4 });
+    el(origin, "line", { x1: 342, y1: oy, x2: 496, y2: oy, stroke: C.copper, "stroke-width": 4 });
+    stops.forEach(([name, x], i) => {
+      const end = i === stops.length - 1;
+      el(origin, "circle", end ? { cx: x - 2, cy: oy, r: 12, fill: C.copper } : { cx: x, cy: oy, r: 10, fill: "#ffffff", stroke: C.text, "stroke-width": 4 });
+      const anchor = i === 0 ? "start" : end ? "end" : "middle";
+      label(origin, i === 0 ? 0 : x + (end ? 8 : 0), oy + 56, name, 22, end ? C.ink : C.text, { "text-anchor": anchor, "font-weight": end ? 600 : 400 });
+    });
+
+    const cost = document.getElementById("s9-cost");
+    const X0 = 6, X1 = 286, base = 140, yv = (t) => base - t * 0.43;
+    el(cost, "line", { x1: 0, y1: base, x2: X1, y2: base, stroke: C.soft, "stroke-width": 1.5 });
+    el(cost, "line", { x1: X0, y1: base, x2: X1, y2: yv(300), stroke: C.soft, "stroke-width": 3, "stroke-dasharray": "8 7" });
+    el(cost, "line", { x1: X0, y1: base, x2: X1, y2: yv(150), stroke: C.copper, "stroke-width": 5, "stroke-linecap": "round" });
+    el(cost, "circle", { cx: X1, cy: yv(300), r: 8, fill: "#ffffff", stroke: C.soft, "stroke-width": 3 });
+    el(cost, "circle", { cx: X1, cy: yv(150), r: 9, fill: C.copper });
+    label(cost, X1 + 22, yv(300) + 8, "300 т", 22, C.muted);
+    label(cost, X1 + 22, yv(150) + 8, "150 т", 22, C.ink, { "font-weight": 600 });
+    const bx = 392;
+    el(cost, "path", { d: `M${bx - 8} ${yv(300)} H${bx} V${yv(150)} H${bx - 8}`, fill: "none", stroke: C.text, "stroke-width": 2 });
+    label(cost, bx + 16, (yv(300) + yv(150)) / 2 + 8, "−150 т", 22, C.text, { "font-weight": 600 });
+
+    const gate = document.getElementById("s9-gate");
+    const gx = 286, r1 = 30, r2 = 118;
+    el(gate, "line", { x1: gx, y1: 4, x2: gx, y2: 146, stroke: C.text, "stroke-width": 3 });
+    label(gate, 0, r1 + 8, "исправные данные", 22, C.text);
+    label(gate, 0, r2 + 8, "плохие данные", 22, C.text);
+    el(gate, "line", { x1: 210, y1: r1, x2: gx - 20, y2: r1, stroke: C.text, "stroke-width": 3 });
+    el(gate, "line", { x1: 172, y1: r2, x2: gx - 20, y2: r2, stroke: C.text, "stroke-width": 3 });
+    el(gate, "line", { x1: gx + 20, y1: r1, x2: 392, y2: r1, stroke: C.copper, "stroke-width": 4 });
+    arrowGlyph(gate, 384, r1, 28, C.copper, 4);
+    checkMark(gate, gx, r1, 18, C.pass);
+    el(gate, "circle", { cx: gx, cy: r2, r: 18, fill: C.fail });
+    el(gate, "path", { d: `M${gx - 6} ${r2 - 6} l12 12 M${gx + 6} ${r2 - 6} l-12 12`, stroke: "#ffffff", "stroke-width": 3.5, "stroke-linecap": "round" });
+    label(gate, 428, r1 + 8, "совет", 22, C.ink, { "font-weight": 600 });
+    label(gate, gx + 34, r2 + 8, "отказ", 22, C.fail, { "font-weight": 600 });
+  };
+
+  output();
+  timeline();
+  coverage();
+  dumbbell();
+  gantt();
+  agents();
+  metro();
+  s9();
+
+  const stage = document.getElementById("stage");
+  const slides = [...document.querySelectorAll(".slide")];
+  const last = slides.length - 1;
+  slides.forEach((slide, i) => {
+    if (i === 0 || i === last) return;
+    const num = document.createElement("span");
+    num.className = "num";
+    num.textContent = String(i);
+    slide.append(num);
+  });
+
+  const fit = () => {
+    const root = document.documentElement;
+    const scale = Math.min(root.clientWidth / 1920, root.clientHeight / 1080);
+    stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  };
+
+  let current = 0;
+  const show = (n) => {
+    current = Math.max(0, Math.min(last, n));
+    slides.forEach((s, i) => s.classList.toggle("on", i === current));
+    history.replaceState(null, "", `#${current}`);
+  };
+
+  addEventListener("resize", fit);
+  new ResizeObserver(fit).observe(document.documentElement);
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(last);
+    else if (e.key === "f" || e.key === "F") {
+      if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+    }
+  });
+  addEventListener("click", (e) => show(current + (e.clientX < innerWidth / 3 ? -1 : 1)));
+  addEventListener("hashchange", () => {
+    const n = parseInt(location.hash.slice(1), 10);
+    if (!Number.isNaN(n) && n !== current) show(n);
+  });
+
+  fit();
+  const start = parseInt(location.hash.slice(1), 10);
+  show(Number.isNaN(start) ? 0 : start);
+})();
+</script>
+</body>
+</html>

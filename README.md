@@ -18,11 +18,6 @@
 </p>
 
 <p align="center">
-  <strong>Решение задеплоено и доступно онлайн:</strong><br/>
-  <a href="https://neftecode.goatwhistle.ru/">neftecode.goatwhistle.ru</a>
-</p>
-
-<p align="center">
   <a href="#главное-за-30-секунд"><img src="https://img.shields.io/badge/Главное-5a564e?style=flat" alt="Главное"/></a>
   <a href="#за-три-минуты"><img src="https://img.shields.io/badge/За_три_минуты-5a564e?style=flat" alt="За три минуты"/></a>
   <a href="#куда-смотреть"><img src="https://img.shields.io/badge/Куда_смотреть-5a564e?style=flat" alt="Куда смотреть"/></a>
