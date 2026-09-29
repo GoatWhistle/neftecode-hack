@@ -1,0 +1,43 @@
+{
+  "schema_version": "v1",
+  "train_end": "2025-01-01",
+  "method": {
+    "lab_age_intervals": 2,
+    "pak_age_periods": 3,
+    "frozen_run_rarity": 0.001,
+    "conflict_quantile": 0.95,
+    "missing_rule": "histogram_valley"
+  },
+  "rules": {
+    "lab_max_age_hours": 48.0,
+    "pak_max_age_minutes": 30.0,
+    "pak_period_minutes": 10.0,
+    "pak_frozen_readings": 4,
+    "pak_conflict_mgkg": 4.749,
+    "telemetry_max_missing_fraction": 0.0938
+  },
+  "source_rules": {
+    "derived_until": "2025-01-01T00:00:00",
+    "method": {
+      "lab_age_intervals": 2,
+      "pak_age_periods": 3,
+      "frozen_run_rarity": 0.001,
+      "conflict_quantile": 0.95,
+      "missing_rule": "histogram_valley"
+    },
+    "observed": {
+      "lab_median_interval_hours": 24.0,
+      "pak_median_period_minutes": 10.0,
+      "lab_samples": 792,
+      "paired_samples": 792,
+      "pak_runs": 96254,
+      "telemetry_rows": 105264,
+      "telemetry_columns": 96,
+      "missing_normal_mode": 0,
+      "missing_outage_mode": 14,
+      "missing_valley": 10
+    },
+    "note": "Пороги выведены из истории до конца обучающего периода по объявленному методу; организаторы численных порогов не давали."
+  },
+  "model_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847"
+}

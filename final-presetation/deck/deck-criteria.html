@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CUTPOINT · критерии</title>
+<style>
+:root {
+  --panel: #f0efe9;
+  --paper: #ffffff;
+  --field: #e7e5dd;
+  --text: #322d2a;
+  --body: #3a3531;
+  --muted: #5a564e;
+  --soft: #8f8974;
+  --hair: #d3cfc4;
+  --pass: #1b7a3d;
+  --pass-wash: #dcebe0;
+  --fail: #c1292e;
+  --unknown: #a35a00;
+  --unknown-wash: #f3e6d4;
+  --copper: #c8761a;
+  --copper-ink: #8a4d0f;
+  --sans: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, Arial, sans-serif;
+  --display: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, Arial, sans-serif;
+  --data: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--sans);
+  font-variant-numeric: lining-nums tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, p, ul, ol, table { margin: 0; padding: 0; }
+
+ul, ol { list-style: none; }
+
+.stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 50% 50%;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.slide.on { display: block; }
+
+.split {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 540px 1fr;
+  column-gap: 150px;
+  align-items: stretch;
+  padding: 150px 116px 110px;
+}
+
+.lead { display: flex; flex-direction: column; gap: 28px; height: 100%; }
+
+.lead h2 {
+  font: 600 54px/1.1 var(--display);
+  letter-spacing: -0.014em;
+  text-wrap: balance;
+}
+
+.lead p {
+  font-size: 27px;
+  line-height: 1.48;
+  color: var(--body);
+  text-wrap: pretty;
+}
+
+.lead b { font-weight: 600; color: var(--text); }
+
+.lead .note {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--hair);
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.icon-arrow { width: 1em; height: 1em; display: inline-block; vertical-align: -0.12em; flex: none; }
+
+.kpi__value .icon-arrow { stroke-width: 1.3; width: 0.8em; height: 0.8em; vertical-align: 0; }
+
+.kpis {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 28px;
+  border-top: 1.5px solid var(--text);
+}
+
+.lead .kpi__value { font: 300 70px/1 var(--display); letter-spacing: -0.02em; color: var(--text); white-space: nowrap; }
+
+.lead .kpi__value small { font-size: 32px; color: var(--muted); letter-spacing: 0; margin-left: 10px; }
+
+.lead .kpi__label { margin-top: 10px; font-size: 21px; line-height: 1.4; color: var(--muted); }
+
+.lead .kpi--warn .kpi__value { color: var(--unknown); }
+
+.viz { width: 100%; align-self: center; }
+
+.viz > svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.num {
+  position: absolute;
+  right: 116px;
+  bottom: 52px;
+  font: 600 24px/1 var(--sans);
+  color: var(--text);
+}
+
+.nw { white-space: nowrap; }
+
+.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex: none; }
+
+.cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandline {
+  position: relative;
+  width: 1920px;
+  display: flex;
+  justify-content: center;
+}
+
+.brandline svg { display: block; }
+
+.cover__sub { margin-top: 76px; font: 500 62px/1.22 var(--display); letter-spacing: -0.012em; text-align: center; color: var(--text); }
+.cover__description { margin-top: 28px; font: 400 30px/1.4 var(--sans); text-align: center; color: var(--muted); }
+
+.ledger { width: 100%; border-collapse: collapse; }
+
+.ledger td { padding: 15px 0; border-bottom: 1px solid var(--hair); font-size: 25px; line-height: 1.3; color: var(--text); }
+
+.ledger td.v { text-align: right; font-weight: 600; white-space: nowrap; }
+
+.ledger td.ok { width: 60px; text-align: right; color: var(--pass); }
+
+.ledger td.ok .icon { width: 28px; height: 28px; vertical-align: -0.2em; }
+
+
+
+.cover-art { display:block; width:1920px; height:1080px; }
+
+.s0-cover { justify-content: flex-start; padding-top: 235px; }
+
+.s3-viz { align-self: start; margin-top: 4px; }
+
+.s4-exit { grid-column: 2; display: flex; align-items: center; gap: 12px; }
+
+.s5-viz { align-self: start; margin-top: -10px; }
+
+.s5-plan { padding: 26px 0; border-bottom: 1px solid var(--hair); }
+
+.s8-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14px; border-bottom: 2px solid var(--text); }
+
+.s8-title { font: 600 28px/1.25 var(--display); color: var(--text); }
+
+.s9-finale { justify-content: flex-start; padding-top: 276px; }
+
+.split::before { content: ""; position: absolute; top: 0; bottom: 0; left: 711px; right: 0; background: #ffffff; }
+
+.split > * { position: relative; }
+
+
+
+.s1-focal { display: flex; flex-direction: column; gap: 28px; }
+
+.s1-kicker { font: 600 24px/1.3 var(--sans); color: var(--text); }
+
+.s1-shift { display: flex; align-items: baseline; gap: 20px; white-space: nowrap; }
+
+.s1-old { font: 300 96px/1 var(--display); color: var(--soft); text-decoration: line-through; text-decoration-thickness: 5px; text-decoration-color: var(--fail); }
+
+.s1-arrow { display: flex; align-self: center; color: var(--copper); }
+
+.s1-arrow .icon-arrow { width: 56px; height: 56px; }
+
+.s1-new { font: 300 96px/1 var(--display); letter-spacing: -0.02em; color: var(--copper-ink); }
+
+.s1-unit { font: 400 36px/1 var(--display); color: var(--copper-ink); }
+
+.lead .s1-why { margin-top: 48px; padding-top: 40px; border-top: 1px solid var(--hair); }
+
+.s2-checks__h { padding-bottom: 14px; border-bottom: 1.5px solid var(--text); font: 600 24px/1.3 var(--sans); color: var(--text); }
+
+.s2-checks li { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--hair); font-size: 26px; line-height: 1.3; }
+
+.s2-checks li:last-child { border-bottom: 0; }
+
+.s2-checks .icon { width: 26px; height: 26px; color: var(--text); }
+
+.lead .s3-focal { display: flex; flex-direction: column; gap: 12px; padding-top: 28px; border-top: 1.5px solid var(--text); }
+
+.lead .s3-focal__value { font: 300 96px/0.95 var(--display); letter-spacing: -0.025em; color: var(--text); white-space: nowrap; }
+
+.lead .s3-focal__label { font-size: 24px; line-height: 1.4; color: var(--body); }
+
+.lead .s3-focal__label b { font-weight: 600; color: var(--text); }
+
+.lead .s3-focal__label .icon-arrow { width: 0.9em; height: 0.9em; vertical-align: -0.1em; color: var(--copper); }
+
+.s3-warn { display: flex; flex-direction: column; gap: 14px; }
+
+.lead .s3-warn__head { display: flex; align-items: center; gap: 12px; font: 600 26px/1.25 var(--display); color: var(--unknown); }
+
+.s3-warn__head .icon { width: 28px; height: 28px; }
+
+.s3-warn > svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.s4-viz { align-self: start; display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 0; }
+
+.s4-in { grid-column: 1; display: flex; align-items: center; gap: 28px; padding: 0 0 4px 4px; }
+
+.s4-in__num { font: 300 88px/0.9 var(--display); letter-spacing: -0.025em; color: var(--text); }
+
+.s4-in__text { font: 400 22px/1.4 var(--sans); color: var(--muted); }
+
+.s4-in__text b { font: 600 26px/1.3 var(--display); color: var(--text); }
+
+.s4-down { grid-column: 1; display: flex; align-items: center; gap: 14px; height: 64px; padding-left: 36px; font: 400 22px/1 var(--sans); color: var(--muted); }
+
+.s4-down .icon-arrow { width: 40px; height: 40px; transform: rotate(90deg); color: var(--text); margin-left: 18px; }
+
+.s4-gate, .s4-cmp { grid-column: 1; display: flex; flex-direction: column; border-radius: 14px; }
+
+.s4-gate { padding: 26px 32px 26px; background: var(--text); color: #ffffff; }
+
+.s4-cmp { padding: 26px 32px 0; background: #ffffff; border: 3px solid var(--copper); overflow: hidden; }
+
+.s4-step { font: 600 22px/1.2 var(--sans); color: #d9d4c8; }
+
+.s4-step--then { color: var(--copper-ink); }
+
+.s4-gate__title { margin-top: 8px; font: 600 34px/1.15 var(--display); letter-spacing: -0.01em; }
+
+.s4-checks { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+
+.s4-checks li { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.2); font: 400 26px/1.2 var(--sans); white-space: nowrap; }
+
+.s4-checks li::before { content: ""; flex: none; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #ffffff; }
+
+.s4-gate__meta { margin-top: 10px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.2); font: 600 22px/1.3 var(--sans); color: #ffffff; }
+
+.s4-metrics { margin-top: 18px; display: grid; grid-template-columns: 0.8fr 1.1fr 1.1fr; column-gap: 24px; }
+
+.s4-metrics li { padding-top: 12px; border-top: 1.5px solid var(--copper); font: 400 26px/1.25 var(--sans); color: var(--text); }
+
+.s4-rec { display: flex; align-items: center; gap: 14px; margin: 24px -32px 0; padding: 18px 32px; background: var(--copper); color: #ffffff; font: 600 28px/1.2 var(--display); }
+
+.s4-rec .icon-arrow { width: 32px; height: 32px; }
+
+.s4-exit--gate { grid-row: 3; }
+
+.s4-exit--cmp { grid-row: 5; }
+
+.s4-exit__arrow { flex: none; width: 44px; height: 22px; margin-left: 2px; color: var(--muted); }
+
+.s4-exit__title { display: flex; align-items: center; gap: 10px; font: 600 24px/1.25 var(--sans); color: var(--text); }
+
+.s4-exit__title--fail { color: var(--fail); }
+
+.s4-exit__title .icon { width: 26px; height: 26px; }
+
+.s4-exit__text { margin-top: 6px; padding-left: 36px; font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+.lead .s4-rule { padding-top: 24px; border-top: 1.5px solid var(--text); font: 500 38px/1.25 var(--display); letter-spacing: -0.012em; color: var(--copper-ink); }
+
+.s5-verdicts { display: flex; flex-direction: column; border-top: 1.5px solid var(--text); }
+
+.s5-plan:last-child { border-bottom: 0; }
+
+.lead .s5-plan__rate { display: flex; align-items: baseline; gap: 20px; font: 300 76px/1 var(--display); letter-spacing: -0.02em; color: var(--text); white-space: nowrap; }
+
+.lead .s5-plan__rate span { display: flex; align-items: center; gap: 8px; font: 600 26px/1 var(--sans); letter-spacing: 0; }
+
+.s5-plan__rate .icon { width: 28px; height: 28px; }
+
+.s5-plan--no .s5-plan__rate { color: var(--muted); }
+
+.s5-plan--no .s5-plan__rate span { color: var(--fail); }
+
+.lead .s5-plan--pick .s5-plan__rate { font-weight: 400; color: var(--copper-ink); }
+
+.s5-plan--pick .s5-plan__rate span { color: var(--pass); }
+
+.lead .s5-plan__why { margin-top: 12px; font-size: 24px; line-height: 1.4; color: var(--body); }
+
+.s6-rule { display: grid; grid-template-columns: 40px 1fr; column-gap: 16px; row-gap: 10px; padding: 26px 28px 28px; background: var(--text); border-radius: 12px; color: #ffffff; }
+
+.s6-rule__icon { width: 36px; height: 36px; color: var(--copper); grid-row: 1; align-self: center; }
+
+.lead .s6-rule__head { grid-column: 2; font: 600 32px/1.2 var(--display); color: #ffffff; }
+
+.lead .s6-rule__text { grid-column: 1 / 3; font-size: 25px; line-height: 1.42; color: #e7e5dd; }
+
+.s7-answers { display: flex; flex-direction: column; gap: 24px; }
+
+.s7-answer { font-size: 24px; display: grid; grid-template-columns: 44px 1fr; column-gap: 18px; row-gap: 4px; }
+
+.s7-answer__icon { grid-row: 1 / 4; width: 44px; height: 44px; padding: 8px; border-radius: 50%; color: #ffffff; margin-top: 2px; }
+
+.s7-answer--ok .s7-answer__icon { background: var(--pass); }
+
+.s7-answer--no .s7-answer__icon { background: var(--fail); }
+
+.lead .s7-answer__scene { font: 600 22px/1.3 var(--sans); }
+
+.lead .s7-answer--ok .s7-answer__scene { color: var(--pass); }
+
+.lead .s7-answer--no .s7-answer__scene { color: var(--fail); }
+
+.lead .s7-answer__what { font: 600 34px/1.15 var(--display); color: var(--text); }
+
+.lead .s7-answer__why { font-size: 24px; line-height: 1.4; color: var(--body); }
+
+.s8-focal { display: flex; flex-direction: column; gap: 12px; padding-top: 24px; border-top: 1.5px solid var(--text); }
+
+.lead .s8-focal__num { display: flex; align-items: center; gap: 18px; font: 300 96px/1 var(--display); letter-spacing: -0.02em; color: var(--text); white-space: nowrap; }
+
+.s8-focal__icon { width: 64px; height: 64px; color: var(--pass); }
+
+.lead .s8-focal__label { font-size: 25px; line-height: 1.42; color: var(--body); }
+
+.s8-next { display: flex; flex-direction: column; gap: 8px; padding-top: 24px; border-top: 1px solid var(--hair); }
+
+.lead .s8-next__head { font: 600 27px/1.3 var(--display); color: var(--text); }
+
+.s8-viz { display: flex; flex-direction: column; gap: 56px; }
+
+.s8-col { font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+.ledger tr.s8-pick td.v { color: var(--copper-ink); }
+
+.s8-head--open { border-bottom-color: var(--unknown); }
+
+.s8-head--open .s8-title { color: var(--unknown); }
+
+.s8-open__list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; }
+
+.s8-open__list li { display: flex; align-items: center; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--hair); font-size: 25px; line-height: 1.3; color: var(--text); }
+
+.s8-open__icon { width: 28px; height: 28px; flex: none; color: var(--unknown); }
+
+.s9-lead { margin-top: 70px; font: 400 40px/1.3 var(--display); color: var(--muted); text-align: center; }
+
+.s9-proof { position: absolute; left: 0; right: 0; top: 612px; bottom: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 64px; padding: 0 116px; background: #ffffff; }
+
+.s9-col { display: flex; flex-direction: column; padding-top: 64px; }
+
+.s9-col + .s9-col { margin-left: -32px; padding-left: 32px; border-left: 1px solid var(--hair); }
+
+.s9-claim { min-height: 106px; font: 500 44px/1.2 var(--display); letter-spacing: -0.012em; color: var(--text); text-wrap: balance; }
+
+.s9-col > svg { display: block; width: 100%; height: auto; margin-top: auto; overflow: visible; }
+
+.s9-ref { margin-top: 28px; padding-bottom: 52px; font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+.s9-ref b { font-weight: 600; color: var(--copper-ink); }
+
+.crit {
+  position: absolute;
+  left: 116px;
+  top: 62px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 600 22px/1 var(--sans);
+  color: var(--copper-ink);
+  z-index: 2;
+}
+
+.crit::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--copper); }
+
+.crit span { color: var(--muted); font-weight: 400; }
+
+
+.lead h2 { font-size: 58px; }
+
+/* slide 2 */
+.lead .d2-kicker { font: 600 24px/1.3 var(--sans); color: var(--text); }
+.d2-shift { display: flex; align-items: baseline; gap: 20px; white-space: nowrap; }
+.d2-old { font: 300 120px/1 var(--display); color: var(--soft); text-decoration: line-through; text-decoration-thickness: 6px; text-decoration-color: var(--fail); }
+.d2-arrow { display: flex; align-self: center; color: var(--copper); }
+.d2-arrow .icon-arrow { width: 64px; height: 64px; }
+.d2-new { font: 300 120px/1 var(--display); letter-spacing: -0.02em; color: var(--copper-ink); }
+.d2-unit { font: 400 40px/1 var(--display); color: var(--copper-ink); }
+.d2-tons { padding-top: 28px; border-top: 1.5px solid var(--text); display: flex; align-items: baseline; gap: 16px; white-space: nowrap; }
+.d2-tons b { font: 300 64px/1 var(--display); color: var(--text); letter-spacing: -0.02em; }
+.d2-tons b.new { color: var(--copper-ink); font-weight: 400; }
+.d2-tons span { font: 400 28px/1 var(--sans); color: var(--muted); }
+.d2-tons .icon-arrow { width: 36px; height: 36px; color: var(--copper); align-self: center; }
+.d2-frame { align-self: center; position: relative; width: 1034px; height: 620px; border-radius: 18px; border: 2px solid var(--text); background: var(--panel); overflow: hidden; }
+.d2-frame__bar { height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: var(--text); }
+.d2-frame__bar i { width: 13px; height: 13px; border-radius: 50%; background: #6b645c; }
+.d2-frame__bar em { margin-left: 18px; font: 400 18px/1 var(--data); font-style: normal; color: #d9d4c8; }
+.d2-frame--gif { height:auto; }
+.d2-frame__gif { width:100%; aspect-ratio:1386 / 904; overflow:hidden; }
+.d2-frame__gif img { display:block; width:calc(100% * 1440 / 1386); height:auto; max-width:none; margin-left:calc(-100% * 54 / 1386); }
+.d2-frame__body { position: absolute; inset: 44px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: var(--muted); }
+.d2-frame__play { width: 108px; height: 108px; border-radius: 50%; background: var(--copper); display: flex; align-items: center; justify-content: center; }
+.d2-frame__play svg { width: 44px; height: 44px; margin-left: 8px; }
+.d2-frame__body p { font: 600 28px/1.2 var(--display); color: var(--text); }
+.d2-frame__body small { font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+/* slide 3 */
+.d3 { position: absolute; inset: 0; padding: 150px 116px 110px; }
+.d3 h2 { font: 600 58px/1.1 var(--display); letter-spacing: -0.014em; color: var(--text); }
+.d3 > p { margin-top: 24px; font-size: 28px; line-height: 1.45; color: var(--body); }
+.d3-flow { position: absolute; left: 0; right: 0; top: 340px; bottom: 0; background: #ffffff; }
+.d3-flow svg { display: block; }
+
+/* slide 4 */
+.d4-prep { border-top: 1.5px solid var(--hair); padding-top: 24px; display: flex; flex-direction: column; gap: 14px; }
+.d4-prep h3 { margin: 0; font: 600 26px/1.25 var(--sans); }
+.lead .d4-prep p { font-size: 25px; line-height: 1.4; }
+.lead .d4-prep .d4-transform { font: 400 48px/1.2 var(--display); }
+.d4-transform span { color: var(--copper); }
+
+.d4-kpi { display: flex; flex-direction: column; gap: 10px; padding-top: 28px; border-top: 1.5px solid var(--text); }
+.lead .d4-kpi__v { font: 300 110px/0.95 var(--display); letter-spacing: -0.025em; color: var(--text); }
+.lead .d4-kpi__l { font-size: 24px; line-height: 1.4; color: var(--body); }
+.d4-kpi__l b { font-weight: 600; color: var(--text); }
+.lead .d4-stop { display: flex; align-items: center; gap: 14px; font: 600 28px/1.2 var(--display); color: var(--fail); }
+.d4-stop .icon { width: 34px; height: 34px; }
+
+/* slide 5 */
+.forecast-slide { background: #ffffff; }
+.forecast-heading { position: absolute; top: 150px; left: 116px; right: 116px; }
+.forecast-heading h2 { font: 600 54px/1.15 var(--display); letter-spacing: -0.014em; }
+.forecast-heading p { margin-top: 20px; font: 400 27px/1.4 var(--sans); color: var(--muted); }
+.forecast-chart { position: absolute; left: 116px; top: 300px; width: 1688px; height: 480px; }
+.forecast-results { position: absolute; left: 116px; right: 116px; top: 800px; border-top: 1.5px solid var(--hair); padding-top: 22px; }
+.forecast-results .forecast-scope { font: 400 24px/1.35 var(--sans); color: var(--muted); }
+.forecast-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 60px; margin-top: 24px; }
+.forecast-metrics h3 { margin: 0 0 15px; font: 600 23px/1.25 var(--sans); }
+.forecast-metrics .forecast-value { font: 500 39px/1.2 var(--display); color: var(--text); white-space: nowrap; }
+.forecast-value small { font-size: 26px; color: var(--muted); }
+.forecast-value span { color: var(--copper); padding: 0 7px; }
+
+.d5-warn { display: flex; flex-direction: column; gap: 14px; }
+.lead .d5-warn__head { display: flex; align-items: center; gap: 12px; font: 600 26px/1.25 var(--display); color: var(--unknown); }
+.d5-warn__head .icon { width: 28px; height: 28px; }
+.d5-warn > svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* slide 6 */
+.optimization-slide { background: #ffffff; }
+.optimization-heading { position: absolute; top: 150px; left: 116px; right: 116px; }
+.optimization-heading h2 { font: 600 52px/1.15 var(--display); letter-spacing: -0.014em; }
+.optimization-heading p { margin-top: 22px; font: 400 26px/1.4 var(--sans); color: var(--body); }
+.optimization-search { position: absolute; left: 116px; right: 116px; top: 336px; }
+.optimization-run { font: 400 23px/1.35 var(--sans); color: var(--muted); }
+.optimization-stages { display: grid; grid-template-columns: 1fr 100px 1fr 100px 1fr; gap: 38px; margin-top: 44px; }
+.optimization-stage .optimization-count { font: 400 88px/1 var(--display); letter-spacing: -0.03em; }
+.optimization-stage h3 { margin: 20px 0 18px; font: 600 28px/1.2 var(--display); }
+.optimization-stage > p:last-child { font: 400 24px/1.45 var(--sans); color: var(--body); }
+.optimization-stage--selected .optimization-count, .optimization-stage--selected h3 { color: var(--copper-ink); }
+.optimization-arrow { align-self: start; justify-self: center; margin-top: 34px; width: 86px; height: 28px; color: var(--copper); }
+.optimization-evidence { position: absolute; top: 728px; left: 116px; right: 116px; display: grid; grid-template-columns: 1fr 1fr; gap: 100px; }
+.optimization-proof { padding-top: 30px; border-top: 1.5px solid var(--hair); }
+.optimization-proof h3 { margin: 0 0 26px; font: 600 28px/1.25 var(--sans); }
+.optimization-proof .optimization-number { font: 500 46px/1.15 var(--display); margin-bottom: 26px; letter-spacing: -0.015em; }
+.optimization-number small { font-size: 27px; }
+.optimization-proof--reject .optimization-number { color: var(--fail); }
+.optimization-proof--choice .optimization-number { color: var(--copper-ink); }
+.optimization-number span { padding: 0 12px; }
+.optimization-proof > p { font: 400 24px/1.45 var(--sans); color: var(--body); }
+
+.d6-viz { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; }
+.d6-order { display: grid; grid-template-columns: 1fr 64px 1fr; align-items: stretch; }
+.d6-box { padding: 22px 26px; border-radius: 14px; }
+.d6-box--gate { background: var(--text); color: #ffffff; }
+.d6-box--rank { background: #ffffff; border: 3px solid var(--copper); }
+.d6-box__h { font: 600 21px/1.2 var(--sans); color: #d9d4c8; }
+.d6-box--rank .d6-box__h { color: var(--copper-ink); }
+.d6-box__t { margin-top: 10px; font: 600 28px/1.3 var(--display); }
+.d6-box--rank .d6-box__t { color: var(--text); }
+.d6-then { display: flex; align-items: center; justify-content: center; color: var(--text); }
+.d6-then .icon-arrow { width: 40px; height: 40px; }
+.d6-foot { margin-top: 16px; font: 400 21px/1.35 var(--sans); color: var(--muted); }
+
+/* slide 7 */
+.agent-slide { background: var(--paper); }
+.agent-heading { position: absolute; left: 116px; top: 150px; font: 600 52px/1.15 var(--display); letter-spacing: -.014em; }
+.agent-map { position: absolute; left: 116px; top: 230px; width: 1688px; height: 760px; overflow: visible; font-family: var(--sans); }
+.agent-map .role { font-size: 36px; font-weight: 600; fill: var(--text); }
+.agent-map .detail { font-size: 27px; fill: var(--body); }
+.agent-map .tool { font-size: 23px; fill: var(--muted); }
+.agent-map .exchange { font-size: 23px; fill: var(--body); }
+.agent-map .accent { fill: var(--copper-ink); }
+.agent-map .light { fill: white; }
+/* slide 8 */
+.explain-slide { background: var(--paper); }
+.explain-heading { position: absolute; left: 116px; top: 150px; font: 600 52px/1.15 var(--display); letter-spacing: -.014em; }
+.explain-action { position: absolute; left: 116px; top: 285px; width: 570px; height: 655px; padding: 38px 42px; background: var(--panel); }
+.explain-action h3 { margin: 0 0 39px; font: 600 29px/1.2 var(--display); }
+.explain-label { font: 400 25px/1.35 var(--sans); }
+.explain-change { margin: 12px 0 37px; font: 500 57px/1.1 var(--display); letter-spacing: -.015em; white-space: nowrap; }
+.explain-change span { color: var(--copper); padding: 0 8px; }
+.explain-change small { font-size: 29px; }
+.explain-output { border-top: 1px solid var(--hair); padding-top: 28px; margin-top: 12px; font: 400 25px/1.4 var(--sans); }
+.explain-output strong { font-weight: 600; }
+.explain-reasons { position: absolute; left: 806px; right: 116px; top: 290px; }
+.explain-reason + .explain-reason { border-top: 1px solid var(--hair); margin-top: 42px; padding-top: 38px; }
+.explain-reason h3 { margin: 0 0 18px; font: 600 32px/1.25 var(--display); }
+.explain-reason p { font: 400 27px/1.45 var(--sans); max-width: 910px; }
+.explain-reason .explain-proof { display: flex; align-items: baseline; gap: 25px; margin-top: 24px; font: 500 43px/1.2 var(--display); color: var(--copper-ink); }
+.explain-proof small { font: 400 24px/1.2 var(--sans); color: var(--body); }
+.explain-source { display: block; margin-bottom: 13px; font: 500 22px/1.2 var(--sans); color: var(--copper-ink); }
+
+/* slide 9 */
+.repro-slide { background: var(--paper); }
+.repro-heading { position: absolute; left: 116px; top: 150px; font: 600 52px/1.15 var(--display); letter-spacing: -.014em; }
+.repro-outcome { position: absolute; left: 116px; top: 290px; width: 570px; height: 590px; padding: 43px 44px; background: var(--panel); }
+.repro-outcome h3 { margin: 0; font: 600 31px/1.25 var(--display); }
+.repro-focal { margin-top: 43px; font: 500 114px/1 var(--display); letter-spacing: -.035em; color: var(--copper-ink); }
+.repro-focal small { font-size: 42px; letter-spacing: 0; }
+.repro-recipe { margin-top: 22px; font: 400 27px/1.4 var(--sans); }
+.repro-mode { margin-top: 58px; padding-top: 24px; border-top: 1px solid var(--hair); font: 400 25px/1.4 var(--sans); }
+.repro-mode b { font-weight: 600; }
+.repro-values { position: absolute; left: 806px; right: 116px; top: 315px; }
+.repro-value-head, .repro-value-row { display: grid; grid-template-columns: 1fr 190px 36px 190px; align-items: center; gap: 16px; }
+.repro-value-head { padding-bottom: 24px; border-bottom: 2px solid var(--text); font: 400 24px/1.3 var(--sans); color: var(--muted); }
+.repro-value-head span:nth-child(2) { grid-column: 2; text-align: center; }
+.repro-value-head span:last-child { grid-column: 4; text-align: center; }
+.repro-value-row { min-height: 143px; border-bottom: 1px solid var(--hair); }
+.repro-value-row h3 { margin: 0; font: 600 27px/1.3 var(--display); }
+.repro-value-row small { display: block; margin-top: 7px; font: 400 23px/1.3 var(--sans); color: var(--muted); }
+.repro-value-row .value { font: 500 44px/1.1 var(--display); text-align: center; letter-spacing: -.02em; }
+.repro-value-row .value:last-child { color: var(--copper-ink); }
+.repro-value-row .equal { font: 400 30px/1 var(--sans); color: var(--pass); text-align: center; }
+.repro-conditions { position: absolute; left: 806px; right: 116px; top: 858px; font: 400 25px/1.4 var(--sans); color: var(--body); }
+
+.final-slide { background:var(--paper); }
+.final-brand { position:absolute; left:0; right:0; top:335px; }
+.final-brand .brandline > svg > line { display:none; }
+.final-team { position:absolute; left:0; right:0; top:584px; text-align:center; font:500 32px/1.3 var(--sans); }
+.final-team span { color:var(--muted); font-weight:400; }
+.final-links { position:absolute; left:0; right:0; top:652px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+.final-links a { font:500 30px/1.3 var(--sans); color:var(--copper-ink); text-decoration:none; }
+.final-links a:last-child { font-size:24px; font-weight:400; color:var(--muted); }
+.final-links a:hover { text-decoration:underline; text-underline-offset:5px; }
+.final-qr { position:absolute; top:776px; left:0; right:0; display:flex; justify-content:center; gap:100px; }
+.final-qr a { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--text); text-decoration:none; font:600 23px/1.25 var(--sans); }
+.final-qr img { display:block; width:200px; height:200px; }
+
+
+@media print {
+  @page { size: 1920px 1080px; margin: 0; }
+  html, body { height: auto; overflow: visible; }
+  .stage { position: static; transform: none !important; }
+  .slide { position: relative; display: block; width: 1920px; height: 1080px; break-after: page; }
+}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+
+<section class="slide cover-slide">
+<svg class="cover-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" style="font-family:Inter,Arial,sans-serif" role="img" aria-label="CUTPOINT — мультиагентный советчик для производства дизеля. Команда GoatWhistle."><defs>
+<linearGradient id="cover-drop-body" x1="0" x2="1" y1=".3" y2=".7"><stop stop-color="#504942"/><stop offset=".55" stop-color="#322d2a"/><stop offset="1" stop-color="#171615"/></linearGradient>
+<linearGradient id="cover-drop-amber" x1="0" x2="1" y1="0" y2=".8"><stop stop-color="#edaa50"/><stop offset=".5" stop-color="#c8761a"/><stop offset="1" stop-color="#915011"/></linearGradient>
+<clipPath id="cover-drop-clip"><path d="M1435 165C1380 310 1160 475 1160 650C1160 805 1283 897 1435 897C1587 897 1710 805 1710 650C1710 475 1490 310 1435 165Z"/></clipPath>
+</defs>
+<rect width="1920" height="1080" fill="#f0efe9"/>
+<g clip-path="url(#cover-drop-clip)">
+<rect x="1130" y="140" width="610" height="780" fill="url(#cover-drop-body)"/>
+<rect x="1130" y="633" width="610" height="290" fill="url(#cover-drop-amber)"/>
+<path d="M1435 165C1400 350 1235 495 1235 650C1235 772 1317 866 1435 897" fill="none" stroke="white" stroke-opacity=".12" stroke-width="2"/>
+<path d="M1435 165C1410 370 1310 500 1310 650C1310 790 1370 860 1435 897" fill="none" stroke="white" stroke-opacity=".08" stroke-width="2"/>
+<rect x="1130" y="611" width="610" height="16" fill="#f0efe9"/>
+</g>
+<path d="M1030 619H1803" fill="none" stroke="#c8761a" stroke-width="3"/>
+<circle cx="1710" cy="619" r="32" fill="#f0efe9"/><circle cx="1710" cy="619" r="18" fill="#c8761a"/><circle cx="1710" cy="619" r="5" fill="#f0efe9"/>
+<svg xmlns="http://www.w3.org/2000/svg" x="116" y="305" width="820" height="117.75200000000001" viewBox="0 0 1000 143.6" role="img" aria-label="CUTPOINT">
+  <g transform="scale(0.088339)">
+    <g transform="translate(0 1546.0) scale(1 -1)">
+    <line x1="1050.7" y1="733.0" x2="1820.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/><line x1="2117.8" y1="733.0" x2="2693.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="2990.4" y1="733.0" x2="3730.9" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4028.0" y1="733.0" x2="4745.0" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="5787.4" y1="733.0" x2="6150.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="6452.4" y1="733.0" x2="7263.7" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7570.2" y1="733.0" x2="7886.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8183.4" y1="733.0" x2="8565.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8843.8" y1="733.0" x2="8980.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9301.3" y1="733.0" x2="9452.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9730.5" y1="733.0" x2="10466.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="10763.4" y1="733.0" x2="11211.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/>
+    <g fill="#322d2a"><g transform="translate(813.0 733.0) scale(3.39352 -3.39352) translate(-256.0 -256.0)"><path d="M256 40a216 216 0 1 0 150 371l-59-62a132 132 0 1 1 0-186l59-62A215 215 0 0 0 256 40z"/></g><path transform="translate(1676.0 0)" d="M147.0 1466.0H443.0V672.0Q443.0 483.0 454.0 427.0Q473.0 337.0 544.5 282.5Q616.0 228.0 740.0 228.0Q866.0 228.0 930.0 279.5Q994.0 331.0 1007.0 406.0Q1020.0 481.0 1020.0 655.0V1466.0H1316.0V696.0Q1316.0 432.0 1292.0 323.0Q1268.0 214.0 1203.5 139.0Q1139.0 64.0 1031.0 19.5Q923.0 -25.0 749.0 -25.0Q539.0 -25.0 430.5 23.5Q322.0 72.0 259.0 149.5Q196.0 227.0 176.0 312.0Q147.0 438.0 147.0 684.0Z"/><path transform="translate(3251.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/><path transform="translate(4598.0 0)" d="M149.0 0.0V1466.0H624.0Q894.0 1466.0 976.0 1444.0Q1102.0 1411.0 1187.0 1300.5Q1272.0 1190.0 1272.0 1015.0Q1272.0 880.0 1223.0 788.0Q1174.0 696.0 1098.5 643.5Q1023.0 591.0 945.0 574.0Q839.0 553.0 638.0 553.0H445.0V0.0ZM445.0 1218.0V802.0H607.0Q782.0 802.0 841.0 825.0Q900.0 848.0 933.5 897.0Q967.0 946.0 967.0 1011.0Q967.0 1091.0 920.0 1143.0Q873.0 1195.0 801.0 1208.0Q748.0 1218.0 588.0 1218.0Z"/><path transform="translate(6060.0 0)" d="M89.0 724.0Q89.0 948.0 156.0 1100.0Q206.0 1212.0 292.5 1301.0Q379.0 1390.0 482.0 1433.0Q619.0 1491.0 798.0 1491.0Q1122.0 1491.0 1316.5 1290.0Q1511.0 1089.0 1511.0 731.0Q1511.0 376.0 1318.0 175.5Q1125.0 -25.0 802.0 -25.0Q475.0 -25.0 282.0 174.5Q89.0 374.0 89.0 724.0ZM394.0 734.0Q394.0 485.0 509.0 356.5Q624.0 228.0 801.0 228.0Q978.0 228.0 1091.5 355.5Q1205.0 483.0 1205.0 738.0Q1205.0 990.0 1094.5 1114.0Q984.0 1238.0 801.0 1238.0Q618.0 1238.0 506.0 1112.5Q394.0 987.0 394.0 734.0Z"/><path transform="translate(7749.0 0)" d="M140.0 0.0V1466.0H436.0V0.0Z"/><path transform="translate(8414.0 0)" d="M152.0 0.0V1466.0H440.0L1040.0 487.0V1466.0H1315.0V0.0H1018.0L427.0 956.0V0.0Z"/><path transform="translate(9989.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/></g>
+    <line x1="2663.2" y1="733.0" x2="3020.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4715.0" y1="733.0" x2="5817.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7233.7" y1="733.0" x2="7600.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8535.5" y1="733.0" x2="8873.8" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9422.2" y1="733.0" x2="9760.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/>
+  </g>
+  </g>
+</svg>
+<text x="116" y="539" font-size="44" fill="#322d2a">Мультиагентный советчик</text>
+<text x="116" y="598" font-size="44" fill="#322d2a">для производства дизеля</text>
+<text x="116" y="124" font-size="30" font-weight="600" letter-spacing="-.9" fill="#322d2a" aria-label="Команда GoatWhistle">Goat<tspan font-weight="400">Whistle</tspan></text></svg>
+</section>
+
+<section class="slide">
+  <p class="crit">Демонстрация <span>· работающий прототип</span></p>
+  <div class="split">
+    <div class="lead">
+      <h2>Сера растёт, CUTPOINT снижает план</h2>
+      <p class="d2-kicker">Риск-сценарий · 24.07, 03:00</p>
+      <div class="d2-shift" aria-label="со 100 до 50 тонн в час">
+        <span class="d2-old">100</span><span class="d2-arrow"><svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg></span><span class="d2-new">50</span><span class="d2-unit">т/ч</span>
+      </div>
+      <div class="d2-tons"><b>300</b><svg class="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15.5M13.5 5.5L20 12l-6.5 6.5"/></svg><b class="new">150&nbsp;т</b><span>за&nbsp;3&nbsp;ч</span></div>
+      <p class="note">Модельный выпуск, не&nbsp;измеренный эффект завода.</p>
+    </div>
+    <div class="d2-frame d2-frame--gif" aria-label="Запись работы CUTPOINT">
+      <div class="d2-frame__bar"><i></i><i></i><i></i><em>CUTPOINT</em></div>
+      <div class="d2-frame__gif">
+        <img id="demo-animation" src="assets/video-demostration-1min.gif" width="1440" height="904" alt="Демонстрация расчёта и работы агентов CUTPOINT" decoding="async">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <p class="crit">Как устроено <span>· обработка данных</span></p>
+  <div class="d3">
+    <h2>Расчёт рекомендаций</h2>
+  </div>
+  <div class="d3-flow"><svg id="flow" viewBox="0 0 1920 740" width="1920" height="740" role="img" aria-label="Подготовка входа, расчёт ядра, агентный разбор и ответ. При изменениях — возврат к выбору и проверке кодом. Непригодные данные или отсутствие допустимого плана ведут к отказу."></svg></div>
+</section>
+
+<section class="slide">
+  <p class="crit">Работа с данными</p>
+  <div class="split">
+    <div class="lead">
+      <h2>Подготовка данных</h2>
+      <div class="d4-prep">
+        <h3>Некорректные значения в телеметрии</h3>
+        <p>Подтверждённые экспертами выбросы (значение 307) заменяем пропусками. Если они составляют больше 90% записей, исключаем ряд из расчёта.</p>
+      </div>
+      <div class="d4-prep">
+        <h3>Сравнение серы по ПАК и ЛИМС</h3>
+        <p>Для лабораторной пробы берём показание ПАК в момент её отбора и сравниваем значения серы.</p>
+      </div>
+      <div class="d4-prep">
+        <h3>Время получения анализа ЛИМС</h3>
+        <p>В прототипе используем анализ через 4 часа после отбора пробы. По условиям задержка — до 4 часов.</p>
+      </div>
+    </div>
+    <div class="viz">
+      <svg id="timeline" viewBox="0 0 1032 740" role="img" aria-label="Пороги пригодности ПАК из обучающей истории: возраст до 30 минут, подозрение на зависание при 4 одинаковых показаниях подряд, конфликт с ЛИМС при разнице более 4,749 мг/кг. Пригодный ПАК: прогноз с поправкой по 20 доступным парам; непригодный ПАК: CatBoost без признаков ПАК, если ЛИМС и телеметрия пригодны. Иначе отказ."></svg>
+    </div>
+  </div>
+  <!-- Evidence: infrastructure/data/sources.py: mask_stubs; data.py: build_features;
+       artifacts/source_rules.json (train_end 2025-01-01); ml/forecast.py: no_pak columns;
+       live/snapshots.py: select_forecast_dict. Threshold 4.749 displayed rounded. -->
+</section>
+
+<section class="slide forecast-slide">
+  <p class="crit">Качество прогноза</p>
+  <div class="forecast-heading">
+    <h2>Прогноз серы на 2 часа вперёд</h2>
+    <p>Сера после гидроочистки. Первые две недели 2026 года, 21 лабораторная проба.</p>
+  </div>
+  <img class="forecast-chart" src="forecast-quality.svg" alt="Измеренная лабораторная сера, показание ПАК за два часа до каждой пробы и наш прогноз с поправкой, 1–14 января 2026 года. 9 января прогноз недоступен, поэтому линии прогноза прерываются.">
+  <div class="forecast-results">
+    <p class="forecast-scope">Проверка за 2026 год: 233 пробы для сравнения, ещё 16 — без доступного прогноза.</p>
+    <div class="forecast-metrics">
+      <div>
+        <h3>Средняя абсолютная ошибка</h3>
+        <p class="forecast-value">1,80 <span>→</span> 1,62 мг/кг</p>
+      </div>
+      <div>
+        <h3>Пробы с меньшей ошибкой</h3>
+        <p class="forecast-value">126 из 233 <small>(54,1%)</small></p>
+      </div>
+      <div>
+        <h3>Факт выше верхней оценки серы</h3>
+        <p class="forecast-value">14 из 233 <small>(6,01%)</small></p>
+      </div>
+    </div>
+  </div>
+  <!-- Plot: first 14 calendar days of artifacts/predictions.csv, all 21 samples.
+       Forecasts plotted at target_time, made at decision_time = target_time - 2 h.
+       Missing forecasts retained as gaps. Aggregate paired N=233, MAE and upper
+       exceedances verified against research/forecast/final-2026.json. -->
+</section>
+
+<section class="slide optimization-slide">
+  <p class="crit">Оптимизация и безопасность</p>
+  <div class="optimization-heading">
+    <h2>Как выбираем режим работы</h2>
+    <p>Подбираем температуру гидроочистки, состав смеси и выпуск готового продукта.</p>
+  </div>
+  <div class="optimization-search">
+    <p class="optimization-run">Пример на модели риск-сценария. Горизонт — 3 часа.</p>
+    <div class="optimization-stages">
+      <div class="optimization-stage">
+        <p class="optimization-count">271</p>
+        <h3>рассчитанный план</h3>
+        <p>Разные уставки,<br>доли компонентов и выпуск.</p>
+      </div>
+      <svg class="optimization-arrow" viewBox="0 0 100 32" aria-hidden="true"><path d="M2 16H94M80 2L94 16L80 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="optimization-stage">
+        <p class="optimization-count">23</p>
+        <h3>допустимых плана</h3>
+        <p>Качество, уставки, компоненты<br>и расписание резервуаров.</p>
+      </div>
+      <svg class="optimization-arrow" viewBox="0 0 100 32" aria-hidden="true"><path d="M2 16H94M80 2L94 16L80 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="optimization-stage optimization-stage--selected">
+        <p class="optimization-count">1</p>
+        <h3>выбранный план</h3>
+        <p>Сравнение выпуска, стоимости<br>и тяжести. Финальные проверки.</p>
+      </div>
+    </div>
+  </div>
+  <div class="optimization-evidence">
+    <div class="optimization-proof optimization-proof--reject">
+      <h3>Почему отклонили 100 т/ч</h3>
+      <p class="optimization-number">15,26 &gt; 10 <small>мг/кг</small></p>
+      <p>При некоторых стадиях парка сера партии<br>выше предела даже после максимальной коррекции.</p>
+    </div>
+    <div class="optimization-proof optimization-proof--choice">
+      <h3>Почему выбрали этот план</h3>
+      <p class="optimization-number">1,068 <span>→</span> 1,050 <small>у.е./т</small></p>
+      <p>Оба допустимых плана: 50 т/ч, 150 т за 3 часа.<br>При одинаковой тяжести выбираем более дешёвый.</p>
+    </div>
+  </div>
+  <!-- Evidence: context/final-defence/evidence/risk.json: choice.pool examined=271,
+       admissible_final=23; c0001 selected with 150 t, 1.050 cost, severity 0.534548;
+       c0007 150 t, 1.068 cost, same severity. Stress checks apply to selected plan;
+       do not imply that all 23 alternatives underwent its final stress tests.
+       Hold excluded by phase check; corrected sulfur bound 15.25954 > 10.
+       Park uncertainty is a common shift of a specified schedule. -->
+</section>
+
+<section class="slide agent-slide">
+  <p class="crit">Мультиагентность <span>· роли и обмен</span></p>
+  <h2 class="agent-heading">Агентная система</h2>
+  <svg class="agent-map" viewBox="0 0 1688 760" role="img" aria-labelledby="agent-map-title agent-map-description">
+    <title id="agent-map-title">Оркестратор управляет проверками специалистов и поиском ядра</title>
+    <desc id="agent-map-description">Оркестратор сверху связан с агентом качества, расчётным ядром и агентом надёжности в одном ряду. Специалистам передаются задачи, обратно возвращаются выводы с расчётами. Ядро возвращает планы и оценки, получает принятые ограничения и исключения кандидатов. Рекомендация находится под ядром. Специалисты общаются через оркестратор.</desc>
+    <defs>
+      <marker id="agent-arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M2 2L9 6L2 10" fill="none" stroke="#322d2a" stroke-width="2"/></marker>
+    </defs>
+
+    <text class="role" x="844" y="72" text-anchor="middle">Оркестратор</text>
+    <text class="detail" x="844" y="116" text-anchor="middle">Задачи и заключения</text>
+    <path d="M844 145V180" stroke="#322d2a" stroke-width="2" marker-start="url(#agent-arrow)" marker-end="url(#agent-arrow)"/>
+    <path d="M280 192H1408" fill="none" stroke="#322d2a" stroke-width="2"/>
+
+    <path d="M280 205V307" stroke="#322d2a" stroke-width="2" marker-start="url(#agent-arrow)" marker-end="url(#agent-arrow)"/>
+    <path d="M844 205V307" stroke="#322d2a" stroke-width="2" marker-start="url(#agent-arrow)" marker-end="url(#agent-arrow)"/>
+    <path d="M1408 205V307" stroke="#322d2a" stroke-width="2" marker-start="url(#agent-arrow)" marker-end="url(#agent-arrow)"/>
+    <text class="exchange" x="312" y="248">Задача ↓</text>
+    <text class="exchange accent" x="312" y="281">Вывод ↑</text>
+    <text class="exchange accent" x="876" y="248">Ограничения ↓</text>
+    <text class="exchange" x="876" y="281">Планы ↑</text>
+    <text class="exchange" x="1440" y="248">Задача ↓</text>
+    <text class="exchange accent" x="1440" y="281">Вывод ↑</text>
+
+    <path d="M60 335H500M624 335H1064M1188 335H1628" stroke="#c8761a" stroke-width="3"/>
+    <text class="role" x="280" y="387" text-anchor="middle">Агент качества</text>
+    <text class="detail" x="280" y="435" text-anchor="middle">Запас качества · прогноз</text>
+    <text class="tool" x="280" y="483" text-anchor="middle">Вывод + расчёты</text>
+
+    <text class="role" x="844" y="387" text-anchor="middle">Расчётное ядро</text>
+    <text class="detail" x="844" y="435" text-anchor="middle">Поиск · выбор · проверка</text>
+    <text class="tool" x="844" y="483" text-anchor="middle">Планы и оценки</text>
+
+    <text class="role" x="1408" y="387" text-anchor="middle">Агент надёжности</text>
+    <text class="detail" x="1408" y="435" text-anchor="middle">Нагрузка · устойчивость</text>
+    <text class="tool" x="1408" y="483" text-anchor="middle">Вывод + расчёты</text>
+
+    <path d="M844 520V616" stroke="#322d2a" stroke-width="2" marker-end="url(#agent-arrow)"/>
+    <text class="role accent" x="844" y="679" text-anchor="middle">Рекомендация</text>
+  </svg>
+  <!-- Architecture evidence: application/agentic/{orchestrator,specialist,tools,session,decision}.py.
+       Specialists communicate through the orchestrator; no mandatory concurrency.
+       Proposed constraints require adoption by the orchestrator; valid candidate vetoes persist.
+       ACCEPT/REJECT require known evidence refs. Unchanged confirmation preserves the core result.
+       This slide claims architectural capabilities, not proven live-LLM superiority. -->
+</section>
+
+<section class="slide explain-slide">
+  <p class="crit">Объяснимость <span>· пример на модели риск-сценария</span></p>
+  <h2 class="explain-heading">Рекомендация с обоснованием</h2>
+  <div class="explain-action">
+    <h3>Что изменить</h3>
+    <p class="explain-label">Выпуск продукта</p>
+    <p class="explain-change">100 <span>→</span> 50 <small>т/ч</small></p>
+    <p class="explain-label">Доля резервного компонента</p>
+    <p class="explain-change">10 <span>→</span> 0 <small>%</small></p>
+    <p class="explain-output">Ожидаемый выпуск<br><strong>150 т за 3 часа</strong></p>
+  </div>
+  <div class="explain-reasons">
+    <div class="explain-reason">
+      <span class="explain-source">Основание: расчёт резервуарного парка</span>
+      <h3>Почему снизить выпуск</h3>
+      <p>При 100 т/ч возможен выход серы партии за предел.<br>Для выбранного плана верхняя оценка — 9,58 мг/кг.</p>
+      <p class="explain-proof">15,26 &gt; 10 <small>мг/кг · нарушение при 100 т/ч</small></p>
+    </div>
+    <div class="explain-reason">
+      <span class="explain-source">Основание: сравнение допустимых планов</span>
+      <h3>Почему выбран этот рецепт</h3>
+      <p>При одинаковом выпуске и тяжести режима<br>он дешевле ближайшей альтернативы.</p>
+      <p class="explain-proof">1,050 &lt; 1,068 <small>у.е./т</small></p>
+    </div>
+  </div>
+  <!-- Paraphrased explanation, not a verbatim UI screenshot.
+       Evidence: context/final-defence/evidence/risk.json:
+       explanation.current_operation throughput=100, recipe.reserve=.1;
+       decision.selected_plan c0001 throughput=50, main=1, reserve=0; production_t=150.
+       tank_estimate.coverage.bounds.corrected_sulfur_upper_mgkg=9.57688;
+       tank_estimate.excluded_candidates[0].coverage.bounds.corrected_sulfur_upper_mgkg=15.25954.
+       alternative c0007: production=150, cost=1.068, severity same as selected (cost=1.050).
+       Park bounds concern a common shift of the specified tank schedule. -->
+</section>
+
+<section class="slide repro-slide">
+  <p class="crit">Воспроизводимость <span>· один риск-сценарий, два запуска</span></p>
+  <h2 class="repro-heading">Результат сохранился при повторном расчёте</h2>
+  <div class="repro-outcome">
+    <h3>Выбран тот же план</h3>
+    <p class="repro-focal">50 <small>т/ч</small></p>
+    <p class="repro-recipe">Состав смеси совпал</p>
+    <p class="repro-mode"><b>Режим проверки</b><br>Агенты действуют по<br>заранее заданным правилам</p>
+  </div>
+  <div class="repro-values" role="group" aria-label="Сравнение первого запуска с повтором">
+    <div class="repro-value-head"><span>Показатель</span><span>Первый запуск</span><span>Повтор</span></div>
+    <div class="repro-value-row">
+      <h3>Выпуск за 3 часа<small>тонн</small></h3><span class="value">150</span><span class="equal">=</span><span class="value">150</span>
+    </div>
+    <div class="repro-value-row">
+      <h3>Условная стоимость<small>у.е./т</small></h3><span class="value">1,050</span><span class="equal">=</span><span class="value">1,050</span>
+    </div>
+    <div class="repro-value-row">
+      <h3>Индекс тяжести<small>безразмерный</small></h3><span class="value">0,535</span><span class="equal">=</span><span class="value">0,535</span>
+    </div>
+  </div>
+  <p class="repro-conditions">Те же данные и версии · новый процесс · без кеша</p>
+  <!-- Evidence: risk.json decision.production_t=150, cost_per_tonne=1.05,
+       severity_index=0.5345480387205392 (displayed rounded to .535).
+       repeat-check.json checks these values and selected_plan for equality;
+       one scripted repeat in a fresh process, commit b52027f. This is historical
+       saved evidence, not a new experiment and not a live-LLM determinism claim. -->
+</section>
+
+<section class="slide final-slide">
+  <div class="final-brand"><div class="brandline" data-logo="980"></div></div>
+  <p class="final-team"><span>команда</span> GoatWhistle</p>
+  <nav class="final-links" aria-label="Ссылки проекта">
+    <a href="https://neftecode.goatwhistle.ru/" target="_blank" rel="noopener" onclick="event.stopPropagation()">neftecode.goatwhistle.ru</a>
+    <a href="https://github.com/GoatWhistle/neftecode-hack" target="_blank" rel="noopener" onclick="event.stopPropagation()">github.com/GoatWhistle/neftecode-hack</a>
+  </nav>
+  <div class="final-qr" aria-label="QR-коды для перехода">
+    <a href="https://neftecode.goatwhistle.ru/" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <img src="assets/qr-demo.svg" width="200" height="200" alt="QR-код демо CUTPOINT">
+      <span>Демо</span>
+    </a>
+    <a href="https://github.com/GoatWhistle/neftecode-hack" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <img src="assets/qr-repository.svg" width="200" height="200" alt="QR-код исходного кода на GitHub">
+      <span>GitHub</span>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<template id="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 143.6" role="img" aria-label="CUTPOINT">
+  <g transform="scale(0.088339)">
+    <g transform="translate(0 1546.0) scale(1 -1)">
+    <line x1="1050.7" y1="733.0" x2="1820.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/><line x1="2117.8" y1="733.0" x2="2693.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="2990.4" y1="733.0" x2="3730.9" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4028.0" y1="733.0" x2="4745.0" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="5787.4" y1="733.0" x2="6150.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="6452.4" y1="733.0" x2="7263.7" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7570.2" y1="733.0" x2="7886.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8183.4" y1="733.0" x2="8565.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8843.8" y1="733.0" x2="8980.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9301.3" y1="733.0" x2="9452.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9730.5" y1="733.0" x2="10466.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="10763.4" y1="733.0" x2="11211.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/>
+    <g fill="#322d2a"><g transform="translate(813.0 733.0) scale(3.39352 -3.39352) translate(-256.0 -256.0)"><path d="M256 40a216 216 0 1 0 150 371l-59-62a132 132 0 1 1 0-186l59-62A215 215 0 0 0 256 40z"/></g><path transform="translate(1676.0 0)" d="M147.0 1466.0H443.0V672.0Q443.0 483.0 454.0 427.0Q473.0 337.0 544.5 282.5Q616.0 228.0 740.0 228.0Q866.0 228.0 930.0 279.5Q994.0 331.0 1007.0 406.0Q1020.0 481.0 1020.0 655.0V1466.0H1316.0V696.0Q1316.0 432.0 1292.0 323.0Q1268.0 214.0 1203.5 139.0Q1139.0 64.0 1031.0 19.5Q923.0 -25.0 749.0 -25.0Q539.0 -25.0 430.5 23.5Q322.0 72.0 259.0 149.5Q196.0 227.0 176.0 312.0Q147.0 438.0 147.0 684.0Z"/><path transform="translate(3251.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/><path transform="translate(4598.0 0)" d="M149.0 0.0V1466.0H624.0Q894.0 1466.0 976.0 1444.0Q1102.0 1411.0 1187.0 1300.5Q1272.0 1190.0 1272.0 1015.0Q1272.0 880.0 1223.0 788.0Q1174.0 696.0 1098.5 643.5Q1023.0 591.0 945.0 574.0Q839.0 553.0 638.0 553.0H445.0V0.0ZM445.0 1218.0V802.0H607.0Q782.0 802.0 841.0 825.0Q900.0 848.0 933.5 897.0Q967.0 946.0 967.0 1011.0Q967.0 1091.0 920.0 1143.0Q873.0 1195.0 801.0 1208.0Q748.0 1218.0 588.0 1218.0Z"/><path transform="translate(6060.0 0)" d="M89.0 724.0Q89.0 948.0 156.0 1100.0Q206.0 1212.0 292.5 1301.0Q379.0 1390.0 482.0 1433.0Q619.0 1491.0 798.0 1491.0Q1122.0 1491.0 1316.5 1290.0Q1511.0 1089.0 1511.0 731.0Q1511.0 376.0 1318.0 175.5Q1125.0 -25.0 802.0 -25.0Q475.0 -25.0 282.0 174.5Q89.0 374.0 89.0 724.0ZM394.0 734.0Q394.0 485.0 509.0 356.5Q624.0 228.0 801.0 228.0Q978.0 228.0 1091.5 355.5Q1205.0 483.0 1205.0 738.0Q1205.0 990.0 1094.5 1114.0Q984.0 1238.0 801.0 1238.0Q618.0 1238.0 506.0 1112.5Q394.0 987.0 394.0 734.0Z"/><path transform="translate(7749.0 0)" d="M140.0 0.0V1466.0H436.0V0.0Z"/><path transform="translate(8414.0 0)" d="M152.0 0.0V1466.0H440.0L1040.0 487.0V1466.0H1315.0V0.0H1018.0L427.0 956.0V0.0Z"/><path transform="translate(9989.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/></g>
+    <line x1="2663.2" y1="733.0" x2="3020.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4715.0" y1="733.0" x2="5817.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7233.7" y1="733.0" x2="7600.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8535.5" y1="733.0" x2="8873.8" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9422.2" y1="733.0" x2="9760.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/>
+  </g>
+  </g>
+</svg></template>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const C = { text: "#322d2a", muted: "#5a564e", soft: "#8f8974", pass: "#1b7a3d", passWash: "#dcebe0", fail: "#c1292e", unknown: "#a35a00", copper: "#c8761a", ink: "#8a4d0f", panel: "#f0efe9", field: "#e7e5dd" };
+  const el = (parent, tag, attrs, text) => {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (text !== undefined) node.textContent = text;
+    parent.append(node);
+    return node;
+  };
+  const label = (parent, x, y, text, size, fill, extra = {}) => el(parent, "text", Object.assign({ x, y, "font-size": size, fill }, extra), text);
+  const fmt = (v, digits) => v.toFixed(digits).replace(".", ",");
+  const probes = (n) => {
+    const d = n % 10, h = n % 100;
+    if (d === 1 && h !== 11) return `${n} проба`;
+    if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return `${n} пробы`;
+    return `${n} проб`;
+  };
+  const arrowGlyph = (parent, x, y, size, color, width = 2.4) => {
+    const k = size / 24;
+    el(parent, "path", { d: `M${x + 4 * k} ${y} h${15.5 * k} M${x + 13.5 * k} ${y - 6.5 * k} L${x + 20 * k} ${y} L${x + 13.5 * k} ${y + 6.5 * k}`, fill: "none", stroke: color, "stroke-width": width, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  };
+  const checkMark = (parent, cx, cy, r, color) => {
+    el(parent, "circle", { cx, cy, r, fill: color });
+    el(parent, "path", { d: `M${cx - r * 0.45} ${cy + r * 0.02} l${r * 0.3} ${r * 0.3} l${r * 0.58} -${r * 0.62}`, fill: "none", stroke: "#ffffff", "stroke-width": r * 0.24, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  };
+
+  const logoSource = document.getElementById("logo").content.querySelector("svg");
+  document.querySelectorAll(".brandline").forEach((line) => {
+    const width = Number(line.dataset.logo);
+    const height = width * 0.1436;
+    const side = (1920 - width) / 2;
+    const cy = height * (71.8196 / 143.6);
+    const stroke = width * 0.0156095;
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 1920 ${height}`);
+    svg.setAttribute("width", 1920);
+    svg.setAttribute("height", height);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "CUTPOINT");
+    el(svg, "line", { x1: 0, y1: cy, x2: side + width * 0.012, y2: cy, stroke: C.copper, "stroke-width": stroke });
+    el(svg, "line", { x1: side + width * 0.9904, y1: cy, x2: 1920, y2: cy, stroke: C.copper, "stroke-width": stroke });
+    const mark = logoSource.cloneNode(true);
+    mark.setAttribute("x", side);
+    mark.setAttribute("y", 0);
+    mark.setAttribute("width", width);
+    mark.setAttribute("height", height);
+    mark.removeAttribute("role");
+    mark.setAttribute("aria-hidden", "true");
+    svg.append(mark);
+    line.append(svg);
+  });
+
+  const timeline = () => {
+    const svg = document.getElementById("timeline");
+    const text=(x,y,t,size=25,color=C.text,bold=false,anchor="start")=>label(svg,x,y,t,size,color,{"font-weight":bold?600:400,"text-anchor":anchor});
+    const path=(d,color=C.text,width=2.5)=>el(svg,"path",{d,fill:"none",stroke:color,"stroke-width":width,"stroke-linecap":"round","stroke-linejoin":"round"});
+    text(0,32,"Проверка пригодности ПАК",32,C.text,true);
+    text(0,74,"Пороги из обучающей истории до 2025 года",23,C.muted);
+    const cols=[[0,"30 мин","максимальный возраст"],[355,"4 подряд","одинаковых показания"],[700,"≈ 4,75 мг/кг","порог расхождения с ЛИМС"]];
+    cols.forEach(([x,v,t])=>{text(x,155,v,38,C.ink,true);text(x,195,t,21,C.muted);});
+    path("M0 227 H1032","#d3cfc4",1.5);
+
+    text(516,287,"ПАК пригоден?",29,C.text,true,"middle");
+    path("M516 307 V343 H235 V386");
+    path("M226 376 L235 386 L244 376");
+    path("M516 343 H795 V386",C.copper);
+    path("M786 376 L795 386 L804 376",C.copper);
+    text(245,335,"да",22,C.muted);
+    text(749,335,"нет",22,C.ink);
+
+    text(235,439,"ПАК + поправка",34,C.text,true,"middle");
+    text(235,485,"Медиана 20 доступных пар",24,C.text,false,"middle");
+    text(235,522,"ЛИМС − ПАК",26,C.muted,false,"middle");
+
+    text(795,439,"CatBoost без ПАК",34,C.ink,true,"middle");
+    text(795,485,"ЛИМС + телеметрия",26,C.text,false,"middle");
+    text(795,522,"Все признаки ПАК исключены",23,C.muted,false,"middle");
+    text(795,560,"при пригодных ЛИМС и телеметрии",21,C.muted,false,"middle");
+
+    path("M0 615 H1032","#d3cfc4",1.5);
+    text(0,660,"Нет пригодного источника качества",26,C.fail,true);
+    text(0,699,"или телеметрии",26,C.fail,true);
+    path("M535 669 H670",C.fail);
+    path("M660 660 L670 669 L660 678",C.fail);
+    text(704,679,"Отказ",36,C.fail,true);
+  };
+
+
+  const glyph = (parent, kind, cx, cy, color) => {
+    const g = el(parent, "g", { fill: "none", stroke: color, "stroke-width": 4, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    const p = (d) => el(g, "path", { d });
+    if (kind === 0) { p(`M${cx - 26} ${cy + 18} V${cy + 4} M${cx - 9} ${cy + 18} V${cy - 12} M${cx + 8} ${cy + 18} V${cy - 2} M${cx + 25} ${cy + 18} V${cy - 22}`); }
+    if (kind === 1) { p(`M${cx - 28} ${cy + 14} L${cx - 10} ${cy - 2} L${cx + 4} ${cy + 8} L${cx + 26} ${cy - 16}`); p(`M${cx + 12} ${cy - 16} H${cx + 26} V${cy - 2}`); }
+    if (kind === 2) { el(g, "rect", { x: cx - 24, y: cy - 24, width: 48, height: 48, rx: 8 }); p(`M${cx - 11} ${cy} l8 8 l15 -16`); }
+    if (kind === 3) { el(g, "rect", { x: cx - 22, y: cy - 24, width: 44, height: 48, rx: 6 }); p(`M${cx - 22} ${cy + 4} H${cx + 22}`); }
+    if (kind === 4) { el(g, "circle", { cx: cx - 14, cy: cy - 10, r: 9 }); el(g, "circle", { cx: cx + 16, cy: cy - 10, r: 9 }); p(`M${cx - 30} ${cy + 22} q16 -22 32 0 M${cx} ${cy + 22} q16 -22 32 0`); }
+    if (kind === 5) { p(`M${cx - 26} ${cy} H${cx + 22} M${cx + 8} ${cy - 14} L${cx + 24} ${cy} L${cx + 8} ${cy + 14}`); }
+  };
+
+  const flow = () => {
+    const svg = document.getElementById("flow");
+    const txt=(x,y,t,size=28,color=C.text,bold=false,anchor="middle")=>label(svg,x,y,t,size,color,{"font-weight":bold?600:400,"text-anchor":anchor});
+    const path=(d,color=C.text,width=3)=>el(svg,"path",{d,fill:"none",stroke:color,"stroke-width":width,"stroke-linejoin":"round","stroke-linecap":"round"});
+
+    txt(260,258,"Данные и прогноз",36,C.text,true);
+    txt(260,302,"ПАК · ЛИМС · телеметрия",23,C.muted);
+    txt(260,338,"Прогноз серы на 2 часа",25);
+    path("M440 265 H505 V130 H565");
+    path("M555 121 L565 130 L555 139");
+
+    txt(885,104,"Расчётное ядро",42,C.text,true);
+    txt(885,151,"Перебор уставок, смеси и расхода",28);
+    txt(885,190,"Расчёт качества партии и проверка парка",25,C.muted);
+    txt(885,226,"Выбор допустимого плана",26);
+
+    path("M1070 256 V390",C.copper);
+    path("M1061 380 L1070 390 L1079 380",C.copper);
+    txt(1094,292,"результат",23,C.ink,false,"start");
+    txt(1094,324,"ядра",23,C.ink,false,"start");
+
+    path("M680 390 V256",C.copper);
+    path("M671 266 L680 256 L689 266",C.copper);
+    txt(654,292,"новые",23,C.ink,false,"end");
+    txt(654,324,"ограничения",23,C.ink,false,"end");
+
+    txt(885,447,"Агенты",42,C.text,true);
+    txt(885,494,"Проверяют планы, исключают варианты",25);
+    txt(885,530,"Задают ограничения через инструменты",25,C.muted);
+    path("M1210 438 H1440",C.copper);
+    path("M1430 429 L1440 438 L1430 447",C.copper);
+
+    txt(1640,447,"Ответ оператору",36,C.ink,true);
+    txt(1640,494,"Изменить · сохранить · отказ",24,C.muted);
+    txt(1640,530,"Уставки, расход и обоснование",24);
+
+    path("M260 370 V610 H320",C.fail,2);
+    path("M310 603 L320 610 L310 617",C.fail,2);
+    txt(342,618,"Непригодные данные: сразу отказ",24,C.fail,false,"start");
+  };
+
+
+
+
+  timeline();
+  flow();
+  const stage = document.getElementById("stage");
+  const slides = [...document.querySelectorAll(".slide")];
+  const last = slides.length - 1;
+  slides.forEach((slide, i) => {
+    if (i === 0 || i === last) return;
+    const num = document.createElement("span");
+    num.className = "num";
+    num.textContent = String(i);
+    slide.append(num);
+  });
+
+  const fit = () => {
+    const root = document.documentElement;
+    const scale = Math.min(root.clientWidth / 1920, root.clientHeight / 1080);
+    stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  };
+
+  let current = 0;
+  const show = (n) => {
+    const previous = current;
+    current = Math.max(0, Math.min(last, n));
+    if (current === 1 && previous !== 1) {
+      const demo = document.getElementById("demo-animation");
+      demo.src = `assets/video-demostration-1min.gif?replay=${Date.now()}`;
+    }
+    slides.forEach((s, i) => s.classList.toggle("on", i === current));
+    history.replaceState(null, "", `#${current}`);
+  };
+
+  addEventListener("resize", fit);
+  new ResizeObserver(fit).observe(document.documentElement);
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(last);
+    else if (e.key === "f" || e.key === "F") {
+      if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+    }
+  });
+  addEventListener("click", (e) => show(current + (e.clientX < innerWidth / 3 ? -1 : 1)));
+  addEventListener("hashchange", () => {
+    const n = parseInt(location.hash.slice(1), 10);
+    if (!Number.isNaN(n) && n !== current) show(n);
+  });
+
+  fit();
+  const start = parseInt(location.hash.slice(1), 10);
+  show(Number.isNaN(start) ? 0 : start);
+})();
+</script>
+</body>
+</html>

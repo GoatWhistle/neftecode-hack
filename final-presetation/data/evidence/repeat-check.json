@@ -1,0 +1,16 @@
+{
+  "method": "fresh computing process via make_demo_service.recompute; no HTTP cache",
+  "checks": {
+    "status": true,
+    "selected_plan": true,
+    "production_t": true,
+    "cost_per_tonne": true,
+    "severity_index": true,
+    "commercial_release_allowed": true,
+    "input_fingerprint": true,
+    "phase_coverage": true,
+    "provider_outcome": true
+  },
+  "all_passed": true,
+  "commit": "b52027f0e81c939209e717ad08fd1e1c1b90681e"
+}

@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CUTPOINT · защита</title>
+<!-- Built from deck-criteria.html by the cutpoint-slide style: header band, circle diagrams,
+     one-shot assembly animation in pipeline order. Keys: arrows/space — slides, R — replay,
+     S — static (final frames), F — fullscreen. ?static in the URL disables motion (for export). -->
+<style>
+:root {
+  --panel: #f0efe9;
+  --paper: #ffffff;
+  --field: #e7e5dd;
+  --text: #322d2a;
+  --body: #3a3531;
+  --muted: #5a564e;
+  --soft: #8f8974;
+  --hair: #d3cfc4;
+  --pass: #1b7a3d;
+  --pass-wash: #dcebe0;
+  --fail: #c1292e;
+  --unknown: #a35a00;
+  --unknown-wash: #f3e6d4;
+  --copper: #c8761a;
+  --copper-ink: #8a4d0f;
+  --sans: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, Arial, sans-serif;
+  --display: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, Arial, sans-serif;
+  --data: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--sans);
+  font-variant-numeric: lining-nums tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, p, ul, ol, table { margin: 0; padding: 0; }
+
+ul, ol { list-style: none; }
+
+.stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 50% 50%;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.slide.on { display: block; }
+
+.num {
+  position: absolute;
+  right: 116px;
+  bottom: 52px;
+  font: 600 24px/1 var(--sans);
+  color: var(--text);
+}
+
+.brandline {
+  position: relative;
+  width: 1920px;
+  display: flex;
+  justify-content: center;
+}
+
+.brandline svg { display: block; }
+
+.cover-art { display:block; width:1920px; height:1080px; }
+
+.split > * { position: relative; }
+
+
+
+.crit {
+  position: absolute;
+  left: 116px;
+  top: 62px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 600 22px/1 var(--sans);
+  color: var(--copper-ink);
+  z-index: 2;
+}
+
+.crit::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--copper); }
+
+.crit span { color: var(--muted); font-weight: 400; }
+
+
+.final-slide { background:var(--paper); }
+.final-brand { position:absolute; left:0; right:0; top:335px; }
+.final-brand .brandline > svg > line { display:none; }
+.final-team { position:absolute; left:0; right:0; top:584px; text-align:center; font:500 32px/1.3 var(--sans); }
+.final-team span { color:var(--muted); font-weight:400; }
+.final-links { position:absolute; left:0; right:0; top:652px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+.final-links a { font:500 30px/1.3 var(--sans); color:var(--copper-ink); text-decoration:none; }
+.final-links a:last-child { font-size:24px; font-weight:400; color:var(--muted); }
+.final-links a:hover { text-decoration:underline; text-underline-offset:5px; }
+.final-qr { position:absolute; top:776px; left:0; right:0; display:flex; justify-content:center; gap:100px; }
+.final-qr a { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--text); text-decoration:none; font:600 23px/1.25 var(--sans); }
+.final-qr img { display:block; width:200px; height:200px; }
+
+
+@media print {
+  @page { size: 1920px 1080px; margin: 0; }
+  html, body { height: auto; overflow: visible; }
+  .stage { position: static; transform: none !important; }
+  .slide { position: relative; display: block; width: 1920px; height: 1080px; break-after: page; }
+}
+
+.hdr { position: absolute; left: 0; top: 0; width: 1920px; height: 280px; background: var(--panel); }
+.hdr h2 { position: absolute; left: 116px; top: 112px; margin: 0; font: 600 58px/1.1 var(--display); letter-spacing: -0.014em; color: var(--text); white-space: nowrap; }
+.hdr .sub { position: absolute; left: 116px; top: 198px; margin: 0; font: 400 28px/1.4 var(--sans); color: var(--body); }
+.band { position: absolute; left: 0; top: 280px; width: 1920px; height: 800px; background: #ffffff; }
+.band > svg.art { position: absolute; left: 0; top: 0; display: block; }
+.frame { position: absolute; left: 864px; top: 36px; width: 940px; height: auto; border-radius: 18px; border: 2px solid var(--text); background: var(--panel); overflow: hidden; }
+.frame__bar { height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: var(--text); }
+.frame__bar i { width: 13px; height: 13px; border-radius: 50%; background: #6b645c; }
+.frame__bar em { margin-left: 18px; font: 400 18px/1 var(--data); font-style: normal; color: #d9d4c8; }
+.frame__gif { width: 100%; aspect-ratio: 1386 / 904; overflow: hidden; }
+.frame__gif img { display: block; width: calc(100% * 1440 / 1386); height: auto; max-width: none; margin-left: calc(-100% * 54 / 1386); }
+.frame__body { position: absolute; inset: 44px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.frame__play { width: 108px; height: 108px; border-radius: 50%; background: var(--copper); display: flex; align-items: center; justify-content: center; }
+.frame__play svg { width: 44px; height: 44px; margin-left: 8px; }
+.frame__body p { margin: 0; font: 600 28px/1.2 var(--display); color: var(--text); }
+.frame__body small { font: 400 22px/1.3 var(--sans); color: var(--muted); }
+
+/* motion: one-shot assembly, replayed every time a slide is shown */
+.fd { opacity: 0; }
+.ln { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.wipe { clip-path: inset(0 100% 0 0); }
+.play .fd { animation: cpFade .45s ease-out var(--d, 0s) forwards; }
+.play .ln { animation: cpDraw var(--t, .5s) cubic-bezier(.4, 0, .2, 1) var(--d, 0s) forwards; }
+.play .wipe { animation: cpWipe var(--t, 1s) cubic-bezier(.4, 0, .2, 1) var(--d, 0s) forwards; }
+@keyframes cpFade { to { opacity: 1; } }
+@keyframes cpDraw { to { stroke-dashoffset: 0; } }
+@keyframes cpWipe { to { clip-path: inset(0 0 0 0); } }
+.static .fd, .static .play .fd { opacity: 1; animation: none; }
+.static .ln, .static .play .ln { stroke-dashoffset: 0; animation: none; }
+.static .wipe, .static .play .wipe { clip-path: none; animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fd, .play .fd { opacity: 1; animation: none; }
+  .ln, .play .ln { stroke-dashoffset: 0; animation: none; }
+  .wipe, .play .wipe { clip-path: none; animation: none; }
+}
+@media print {
+  .fd { opacity: 1 !important; animation: none !important; }
+  .ln { stroke-dashoffset: 0 !important; animation: none !important; }
+  .wipe { clip-path: none !important; animation: none !important; }
+}
+
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+
+<section class="slide cover-slide">
+<svg class="cover-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" style="font-family:Inter,Arial,sans-serif" role="img" aria-label="CUTPOINT — мультиагентный советчик для производства дизеля. Команда GoatWhistle."><defs>
+<linearGradient id="cover-drop-body" x1="0" x2="1" y1=".3" y2=".7"><stop stop-color="#504942"/><stop offset=".55" stop-color="#322d2a"/><stop offset="1" stop-color="#171615"/></linearGradient>
+<linearGradient id="cover-drop-amber" x1="0" x2="1" y1="0" y2=".8"><stop stop-color="#edaa50"/><stop offset=".5" stop-color="#c8761a"/><stop offset="1" stop-color="#915011"/></linearGradient>
+<clipPath id="cover-drop-clip"><path d="M1435 165C1380 310 1160 475 1160 650C1160 805 1283 897 1435 897C1587 897 1710 805 1710 650C1710 475 1490 310 1435 165Z"/></clipPath>
+</defs>
+<rect width="1920" height="1080" fill="#f0efe9"/>
+<g class="fd" style="--d:0.2s" clip-path="url(#cover-drop-clip)">
+<rect x="1130" y="140" width="610" height="780" fill="url(#cover-drop-body)"/>
+<rect x="1130" y="633" width="610" height="290" fill="url(#cover-drop-amber)"/>
+<path d="M1435 165C1400 350 1235 495 1235 650C1235 772 1317 866 1435 897" fill="none" stroke="white" stroke-opacity=".12" stroke-width="2"/>
+<path d="M1435 165C1410 370 1310 500 1310 650C1310 790 1370 860 1435 897" fill="none" stroke="white" stroke-opacity=".08" stroke-width="2"/>
+<rect x="1130" y="611" width="610" height="16" fill="#f0efe9"/>
+</g>
+<path class="ln" pathLength="1" style="--d:0.7s;--t:0.8s" d="M1030 619H1803" fill="none" stroke="#c8761a" stroke-width="3"/>
+<g class="fd" style="--d:1.35s"><circle cx="1710" cy="619" r="32" fill="#f0efe9"/><circle cx="1710" cy="619" r="18" fill="#c8761a"/><circle cx="1710" cy="619" r="5" fill="#f0efe9"/></g>
+<g class="fd" style="--d:0.1s"><svg xmlns="http://www.w3.org/2000/svg" x="116" y="305" width="820" height="117.75200000000001" viewBox="0 0 1000 143.6" role="img" aria-label="CUTPOINT">
+  <g transform="scale(0.088339)">
+    <g transform="translate(0 1546.0) scale(1 -1)">
+    <line x1="1050.7" y1="733.0" x2="1820.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/><line x1="2117.8" y1="733.0" x2="2693.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="2990.4" y1="733.0" x2="3730.9" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4028.0" y1="733.0" x2="4745.0" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="5787.4" y1="733.0" x2="6150.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="6452.4" y1="733.0" x2="7263.7" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7570.2" y1="733.0" x2="7886.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8183.4" y1="733.0" x2="8565.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8843.8" y1="733.0" x2="8980.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9301.3" y1="733.0" x2="9452.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9730.5" y1="733.0" x2="10466.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="10763.4" y1="733.0" x2="11211.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/>
+    <g fill="#322d2a"><g transform="translate(813.0 733.0) scale(3.39352 -3.39352) translate(-256.0 -256.0)"><path d="M256 40a216 216 0 1 0 150 371l-59-62a132 132 0 1 1 0-186l59-62A215 215 0 0 0 256 40z"/></g><path transform="translate(1676.0 0)" d="M147.0 1466.0H443.0V672.0Q443.0 483.0 454.0 427.0Q473.0 337.0 544.5 282.5Q616.0 228.0 740.0 228.0Q866.0 228.0 930.0 279.5Q994.0 331.0 1007.0 406.0Q1020.0 481.0 1020.0 655.0V1466.0H1316.0V696.0Q1316.0 432.0 1292.0 323.0Q1268.0 214.0 1203.5 139.0Q1139.0 64.0 1031.0 19.5Q923.0 -25.0 749.0 -25.0Q539.0 -25.0 430.5 23.5Q322.0 72.0 259.0 149.5Q196.0 227.0 176.0 312.0Q147.0 438.0 147.0 684.0Z"/><path transform="translate(3251.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/><path transform="translate(4598.0 0)" d="M149.0 0.0V1466.0H624.0Q894.0 1466.0 976.0 1444.0Q1102.0 1411.0 1187.0 1300.5Q1272.0 1190.0 1272.0 1015.0Q1272.0 880.0 1223.0 788.0Q1174.0 696.0 1098.5 643.5Q1023.0 591.0 945.0 574.0Q839.0 553.0 638.0 553.0H445.0V0.0ZM445.0 1218.0V802.0H607.0Q782.0 802.0 841.0 825.0Q900.0 848.0 933.5 897.0Q967.0 946.0 967.0 1011.0Q967.0 1091.0 920.0 1143.0Q873.0 1195.0 801.0 1208.0Q748.0 1218.0 588.0 1218.0Z"/><path transform="translate(6060.0 0)" d="M89.0 724.0Q89.0 948.0 156.0 1100.0Q206.0 1212.0 292.5 1301.0Q379.0 1390.0 482.0 1433.0Q619.0 1491.0 798.0 1491.0Q1122.0 1491.0 1316.5 1290.0Q1511.0 1089.0 1511.0 731.0Q1511.0 376.0 1318.0 175.5Q1125.0 -25.0 802.0 -25.0Q475.0 -25.0 282.0 174.5Q89.0 374.0 89.0 724.0ZM394.0 734.0Q394.0 485.0 509.0 356.5Q624.0 228.0 801.0 228.0Q978.0 228.0 1091.5 355.5Q1205.0 483.0 1205.0 738.0Q1205.0 990.0 1094.5 1114.0Q984.0 1238.0 801.0 1238.0Q618.0 1238.0 506.0 1112.5Q394.0 987.0 394.0 734.0Z"/><path transform="translate(7749.0 0)" d="M140.0 0.0V1466.0H436.0V0.0Z"/><path transform="translate(8414.0 0)" d="M152.0 0.0V1466.0H440.0L1040.0 487.0V1466.0H1315.0V0.0H1018.0L427.0 956.0V0.0Z"/><path transform="translate(9989.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/></g>
+    <line x1="2663.2" y1="733.0" x2="3020.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4715.0" y1="733.0" x2="5817.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7233.7" y1="733.0" x2="7600.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8535.5" y1="733.0" x2="8873.8" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9422.2" y1="733.0" x2="9760.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/>
+  </g>
+  </g>
+</svg>
+</g><g class="fd" style="--d:0.5s"><text x="116" y="539" font-size="44" fill="#322d2a">Мультиагентный советчик</text>
+<text x="116" y="598" font-size="44" fill="#322d2a">для производства дизеля</text>
+</g><g class="fd" style="--d:1.0s"><text x="116" y="124" font-size="30" font-weight="600" letter-spacing="-.9" fill="#322d2a" aria-label="Команда GoatWhistle">Goat<tspan font-weight="400">Whistle</tspan></text></g></svg>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Демонстрация <span>· работающий прототип</span></p><h2>Сера растёт, CUTPOINT снижает план</h2><p class="sub">Риск-сценарий · 24.07, 03:00</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Выпуск снижен со 100 до 50 тонн в час; 300 тонн становятся 150 тонн за 3 часа. Модельный выпуск." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><g class="fd" style="--d:0.1s"><text x="116" y="190" font-size="124" font-weight="300" fill="#8f8974" text-anchor="start">100</text></g>
+<path class="ln" pathLength="1" style="--d:0.45s;--t:0.35s" d="M112 150H318" fill="none" stroke="#c1292e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+<path class="ln" pathLength="1" style="--d:0.75s;--t:0.3s" d="M358 150H410" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.95s"><path d="M397.0 158.5L412.0 150.0L397.0 141.5" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.0s"><text x="440" y="190" font-size="124" font-weight="300" fill="#8a4d0f" text-anchor="start">50</text></g>
+<g class="fd" style="--d:1.0s"><text x="606" y="190" font-size="40" fill="#8a4d0f" text-anchor="start">т/ч</text></g>
+<path class="ln" pathLength="1" style="--d:1.3s;--t:0.45s" d="M116 262H660" fill="none" stroke="#322d2a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.55s"><text x="116" y="362" font-size="66" font-weight="300" fill="#322d2a" text-anchor="start">300</text></g>
+<path class="ln" pathLength="1" style="--d:1.75s;--t:0.25s" d="M252 339H292" fill="none" stroke="#c8761a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.9s"><path d="M279.0 347.5L294.0 339.0L279.0 330.5" fill="none" stroke="#c8761a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.95s"><text x="316" y="362" font-size="66" fill="#8a4d0f" text-anchor="start">150 т</text></g>
+<g class="fd" style="--d:1.95s"><text x="494" y="362" font-size="28" fill="#5a564e" text-anchor="start">за 3 ч</text></g>
+<path class="ln" pathLength="1" style="--d:2.3s;--t:0.4s" d="M116 640H660" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.45s"><text x="116" y="690" font-size="22" fill="#5a564e" text-anchor="start">Модельный выпуск, не измеренный эффект завода.</text></g></svg><div class="frame fd" style="--d:0.1s" aria-label="Запись работы CUTPOINT">
+  <div class="frame__bar"><i></i><i></i><i></i><em>CUTPOINT</em></div>
+  <div class="frame__gif"><img id="demo-animation" src="assets/video-demostration-1min.gif" width="1440" height="904" alt="Демонстрация расчёта и работы агентов CUTPOINT" decoding="async"></div>
+</div></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Как устроено <span>· обработка данных</span></p><h2>Расчёт рекомендаций</h2><p class="sub">Совет выходит только после проверки кодом. Иначе — отказ с причиной.</p></div>
+  <div class="band"><svg class="art" width="1920" height="800" viewBox="0 0 1920 800" role="img" aria-label="Данные идут в прогноз, прогноз в расчётное ядро. Ядро передаёт агентам допустимые планы, агенты возвращают ограничения, которые только сужают выбор. Перед ответом оператору код делает финальную проверку. Непригодные данные или отсутствие допустимого плана ведут к отказу с причиной." style="display: block" font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif">
+<path class="ln" style="--d:0.45s" pathLength="1" d="M227.6 184.7C277.6 264.7 470 241 470 331" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.85s"><path d="M461.5 316.0L470.0 331.0L478.5 316.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<path class="ln" style="--d:1.05s" pathLength="1" d="M544.0 405H831.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.45s"><path d="M816.0 413.5L831.0 405.0L816.0 396.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<path class="ln" style="--d:2.4s" pathLength="1" d="M903.0 301.2Q881 252.5 917.3 168.6" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.80s"><path d="M919.1 185.8L917.3 168.6L903.5 179.0" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<path class="ln" style="--d:2.4s" pathLength="1" d="M972.7 168.6Q1009 252.5 987.0 301.2" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.80s"><path d="M985.4 284.0L987.0 301.2L1000.9 291.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.75s"><text x="887" y="260" font-size="23" font-weight="600" fill="#8a4d0f" text-anchor="end">допустимые планы</text></g>
+<g class="fd" style="--d:2.75s"><text x="1003" y="248" font-size="23" font-weight="600" fill="#322d2a" text-anchor="start">ограничения</text></g>
+<g class="fd" style="--d:2.75s"><text x="1003" y="276" font-size="19" fill="#5a564e" text-anchor="start">только сужают выбор</text></g>
+<path class="ln" style="--d:3.1s" pathLength="1" d="M1059.0 405H1187" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:3.50s"><path d="M1174.0 413.5L1189.0 405.0L1174.0 396.5" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<path class="ln" style="--d:3.55s" pathLength="1" d="M1251 405C1320 405 1310 300 1356.0 300" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:3.95s"><path d="M1343.0 308.5L1358.0 300.0L1343.0 291.5" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:3.4s"><circle cx="1225" cy="405" r="24" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:3.4s"><rect x="1216" y="403" width="18" height="14" rx="3" fill="#ffffff"></rect></g>
+<g class="fd" style="--d:3.4s"><path d="M1219.5 403V398a5.5 5.5 0 0 1 11 0V403" fill="none" stroke="#ffffff" stroke-width="3"></path></g>
+<g class="fd" style="--d:3.4s"><text x="1225" y="463" font-size="21" font-weight="600" fill="#322d2a" text-anchor="middle">проверка кодом</text></g>
+<path class="ln" style="--d:0.45s;--t:1.0s" pathLength="1" data-t="1.0" d="M180 202V632Q180 672 220 672H1376" fill="none" stroke="#b3261e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.6s"><text x="202" y="545" font-size="21" font-weight="600" fill="#b3261e" text-anchor="start">данные</text></g>
+<g class="fd" style="--d:0.6s"><text x="202" y="571" font-size="21" font-weight="600" fill="#b3261e" text-anchor="start">непригодны</text></g>
+<g class="fd" style="--d:1.35s"><path d="M1363.0 680.5L1378.0 672.0L1363.0 663.5" fill="none" stroke="#b3261e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.35s"><circle cx="1420" cy="672" r="28" fill="#b3261e"></circle></g>
+<g class="fd" style="--d:1.35s"><path d="M1411 663l18 18M1429 663l-18 18" stroke="#ffffff" stroke-width="4" stroke-linecap="round"></path></g>
+<g class="fd" style="--d:1.35s"><text x="1470" y="668" font-size="30" font-weight="600" fill="#b3261e" text-anchor="start">Отказ с причиной</text></g>
+<g class="fd" style="--d:1.35s"><text x="1470" y="700" font-size="22" fill="#5a564e" text-anchor="start">без рискованного совета</text></g>
+<path class="ln" style="--d:1.7s;--t:0.4s" pathLength="1" data-t="0.4" d="M1024.2 484.2L1212.0 672" fill="none" stroke="#b3261e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.8s"><text x="1165" y="548" font-size="21" font-weight="600" fill="#b3261e" text-anchor="start">нет допустимого</text></g>
+<g class="fd" style="--d:1.8s"><text x="1165" y="574" font-size="21" font-weight="600" fill="#b3261e" text-anchor="start">плана</text></g>
+<g class="fd" style="--d:2.05s"><circle cx="1212.0" cy="672" r="7" fill="#b3261e"></circle></g>
+<g class="fd" style="--d:0.1s"><circle cx="180" cy="128" r="62" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle></g>
+<g class="fd" style="--d:0.75s"><circle cx="470" cy="405" r="62" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle></g>
+<g class="fd" style="--d:1.4s"><circle cx="945" cy="405" r="100" fill="#ffffff" stroke="#322d2a" stroke-width="5"></circle></g>
+<g class="fd" style="--d:2.4s"><circle cx="945" cy="100" r="62" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle></g>
+<g class="fd" style="--d:3.9s"><circle cx="1440" cy="300" r="70" fill="#c8761a"></circle></g>
+<g class="fd" style="--d:0.1s"><path d="M152 110H208M152 128H194M152 146H202" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.75s"><path d="M438 423L458 401L476 415" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.75s"><path d="M476 415L502 385" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 8"></path></g>
+<g class="fd" style="--d:0.75s"><circle cx="438" cy="423" r="6" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:0.75s"><circle cx="458" cy="401" r="6" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:0.75s"><circle cx="476" cy="415" r="6" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:0.75s"><circle cx="502" cy="385" r="7" fill="#c8761a"></circle></g>
+<g class="fd" style="--d:1.4s"><path d="M901 379H989" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.4s"><circle cx="963" cy="379" r="9" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle></g>
+<g class="fd" style="--d:1.4s"><path d="M901 405H989" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.4s"><circle cx="927" cy="405" r="9" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle></g>
+<g class="fd" style="--d:1.4s"><path d="M901 431H989" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.4s"><circle cx="951" cy="431" r="9" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle></g>
+<g class="fd" style="--d:2.4s"><path d="M945 76L919 118L971 118Z" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.4s"><circle cx="945" cy="76" r="8" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:2.4s"><circle cx="919" cy="118" r="8" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:2.4s"><circle cx="971" cy="118" r="8" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:3.9s"><path d="M1418 302L1433 317L1463 285" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.1s"><text x="272" y="106" font-size="32" font-weight="600" fill="#322d2a" text-anchor="start">Данные</text></g>
+<g class="fd" style="--d:0.1s"><text x="272" y="144" font-size="22" fill="#322d2a" text-anchor="start">ПАК · ЛИМС · телеметрия</text></g>
+<g class="fd" style="--d:0.1s"><text x="272" y="174" font-size="22" fill="#5a564e" text-anchor="start">только уже известное</text></g>
+<g class="fd" style="--d:0.75s"><text x="470" y="517" font-size="32" font-weight="600" fill="#322d2a" text-anchor="middle">Прогноз</text></g>
+<g class="fd" style="--d:0.75s"><text x="470" y="555" font-size="22" fill="#322d2a" text-anchor="middle">сера после ГО</text></g>
+<g class="fd" style="--d:0.75s"><text x="470" y="585" font-size="22" fill="#5a564e" text-anchor="middle">на 2 часа вперёд</text></g>
+<g class="fd" style="--d:1.4s"><text x="945" y="565" font-size="32" font-weight="600" fill="#322d2a" text-anchor="middle">Расчётное ядро</text></g>
+<g class="fd" style="--d:1.4s"><text x="945" y="603" font-size="22" fill="#322d2a" text-anchor="middle">перебор · проверки · парк · выбор</text></g>
+<g class="fd" style="--d:1.4s"><text x="945" y="633" font-size="22" fill="#5a564e" text-anchor="middle">лучший допустимый план</text></g>
+<g class="fd" style="--d:2.4s"><text x="1037" y="78" font-size="32" font-weight="600" fill="#322d2a" text-anchor="start">Агенты</text></g>
+<g class="fd" style="--d:2.4s"><text x="1037" y="116" font-size="22" fill="#322d2a" text-anchor="start">разбирают планы</text></g>
+<g class="fd" style="--d:2.4s"><text x="1037" y="146" font-size="22" fill="#5a564e" text-anchor="start">через инструменты</text></g>
+<g class="fd" style="--d:2.4s"><path d="M1300 44V156" stroke="#e2ddd4" stroke-width="2"></path></g>
+<g class="fd" style="--d:2.4s"><circle cx="1330" cy="59" r="5" fill="#c8761a"></circle></g>
+<g class="fd" style="--d:2.4s"><text x="1348" y="66" font-size="21" fill="#322d2a" text-anchor="start">оркестратор</text></g>
+<g class="fd" style="--d:2.4s"><circle cx="1330" cy="97" r="5" fill="#c8761a"></circle></g>
+<g class="fd" style="--d:2.4s"><text x="1348" y="104" font-size="21" fill="#322d2a" text-anchor="start">качество</text></g>
+<g class="fd" style="--d:2.4s"><circle cx="1330" cy="135" r="5" fill="#c8761a"></circle></g>
+<g class="fd" style="--d:2.4s"><text x="1348" y="142" font-size="21" fill="#322d2a" text-anchor="start">надёжность</text></g>
+<g class="fd" style="--d:3.9s"><text x="1532" y="260" font-size="32" font-weight="600" fill="#8a4d0f" text-anchor="start">Ответ оператору</text></g>
+<g class="fd" style="--d:3.9s"><text x="1532" y="298" font-size="22" fill="#322d2a" text-anchor="start">изменить или сохранить</text></g>
+<g class="fd" style="--d:3.9s"><text x="1532" y="328" font-size="22" fill="#5a564e" text-anchor="start">с причиной и ценой</text></g>
+<g class="fd" style="--d:3.9s"><path d="M1533 366l6 6l12 -13" fill="none" stroke="#c8761a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:3.9s"><text x="1562" y="376" font-size="20" fill="#5a564e" text-anchor="start">план прошёл все проверки</text></g>
+</svg></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Работа с данными</p><h2>Подготовка данных</h2><p class="sub">Только то, что было известно в момент решения.</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Подготовка: выбросы телеметрии заменяются пропусками, ПАК сопоставляется с ЛИМС в момент отбора, ЛИМС доступна через 4 часа. Если ПАК пригоден — ПАК с поправкой по медиане 20 пар; если нет — CatBoost без ПАК на ЛИМС и телеметрии; если и они непригодны — отказ." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><g class="fd" style="--d:0.1s"><circle cx="190" cy="110" r="50" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M160 110H177M203 110H220" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="190" cy="110" r="6" fill="#ffffff" stroke="#c8761a" stroke-width="4"></circle></g>
+<g class="fd" style="--d:0.1s"><text x="270" y="92" font-size="28" font-weight="600" fill="#322d2a" text-anchor="start">Выбросы телеметрии</text><text x="270" y="128" font-size="22" fill="#322d2a" text-anchor="start">подтверждённые выбросы (307) — пропуск</text><text x="270" y="158" font-size="22" fill="#5a564e" text-anchor="start">больше 90% записей — ряд исключён</text></g>
+<path class="ln" pathLength="1" style="--d:0.4s;--t:0.3s" d="M190 172V281" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.6s"><path d="M181.5 268.0L190.0 283.0L198.5 268.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.7s"><circle cx="190" cy="345" r="50" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M178 345H202" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="170" cy="345" r="8" fill="#322d2a"></circle><circle cx="210" cy="345" r="8" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle></g>
+<g class="fd" style="--d:0.7s"><text x="270" y="327" font-size="28" font-weight="600" fill="#322d2a" text-anchor="start">ПАК и ЛИМС</text><text x="270" y="363" font-size="22" fill="#322d2a" text-anchor="start">показание ПАК в момент отбора пробы</text><text x="270" y="393" font-size="22" fill="#5a564e" text-anchor="start">сравниваем значения серы</text></g>
+<path class="ln" pathLength="1" style="--d:1.0s;--t:0.3s" d="M190 407V516" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.2s"><path d="M181.5 503.0L190.0 518.0L198.5 503.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.3s"><circle cx="190" cy="580" r="50" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><circle cx="190" cy="580" r="22" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></circle><path d="M190 580V567M190 580L200 586" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.3s"><text x="270" y="562" font-size="28" font-weight="600" fill="#322d2a" text-anchor="start">ЛИМС через 4 часа</text><text x="270" y="598" font-size="22" fill="#322d2a" text-anchor="start">анализ берём через 4 ч после отбора</text><text x="270" y="628" font-size="22" fill="#5a564e" text-anchor="start">по условиям задержка до 4 ч</text></g>
+<path class="ln" pathLength="1" style="--d:0.1s;--t:0.6s" d="M760 40V760" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.55s"><circle cx="900" cy="120" r="58" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M874 126A26 26 0 0 1 926 126" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M900 126L913 108" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="900" cy="126" r="5" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:1.55s"><text x="984" y="94" font-size="32" font-weight="600" fill="#322d2a" text-anchor="start">ПАК пригоден?</text><text x="984" y="132" font-size="22" fill="#322d2a" text-anchor="start">возраст до 30 мин · не 4 одинаковых подряд</text><text x="984" y="162" font-size="22" fill="#5a564e" text-anchor="start">расхождение с ЛИМС до ≈ 4,75 мг/кг</text><text x="984" y="192" font-size="20" fill="#5a564e" text-anchor="start">пороги из истории до 2025 года</text></g>
+<path class="ln" pathLength="1" style="--d:1.9s;--t:0.25s" d="M900 190V280" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.1s"><circle cx="900" cy="280" r="6" fill="#322d2a"></circle></g>
+<path class="ln" pathLength="1" style="--d:2.15s;--t:0.3s" d="M900 280V370" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.35s"><path d="M891.5 355.0L900.0 370.0L908.5 355.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.2s"><text x="918" y="332" font-size="22" fill="#5a564e" text-anchor="start">да</text></g>
+<path class="ln" pathLength="1" style="--d:2.15s;--t:0.55s" d="M900 280H1380Q1420 280 1420 320V370" fill="none" stroke="#c8761a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.6s"><path d="M1411.5 355.0L1420.0 370.0L1428.5 355.0" fill="none" stroke="#c8761a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.3s"><text x="1150" y="266" font-size="22" font-weight="600" fill="#8a4d0f" text-anchor="start">нет</text></g>
+<g class="fd" style="--d:2.45s"><circle cx="900" cy="440" r="58" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M874 452H926" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M874 428H926" fill="none" stroke="#c8761a" stroke-width="4.5" stroke-linecap="round"></path><path d="M900 444V437" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.45s"><text x="984" y="418" font-size="32" font-weight="600" fill="#322d2a" text-anchor="start">ПАК + поправка</text><text x="984" y="456" font-size="22" fill="#322d2a" text-anchor="start">медиана 20 доступных пар</text><text x="984" y="486" font-size="22" fill="#5a564e" text-anchor="start">ЛИМС − ПАК</text></g>
+<g class="fd" style="--d:2.7s"><circle cx="1420" cy="440" r="58" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M1415 418L1397 442" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1415 418L1433 442" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1433 442L1423 464" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1433 442L1443 464" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="1415" cy="418" r="6" fill="#322d2a"></circle><circle cx="1397" cy="442" r="6" fill="#322d2a"></circle><circle cx="1433" cy="442" r="6" fill="#322d2a"></circle><circle cx="1423" cy="464" r="6" fill="#322d2a"></circle><circle cx="1443" cy="464" r="6" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:2.7s"><text x="1504" y="418" font-size="32" font-weight="600" fill="#8a4d0f" text-anchor="start">CatBoost без ПАК</text><text x="1504" y="456" font-size="22" fill="#322d2a" text-anchor="start">ЛИМС + телеметрия</text><text x="1504" y="486" font-size="22" fill="#5a564e" text-anchor="start">признаки ПАК исключены</text></g>
+<path class="ln" pathLength="1" style="--d:3.1s;--t:0.55s" d="M1420 510V620Q1420 660 1460 660H1566" fill="none" stroke="#b3261e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:3.55s"><path d="M1553.0 668.5L1568.0 660.0L1553.0 651.5" fill="none" stroke="#b3261e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:3.2s"><text x="1440" y="560" font-size="21" font-weight="600" fill="#b3261e" text-anchor="start">ЛИМС или телеметрия</text></g>
+<g class="fd" style="--d:3.2s"><text x="1440" y="586" font-size="21" font-weight="600" fill="#b3261e" text-anchor="start">непригодны</text></g>
+<g class="fd" style="--d:3.6s"><circle cx="1612" cy="660" r="30" fill="#b3261e"></circle><path d="M1603 651l18 18M1621 651l-18 18" stroke="#ffffff" stroke-width="4" stroke-linecap="round"></path></g>
+<g class="fd" style="--d:3.6s"><text x="1660" y="672" font-size="32" font-weight="600" fill="#b3261e" text-anchor="start">Отказ</text></g></svg></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Качество прогноза</p><h2>Прогноз серы на 2 часа вперёд</h2><p class="sub">Сера после гидроочистки. Первые две недели 2026 года, 21 лабораторная проба.</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Лабораторная сера, показание ПАК за два часа до каждой пробы и наш прогноз с поправкой, 1–14 января 2026 года. 9 января прогноз недоступен. За 2026 год средняя абсолютная ошибка 1,80 → 1,62 мг/кг, 126 из 233 проб с меньшей ошибкой, факт выше верхней оценки в 14 из 233." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><g class="fd" style="--d:0.05s"><path d="M200 440.0H1780" stroke="#e5e2da" stroke-width="1.5"></path><text x="184" y="447.0" font-size="21" fill="#5a564e" text-anchor="end">0</text></g>
+<g class="fd" style="--d:0.05s"><path d="M200 330.0H1780" stroke="#e5e2da" stroke-width="1.5"></path><text x="184" y="337.0" font-size="21" fill="#5a564e" text-anchor="end">5</text></g>
+<g class="fd" style="--d:0.05s"><path d="M200 220.0H1780" stroke="#e5e2da" stroke-width="1.5"></path><text x="184" y="227.0" font-size="21" fill="#5a564e" text-anchor="end">10</text></g>
+<g class="fd" style="--d:0.05s"><path d="M200 110.0H1780" stroke="#e5e2da" stroke-width="1.5"></path><text x="184" y="117.0" font-size="21" fill="#5a564e" text-anchor="end">15</text></g>
+<g class="fd" style="--d:0.05s"><text x="150" y="80" font-size="21" fill="#5a564e" text-anchor="start">мг/кг</text></g>
+<g class="fd" style="--d:0.05s"><text x="200" y="476" font-size="21" fill="#5a564e" text-anchor="middle">1 янв.</text></g>
+<g class="fd" style="--d:0.05s"><text x="539" y="476" font-size="21" fill="#5a564e" text-anchor="middle">4 янв.</text></g>
+<g class="fd" style="--d:0.05s"><text x="877" y="476" font-size="21" fill="#5a564e" text-anchor="middle">7 янв.</text></g>
+<g class="fd" style="--d:0.05s"><text x="1216" y="476" font-size="21" fill="#5a564e" text-anchor="middle">10 янв.</text></g>
+<g class="fd" style="--d:0.05s"><text x="1667" y="476" font-size="21" fill="#5a564e" text-anchor="middle">14 янв.</text></g>
+<g class="fd" style="--d:0.3s"><path d="M200 32H254" stroke="#322d2a" stroke-width="3.5"></path><text x="270" y="40" font-size="23" fill="#322d2a">Лабораторный анализ</text></g>
+<g class="fd" style="--d:1.3s"><path d="M700 32H754" stroke="#969185" stroke-width="3.5" stroke-dasharray="12 9"></path><text x="770" y="40" font-size="23" fill="#322d2a">ПАК за 2 ч до пробы</text></g>
+<g class="fd" style="--d:2.2s"><path d="M1180 32H1234" stroke="#c8761a" stroke-width="3.5"></path><text x="1250" y="40" font-size="23" fill="#322d2a">Наш прогноз: ПАК + поправка</text></g>
+<g class="wipe" style="--d:0.3s;--t:1.1s"><path d="M247.0 244.2L359.9 239.8L472.7 206.8L496.1 248.6L585.6 261.8L623.2 290.4L698.5 266.2L754.9 250.8L811.3 209.0L839.5 244.2L924.2 283.8L1037.0 259.6L1187.5 154.0L1201.6 396.0L1262.7 294.8L1375.6 246.4L1488.5 176.0L1516.7 224.4L1601.3 242.0L1657.7 195.8L1714.2 244.2" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linejoin="round"></path><circle cx="247.0" cy="244.2" r="5" fill="#322d2a"></circle><circle cx="359.9" cy="239.8" r="5" fill="#322d2a"></circle><circle cx="472.7" cy="206.8" r="5" fill="#322d2a"></circle><circle cx="496.1" cy="248.6" r="5" fill="#322d2a"></circle><circle cx="585.6" cy="261.8" r="5" fill="#322d2a"></circle><circle cx="623.2" cy="290.4" r="5" fill="#322d2a"></circle><circle cx="698.5" cy="266.2" r="5" fill="#322d2a"></circle><circle cx="754.9" cy="250.8" r="5" fill="#322d2a"></circle><circle cx="811.3" cy="209.0" r="5" fill="#322d2a"></circle><circle cx="839.5" cy="244.2" r="5" fill="#322d2a"></circle><circle cx="924.2" cy="283.8" r="5" fill="#322d2a"></circle><circle cx="1037.0" cy="259.6" r="5" fill="#322d2a"></circle><circle cx="1187.5" cy="154.0" r="5" fill="#322d2a"></circle><circle cx="1201.6" cy="396.0" r="5" fill="#322d2a"></circle><circle cx="1262.7" cy="294.8" r="5" fill="#322d2a"></circle><circle cx="1375.6" cy="246.4" r="5" fill="#322d2a"></circle><circle cx="1488.5" cy="176.0" r="5" fill="#322d2a"></circle><circle cx="1516.7" cy="224.4" r="5" fill="#322d2a"></circle><circle cx="1601.3" cy="242.0" r="5" fill="#322d2a"></circle><circle cx="1657.7" cy="195.8" r="5" fill="#322d2a"></circle><circle cx="1714.2" cy="244.2" r="5" fill="#322d2a"></circle></g>
+<g class="wipe" style="--d:1.3s;--t:0.9s"><path d="M247.0 267.9L359.9 284.2L472.7 283.6L496.1 301.7L585.6 301.7L623.2 296.4L698.5 310.6L754.9 308.3L811.3 260.5L839.5 299.5L924.2 326.0L1037.0 286.5L1187.5 280.0M1262.7 357.5L1375.6 279.3L1488.5 264.3L1516.7 301.2L1601.3 334.1L1657.7 308.2L1714.2 266.1" fill="none" stroke="#969185" stroke-width="3" stroke-dasharray="14 10"></path></g>
+<g class="wipe" style="--d:2.2s;--t:1.0s"><path d="M247.0 244.6L359.9 259.9L472.7 257.4L496.1 275.5L585.6 272.0L623.2 263.0L698.5 273.2L754.9 269.2L811.3 221.4L839.5 255.1L924.2 274.3L1037.0 234.8L1187.5 228.3M1262.7 303.1L1375.6 227.6L1488.5 218.9L1516.7 249.5L1601.3 279.7L1657.7 253.9L1714.2 211.7" fill="none" stroke="#c8761a" stroke-width="4" stroke-linejoin="round"></path><circle cx="247.0" cy="244.6" r="4" fill="#c8761a"></circle><circle cx="359.9" cy="259.9" r="4" fill="#c8761a"></circle><circle cx="472.7" cy="257.4" r="4" fill="#c8761a"></circle><circle cx="496.1" cy="275.5" r="4" fill="#c8761a"></circle><circle cx="585.6" cy="272.0" r="4" fill="#c8761a"></circle><circle cx="623.2" cy="263.0" r="4" fill="#c8761a"></circle><circle cx="698.5" cy="273.2" r="4" fill="#c8761a"></circle><circle cx="754.9" cy="269.2" r="4" fill="#c8761a"></circle><circle cx="811.3" cy="221.4" r="4" fill="#c8761a"></circle><circle cx="839.5" cy="255.1" r="4" fill="#c8761a"></circle><circle cx="924.2" cy="274.3" r="4" fill="#c8761a"></circle><circle cx="1037.0" cy="234.8" r="4" fill="#c8761a"></circle><circle cx="1187.5" cy="228.3" r="4" fill="#c8761a"></circle><circle cx="1262.7" cy="303.1" r="4" fill="#c8761a"></circle><circle cx="1375.6" cy="227.6" r="4" fill="#c8761a"></circle><circle cx="1488.5" cy="218.9" r="4" fill="#c8761a"></circle><circle cx="1516.7" cy="249.5" r="4" fill="#c8761a"></circle><circle cx="1601.3" cy="279.7" r="4" fill="#c8761a"></circle><circle cx="1657.7" cy="253.9" r="4" fill="#c8761a"></circle><circle cx="1714.2" cy="211.7" r="4" fill="#c8761a"></circle></g>
+<g class="fd" style="--d:3.2s"><path d="M1082 372Q1142 376 1192 393" fill="none" stroke="#8f8974" stroke-width="1.5"></path><text x="1074" y="378" font-size="20" fill="#5a564e" text-anchor="end">Прогноз недоступен</text></g>
+<path class="ln" pathLength="1" style="--d:3.3s;--t:0.5s" d="M116 540H1804" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:3.4s"><text x="116" y="590" font-size="23" fill="#5a564e" text-anchor="start">Проверка за 2026 год: 233 пробы для сравнения, ещё 16 — без доступного прогноза.</text></g>
+<g class="fd" style="--d:3.6s"><text x="116" y="650" font-size="23" font-weight="600" fill="#322d2a">Средняя абсолютная ошибка</text><text x="116" y="712" font-size="42" font-weight="500" fill="#322d2a">1,80 <tspan fill="#c8761a">→</tspan> 1,62 <tspan font-size="26" fill="#5a564e">мг/кг</tspan></text></g>
+<g class="fd" style="--d:3.85s"><text x="696" y="650" font-size="23" font-weight="600" fill="#322d2a">Пробы с меньшей ошибкой</text><text x="696" y="712" font-size="42" font-weight="500" fill="#322d2a">126 из 233 <tspan font-size="26" fill="#5a564e">(54,1%)</tspan></text></g>
+<g class="fd" style="--d:4.1s"><text x="1276" y="650" font-size="23" font-weight="600" fill="#322d2a">Факт выше верхней оценки серы</text><text x="1276" y="712" font-size="42" font-weight="500" fill="#322d2a">14 из 233 <tspan font-size="26" fill="#5a564e">(6,01%)</tspan></text></g></svg></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Оптимизация и безопасность</p><h2>Как выбираем режим работы</h2><p class="sub">Подбираем температуру гидроочистки, состав смеси и выпуск готового продукта.</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Из 271 рассчитанного плана 23 допустимы, выбран 1. План 100 т/ч отклонён: 15,26 больше 10 мг/кг. Из двух допустимых планов на 50 т/ч выбран более дешёвый: 1,050 против 1,068 у.е./т." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><g class="fd" style="--d:0.05s"><text x="116" y="46" font-size="23" fill="#5a564e" text-anchor="start">Пример на модели риск-сценария. Горизонт — 3 часа.</text></g>
+<g class="fd" style="--d:0.1s"><circle cx="300" cy="240" r="100" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><text x="300" y="262" font-size="60" font-weight="400" fill="#322d2a" text-anchor="middle">271</text></g>
+<g class="fd" style="--d:0.1s"><text x="300" y="390" font-size="28" font-weight="600" fill="#322d2a" text-anchor="middle">рассчитанный план</text><text x="300" y="426" font-size="22" fill="#322d2a" text-anchor="middle">разные уставки, доли</text><text x="300" y="456" font-size="22" fill="#5a564e" text-anchor="middle">компонентов и выпуск</text></g>
+<g class="fd" style="--d:1.45s"><circle cx="860" cy="240" r="76" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><text x="860" y="258" font-size="50" font-weight="400" fill="#322d2a" text-anchor="middle">23</text></g>
+<g class="fd" style="--d:1.45s"><text x="860" y="390" font-size="28" font-weight="600" fill="#322d2a" text-anchor="middle">допустимых плана</text><text x="860" y="426" font-size="22" fill="#322d2a" text-anchor="middle">качество, уставки, компоненты</text><text x="860" y="456" font-size="22" fill="#5a564e" text-anchor="middle">и расписание резервуаров</text></g>
+<g class="fd" style="--d:2.85s"><circle cx="1380" cy="240" r="56" fill="#c8761a"></circle><text x="1380" y="256" font-size="44" font-weight="500" fill="#ffffff" text-anchor="middle">1</text></g>
+<g class="fd" style="--d:2.85s"><text x="1380" y="390" font-size="28" font-weight="600" fill="#8a4d0f" text-anchor="middle">выбранный план</text><text x="1380" y="426" font-size="22" fill="#322d2a" text-anchor="middle">выпуск, стоимость, тяжесть</text><text x="1380" y="456" font-size="22" fill="#5a564e" text-anchor="middle">финальные проверки</text></g>
+<path class="ln" pathLength="1" style="--d:0.45s;--t:0.4s" d="M414 240H770" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.75s"><path d="M755.0 248.5L770.0 240.0L755.0 231.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<path class="ln" pathLength="1" style="--d:1.8s;--t:0.4s" d="M950 240H1310" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.1s"><path d="M1295.0 248.5L1310.0 240.0L1295.0 231.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.8s"><circle cx="560" cy="240" r="6" fill="#b3261e"></circle></g>
+<path class="ln" pathLength="1" style="--d:0.85s;--t:0.35s" d="M560 252V560" fill="none" stroke="#b3261e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.15s"><circle cx="560" cy="600" r="28" fill="#b3261e"></circle><path d="M552 592l16 16M568 592l-16 16" stroke="#ffffff" stroke-width="4" stroke-linecap="round"></path></g>
+<g class="fd" style="--d:1.15s"><text x="610" y="586" font-size="26" font-weight="600" fill="#322d2a" text-anchor="start">Почему отклонили 100 т/ч</text></g>
+<g class="fd" style="--d:1.3s"><text x="610" y="646" font-size="46" font-weight="500" fill="#c1292e" text-anchor="start">15,26 &gt; 10 <tspan font-size="26">мг/кг</tspan></text></g>
+<g class="fd" style="--d:1.3s"><text x="610" y="694" font-size="21" fill="#322d2a" text-anchor="start">При некоторых стадиях парка сера партии</text></g>
+<g class="fd" style="--d:1.3s"><text x="610" y="722" font-size="21" fill="#322d2a" text-anchor="start">выше предела даже после максимальной коррекции.</text></g>
+<g class="fd" style="--d:2.15s"><circle cx="1180" cy="240" r="6" fill="#c8761a"></circle></g>
+<path class="ln" pathLength="1" style="--d:2.2s;--t:0.35s" d="M1180 252V560" fill="none" stroke="#c8761a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.5s"><circle cx="1180" cy="600" r="34" fill="#ffffff" stroke="#c8761a" stroke-width="3.5"></circle><g transform="translate(1180 600) scale(0.72) translate(-1180 -600)"><path d="M1180 576V620M1168 620H1192M1156 586H1204" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1156 586L1149 602M1156 586L1163 602M1204 586L1197 602M1204 586L1211 602M1147 602Q1156 612 1165 602M1195 602Q1204 612 1213 602" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g></g>
+<g class="fd" style="--d:2.5s"><text x="1230" y="586" font-size="26" font-weight="600" fill="#322d2a" text-anchor="start">Почему выбрали этот план</text></g>
+<g class="fd" style="--d:2.65s"><text x="1230" y="646" font-size="46" font-weight="500" fill="#8a4d0f" text-anchor="start">1,068 <tspan fill="#c8761a">→</tspan> 1,050 <tspan font-size="26">у.е./т</tspan></text></g>
+<g class="fd" style="--d:2.65s"><text x="1230" y="694" font-size="21" fill="#322d2a" text-anchor="start">Оба допустимых плана: 50 т/ч, 150 т за 3 часа.</text></g>
+<g class="fd" style="--d:2.65s"><text x="1230" y="722" font-size="21" fill="#322d2a" text-anchor="start">При одинаковой тяжести выбираем более дешёвый.</text></g></svg></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Мультиагентность <span>· роли и обмен</span></p><h2>Агентная система</h2><p class="sub">Специалисты получают задачи от оркестратора и возвращают выводы с расчётами.</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Оркестратор связан с агентом качества, агентом надёжности и расчётным ядром. Специалистам уходят задачи, обратно приходят выводы с расчётами. Ядро возвращает планы и получает принятые ограничения. Рекомендация выходит из ядра после проверки кодом." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><path class="ln" pathLength="1" style="--d:0.7s;--t:0.45s" d="M972.0 502.0L972.0 376.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.05s"><path d="M980.5 391.0L972.0 376.0L963.5 391.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.7999999999999999s"><text x="998" y="447" font-size="23" font-weight="600" fill="#322d2a" text-anchor="start">планы</text></g>
+<path class="ln" pathLength="1" style="--d:2.3s;--t:0.45s" d="M948.0 378.0L948.0 504.0" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.65s"><path d="M939.5 489.0L948.0 504.0L956.5 489.0" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.4s"><text x="922" y="449" font-size="23" font-weight="600" fill="#8a4d0f" text-anchor="end">ограничения</text></g>
+<path class="ln" pathLength="1" style="--d:1.1s;--t:0.45s" d="M882.0 288.0L474.0 288.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.45s"><path d="M489.0 279.5L474.0 288.0L489.0 296.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.2000000000000002s"><text x="678" y="270" font-size="23" font-weight="600" fill="#322d2a" text-anchor="middle">задача</text></g>
+<path class="ln" pathLength="1" style="--d:1.85s;--t:0.45s" d="M476.0 312.0L884.0 312.0" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.2s"><path d="M869.0 320.5L884.0 312.0L869.0 303.5" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.9500000000000002s"><text x="680" y="346" font-size="23" font-weight="600" fill="#8a4d0f" text-anchor="middle">вывод</text></g>
+<path class="ln" pathLength="1" style="--d:1.1s;--t:0.45s" d="M1038.0 312.0L1446.0 312.0" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.45s"><path d="M1431.0 320.5L1446.0 312.0L1431.0 303.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.2000000000000002s"><text x="1242" y="346" font-size="23" font-weight="600" fill="#322d2a" text-anchor="middle">задача</text></g>
+<path class="ln" pathLength="1" style="--d:1.85s;--t:0.45s" d="M1444.0 288.0L1036.0 288.0" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.2s"><path d="M1051.0 279.5L1036.0 288.0L1051.0 296.5" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.9500000000000002s"><text x="1240" y="270" font-size="23" font-weight="600" fill="#8a4d0f" text-anchor="middle">вывод</text></g>
+<g class="fd" style="--d:0.1s"><circle cx="960" cy="300" r="64" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M960 300L960 286" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M960 300L948 307" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M960 300L972 307" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="960" cy="300" r="8" fill="#c8761a"></circle><circle cx="960" cy="286" r="7" fill="#322d2a"></circle><circle cx="948" cy="307" r="7" fill="#322d2a"></circle><circle cx="972" cy="307" r="7" fill="#322d2a"></circle></g>
+<g class="fd" style="--d:0.1s"><text x="960" y="116" font-size="30" font-weight="600" fill="#322d2a" text-anchor="middle">Оркестратор</text><text x="960" y="153" font-size="22" fill="#322d2a" text-anchor="middle">задачи и заключения</text><text x="960" y="183" font-size="22" fill="#5a564e" text-anchor="middle">специалисты общаются через него</text></g>
+<g class="fd" style="--d:0.35s"><circle cx="960" cy="600" r="84" fill="#ffffff" stroke="#322d2a" stroke-width="5"></circle><path d="M916 574H1004" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="978" cy="574" r="9" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle><path d="M916 600H1004" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="942" cy="600" r="9" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle><path d="M916 626H1004" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="966" cy="626" r="9" fill="#ffffff" stroke="#322d2a" stroke-width="4.5"></circle></g>
+<g class="fd" style="--d:0.35s"><text x="850" y="586" font-size="30" font-weight="600" fill="#322d2a" text-anchor="end">Расчётное ядро</text><text x="850" y="623" font-size="22" fill="#322d2a" text-anchor="end">поиск · выбор · проверка</text><text x="850" y="653" font-size="22" fill="#5a564e" text-anchor="end">планы и оценки</text></g>
+<g class="fd" style="--d:1.45s"><circle cx="400" cy="300" r="62" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M400 274C410 288 419 298 419 308A19 19 0 0 1 381 308C381 298 390 288 400 274Z" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.45s"><text x="400" y="420" font-size="30" font-weight="600" fill="#322d2a" text-anchor="middle">Агент качества</text><text x="400" y="457" font-size="22" fill="#322d2a" text-anchor="middle">запас качества · прогноз</text><text x="400" y="487" font-size="22" fill="#5a564e" text-anchor="middle">вывод + расчёты</text></g>
+<g class="fd" style="--d:1.45s"><circle cx="1520" cy="300" r="62" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M1520 274L1541 283V301C1541 314 1532 322 1520 327C1508 322 1499 314 1499 301V283Z" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.45s"><text x="1520" y="420" font-size="30" font-weight="600" fill="#322d2a" text-anchor="middle">Агент надёжности</text><text x="1520" y="457" font-size="22" fill="#322d2a" text-anchor="middle">нагрузка · устойчивость</text><text x="1520" y="487" font-size="22" fill="#5a564e" text-anchor="middle">вывод + расчёты</text></g>
+<path class="ln" pathLength="1" style="--d:2.8s;--t:0.4s" d="M1058 600H1344" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:3.1s"><path d="M1329.0 608.5L1344.0 600.0L1329.0 591.5" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:3.15s"><circle cx="1400" cy="600" r="44" fill="#c8761a"></circle><path d="M1382 602L1394 614L1418 588" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:3.15s"><text x="1470" y="588" font-size="30" font-weight="600" fill="#8a4d0f" text-anchor="start">Рекомендация</text><text x="1470" y="625" font-size="22" fill="#322d2a" text-anchor="start">после финальной проверки кодом</text></g></svg></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Объяснимость <span>· пример на модели риск-сценария</span></p><h2>Рекомендация с обоснованием</h2><p class="sub">Каждое изменение режима связано со своим основанием и числом из расчёта.</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Выпуск 100 → 50 т/ч: при 100 т/ч сера партии может выйти за предел, 15,26 больше 10 мг/кг; верхняя оценка выбранного плана 9,58. Доля резервного компонента 10 → 0 %: при одинаковом выпуске и тяжести рецепт дешевле, 1,050 против 1,068 у.е./т. Ожидаемый выпуск 150 т за 3 часа." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><g class="fd" style="--d:0.1s"><text x="116" y="60" font-size="30" font-weight="600" fill="#322d2a" text-anchor="start">Что изменить</text></g>
+<g class="fd" style="--d:0.3s"><text x="116" y="140" font-size="24" fill="#322d2a" text-anchor="start">Выпуск продукта</text></g>
+<g class="fd" style="--d:0.3s"><text x="116" y="222" font-size="68" fill="#322d2a" text-anchor="start">100</text></g>
+<path class="ln" pathLength="1" style="--d:0.6s;--t:0.3s" d="M252 199H306" fill="none" stroke="#c8761a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.8s"><path d="M293.0 207.5L308.0 199.0L293.0 190.5" fill="none" stroke="#c8761a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.85s"><text x="330" y="222" font-size="68" fill="#8a4d0f" text-anchor="start">50 <tspan font-size="30">т/ч</tspan></text></g>
+<g class="fd" style="--d:2.2s"><text x="116" y="330" font-size="24" fill="#322d2a" text-anchor="start">Доля резервного компонента</text></g>
+<g class="fd" style="--d:2.2s"><text x="116" y="412" font-size="68" fill="#322d2a" text-anchor="start">10</text></g>
+<path class="ln" pathLength="1" style="--d:2.5s;--t:0.3s" d="M210 389H264" fill="none" stroke="#c8761a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.7s"><path d="M251.0 397.5L266.0 389.0L251.0 380.5" fill="none" stroke="#c8761a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.75s"><text x="288" y="412" font-size="68" fill="#8a4d0f" text-anchor="start">0 <tspan font-size="30">%</tspan></text></g>
+<path class="ln" pathLength="1" style="--d:4.0s;--t:0.4s" d="M116 480H640" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:4.15s"><text x="116" y="536" font-size="24" fill="#322d2a" text-anchor="start">Ожидаемый выпуск</text></g>
+<g class="fd" style="--d:4.15s"><text x="116" y="576" font-size="28" font-weight="600" fill="#322d2a" text-anchor="start">150 т за 3 часа</text></g>
+<path class="ln" pathLength="1" style="--d:1.1s;--t:0.45s" d="M492 199C650 199 700 190 804 190" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.45s"><path d="M791.0 198.5L806.0 190.0L791.0 181.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<path class="ln" pathLength="1" style="--d:3.0s;--t:0.45s" d="M392 389C610 389 680 520 804 520" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:3.35s"><path d="M791.0 528.5L806.0 520.0L791.0 511.5" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:1.5s"><circle cx="870" cy="190" r="52" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><rect x="851" y="165" width="38" height="50" rx="7" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></rect><path d="M851 194H889" fill="none" stroke="#c8761a" stroke-width="4.5"></path></g>
+<g class="fd" style="--d:1.6s"><text x="960" y="118" font-size="22" font-weight="500" fill="#8a4d0f" text-anchor="start">Основание: расчёт резервуарного парка</text></g>
+<g class="fd" style="--d:1.6s"><text x="960" y="160" font-size="32" font-weight="600" fill="#322d2a" text-anchor="start">Почему снизить выпуск</text></g>
+<g class="fd" style="--d:1.6s"><text x="960" y="204" font-size="24" fill="#322d2a" text-anchor="start">При 100 т/ч возможен выход серы партии за предел.</text></g>
+<g class="fd" style="--d:1.6s"><text x="960" y="238" font-size="24" fill="#322d2a" text-anchor="start">Для выбранного плана верхняя оценка — 9,58 мг/кг.</text></g>
+<g class="fd" style="--d:1.9s"><text x="960" y="302" font-size="44" font-weight="500" fill="#8a4d0f" text-anchor="start">15,26 &gt; 10 <tspan font-size="22" font-weight="400" fill="#5a564e">мг/кг · нарушение при 100 т/ч</tspan></text></g>
+<g class="fd" style="--d:3.4s"><circle cx="870" cy="520" r="52" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M870 496V540M858 540H882M846 506H894" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M846 506L839 522M846 506L853 522M894 506L887 522M894 506L901 522M837 522Q846 532 855 522M885 522Q894 532 903 522" fill="none" stroke="#322d2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:3.5s"><text x="960" y="448" font-size="22" font-weight="500" fill="#8a4d0f" text-anchor="start">Основание: сравнение допустимых планов</text></g>
+<g class="fd" style="--d:3.5s"><text x="960" y="490" font-size="32" font-weight="600" fill="#322d2a" text-anchor="start">Почему выбран этот рецепт</text></g>
+<g class="fd" style="--d:3.5s"><text x="960" y="534" font-size="24" fill="#322d2a" text-anchor="start">При одинаковом выпуске и тяжести режима</text></g>
+<g class="fd" style="--d:3.5s"><text x="960" y="568" font-size="24" fill="#322d2a" text-anchor="start">он дешевле ближайшей альтернативы.</text></g>
+<g class="fd" style="--d:3.8s"><text x="960" y="632" font-size="44" font-weight="500" fill="#8a4d0f" text-anchor="start">1,050 &lt; 1,068 <tspan font-size="22" font-weight="400" fill="#5a564e">у.е./т</tspan></text></g></svg></div>
+</section>
+<section class="slide ">
+  <div class="hdr"><p class="crit">Воспроизводимость <span>· один риск-сценарий, два запуска</span></p><h2>Результат сохранился при повторном расчёте</h2><p class="sub">Те же данные и версии · новый процесс · без кеша</p></div>
+  <div class="band"><svg class="art" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Повторный запуск того же риск-сценария: выпуск 150 т, стоимость 1,050 у.е./т и индекс тяжести 0,535 совпали; выбран тот же план 50 т/ч, состав смеси совпал." font-family="Inter, 'Segoe UI', system-ui, Arial, sans-serif"><g class="fd" style="--d:0.1s"><text x="116" y="70" font-size="30" font-weight="600" fill="#322d2a" text-anchor="start">Выбран тот же план</text></g>
+<g class="fd" style="--d:0.2s"><text x="116" y="200" font-size="116" font-weight="500" fill="#8a4d0f" text-anchor="start">50 <tspan font-size="42">т/ч</tspan></text></g>
+<g class="fd" style="--d:0.3s"><text x="116" y="262" font-size="26" fill="#322d2a" text-anchor="start">Состав смеси совпал</text></g>
+<path class="ln" pathLength="1" style="--d:0.45s;--t:0.4s" d="M116 320H640" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:0.6s"><text x="116" y="374" font-size="24" font-weight="600" fill="#322d2a" text-anchor="start">Режим проверки</text></g>
+<g class="fd" style="--d:0.6s"><text x="116" y="410" font-size="24" fill="#322d2a" text-anchor="start">Агенты действуют по заранее</text></g>
+<g class="fd" style="--d:0.6s"><text x="116" y="442" font-size="24" fill="#322d2a" text-anchor="start">заданным правилам</text></g>
+<g class="fd" style="--d:0.8s"><circle cx="1370" cy="80" r="42" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M1364 65L1387 80L1364 95Z" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:0.8s"><text x="1370" y="160" font-size="22" fill="#5a564e" text-anchor="middle">первый запуск</text></g>
+<path class="ln" pathLength="1" style="--d:1.95s;--t:0.45s" d="M1424 62Q1510 10 1596 62" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:2.3s"><path d="M1578.8 62.2L1596.0 62.0L1587.0 47.3" fill="none" stroke="#c8761a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.3s"><circle cx="1650" cy="80" r="42" fill="#ffffff" stroke="#322d2a" stroke-width="4"></circle><path d="M1667 88A18 18 0 1 1 1662 69" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1664 57L1663 70L1650 70" fill="none" stroke="#322d2a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"></path></g>
+<g class="fd" style="--d:2.3s"><text x="1650" y="160" font-size="22" fill="#5a564e" text-anchor="middle">повтор</text></g>
+<path class="ln" pathLength="1" style="--d:0.8s;--t:0.5s" d="M820 196H1804" fill="none" stroke="#322d2a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.0s"><text x="820" y="282" font-size="27" font-weight="600" fill="#322d2a" text-anchor="start">Выпуск за 3 часа</text></g>
+<g class="fd" style="--d:1.0s"><text x="820" y="316" font-size="22" fill="#5a564e" text-anchor="start">тонн</text></g>
+<g class="fd" style="--d:1.1s"><text x="1370" y="304" font-size="44" font-weight="500" fill="#322d2a" text-anchor="middle">150</text></g>
+<g class="fd" style="--d:2.5s"><text x="1650" y="304" font-size="44" font-weight="500" fill="#8a4d0f" text-anchor="middle">150</text></g>
+<g class="fd" style="--d:3.1s"><text x="1510" y="302" font-size="32" font-weight="500" fill="#1b7a3d" text-anchor="middle">=</text></g>
+<path class="ln" pathLength="1" style="--d:1.0s;--t:0.5s" d="M820 362H1804" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.2s"><text x="820" y="432" font-size="27" font-weight="600" fill="#322d2a" text-anchor="start">Условная стоимость</text></g>
+<g class="fd" style="--d:1.2s"><text x="820" y="466" font-size="22" fill="#5a564e" text-anchor="start">у.е./т</text></g>
+<g class="fd" style="--d:1.3s"><text x="1370" y="454" font-size="44" font-weight="500" fill="#322d2a" text-anchor="middle">1,050</text></g>
+<g class="fd" style="--d:2.7s"><text x="1650" y="454" font-size="44" font-weight="500" fill="#8a4d0f" text-anchor="middle">1,050</text></g>
+<g class="fd" style="--d:3.25s"><text x="1510" y="452" font-size="32" font-weight="500" fill="#1b7a3d" text-anchor="middle">=</text></g>
+<path class="ln" pathLength="1" style="--d:1.2s;--t:0.5s" d="M820 512H1804" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<g class="fd" style="--d:1.4s"><text x="820" y="582" font-size="27" font-weight="600" fill="#322d2a" text-anchor="start">Индекс тяжести</text></g>
+<g class="fd" style="--d:1.4s"><text x="820" y="616" font-size="22" fill="#5a564e" text-anchor="start">безразмерный</text></g>
+<g class="fd" style="--d:1.5s"><text x="1370" y="604" font-size="44" font-weight="500" fill="#322d2a" text-anchor="middle">0,535</text></g>
+<g class="fd" style="--d:2.9s"><text x="1650" y="604" font-size="44" font-weight="500" fill="#8a4d0f" text-anchor="middle">0,535</text></g>
+<g class="fd" style="--d:3.4s"><text x="1510" y="602" font-size="32" font-weight="500" fill="#1b7a3d" text-anchor="middle">=</text></g>
+<path class="ln" pathLength="1" style="--d:1.4s;--t:0.5s" d="M820 662H1804" fill="none" stroke="#d3cfc4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+</section>
+<section class="slide final-slide">
+  <div class="final-brand"><div class="brandline" data-logo="980"></div></div>
+  <p class="final-team fd" style="--d:0.5s"><span>команда</span> GoatWhistle</p>
+  <nav class="final-links fd" style="--d:0.8s" aria-label="Ссылки проекта">
+    <a href="https://neftecode.goatwhistle.ru/" target="_blank" rel="noopener" onclick="event.stopPropagation()">neftecode.goatwhistle.ru</a>
+    <a href="https://github.com/GoatWhistle/neftecode-hack" target="_blank" rel="noopener" onclick="event.stopPropagation()">github.com/GoatWhistle/neftecode-hack</a>
+  </nav>
+  <div class="final-qr fd" style="--d:1.1s" aria-label="QR-коды для перехода">
+    <a href="https://neftecode.goatwhistle.ru/" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <img src="assets/qr-demo.svg" width="200" height="200" alt="QR-код демо CUTPOINT">
+      <span>Демо</span>
+    </a>
+    <a href="https://github.com/GoatWhistle/neftecode-hack" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <img src="assets/qr-repository.svg" width="200" height="200" alt="QR-код исходного кода на GitHub">
+      <span>GitHub</span>
+    </a>
+  </div>
+</section>
+
+</main>
+<template id="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 143.6" role="img" aria-label="CUTPOINT">
+  <g transform="scale(0.088339)">
+    <g transform="translate(0 1546.0) scale(1 -1)">
+    <line x1="1050.7" y1="733.0" x2="1820.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/><line x1="2117.8" y1="733.0" x2="2693.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="2990.4" y1="733.0" x2="3730.9" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4028.0" y1="733.0" x2="4745.0" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="5787.4" y1="733.0" x2="6150.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="6452.4" y1="733.0" x2="7263.7" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7570.2" y1="733.0" x2="7886.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8183.4" y1="733.0" x2="8565.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8843.8" y1="733.0" x2="8980.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9301.3" y1="733.0" x2="9452.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9730.5" y1="733.0" x2="10466.3" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="10763.4" y1="733.0" x2="11211.6" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="round"/>
+    <g fill="#322d2a"><g transform="translate(813.0 733.0) scale(3.39352 -3.39352) translate(-256.0 -256.0)"><path d="M256 40a216 216 0 1 0 150 371l-59-62a132 132 0 1 1 0-186l59-62A215 215 0 0 0 256 40z"/></g><path transform="translate(1676.0 0)" d="M147.0 1466.0H443.0V672.0Q443.0 483.0 454.0 427.0Q473.0 337.0 544.5 282.5Q616.0 228.0 740.0 228.0Q866.0 228.0 930.0 279.5Q994.0 331.0 1007.0 406.0Q1020.0 481.0 1020.0 655.0V1466.0H1316.0V696.0Q1316.0 432.0 1292.0 323.0Q1268.0 214.0 1203.5 139.0Q1139.0 64.0 1031.0 19.5Q923.0 -25.0 749.0 -25.0Q539.0 -25.0 430.5 23.5Q322.0 72.0 259.0 149.5Q196.0 227.0 176.0 312.0Q147.0 438.0 147.0 684.0Z"/><path transform="translate(3251.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/><path transform="translate(4598.0 0)" d="M149.0 0.0V1466.0H624.0Q894.0 1466.0 976.0 1444.0Q1102.0 1411.0 1187.0 1300.5Q1272.0 1190.0 1272.0 1015.0Q1272.0 880.0 1223.0 788.0Q1174.0 696.0 1098.5 643.5Q1023.0 591.0 945.0 574.0Q839.0 553.0 638.0 553.0H445.0V0.0ZM445.0 1218.0V802.0H607.0Q782.0 802.0 841.0 825.0Q900.0 848.0 933.5 897.0Q967.0 946.0 967.0 1011.0Q967.0 1091.0 920.0 1143.0Q873.0 1195.0 801.0 1208.0Q748.0 1218.0 588.0 1218.0Z"/><path transform="translate(6060.0 0)" d="M89.0 724.0Q89.0 948.0 156.0 1100.0Q206.0 1212.0 292.5 1301.0Q379.0 1390.0 482.0 1433.0Q619.0 1491.0 798.0 1491.0Q1122.0 1491.0 1316.5 1290.0Q1511.0 1089.0 1511.0 731.0Q1511.0 376.0 1318.0 175.5Q1125.0 -25.0 802.0 -25.0Q475.0 -25.0 282.0 174.5Q89.0 374.0 89.0 724.0ZM394.0 734.0Q394.0 485.0 509.0 356.5Q624.0 228.0 801.0 228.0Q978.0 228.0 1091.5 355.5Q1205.0 483.0 1205.0 738.0Q1205.0 990.0 1094.5 1114.0Q984.0 1238.0 801.0 1238.0Q618.0 1238.0 506.0 1112.5Q394.0 987.0 394.0 734.0Z"/><path transform="translate(7749.0 0)" d="M140.0 0.0V1466.0H436.0V0.0Z"/><path transform="translate(8414.0 0)" d="M152.0 0.0V1466.0H440.0L1040.0 487.0V1466.0H1315.0V0.0H1018.0L427.0 956.0V0.0Z"/><path transform="translate(9989.0 0)" d="M479.0 0.0V1218.0H44.0V1466.0H1209.0V1218.0H775.0V0.0Z"/></g>
+    <line x1="2663.2" y1="733.0" x2="3020.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="4715.0" y1="733.0" x2="5817.4" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="7233.7" y1="733.0" x2="7600.2" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="8535.5" y1="733.0" x2="8873.8" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/><line x1="9422.2" y1="733.0" x2="9760.5" y2="733.0" stroke="#c8761a" stroke-width="176.7" stroke-linecap="butt"/>
+  </g>
+  </g>
+</svg></template>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const C = { copper: "#c8761a" };
+  const el = (parent, tag, attrs) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); parent.append(n); return n; };
+  const logoSource = document.getElementById("logo").content.querySelector("svg");
+  document.querySelectorAll(".brandline").forEach((line) => {
+    const width = Number(line.dataset.logo);
+    const height = width * 0.1436;
+    const side = (1920 - width) / 2;
+    const cy = height * (71.8196 / 143.6);
+    const stroke = width * 0.0156095;
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 1920 ${height}`);
+    svg.setAttribute("width", 1920);
+    svg.setAttribute("height", height);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "CUTPOINT");
+    el(svg, "line", { x1: 0, y1: cy, x2: side + width * 0.012, y2: cy, stroke: C.copper, "stroke-width": stroke });
+    el(svg, "line", { x1: side + width * 0.9904, y1: cy, x2: 1920, y2: cy, stroke: C.copper, "stroke-width": stroke });
+    const mark = logoSource.cloneNode(true);
+    mark.setAttribute("x", side);
+    mark.setAttribute("y", 0);
+    mark.setAttribute("width", width);
+    mark.setAttribute("height", height);
+    mark.removeAttribute("role");
+    mark.setAttribute("aria-hidden", "true");
+    svg.append(mark);
+    line.append(svg);
+  });
+
+
+  document.querySelectorAll(".final-brand svg svg").forEach((mark) => {
+    mark.querySelectorAll("g[fill]").forEach((letters) => { letters.classList.add("fd"); letters.style.setProperty("--d", "0.1s"); });
+    const lines = [...mark.querySelectorAll("line")];
+    const xs = lines.map((l) => Number(l.getAttribute("x1")));
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    lines.forEach((l, i) => {
+      l.setAttribute("pathLength", "1");
+      l.classList.add("ln");
+      l.style.setProperty("--d", `${(0.55 + 0.9 * (xs[i] - lo) / (hi - lo)).toFixed(2)}s`);
+      l.style.setProperty("--t", "0.22s");
+    });
+  });
+  if (new URLSearchParams(location.search).has("static")) document.documentElement.classList.add("static");
+  const stage = document.getElementById("stage");
+  const slides = [...document.querySelectorAll(".slide")];
+  const last = slides.length - 1;
+  slides.forEach((slide, i) => {
+    if (i === 0 || i === last) return;
+    const num = document.createElement("span");
+    num.className = "num";
+    num.textContent = String(i);
+    slide.append(num);
+  });
+  const fit = () => {
+    const root = document.documentElement;
+    const scale = Math.min(root.clientWidth / 1920, root.clientHeight / 1080);
+    stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  };
+  let current = 0;
+  const play = (s) => { s.classList.remove("play"); void s.offsetWidth; s.classList.add("play"); };
+  const show = (n) => {
+    const previous = current;
+    current = Math.max(0, Math.min(last, n));
+    if (current === 1 && previous !== 1) document.getElementById("demo-animation").src = `assets/video-demostration-1min.gif?replay=${Date.now()}`;
+    slides.forEach((s, i) => { s.classList.toggle("on", i === current); if (i !== current) s.classList.remove("play"); });
+    play(slides[current]);
+    history.replaceState(null, "", `${location.search}#${current}`);
+  };
+  addEventListener("resize", fit);
+  new ResizeObserver(fit).observe(document.documentElement);
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(last);
+    else if (e.key === "r" || e.key === "R") play(slides[current]);
+    else if (e.key === "s" || e.key === "S") document.documentElement.classList.toggle("static");
+    else if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
+  });
+  addEventListener("click", (e) => show(current + (e.clientX < innerWidth / 3 ? -1 : 1)));
+  addEventListener("hashchange", () => { const n = parseInt(location.hash.slice(1), 10); if (!Number.isNaN(n) && n !== current) show(n); });
+  fit();
+  const start = parseInt(location.hash.slice(1), 10);
+  show(Number.isNaN(start) ? 0 : start);
+})();
+</script>
+</body>
+</html>

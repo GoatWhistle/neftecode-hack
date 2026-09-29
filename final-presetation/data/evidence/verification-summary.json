@@ -1,0 +1,504 @@
+[
+  {
+    "case": "normal",
+    "source": "normal.json",
+    "sha256": "5d5583218b0addc17478ad369a7c4c1b3c5457fa948b52f489ef6ff5c3a7872c",
+    "decision_time": "2026-01-05T08:00:00",
+    "status": "hold",
+    "plan": {
+      "plan_id": "hold",
+      "intent": "постоянный режим на весь горизонт",
+      "changes": 0,
+      "steps": [
+        {
+          "time_hours": 0.0,
+          "controls": {
+            "crude_feed_rate_tph": 740.0,
+            "avt_furnace_outlet_temp_c": 372.0,
+            "ht_reactor_inlet_temp_c": 367.8237,
+            "ht_feed_flow_m3h": 246.4769
+          },
+          "recipe": {
+            "main": 0.9,
+            "reserve": 0.1,
+            "light": 0.0
+          },
+          "throughput_tph": 100.0,
+          "additive_dose": 0.0
+        }
+      ]
+    },
+    "production_t": 300.0,
+    "cost_per_tonne": 1.0859999999999999,
+    "severity_index": 0.5139477777777771,
+    "forecast": {
+      "model": "last_pak_bc",
+      "value": 7.582309246063232,
+      "lower": 5.231989158963845,
+      "upper": 10.819024410387263,
+      "available": true,
+      "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента; лабораторное значение прогнозируется по ПАК с причинной медианой 20 последних доступных пар; это не заводская калибровка ПАК к шкале ЛИМС",
+      "coverage_target": 0.9,
+      "coverage_test": 0.871244635193133
+    },
+    "refusal": null,
+    "phase_coverage": {
+      "method": "continuous_interval_bounds",
+      "model_version": "tank-park/1",
+      "complete": true,
+      "reasons": [],
+      "bounds": {
+        "min_initial_draining_t": 611.9998636310247,
+        "min_available_for_next_fill": 2,
+        "breakpoints_h": [
+          0.0,
+          12.000000000000004,
+          15.512614330537993,
+          17.48738566946201,
+          20.48738566946201
+        ],
+        "fill_duration_h": 20.48738566946201,
+        "single_tank_drain_tph": 174.22916666666666,
+        "max_demand_tph": 90.0,
+        "required_initial_draining_t": 270.0,
+        "batch_sulfur_upper_mgkg": 10.819,
+        "corrected_sulfur_upper_mgkg": 8.1733,
+        "sulfur_limit_mgkg": 10.0
+      },
+      "horizon_h": 3.0,
+      "scope": "Зависимые от фазы условия парка; остальные ограничения проверяет Gate на сетке времени.",
+      "tau_domain_h": {
+        "lower": 0.0,
+        "upper": 20.48738566946201,
+        "upper_inclusive": false
+      },
+      "stress_checks": []
+    },
+    "compromise": {
+      "baseline_plan": "hold",
+      "selected_plan": "hold",
+      "baseline_production_t": 300.0,
+      "selected_production_t": 300.0,
+      "production_loss_t": 0.0,
+      "cost_per_tonne_delta": 0.0,
+      "basis": "Сравнение с выбором при исходной модельной фазе; не измеренная потеря завода."
+    },
+    "agent_outcome": "confirmed_legacy",
+    "agents": [
+      "quality",
+      "reliability"
+    ],
+    "tools": [
+      "ask_quality_agent",
+      "get_quality_margins",
+      "submit_opinion",
+      "ask_quality_agent",
+      "ask_reliability_agent",
+      "get_setpoint_changes",
+      "submit_opinion",
+      "ask_reliability_agent",
+      "finalize"
+    ],
+    "constraints_applied": [],
+    "run_meta": {
+      "schema": "run-meta/1",
+      "created_at": "2026-09-26T15:59:56+00:00",
+      "conditions_requested": {
+        "scenario": "baseline",
+        "fault": "healthy",
+        "snapshot": "20260105-080000",
+        "crude_sulfur_wt_pct": 1.35,
+        "product_sulfur_mgkg": 10.0,
+        "product_t95_c": 360.0,
+        "product_cetane_number": 51.0,
+        "throughput_tph": 100.0,
+        "tank": "main",
+        "tank_inventory": 4000.0,
+        "tank_available": "1"
+      },
+      "conditions_applied": {
+        "changes": [],
+        "snapshot": "20260105-080000",
+        "fault": "healthy",
+        "injection": null,
+        "decision_time": "2026-01-05T08:00:00"
+      },
+      "input_fingerprint": "07917e2adecd7d89bd0e230f8ca843607b7bb6fbc0f9b59e5241cb8852020012",
+      "input_parts": {
+        "conditions": {
+          "scenario": "baseline",
+          "fault": "healthy",
+          "snapshot": "20260105-080000",
+          "crude_sulfur_wt_pct": 1.35,
+          "product_sulfur_mgkg": 10.0,
+          "product_t95_c": 360.0,
+          "product_cetane_number": 51.0,
+          "throughput_tph": 100.0,
+          "tank": "main",
+          "tank_inventory": 4000.0,
+          "tank_available": "1"
+        },
+        "scenario_sha256": "0fb30b16b28115704515c0b84c5f17210a661cf8a90ddc5254b682f3de7b1f94",
+        "snapshot": "20260105-080000",
+        "snapshot_sha256": "0839bf2fb3f493e988b892d8b8f5bb9ddb8511a679b9426a2437b91cd16bc306",
+        "model": {
+          "response_model_sha256": "7f6a5c5cabdcb7825edc2a44a7e7d587ee26b402b23f32990c567566ce482d10",
+          "training_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847"
+        },
+        "response_binding": {
+          "provenance": "derived",
+          "beta_mgkg_per_c": -0.4227,
+          "reference_temp_c": 367.8237,
+          "reference_space_velocity_m3h": 246.4769
+        },
+        "severity_profile": "severity-profile/1:scenario_proxy:T348/27:F256/44:W0.7/0.3"
+      },
+      "code": {
+        "commit": "b52027f0e81c939209e717ad08fd1e1c1b90681e",
+        "dirty": false,
+        "note": null,
+        "captured": "process_start",
+        "captured_at": "2026-09-26T15:59:03+00:00"
+      },
+      "model": {
+        "response_model_sha256": "7f6a5c5cabdcb7825edc2a44a7e7d587ee26b402b23f32990c567566ce482d10",
+        "training_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847",
+        "loaded_at": "2026-09-26T15:59:03+00:00",
+        "source": "loaded_by_computing_process"
+      },
+      "provider": {
+        "provider": "scripted",
+        "model": "demo-policy",
+        "deterministic_policy": true,
+        "mode": "agentic",
+        "outcome": "confirmed_legacy"
+      },
+      "horizon_hours": 3,
+      "severity_profile": "severity-profile/1:scenario_proxy:T348/27:F256/44:W0.7/0.3",
+      "unknown_note": "Отсутствующие сведения помечены null и не заменяются значениями по умолчанию."
+    }
+  },
+  {
+    "case": "risk",
+    "source": "risk.json",
+    "sha256": "0816f2fcf6331c0b68681621fdc59fee784efff56fc88eefeaa8d51ffdb59e88",
+    "decision_time": "2026-07-24T03:00:00",
+    "status": "recommend_scenario",
+    "plan": {
+      "plan_id": "c0001",
+      "intent": "постоянный режим на весь горизонт",
+      "changes": 2,
+      "steps": [
+        {
+          "time_hours": 0.0,
+          "controls": {
+            "crude_feed_rate_tph": 740.0,
+            "avt_furnace_outlet_temp_c": 372.0,
+            "ht_reactor_inlet_temp_c": 363.1385,
+            "ht_feed_flow_m3h": 276.8367
+          },
+          "recipe": {
+            "main": 1.0,
+            "reserve": 0.0
+          },
+          "throughput_tph": 50.0,
+          "additive_dose": 0.0
+        }
+      ]
+    },
+    "production_t": 150.0,
+    "cost_per_tonne": 1.05,
+    "severity_index": 0.5345480387205392,
+    "forecast": {
+      "model": "last_pak_bc",
+      "value": 14.933170318603516,
+      "lower": 10.56977007546181,
+      "upper": 20.942174714435268,
+      "available": true,
+      "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента; лабораторное значение прогнозируется по ПАК с причинной медианой 20 последних доступных пар; это не заводская калибровка ПАК к шкале ЛИМС",
+      "coverage_target": 0.9,
+      "coverage_test": 0.871244635193133
+    },
+    "refusal": null,
+    "phase_coverage": {
+      "method": "continuous_interval_bounds",
+      "model_version": "tank-park/1",
+      "complete": true,
+      "reasons": [],
+      "bounds": {
+        "min_initial_draining_t": 983.1644438540629,
+        "min_available_for_next_fill": 1,
+        "breakpoints_h": [
+          0.0,
+          12.0,
+          15.357061640918928,
+          17.64293835908107,
+          18.35706164091893
+        ],
+        "fill_duration_h": 18.35706164091893,
+        "single_tank_drain_tph": 174.22916666666666,
+        "max_demand_tph": 50.0,
+        "required_initial_draining_t": 150.0,
+        "batch_sulfur_upper_mgkg": 20.9422,
+        "corrected_sulfur_upper_mgkg": 9.57688,
+        "sulfur_limit_mgkg": 10.0
+      },
+      "horizon_h": 3.0,
+      "scope": "Зависимые от фазы условия парка; остальные ограничения проверяет Gate на сетке времени.",
+      "tau_domain_h": {
+        "lower": 0.0,
+        "upper": 18.35706164091893,
+        "upper_inclusive": false
+      },
+      "stress_checks": [
+        {
+          "name": "сера основного компонента +10%",
+          "method": "continuous_interval_bounds",
+          "model_version": "tank-park/1",
+          "complete": true,
+          "reasons": [],
+          "bounds": {
+            "min_initial_draining_t": 983.1644438540629,
+            "min_available_for_next_fill": 1,
+            "breakpoints_h": [
+              0.0,
+              12.0,
+              15.357061640918928,
+              17.64293835908107,
+              18.35706164091893
+            ],
+            "fill_duration_h": 18.35706164091893,
+            "single_tank_drain_tph": 174.22916666666666,
+            "max_demand_tph": 50.0,
+            "required_initial_draining_t": 150.0,
+            "batch_sulfur_upper_mgkg": 20.9422,
+            "corrected_sulfur_upper_mgkg": 9.57688,
+            "sulfur_limit_mgkg": 10.0
+          },
+          "horizon_h": 3.0,
+          "scope": "Зависимые от фазы условия парка; остальные ограничения проверяет Gate на сетке времени.",
+          "tau_domain_h": {
+            "lower": 0.0,
+            "upper": 18.35706164091893,
+            "upper_inclusive": false
+          }
+        }
+      ]
+    },
+    "compromise": {
+      "baseline_plan": "hold",
+      "selected_plan": "c0001",
+      "baseline_production_t": 300.0,
+      "selected_production_t": 150.0,
+      "production_loss_t": 150.0,
+      "cost_per_tonne_delta": -0.03599999999999981,
+      "basis": "Сравнение с выбором при исходной модельной фазе; не измеренная потеря завода."
+    },
+    "agent_outcome": "confirmed_legacy",
+    "agents": [
+      "quality",
+      "reliability"
+    ],
+    "tools": [
+      "ask_quality_agent",
+      "get_quality_margins",
+      "submit_opinion",
+      "ask_quality_agent",
+      "ask_reliability_agent",
+      "get_setpoint_changes",
+      "get_robustness",
+      "submit_opinion",
+      "ask_reliability_agent",
+      "finalize"
+    ],
+    "constraints_applied": [],
+    "run_meta": {
+      "schema": "run-meta/1",
+      "created_at": "2026-09-26T15:59:39+00:00",
+      "conditions_requested": {
+        "scenario": "sour_crude",
+        "fault": "healthy",
+        "snapshot": "20260724-030000",
+        "crude_sulfur_wt_pct": 1.95,
+        "product_sulfur_mgkg": 10.0,
+        "product_t95_c": 360.0,
+        "product_cetane_number": 51.0,
+        "throughput_tph": 100.0,
+        "tank": "main",
+        "tank_inventory": 4000.0,
+        "tank_available": "1"
+      },
+      "conditions_applied": {
+        "changes": [],
+        "snapshot": "20260724-030000",
+        "fault": "healthy",
+        "injection": null,
+        "decision_time": "2026-07-24T03:00:00"
+      },
+      "input_fingerprint": "d5297a76895b23a4a08efe756f2c1d21fb47c0e6dbf32bad8ddfb37645c945cd",
+      "input_parts": {
+        "conditions": {
+          "scenario": "sour_crude",
+          "fault": "healthy",
+          "snapshot": "20260724-030000",
+          "crude_sulfur_wt_pct": 1.95,
+          "product_sulfur_mgkg": 10.0,
+          "product_t95_c": 360.0,
+          "product_cetane_number": 51.0,
+          "throughput_tph": 100.0,
+          "tank": "main",
+          "tank_inventory": 4000.0,
+          "tank_available": "1"
+        },
+        "scenario_sha256": "4890654afe3f15cd36b330434823e92b1bf98ad4405559940c48756f17f18d4c",
+        "snapshot": "20260724-030000",
+        "snapshot_sha256": "96bba1095cec3e56feceabb8073d508147e7e5510871907a5e78c79d34c5dcb1",
+        "model": {
+          "response_model_sha256": "7f6a5c5cabdcb7825edc2a44a7e7d587ee26b402b23f32990c567566ce482d10",
+          "training_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847"
+        },
+        "response_binding": {
+          "provenance": "derived",
+          "beta_mgkg_per_c": -0.4821,
+          "reference_temp_c": 363.1385,
+          "reference_space_velocity_m3h": 276.8367
+        },
+        "severity_profile": "severity-profile/1:scenario_proxy:T348/27:F256/44:W0.7/0.3"
+      },
+      "code": {
+        "commit": "b52027f0e81c939209e717ad08fd1e1c1b90681e",
+        "dirty": false,
+        "note": null,
+        "captured": "process_start",
+        "captured_at": "2026-09-26T15:59:03+00:00"
+      },
+      "model": {
+        "response_model_sha256": "7f6a5c5cabdcb7825edc2a44a7e7d587ee26b402b23f32990c567566ce482d10",
+        "training_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847",
+        "loaded_at": "2026-09-26T15:59:03+00:00",
+        "source": "loaded_by_computing_process"
+      },
+      "provider": {
+        "provider": "scripted",
+        "model": "demo-policy",
+        "deterministic_policy": true,
+        "mode": "agentic",
+        "outcome": "confirmed_legacy"
+      },
+      "horizon_hours": 3,
+      "severity_profile": "severity-profile/1:scenario_proxy:T348/27:F256/44:W0.7/0.3",
+      "unknown_note": "Отсутствующие сведения помечены null и не заменяются значениями по умолчанию."
+    }
+  },
+  {
+    "case": "bad-data",
+    "source": "bad-data.json",
+    "sha256": "742cc50c29f82b36d25152269004590dae1c9f92b325eb559f999cd64179ebbc",
+    "decision_time": "2026-04-16T10:10:00",
+    "status": "refuse",
+    "plan": null,
+    "production_t": null,
+    "cost_per_tonne": null,
+    "severity_index": null,
+    "forecast": {
+      "model": "catboost_no_pak",
+      "value": 6.971493821563329,
+      "lower": 5.008517290506934,
+      "upper": 9.575772802987325,
+      "available": true,
+      "reason": "Прогноз лабораторной серы после гидроочистки на горизонт эксперимента",
+      "coverage_target": 0.9,
+      "coverage_test": 0.8192771084337349
+    },
+    "refusal": {
+      "kind": "data",
+      "missing": [
+        "свежий лабораторный анализ серы после гидроочистки",
+        "исправный поточный анализатор либо подтверждение его показаний"
+      ]
+    },
+    "phase_coverage": null,
+    "compromise": null,
+    "agent_outcome": "skipped",
+    "agents": [],
+    "tools": [],
+    "constraints_applied": null,
+    "run_meta": {
+      "schema": "run-meta/1",
+      "created_at": "2026-09-26T15:59:51+00:00",
+      "conditions_requested": {
+        "scenario": "baseline",
+        "fault": "both_broken",
+        "snapshot": "20260416-101000",
+        "crude_sulfur_wt_pct": 1.35,
+        "product_sulfur_mgkg": 10.0,
+        "product_t95_c": 360.0,
+        "product_cetane_number": 51.0,
+        "throughput_tph": 100.0,
+        "tank": "main",
+        "tank_inventory": 4000.0,
+        "tank_available": "1"
+      },
+      "conditions_applied": {
+        "changes": [],
+        "snapshot": "20260416-101000",
+        "fault": "both_broken",
+        "injection": "Модельная инъекция отказа: both_broken. Это не наблюдение из данных.",
+        "decision_time": "2026-04-16T10:10:00"
+      },
+      "input_fingerprint": "5c87e3c9f5a6018799630feed28dc870359aa5d609e581d8eaa73b30efc22216",
+      "input_parts": {
+        "conditions": {
+          "scenario": "baseline",
+          "fault": "both_broken",
+          "snapshot": "20260416-101000",
+          "crude_sulfur_wt_pct": 1.35,
+          "product_sulfur_mgkg": 10.0,
+          "product_t95_c": 360.0,
+          "product_cetane_number": 51.0,
+          "throughput_tph": 100.0,
+          "tank": "main",
+          "tank_inventory": 4000.0,
+          "tank_available": "1"
+        },
+        "scenario_sha256": "0fb30b16b28115704515c0b84c5f17210a661cf8a90ddc5254b682f3de7b1f94",
+        "snapshot": "20260416-101000",
+        "snapshot_sha256": "079e369b4a59b747527fdfab2312a2b4866e52b8ef4bf9f0777d286d264ec699",
+        "model": {
+          "response_model_sha256": "7f6a5c5cabdcb7825edc2a44a7e7d587ee26b402b23f32990c567566ce482d10",
+          "training_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847"
+        },
+        "response_binding": {
+          "provenance": null,
+          "beta_mgkg_per_c": null,
+          "reference_temp_c": 348.0,
+          "reference_space_velocity_m3h": 256.0
+        },
+        "severity_profile": "severity-profile/1:scenario_proxy:T348/27:F256/44:W0.7/0.3"
+      },
+      "code": {
+        "commit": "b52027f0e81c939209e717ad08fd1e1c1b90681e",
+        "dirty": false,
+        "note": null,
+        "captured": "process_start",
+        "captured_at": "2026-09-26T15:59:03+00:00"
+      },
+      "model": {
+        "response_model_sha256": "7f6a5c5cabdcb7825edc2a44a7e7d587ee26b402b23f32990c567566ce482d10",
+        "training_fingerprint": "10c05d1dbfe6625ad11cbf93014d7978d528b3e180995d509976b129cfad2847",
+        "loaded_at": "2026-09-26T15:59:03+00:00",
+        "source": "loaded_by_computing_process"
+      },
+      "provider": {
+        "provider": "scripted",
+        "model": "demo-policy",
+        "deterministic_policy": true,
+        "mode": "agentic",
+        "outcome": "skipped"
+      },
+      "horizon_hours": 3,
+      "severity_profile": "severity-profile/1:scenario_proxy:T348/27:F256/44:W0.7/0.3",
+      "unknown_note": "Отсутствующие сведения помечены null и не заменяются значениями по умолчанию."
+    }
+  }
+]
