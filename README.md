@@ -12,12 +12,6 @@
 </p>
 
 <p align="center">
-  <a href="https://neftecode.goatwhistle.ru/">
-    <img src="https://img.shields.io/badge/▶_Открыть_живое_демо-neftecode.goatwhistle.ru-c8761a?style=for-the-badge&labelColor=322d2a" alt="Открыть живое демо"/>
-  </a>
-</p>
-
-<p align="center">
   <a href="#главное-за-30-секунд"><img src="https://img.shields.io/badge/Главное-5a564e?style=flat" alt="Главное"/></a>
   <a href="#за-три-минуты"><img src="https://img.shields.io/badge/За_три_минуты-5a564e?style=flat" alt="За три минуты"/></a>
   <a href="#куда-смотреть"><img src="https://img.shields.io/badge/Куда_смотреть-5a564e?style=flat" alt="Куда смотреть"/></a>
@@ -27,9 +21,9 @@
 
 ---
 
-## Что сейчас задеплоено
+## Агентный слой и LLM
 
-В Docker развёрнуто решение с агентным слоем, который работает через LLM. LLM помогает
+Решение работает с агентным слоем, который использует LLM. LLM помогает
 проводить разбор условий, выбирать действия и объяснять результат, а детерминированное
 ядро, Gate и жёсткие ограничения проверяют каждого кандидата и не позволяют модели
 ослабить требования.
@@ -44,7 +38,6 @@ LLM_PROVIDER=scripted
 
 В этом режиме решение принимает детерминированное ядро по правилам и расчётным моделям;
 LLM не вызывается. Шаблон настроек находится в [.env.example](.env.example).
-Решение задеплоено: https://neftecode.goatwhistle.ru/
 
 ## Главное за 30 секунд
 
@@ -461,12 +454,6 @@ uv run python scripts/excluded_periods.py --root <каталог с task/>
 в [реестре](docs/excluded-periods.md) как ограничение, а не домысленный список дат.
 
 ---
-
-<p align="center">
-  <a href="https://neftecode.goatwhistle.ru/">
-    <img src="https://img.shields.io/badge/Живое_демо-neftecode.goatwhistle.ru-c8761a?style=for-the-badge&labelColor=322d2a" alt="Живое демо"/>
-  </a>
-</p>
 
 <p align="center">
   <a href="docs/README.md"><img src="https://img.shields.io/badge/Документация-5a564e?style=flat" alt="Документация"/></a>
